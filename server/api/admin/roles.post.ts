@@ -13,10 +13,31 @@ const MAX_PATROL_LEADERS = 2
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const b = await readBody<{
-    action?: string, scoutId?: number, scopeId?: number,
+    action?: string, scoutId?: number, scopeId?: number, admin?: boolean,
     role?: string, scope?: string, sectionId?: number, patrolId?: number, rank?: string
   }>(event)
   const db = useDb()
+
+  // ----- grant/revoke Αρχηγός Συστήματος (full access, every sector) -----
+  // Only an existing Αρχηγός Συστήματος may hand this out.
+  if (b?.action === 'setAdmin') {
+    if (me.role !== 'troop_leader')
+      throw createError({ statusCode: 403, message: 'Only the Αρχηγός Συστήματος can grant full access' })
+    const scoutId = Number(b.scoutId)
+    if (scoutId === me.id) throw createError({ statusCode: 400, message: 'You cannot change your own role' })
+    const target = db.select().from(s.scouts).where(eq(s.scouts.id, scoutId)).get()
+    if (!target) throw createError({ statusCode: 404, message: 'Not found' })
+
+    if (b.admin === true) {
+      // Keep their existing scopes: a troop leader ignores them, but they are
+      // restored intact if full access is later revoked.
+      db.update(s.scouts).set({ role: 'troop_leader' }).where(eq(s.scouts.id, scoutId)).run()
+    } else {
+      const remaining = db.select().from(s.leaderScopes).where(eq(s.leaderScopes.scoutId, scoutId)).all()
+      db.update(s.scouts).set({ role: remaining.length ? 'leader' : 'scout' }).where(eq(s.scouts.id, scoutId)).run()
+    }
+    return { ok: true }
+  }
 
   // ----- multi-role: add one more scope without touching existing ones -----
   if (b?.action === 'addScope') {

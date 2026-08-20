@@ -105,6 +105,15 @@ async function removeScope(scopeId: number) {
     await refreshAndResync(); show('✅ ' + t('saved'))
   } catch (e: any) { show(e?.data?.message || t('error')) }
 }
+async function setAdmin(makeAdmin: boolean) {
+  if (makeAdmin && !confirm(t('confirmMakeAdmin'))) return
+  try {
+    await $fetch('/api/admin/roles', {
+      method: 'POST', body: { action: 'setAdmin', scoutId: editing.value.id, admin: makeAdmin }
+    })
+    await refreshAndResync(); show('✅ ' + t('saved'))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+}
 async function deleteLeader() {
   if (!confirm(t('confirmDeleteLeader'))) return
   try {
@@ -283,6 +292,11 @@ const eligibleForPatrol = computed(() => {
           </template>
           <div v-if="rotateSmsOutcome === 'sent'" class="tiny" style="color:var(--green)">📱 {{ t('smsSent') }}</div>
           <div v-else-if="rotateSmsOutcome === 'failed'" class="tiny muted">{{ t('smsNotConfigured') }}</div>
+          <div class="sec-title" style="margin:0">{{ t('permissions') }}</div>
+          <button v-if="editing.role !== 'troop_leader'" class="btn ghost" @click="setAdmin(true)">⭐ {{ t('makeSuperAdmin') }}</button>
+          <button v-else class="btn danger" @click="setAdmin(false)">{{ t('revokeSuperAdmin') }}</button>
+          <div class="tiny muted">{{ t('superAdminNote') }}</div>
+
           <button v-if="editing.role !== 'troop_leader' && editing.scopes?.length" class="btn danger" @click="demote(editing.id)">{{ t('demote') }}</button>
           <button v-if="editing.role !== 'troop_leader'" class="btn danger" @click="deleteLeader">🗑️ {{ t('deletePermanently') }}</button>
         </div>

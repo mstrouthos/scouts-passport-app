@@ -86,8 +86,30 @@ const canCreate = computed(() => {
   return !!form.sectionId
 })
 
-const rankLabel = (l: any) => l.role === 'troop_leader' ? t('troopLeader')
-  : (l.rank === 'yparchigos' ? t('yparchigos') : t('archigos'))
+// The API returns a leader's rank inside scopes[], not as a flat `rank` — a
+// leader can hold several. Show the first, and the sector it applies to.
+function scopeRank(sc: any) {
+  if (!sc) return t('archigos')
+  if (sc.scope === 'patrol') return sc.rank === 'yparchigos' ? t('yparchigosEnomotias') : t('archigosEnomotias')
+  return sc.rank === 'yparchigos' ? t('yparchigos') : t('archigos')
+}
+function rankLabel(l: any) {
+  return l.role === 'troop_leader' ? t('troopLeader') : scopeRank(l.scopes?.[0])
+}
+function scopeWhere(sc: any) {
+  if (!sc || sc.scope === 'troop') return t('wholeTroop')
+  if (sc.scope === 'patrol') {
+    const p = (data.value?.sections || []).flatMap((s: any) => s.patrols).find((x: any) => x.id === sc.patrolId)
+    return p ? `${p.emblem} ${lx(p, 'name')}` : t('wholeTroop')
+  }
+  const sec = (data.value?.sections || []).find((x: any) => x.id === sc.sectionId)
+  return sec ? lx(sec, 'name') : t('wholeTroop')
+}
+function leaderSub(l: any) {
+  if (l.role === 'troop_leader') return t('allSectors')
+  if (!l.scopes?.length) return t('noRoles')
+  return l.scopes.map((sc: any) => `${scopeRank(sc)} · ${scopeWhere(sc)}`).join(' · ')
+}
 
 // ----- patrol (team) management, for section-admin leaders only -----
 const editingPatrol = ref<any>(null)   // { id?, sectionId, nameEl, nameEn, emblem }
@@ -167,7 +189,7 @@ async function deletePatrol() {
         <div v-if="openSectors.has('leaders')" class="adm">
           <NuxtLink v-for="r in data.leaders" :key="r.id" :to="`/admin/roles?open=${r.id}`" class="it">
             <Avatar :name="name(r)" :tone="r.role === 'troop_leader' ? 'gold' : 'green'" />
-            <div style="flex:1;min-width:0"><b>{{ name(r) }}</b></div>
+            <div style="flex:1;min-width:0"><b>{{ name(r) }}</b><span>{{ leaderSub(r) }}</span></div>
             <span class="pill" :class="r.role === 'troop_leader' ? 'sched' : 'live'">{{ rankLabel(r) }}</span>
             <span class="chev">›</span>
           </NuxtLink>
