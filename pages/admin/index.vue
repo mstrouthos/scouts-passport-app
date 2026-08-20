@@ -16,6 +16,11 @@ async function logout() {
   useMe().value = null
   navigateTo('/login')
 }
+const newPass = ref<string | null>(null)
+async function rotateOwn() {
+  const res = await $fetch<any>(`/api/admin/scouts/${me.value!.id}/passcode`, { method: 'POST' })
+  newPass.value = res.passcode
+}
 </script>
 
 <template>
@@ -34,6 +39,17 @@ async function logout() {
       <button :class="{ on: locale === 'el' }" @click="pickLang('el')">Ελληνικά</button>
       <button :class="{ on: locale === 'en' }" @click="pickLang('en')">English</button>
     </div>
+
+    <div class="sec-title">{{ t('loginCard') }}</div>
+    <div v-if="newPass" class="note" style="text-align:center">
+      <b>{{ t('passcodeIs') }} <span style="font-variant-numeric:tabular-nums">{{ newPass }}</span></b>
+      {{ t('writeItDown') }}
+    </div>
+    <button v-else class="srow" @click="rotateOwn">
+      <div class="ico">🔑</div>
+      <div class="txt"><b>{{ t('newPasscode') }}</b><span>{{ t('newPasscodeSub') }}</span></div>
+      <span class="chev">›</span>
+    </button>
 
     <div class="tiny muted" style="text-align:center">{{ t('notRanked') }}</div>
     <button class="btn danger" @click="logout">{{ t('logout') }}</button>

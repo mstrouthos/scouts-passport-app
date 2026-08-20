@@ -67,9 +67,16 @@ That keeps 14 daily snapshots **on the same volume** — still copy them off the
 server periodically (scp/rsync from the host, or Coolify's S3 backup if you
 use it). A backup that lives only on the box that dies is not a backup.
 
-## 6. First login
+## 6. First login & go-live
 
-Deploy, open the domain, and sign in with the seeded demo passcodes from the
-README (`1111-2222` troop leader). Create your real troop from that account,
-print login cards, then deactivate or repurpose the demo entries — or wipe
-`/data/passport.db` before inviting anyone, to start truly clean.
+1. Sign in with the seeded troop leader passcode from the README (`1111-2222`).
+2. **Immediately rotate it**: Προφίλ → Νέος κωδικός. The demo codes are public
+   in this repo — do this before anything else.
+3. Create your real scouts (Πρόσκοποι → +) and appoint leaders
+   (Άλλα → Ρόλοι & δικαιώματα), rotating each leader's passcode from that screen.
+4. Print real cards (Πρόσκοποι → Κάρτες εισόδου) — printing regenerates the
+   selected scouts' passcodes, which also voids every demo code.
+5. Deactivate the demo scouts you don't repurpose (tap scout → Απενεργοποίηση).
+
+Don't wipe `/data/passport.db` to "start clean" — an empty database reseeds the
+demo troop on next boot.

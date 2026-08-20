@@ -12,6 +12,11 @@ async function setScope(scoutId: number, scope: string, patrolId?: number) {
   await $fetch('/api/admin/roles', { method: 'POST', body: { scoutId, role: 'leader', scope, patrolId } })
   await refresh(); await loadMe(); editing.value = null; show('✅ ' + t('saved'))
 }
+const rotated = ref<string | null>(null)
+async function rotate(scoutId: number) {
+  const res = await $fetch<any>(`/api/admin/scouts/${scoutId}/passcode`, { method: 'POST' })
+  rotated.value = res.passcode
+}
 async function demote(scoutId: number) {
   await $fetch('/api/admin/roles', { method: 'POST', body: { scoutId, role: 'scout' } })
   await refresh(); editing.value = null; show('✅ ' + t('saved'))
@@ -42,7 +47,7 @@ function scopeLabel(l: any) {
     </button>
 
     <Teleport to="body">
-      <div v-if="editing" class="sheet-backdrop" @click.self="editing = null">
+      <div v-if="editing" class="sheet-backdrop" @click.self="editing = null; rotated = null">
         <div class="sheet" style="display:flex;flex-direction:column;gap:12px">
           <h3 style="margin:0;font-size:17px;text-align:center">{{ name(editing) }}</h3>
           <label class="lab">{{ t('assignScope') }}</label>
@@ -52,6 +57,11 @@ function scopeLabel(l: any) {
               {{ p.emblem }} {{ lx(p, 'name') }}
             </button>
           </div>
+          <div v-if="rotated" class="note" style="text-align:center">
+            <b>{{ t('passcodeIs') }} <span style="font-variant-numeric:tabular-nums">{{ rotated }}</span></b>
+            {{ t('writeItDown') }}
+          </div>
+          <button v-else class="btn ghost" @click="rotate(editing.id)">🔑 {{ t('newPasscode') }}</button>
           <button v-if="editing.role !== 'troop_leader'" class="btn danger" @click="demote(editing.id)">{{ t('demote') }}</button>
         </div>
       </div>
