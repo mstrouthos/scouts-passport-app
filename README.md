@@ -25,8 +25,12 @@ First boot creates and seeds `data/passport.db` with a demo troop.
 
 | Passcode | Who | Role |
 |---|---|---|
-| `1111-2222` | Κυριάκος Λάμπρου | Troop Leader — sees everything, assigns roles |
-| `3333-4444` | Δέσποινα Αντρέου | Leader of 🐺 Λύκοι only |
+| `1111-2222` | Κυριάκος Λάμπρου | Αρχηγός Συστήματος — sees everything, assigns roles |
+| `3333-4444` | Δέσποινα Αντρέου | Αρχηγός Ομάδας Προσκόπων |
+| `4444-5555` | Μάριος Σιακαλλής | Υπαρχηγός Ομάδας Προσκόπων (announcements need Δέσποινα's approval) |
+| `2222-3333` | Χριστίνα Παύλου | Αρχηγός Αγέλης (no member accounts — manages the parents' page) |
+| `6666-7777` | Παναγιώτης Ηλία | Αρχηγός Ενωμοτίας — 🐺 Λύκοι only |
+| `7777-8888` | Δήμος Κωνσταντίνου | Υπαρχηγός Ενωμοτίας — 🐺 Λύκοι only |
 | `5555-6666` | Γιώργος Παπαδόπουλος | Scout (🦅 Αετοί) |
 | `70NN-00NN` | other scouts | NN = 10 + roster row (7010-0010 …) |
 

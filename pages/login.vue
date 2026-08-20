@@ -26,8 +26,10 @@ async function submit() {
 
 <template>
   <div class="login">
+    <div class="auth-blobs"><i /><i /><i /></div>
     <div class="inner">
-      <MascotWolf style="margin:0 auto" />
+      <img class="brandlogo rise" src="/images/logo-256.png" alt="" style="margin:0 auto 4px">
+      <MascotPhoenix style="margin:0 auto;width:180px;display:block" />
       <h2 class="rise" style="animation-delay:.32s">{{ t('appName') }}</h2>
       <div class="tag rise" style="animation-delay:.42s">{{ t('troopName') }}</div>
       <form class="rise" style="animation-delay:.54s" @submit.prevent="submit">

@@ -1,9 +1,11 @@
-/* First-boot demo data: the troop from the design prototype.
+/* First-boot demo data — the 30ό Σύστημα structure.
    Demo passcodes (documented in README):
-     1111-2222  Κυριάκος Λάμπρου   — Troop Leader
-     3333-4444  Δέσποινα Αντρέου   — Leader of 🐺 Λύκοι
-     5555-6666  Γιώργος Παπαδόπουλος — Scout (Αετοί)
-   Every other scout: 70NN-00NN where NN = 10 + roster row (see README). */
+     1111-2222  Κυριάκος Λάμπρου    — Αρχηγός Συστήματος (admin, all sectors)
+     3333-4444  Δέσποινα Αντρέου    — Αρχηγός Ομάδας Προσκόπων
+     4444-5555  Μάριος Σιακαλλής    — Υπαρχηγός Ομάδας Προσκόπων (needs approval to send)
+     2222-3333  Χριστίνα Παύλου     — Αρχηγός Αγέλης (no member accounts — parents page)
+     5555-6666  Γιώργος Παπαδόπουλος — Scout (Ομάδα, 🦅 Αετοί)
+   Every other scout: 70NN-00NN where NN = 10 + roster row. */
 import type { drizzle } from 'drizzle-orm/better-sqlite3'
 import * as s from './schema'
 import { hmacPasscode, now } from '../utils/passcode'
@@ -20,14 +22,22 @@ export function seedIfEmpty(db: Db) {
   if (db.select().from(s.scouts).limit(1).all().length) return
   const ts = now()
 
-  const [sec] = db.insert(s.sections).values({ nameEl: 'Πρόσκοποι', nameEn: 'Scouts' }).returning().all()
+  const sectionRows = db.insert(s.sections).values([
+    { nameEl: 'Μικρή Αγέλη', nameEn: 'Little Pack', slug: 'mikri-ageli', hasApp: false, sortOrder: 0 },
+    { nameEl: 'Αγέλη', nameEn: 'Cub Pack', slug: 'ageli', hasApp: false, sortOrder: 1 },
+    { nameEl: 'Ομάδα Προσκόπων', nameEn: 'Scout Troop', slug: 'omada', hasApp: true, sortOrder: 2 },
+    { nameEl: 'Κοινότητα Ανιχνευτών', nameEn: 'Venture Community', slug: 'koinotita', hasApp: true, sortOrder: 3 }
+  ]).returning().all()
+  const S = Object.fromEntries(sectionRows.map(x => [x.slug!, x.id]))
+
   const patrolRows = db.insert(s.patrols).values([
-    { sectionId: sec.id, nameEl: 'Λύκοι', nameEn: 'Wolves', emblem: '🐺', sortOrder: 0 },
-    { sectionId: sec.id, nameEl: 'Αετοί', nameEn: 'Eagles', emblem: '🦅', sortOrder: 1 },
-    { sectionId: sec.id, nameEl: 'Κόβρες', nameEn: 'Cobras', emblem: '🐍', sortOrder: 2 }
+    { sectionId: S.omada, nameEl: 'Λύκοι', nameEn: 'Wolves', emblem: '🐺', sortOrder: 0 },
+    { sectionId: S.omada, nameEl: 'Αετοί', nameEn: 'Eagles', emblem: '🦅', sortOrder: 1 },
+    { sectionId: S.omada, nameEl: 'Κόβρες', nameEn: 'Cobras', emblem: '🐍', sortOrder: 2 }
   ]).returning().all()
   const P = patrolRows.map(p => p.id)
 
+  // [first, last, firstEn, lastEn, patrol index | -1, role]
   const roster: Array<[string, string, string, string, number, string]> = [
     ['Ανδρέας', 'Κυριάκου', 'Andreas', 'Kyriakou', 0, 'scout'],
     ['Χριστίνα', 'Γεωργίου', 'Christina', 'Georgiou', 0, 'scout'],
@@ -47,27 +57,48 @@ export function seedIfEmpty(db: Db) {
     ['Άννα', 'Μιχαήλ', 'Anna', 'Michael', 2, 'scout'],
     ['Δημήτρης', 'Ζένιου', 'Dimitris', 'Zeniou', 2, 'scout'],
     ['Έλενα', 'Πιερή', 'Elena', 'Pieri', 2, 'scout'],
-    ['Κυριάκος', 'Λάμπρου', 'Kyriakos', 'Lambrou', 1, 'troop_leader'],
-    ['Δέσποινα', 'Αντρέου', 'Despina', 'Andreou', 0, 'leader']
+    ['Κυριάκος', 'Λάμπρου', 'Kyriakos', 'Lambrou', -1, 'troop_leader'],
+    ['Δέσποινα', 'Αντρέου', 'Despina', 'Andreou', -1, 'leader'],
+    ['Μάριος', 'Σιακαλλής', 'Marios', 'Siakallis', -1, 'leader'],
+    ['Χριστίνα', 'Παύλου', 'Christina', 'Pavlou', -1, 'leader'],
+    // patrol-level leaders (Αρχηγός/Υπαρχηγός Ενωμοτίας) for 🐺 Λύκοι — proves the mechanism
+    ['Παναγιώτης', 'Ηλία', 'Panagiotis', 'Ilia', -1, 'leader'],
+    ['Δήμος', 'Κωνσταντίνου', 'Dimos', 'Constantinou', -1, 'leader']
   ]
-  const pass = (i: number, role: string, first: string) => {
-    if (role === 'troop_leader') return '1111-2222'
-    if (role === 'leader') return '3333-4444'
+  const pass = (i: number, first: string, last: string) => {
+    if (last === 'Λάμπρου') return '1111-2222'
+    if (last === 'Αντρέου') return '3333-4444'
+    if (last === 'Σιακαλλής') return '4444-5555'
+    if (last === 'Παύλου' && first === 'Χριστίνα') return '2222-3333'
     if (first === 'Γιώργος') return '5555-6666'
-    return `70${String(10 + i)}-00${String(10 + i)}`  // 7010-0010 … unique per row
+    if (first === 'Παναγιώτης') return '6666-7777'
+    if (first === 'Δήμος' && last === 'Κωνσταντίνου') return '7777-8888'
+    return `70${String(10 + i)}-00${String(10 + i)}`
   }
   const scoutRows = db.insert(s.scouts).values(roster.map(([f, l, fe, le, p, role], i) => ({
-    patrolId: P[p], firstName: f, lastName: l, firstNameEn: fe, lastNameEn: le,
-    passcodeHmac: hmacPasscode(pass(i, role, f)),
+    patrolId: p >= 0 ? P[p] : null,
+    sectionId: role === 'scout' ? S.omada : null,
+    firstName: f, lastName: l, firstNameEn: fe, lastNameEn: le,
+    passcodeHmac: hmacPasscode(pass(i, f, l)),
     role: role as any, isActive: !(f === 'Κώστας'),
     joinedOn: '2023-10-01', createdAt: ts
   }))).returning().all()
-  const byName = (f: string) => scoutRows.find(r => r.firstName === f)!
-  const troopLead = byName('Κυριάκος'), lead = byName('Δέσποινα'), giorgos = byName('Γιώργος')
+  const byLast = (l: string, f?: string) => scoutRows.find(r => r.lastName === l && (!f || r.firstName === f))!
+  const admin = byLast('Λάμπρου')
+  const archOmada = byLast('Αντρέου')
+  const yparchOmada = byLast('Σιακαλλής')
+  const archAgeli = byLast('Παύλου', 'Χριστίνα')
+  const giorgos = byLast('Παπαδόπουλος')
+  const archLykoi = byLast('Ηλία', 'Παναγιώτης')
+  const yparchLykoi = byLast('Κωνσταντίνου', 'Δήμος')
 
-  db.insert(s.leaderScopes).values({
-    scoutId: lead.id, scope: 'patrol', patrolId: P[0], assignedBy: troopLead.id, assignedAt: ts
-  }).run()
+  db.insert(s.leaderScopes).values([
+    { scoutId: archOmada.id, scope: 'section', sectionId: S.omada, rank: 'archigos', assignedBy: admin.id, assignedAt: ts },
+    { scoutId: yparchOmada.id, scope: 'section', sectionId: S.omada, rank: 'yparchigos', assignedBy: admin.id, assignedAt: ts },
+    { scoutId: archAgeli.id, scope: 'section', sectionId: S.ageli, rank: 'archigos', assignedBy: admin.id, assignedAt: ts },
+    { scoutId: archLykoi.id, scope: 'patrol', patrolId: P[0], rank: 'archigos', assignedBy: archOmada.id, assignedAt: ts },
+    { scoutId: yparchLykoi.id, scope: 'patrol', patrolId: P[0], rank: 'yparchigos', assignedBy: archOmada.id, assignedAt: ts }
+  ]).run()
 
   const badgeDefs: Array<[string, string, string, string, string]> = [
     ['🪢', 'Κόμποι', 'Knots', 'Δένεις με σιγουριά τους βασικούς κόμπους και ξέρεις πού χρησιμεύει ο καθένας.', 'Ties the core scouting knots confidently and knows what each one is for.'],
@@ -87,39 +118,37 @@ export function seedIfEmpty(db: Db) {
     iconEmoji: i, titleEl: el, titleEn: en, descriptionEl: del_, descriptionEn: den, sortOrder: idx
   }))).returning().all()
 
-  // award the first N badges to each scout, N varying by row for realistic spread
   const counts = [8, 7, 6, 5, 4, 4, 6, 6, 5, 5, 4, 0, 7, 6, 5, 5, 3, 3]
   const awards: any[] = []
   scoutRows.filter(r => r.role === 'scout').forEach((r, i) => {
     for (let b = 0; b < (counts[i] ?? 3); b++) {
       awards.push({
         scoutId: r.id, achievementId: badgeRows[b].id,
-        completedOn: `2026-0${(b % 6) + 3}-1${(i % 3) + 1}`, awardedBy: troopLead.id
+        completedOn: `2026-0${(b % 6) + 3}-1${(i % 3) + 1}`, awardedBy: admin.id
       })
     }
   })
   db.insert(s.scoutAchievements).values(awards).run()
 
   const eventRows = db.insert(s.events).values([
-    { scope: 'troop', titleEl: 'Εβδομαδιαία Συγκέντρωση', titleEn: 'Weekly Meeting', location: 'Εστία Συστήματος', startsAt: iso(-3, 17), endsAt: iso(-3, 19), createdBy: troopLead.id },
-    { scope: 'patrol', patrolId: P[0], titleEl: 'Συνάντηση Ενωμοτίας Λύκων', titleEn: 'Wolves Patrol Meet-up', location: 'Πλατεία', startsAt: iso(2, 18), endsAt: iso(2, 19, 30), remindAt: iso(1, 18), createdBy: lead.id },
-    { scope: 'section', sectionId: sec.id, titleEl: 'Πεζοπορία στον Τρόοδο', titleEn: 'Troodos Hike', location: 'Στάση Καλής Ελπίδας', startsAt: iso(8, 8), isAllDay: true, remindAt: iso(7, 18), createdBy: troopLead.id },
-    { scope: 'troop', titleEl: 'Παρέλαση 28ης Οκτωβρίου', titleEn: '28th October Parade', location: 'Κεντρική Πλατεία', startsAt: iso(14, 10), createdBy: troopLead.id },
-    { scope: 'patrol', patrolId: P[0], titleEl: 'Καθαρισμός παραλίας', titleEn: 'Beach Clean-up', location: 'Δασούδι', startsAt: iso(20, 9), endsAt: iso(20, 12), createdBy: lead.id },
-    { scope: 'troop', titleEl: 'Χειμερινή Κατασκήνωση', titleEn: 'Winter Camp', location: 'Δάσος Μαχαιρά', startsAt: iso(30, 9), isAllDay: true, remindAt: iso(29, 18), createdBy: troopLead.id }
+    { scope: 'troop', titleEl: 'Εβδομαδιαία Συγκέντρωση', titleEn: 'Weekly Meeting', location: 'Εστία Συστήματος', startsAt: iso(-3, 17), endsAt: iso(-3, 19), createdBy: admin.id },
+    { scope: 'patrol', patrolId: P[0], sectionId: S.omada, titleEl: 'Συνάντηση Ενωμοτίας Λύκων', titleEn: 'Wolves Patrol Meet-up', location: 'Πλατεία', startsAt: iso(2, 18), endsAt: iso(2, 19, 30), remindAt: iso(1, 18), createdBy: archOmada.id },
+    { scope: 'section', sectionId: S.omada, titleEl: 'Πεζοπορία στον Τρόοδο', titleEn: 'Troodos Hike', location: 'Στάση Καλής Ελπίδας', startsAt: iso(8, 8), isAllDay: true, remindAt: iso(7, 18), createdBy: archOmada.id },
+    { scope: 'section', sectionId: S.ageli, titleEl: 'Παιχνίδια Αγέλης στο πάρκο', titleEn: 'Cub Pack Games in the Park', location: 'Δημοτικό Πάρκο', startsAt: iso(4, 10), endsAt: iso(4, 12), remindAt: iso(3, 18), createdBy: archAgeli.id },
+    { scope: 'troop', titleEl: 'Παρέλαση 28ης Οκτωβρίου', titleEn: '28th October Parade', location: 'Κεντρική Πλατεία', startsAt: iso(14, 10), createdBy: admin.id },
+    { scope: 'troop', titleEl: 'Χειμερινή Κατασκήνωση', titleEn: 'Winter Camp', location: 'Δάσος Μαχαιρά', startsAt: iso(30, 9), isAllDay: true, remindAt: iso(29, 18), createdBy: admin.id }
   ]).returning().all()
 
-  // review of the past meeting: everyone present but two, most in full uniform; +5/+5 points
   const active = scoutRows.filter(r => r.role === 'scout' && r.isActive)
   const reviews: any[] = []; const pts: any[] = []
   active.forEach((r, i) => {
     const att = i === 4 ? 'absent' : i === 9 ? 'excused' : 'present'
     const uni = att !== 'present' ? null : (i % 6 === 3 ? 'partial' : 'full')
-    reviews.push({ eventId: eventRows[0].id, scoutId: r.id, attendance: att, uniform: uni, recordedBy: lead.id, recordedAt: ts })
-    if (att === 'present') pts.push({ scoutId: r.id, eventId: eventRows[0].id, kind: 'attendance', points: 5, reasonEl: 'Παρουσία στη συγκέντρωση', reasonEn: 'Attended the meeting', awardedBy: lead.id, awardedAt: ts })
-    if (uni === 'full') pts.push({ scoutId: r.id, eventId: eventRows[0].id, kind: 'uniform', points: 5, reasonEl: 'Πλήρης στολή', reasonEn: 'Full uniform', awardedBy: lead.id, awardedAt: ts })
+    reviews.push({ eventId: eventRows[0].id, scoutId: r.id, attendance: att, uniform: uni, recordedBy: archOmada.id, recordedAt: ts })
+    if (att === 'present') pts.push({ scoutId: r.id, eventId: eventRows[0].id, kind: 'attendance', points: 5, reasonEl: 'Παρουσία στη συγκέντρωση', reasonEn: 'Attended the meeting', awardedBy: archOmada.id, awardedAt: ts })
+    if (uni === 'full') pts.push({ scoutId: r.id, eventId: eventRows[0].id, kind: 'uniform', points: 5, reasonEl: 'Πλήρης στολή', reasonEn: 'Full uniform', awardedBy: archOmada.id, awardedAt: ts })
   })
-  pts.push({ patrolId: P[1], eventId: eventRows[0].id, kind: 'game', points: 20, reasonEl: 'Σκυταλοδρομία κόμπων', reasonEn: 'Knot relay race', awardedBy: troopLead.id, awardedAt: ts })
+  pts.push({ patrolId: P[1], eventId: eventRows[0].id, kind: 'game', points: 20, reasonEl: 'Σκυταλοδρομία κόμπων', reasonEn: 'Knot relay race', awardedBy: archOmada.id, awardedAt: ts })
   db.insert(s.eventReviews).values(reviews).run()
   db.insert(s.pointAwards).values(pts).run()
 
@@ -130,11 +159,10 @@ export function seedIfEmpty(db: Db) {
     ).returning().all()
     return { row, optRows }
   }
-
   const past = mkChallenge({
     titleEl: 'Πρώτες Βοήθειες', titleEn: 'First Aid',
     questionEl: 'Τι κάνεις πρώτα όταν κάποιος έχει μικρό κόψιμο;', questionEn: 'What do you do first for a small cut?',
-    imageEmoji: '🩹', points: 10, isPublished: true, createdBy: troopLead.id,
+    imageEmoji: '🩹', points: 10, isPublished: true, createdBy: admin.id,
     unlocksAt: iso(-10), closesAt: iso(-5),
     explanationEl: 'Πλένουμε καλά με καθαρό νερό πριν από οτιδήποτε άλλο.', explanationEn: 'Wash well with clean water before anything else.'
   }, [
@@ -145,7 +173,7 @@ export function seedIfEmpty(db: Db) {
   const live = mkChallenge({
     titleEl: 'Πυξίδα', titleEn: 'Compass',
     questionEl: 'Τι δείχνει η κόκκινη βελόνα μιας μαγνητικής πυξίδας;', questionEn: 'What does the red needle of a compass point to?',
-    imageEmoji: '🧭', points: 10, isPublished: true, createdBy: troopLead.id,
+    imageEmoji: '🧭', points: 10, isPublished: true, createdBy: admin.id,
     unlocksAt: iso(-2), closesAt: iso(3),
     explanationEl: 'Η κόκκινη βελόνα δείχνει πάντα τον μαγνητικό Βορρά, που διαφέρει ελαφρώς από τον γεωγραφικό.', explanationEn: 'The red needle always points to magnetic North, slightly different from true North.'
   }, [
@@ -157,7 +185,7 @@ export function seedIfEmpty(db: Db) {
   mkChallenge({
     titleEl: 'Σημαίες & Σήματα', titleEn: 'Flags & Signals',
     questionEl: 'Ποιο σήμα σημαίνει «ελάτε προς εμένα»;', questionEn: 'Which signal means "come to me"?',
-    points: 10, isPublished: true, createdBy: troopLead.id, unlocksAt: iso(5, 17),
+    points: 10, isPublished: true, createdBy: admin.id, unlocksAt: iso(5, 17),
     explanationEl: 'Τα χέρια ψηλά σχηματίζουν το σήμα συγκέντρωσης.', explanationEn: 'Arms raised high form the assembly signal.'
   }, [
     ['Χέρια ψηλά', 'Arms raised high', true],
@@ -167,7 +195,7 @@ export function seedIfEmpty(db: Db) {
   mkChallenge({
     titleEl: 'Ίχνη ζώων', titleEn: 'Animal Tracks',
     questionEl: 'Ποιο ζώο αφήνει πέλμα με 4 δάχτυλα και νύχια;', questionEn: 'Which animal leaves a 4-toed track with claws?',
-    imageEmoji: '🐾', points: 10, isPublished: true, createdBy: lead.id, patrolId: P[0],
+    imageEmoji: '🐾', points: 10, isPublished: true, createdBy: archOmada.id, sectionId: S.omada, patrolId: P[0],
     unlocksAt: iso(-1), closesAt: iso(4),
     explanationEl: 'Ο σκύλος (και ο λύκος!) πατά με 4 δάχτυλα και εμφανή νύχια.', explanationEn: 'Dogs (and wolves!) show 4 toes with visible claws.'
   }, [
@@ -176,21 +204,19 @@ export function seedIfEmpty(db: Db) {
     ['Το πουλί', 'A bird', false]
   ])
 
-  // answers to the finished + live challenges → points on the board
   const correctPast = past.optRows.find(o => o.isCorrect)!
-  const wrongPast = past.optRows[0]
   const answers: any[] = []
   active.forEach((r, i) => {
     const ok = i % 4 !== 0
     answers.push({
       challengeId: past.row.id, scoutId: r.id,
-      optionId: ok ? correctPast.id : wrongPast.id,
+      optionId: ok ? correctPast.id : past.optRows[0].id,
       isCorrect: ok, pointsAwarded: ok ? 10 : 0, answeredAt: iso(-7)
     })
   })
   const correctLive = live.optRows.find(o => o.isCorrect)!
   active.slice(0, 11).forEach((r, i) => {
-    if (r.id === giorgos.id) return // leave the demo scout's live challenge unanswered
+    if (r.id === giorgos.id) return
     const ok = i % 5 !== 2
     answers.push({
       challengeId: live.row.id, scoutId: r.id,
@@ -276,13 +302,8 @@ export function seedIfEmpty(db: Db) {
       slug: 'law-promise', iconEmoji: '📜', titleEl: 'Νόμος & Υπόσχεση', titleEn: 'Law & Promise',
       summaryEl: 'Οι αρχές μας', summaryEn: 'Our principles', sortOrder: 2, isPublished: false,
       bodyEl: 'Το επίσημο κείμενο θα προστεθεί από τον αρχηγό.', bodyEn: 'The official text will be added by a leader.'
-    },
-    {
-      slug: 'contacts', iconEmoji: '☎️', titleEl: 'Επικοινωνία & Ασφάλεια', titleEn: 'Contacts & Safety',
-      summaryEl: 'Ποιον καλώ και πότε', summaryEn: 'Who to call and when', sortOrder: 3, isPublished: false,
-      bodyEl: 'Τηλέφωνα αρχηγών και βασικοί κανόνες ασφάλειας.', bodyEn: 'Leader phone numbers and basic safety rules.'
     }
   ]).run()
 
-  console.log('[seed] demo troop created — passcodes: 1111-2222 (troop leader), 3333-4444 (leader), 5555-6666 (scout)')
+  console.log('[seed] 30ό Σύστημα demo created — admin 1111-2222, Αρχηγός Ομάδας 3333-4444, Υπαρχηγός 4444-5555, Αρχηγός Αγέλης 2222-3333, scout 5555-6666, Αρχηγός Ενωμοτίας Λύκων 6666-7777, Υπαρχηγός Ενωμοτίας Λύκων 7777-8888')
 }

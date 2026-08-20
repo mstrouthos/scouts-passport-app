@@ -4,7 +4,9 @@ export const sections = sqliteTable('sections', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   nameEl: text('name_el').notNull(),
   nameEn: text('name_en'),
-  sortOrder: integer('sort_order').notNull().default(0)
+  sortOrder: integer('sort_order').notNull().default(0),
+  slug: text('slug'),
+  hasApp: integer('has_app', { mode: 'boolean' }).notNull().default(true)
 })
 
 export const patrols = sqliteTable('patrols', {
@@ -19,6 +21,7 @@ export const patrols = sqliteTable('patrols', {
 export const scouts = sqliteTable('scouts', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   patrolId: integer('patrol_id').references(() => patrols.id),
+  sectionId: integer('section_id').references(() => sections.id),
   firstName: text('first_name').notNull(),
   lastName: text('last_name').notNull(),
   firstNameEn: text('first_name_en'),
@@ -37,6 +40,7 @@ export const leaderScopes = sqliteTable('leader_scopes', {
   scope: text('scope', { enum: ['troop', 'section', 'patrol'] }).notNull(),
   sectionId: integer('section_id').references(() => sections.id),
   patrolId: integer('patrol_id').references(() => patrols.id),
+  rank: text('rank', { enum: ['archigos', 'yparchigos'] }).notNull().default('archigos'),
   assignedBy: integer('assigned_by'),
   assignedAt: text('assigned_at')
 })
@@ -119,6 +123,7 @@ export const challenges = sqliteTable('challenges', {
   patrolId: integer('patrol_id').references(() => patrols.id),
   createdBy: integer('created_by'),
   isPublished: integer('is_published', { mode: 'boolean' }).notNull().default(false),
+  forLeaders: integer('for_leaders', { mode: 'boolean' }).notNull().default(false),
   notifiedAt: text('notified_at')
 })
 
@@ -158,13 +163,35 @@ export const infoPages = sqliteTable('info_pages', {
 
 export const pushSubscriptions = sqliteTable('push_subscriptions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  scoutId: integer('scout_id').references(() => scouts.id),
+  sectionId: integer('section_id').references(() => sections.id),
   endpoint: text('endpoint').notNull(),
   p256dh: text('p256dh').notNull(),
   auth: text('auth').notNull(),
   userAgent: text('user_agent'),
   createdAt: text('created_at').notNull()
 }, t => [uniqueIndex('push_endpoint_uq').on(t.endpoint)])
+
+export const announcements = sqliteTable('announcements', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  audience: text('audience', { enum: ['troop', 'section', 'leaders'] }).notNull(),
+  sectionId: integer('section_id').references(() => sections.id),
+  textEl: text('text_el').notNull(),
+  textEn: text('text_en'),
+  status: text('status', { enum: ['pending', 'sent'] }).notNull().default('pending'),
+  createdBy: integer('created_by').notNull(),
+  createdAt: text('created_at').notNull(),
+  approvedBy: integer('approved_by'),
+  sentAt: text('sent_at')
+})
+
+export const familyContacts = sqliteTable('family_contacts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sectionId: integer('section_id').notNull().references(() => sections.id),
+  email: text('email').notNull(),
+  addedBy: integer('added_by'),
+  createdAt: text('created_at')
+}, t => [uniqueIndex('family_contact_uq').on(t.sectionId, t.email)])
 
 export const notificationLog = sqliteTable('notification_log', {
   id: integer('id').primaryKey({ autoIncrement: true }),

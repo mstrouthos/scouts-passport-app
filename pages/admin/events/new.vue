@@ -4,14 +4,14 @@ const me = useMe()
 const lx = useLx()
 const { show } = useToast()
 const isTroop = computed(() => me.value?.role === 'troop_leader')
-const patrols = computed(() => me.value?.scopePatrols)
+const { data: secs } = await useFetch<any>('/api/admin/contacts')     // sections in my scope
 const form = reactive({
-  titleEl: '', titleEn: '', location: '', scope: isTroop.value ? 'troop' : 'patrol',
-  patrolId: patrols.value?.[0]?.id ?? 0,
+  titleEl: '', titleEn: '', location: '',
+  scope: isTroop.value ? 'troop' : 'section',
+  sectionId: 0,
   date: new Date().toISOString().slice(0, 10), start: '17:00', end: '19:00', remind: true
 })
-const { data: adminData } = await useFetch<any>('/api/admin/scouts')
-const allPatrols = computed(() => adminData.value?.patrols || [])
+watchEffect(() => { if (!form.sectionId && secs.value?.length) form.sectionId = secs.value[0].id })
 
 async function save() {
   const startsAt = new Date(`${form.date}T${form.start}`).toISOString()
@@ -21,7 +21,7 @@ async function save() {
     await $fetch('/api/admin/events', {
       method: 'POST',
       body: { titleEl: form.titleEl, titleEn: form.titleEn || null, location: form.location || null,
-              scope: form.scope, patrolId: form.patrolId || null, startsAt, endsAt, remindAt }
+              scope: form.scope, sectionId: form.scope === 'section' ? form.sectionId : null, startsAt, endsAt, remindAt }
     })
     show('✅ ' + t('saved'))
     navigateTo('/admin/events')
@@ -39,16 +39,11 @@ async function save() {
         <div>
           <label class="lab">{{ t('scopeQ') }}</label>
           <div class="chips">
-            <template v-if="isTroop">
-              <button v-for="sc in ['troop', 'section']" :key="sc" class="chip" :class="{ on: form.scope === sc }"
-                      @click="form.scope = sc">{{ t(sc) }}</button>
-              <button v-for="p in allPatrols" :key="p.id" class="chip"
-                      :class="{ on: form.scope === 'patrol' && form.patrolId === p.id }"
-                      @click="form.scope = 'patrol'; form.patrolId = p.id">{{ p.emblem }} {{ lx(p, 'name') }}</button>
-            </template>
-            <template v-else>
-              <span v-for="p in patrols || []" :key="p.id" class="chip on">{{ p.emblem }} {{ lx(p, 'name') }}</span>
-            </template>
+            <button v-if="isTroop" class="chip" :class="{ on: form.scope === 'troop' }"
+                    @click="form.scope = 'troop'">{{ t('wholeTroop') }}</button>
+            <button v-for="sec in secs" :key="sec.id" class="chip"
+                    :class="{ on: form.scope === 'section' && form.sectionId === sec.id }"
+                    @click="form.scope = 'section'; form.sectionId = sec.id">{{ lx(sec, 'name') }}</button>
           </div>
         </div>
       </div>

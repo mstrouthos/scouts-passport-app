@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
-import { sendPushTo } from '../../utils/push'
+import { sendPushTo, sendPushToParents } from '../../utils/push'
+import { sectionOf } from '../../utils/guard'
 import { now } from '../../utils/passcode'
 
 /** Hit by host cron every few minutes with the token:
@@ -18,10 +19,10 @@ export default defineEventHandler(async (event) => {
   // challenges that just unlocked
   for (const c of db.select().from(s.challenges).all()) {
     if (!c.isPublished || !c.unlocksAt || c.unlocksAt > t || c.notifiedAt) continue
-    const targets = scouts.filter(r =>
+    const pool = c.forLeaders ? scouts.filter(r => r.role !== 'scout') : scouts.filter(r => r.role === 'scout')
+    const targets = pool.filter(r =>
       (!c.sectionId && !c.patrolId)
-      || (c.patrolId && r.patrolId === c.patrolId)
-      || (c.sectionId && r.patrolId && patrols.find(p => p.id === r.patrolId)?.sectionId === c.sectionId))
+      || (c.patrolId != null ? r.patrolId === c.patrolId : sectionOf(r as any, patrols) === c.sectionId))
     notified += await sendPushTo(targets.map(r => r.id), {
       title: 'Νέα πρόκληση! 🎯',
       body: `${c.titleEl} · ${c.points} πόντοι`, kind: 'challenge_unlocked', refId: c.id
@@ -29,17 +30,22 @@ export default defineEventHandler(async (event) => {
     db.update(s.challenges).set({ notifiedAt: t }).where(eq(s.challenges.id, c.id)).run()
   }
 
-  // event reminders due
+  // event reminders due — members with accounts, plus parent subscriptions
+  const famSections = db.select().from(s.sections).all().filter(x => !x.hasApp).map(x => x.id)
   for (const e of db.select().from(s.events).all()) {
     if (!e.remindAt || e.remindAt > t || e.startsAt <= t) continue
-    const targets = scouts.filter(r =>
+    const targets = scouts.filter(r => r.role === 'scout').filter(r =>
       e.scope === 'troop'
       || (e.scope === 'patrol' && r.patrolId === e.patrolId)
-      || (e.scope === 'section' && r.patrolId && patrols.find(p => p.id === r.patrolId)?.sectionId === e.sectionId))
-    notified += await sendPushTo(targets.map(r => r.id), {
+      || (e.scope === 'section' && sectionOf(r as any, patrols) === e.sectionId))
+    const msg = {
       title: 'Υπενθύμιση 📅',
       body: `Αύριο: ${e.titleEl}${e.location ? ' · ' + e.location : ''}`, kind: 'event_reminder', refId: e.id
-    })
+    }
+    notified += await sendPushTo(targets.map(r => r.id), msg)
+    if (e.scope === 'troop') notified += await sendPushToParents(null, msg)
+    else if (e.scope === 'section' && e.sectionId != null && famSections.includes(e.sectionId))
+      notified += await sendPushToParents([e.sectionId], msg)
   }
   return { ok: true, notified, at: t }
 })

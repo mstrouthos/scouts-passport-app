@@ -1,14 +1,13 @@
 import { useDb, schema as s } from '../db'
-import { requireScout } from '../utils/guard'
-import { eq } from 'drizzle-orm'
+import { requireScout, sectionOf } from '../utils/guard'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
   const db = useDb()
-  const patrol = me.patrolId ? db.select().from(s.patrols).where(eq(s.patrols.id, me.patrolId)).get() : null
+  const mySection = sectionOf(me)
   const rows = db.select().from(s.events).all()
     .filter(e => e.scope === 'troop'
-      || (e.scope === 'section' && patrol && e.sectionId === patrol.sectionId)
+      || (e.scope === 'section' && e.sectionId === mySection)
       || (e.scope === 'patrol' && e.patrolId === me.patrolId))
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
   return rows.map(e => ({

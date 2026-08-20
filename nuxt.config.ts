@@ -7,7 +7,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'Scout Passport',
+      title: 'Πύλη Προσκόπων',
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         { name: 'theme-color', content: '#E8F1FA' },
@@ -35,9 +35,9 @@ export default defineNuxtConfig({
   pwa: {
     registerType: 'autoUpdate',
     manifest: {
-      name: 'Διαβατήριο Προσκόπου',
-      short_name: 'Διαβατήριο',
-      description: 'Το ψηφιακό διαβατήριο του Συστήματός μας',
+      name: 'Πύλη Προσκόπων',
+      short_name: 'Πύλη Προσκόπων',
+      description: 'Η ψηφιακή πλατφόρμα διαχείρισης του 30ού Συστήματος',
       lang: 'el',
       display: 'standalone',
       background_color: '#E8F1FA',
@@ -61,6 +61,8 @@ export default defineNuxtConfig({
     cronToken: 'dev-cron-token',
     vapidPrivateKey: '',
     vapidSubject: 'mailto:admin@example.org',
+    resendApiKey: '',
+    emailFrom: '',
     dbPath: './data/passport.db',
     public: {
       vapidPublicKey: ''

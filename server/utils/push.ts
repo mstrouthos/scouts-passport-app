@@ -1,5 +1,5 @@
 import webpush from 'web-push'
-import { eq, inArray } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { now } from './passcode'
 
@@ -16,11 +16,27 @@ function ensureConfigured(): boolean {
   return configured
 }
 
-/** Push to scout ids, deduplicated via notification_log. Returns count actually pushed. */
+async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, payload: string): Promise<number> {
+  if (!subs.length || !ensureConfigured()) return 0
+  const db = useDb()
+  let sent = 0
+  await Promise.all(subs.map(async (sub) => {
+    try {
+      await webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload)
+      sent++
+    } catch (err: any) {
+      if (err?.statusCode === 404 || err?.statusCode === 410)
+        db.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.id, sub.id)).run()
+    }
+  }))
+  return sent
+}
+
+/** Push to member accounts, deduplicated via notification_log. */
 export async function sendPushTo(scoutIds: number[], msg: { title: string, body: string, kind: string, refId: number }): Promise<number> {
   if (!scoutIds.length) return 0
   const db = useDb()
-  // dedupe first, so announcements are logged even when push isn't configured
   const fresh: number[] = []
   for (const id of scoutIds) {
     try {
@@ -28,21 +44,27 @@ export async function sendPushTo(scoutIds: number[], msg: { title: string, body:
       fresh.push(id)
     } catch { /* already notified */ }
   }
-  if (!fresh.length || !ensureConfigured()) return 0
-  const subs = db.select().from(s.pushSubscriptions).all().filter(x => fresh.includes(x.scoutId))
-  let sent = 0
-  await Promise.all(subs.map(async (sub) => {
+  if (!fresh.length) return 0
+  const subs = db.select().from(s.pushSubscriptions).all().filter(x => x.scoutId != null && fresh.includes(x.scoutId))
+  return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body }))
+}
+
+/** Push to anonymous parent subscriptions. sectionIds null = every parent sub.
+    Dedupe via notification_log rows keyed on the negative section id. */
+export async function sendPushToParents(sectionIds: number[] | null, msg: { title: string, body: string, kind: string, refId: number }): Promise<number> {
+  const db = useDb()
+  const subs = db.select().from(s.pushSubscriptions).all()
+    .filter(x => x.scoutId == null && x.sectionId != null)
+    .filter(x => sectionIds === null || sectionIds.includes(x.sectionId!))
+  if (!subs.length) return 0
+  const targetSections = [...new Set(subs.map(x => x.sectionId!))]
+  const fresh: number[] = []
+  for (const sid of targetSections) {
     try {
-      await webpush.sendNotification(
-        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-        JSON.stringify({ title: msg.title, body: msg.body })
-      )
-      sent++
-    } catch (err: any) {
-      if (err?.statusCode === 404 || err?.statusCode === 410) {
-        db.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.id, sub.id)).run()
-      }
-    }
-  }))
-  return sent
+      db.insert(s.notificationLog).values({ scoutId: -sid, kind: msg.kind, refId: msg.refId, sentAt: now() }).run()
+      fresh.push(sid)
+    } catch { /* already sent to this section */ }
+  }
+  if (!fresh.length) return 0
+  return deliver(subs.filter(x => fresh.includes(x.sectionId!)), JSON.stringify({ title: msg.title, body: msg.body }))
 }

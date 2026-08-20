@@ -14,7 +14,8 @@ const groups = computed(() => {
 })
 const pill = (s: string) => s === 'live' ? ['live', t('live')] : s === 'scheduled' ? ['sched', t('scheduled')] : s === 'draft' ? ['draft', t('draft')] : null
 function sub(c: any) {
-  const sector = isTroop.value ? (c.sector ? `${c.sector.emblem} ${lx(c.sector, 'name')}` : t('wholeTroop')) + ' · ' : ''
+  const label = c.forLeaders ? t('vathmoforoi') : (c.sectionEl ? lx(c, 'section') : t('wholeTroop'))
+  const sector = isTroop.value ? label + ' · ' : ''
   if (c.state === 'scheduled') return sector + `${t('unlocks')} ${new Date(c.unlocksAt).toLocaleString('el-GR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
   if (c.state === 'draft') return sector + t('noDate')
   return sector + `${c.answered} ${t('answeredN')} · ${c.correct} ${t('correctN')}`

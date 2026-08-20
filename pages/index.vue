@@ -12,7 +12,9 @@ onMounted(async () => {
 
 <template>
   <div class="splash">
-    <MascotWolf />
+    <div class="auth-blobs"><i /><i /><i /></div>
+    <img class="brandlogo rise" src="/images/logo-256.png" alt="" style="margin-bottom:6px">
+    <MascotPhoenix style="width:190px" />
     <h1 class="rise" style="animation-delay:.35s">{{ t('appName') }}</h1>
     <div class="tag rise" style="animation-delay:.45s">{{ t('troopName') }}</div>
     <div class="loadbar rise" style="animation-delay:.6s"><i /></div>

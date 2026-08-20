@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { eq, inArray } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 
 export type SessionScout = typeof s.scouts.$inferSelect
@@ -27,22 +27,89 @@ export async function requireTroopLeader(event: H3Event): Promise<SessionScout> 
   return me
 }
 
-/** Patrol ids a leader may manage; null = everything (troop leader / troop scope). */
-export function scopedPatrolIds(me: SessionScout): number[] | null {
-  if (me.role === 'troop_leader') return null
-  const db = useDb()
-  const scopes = db.select().from(s.leaderScopes).where(eq(s.leaderScopes.scoutId, me.id)).all()
-  if (scopes.some(x => x.scope === 'troop' || x.scope === 'section')) return null
-  const ids = scopes.filter(x => x.scope === 'patrol' && x.patrolId != null).map(x => x.patrolId!)
-  return ids.length ? ids : []
+function myScopes(me: SessionScout) {
+  return useDb().select().from(s.leaderScopes).where(eq(s.leaderScopes.scoutId, me.id)).all()
 }
 
-/** Scouts (role=scout) this leader manages. */
+/** Coarsest grant a leader holds: admin (troop_leader) > troop > section > patrol > none. */
+export function scopeKind(me: SessionScout): 'admin' | 'troop' | 'section' | 'patrol' | null {
+  if (me.role === 'troop_leader') return 'admin'
+  const scopes = myScopes(me)
+  if (scopes.some(x => x.scope === 'troop')) return 'troop'
+  if (scopes.some(x => x.scope === 'section')) return 'section'
+  if (scopes.some(x => x.scope === 'patrol')) return 'patrol'
+  return null
+}
+
+/** Patrol ids granted directly (patrol-level leaders — e.g. Αρχηγός/Υπαρχηγός Ενωμοτίας). */
+export function directPatrolIds(me: SessionScout): number[] {
+  return [...new Set(myScopes(me).filter(x => x.scope === 'patrol' && x.patrolId != null).map(x => x.patrolId!))]
+}
+
+/** Sections a leader may ADMINISTER: create events/challenges/announcements, add
+    members, manage contacts, appoint patrol leaders. null = everything (admin/troop). */
+export function scopedSectionIds(me: SessionScout): number[] | null {
+  if (me.role === 'troop_leader') return null
+  const scopes = myScopes(me)
+  if (scopes.some(x => x.scope === 'troop')) return null
+  return [...new Set(scopes.filter(x => x.scope === 'section' && x.sectionId != null).map(x => x.sectionId!))]
+}
+
+/** Sections that should render at all (administered sections, plus the parent
+    section of any directly-granted patrol) — null = everything. */
+export function visibleSectionIds(me: SessionScout): number[] | null {
+  const secIds = scopedSectionIds(me)
+  if (secIds === null) return null
+  const patIds = directPatrolIds(me)
+  if (!patIds.length) return secIds
+  const patrols = useDb().select().from(s.patrols).all()
+  const viaPatrol = patrols.filter(p => patIds.includes(p.id)).map(p => p.sectionId)
+  return [...new Set([...secIds, ...viaPatrol])]
+}
+
+/** 'admin' | 'archigos' | 'yparchigos' of the leader's HIGHEST grant — used for the
+    announcement approval gate (section/troop level only; patrol leaders never author). */
+export function rankOf(me: SessionScout): 'admin' | 'archigos' | 'yparchigos' {
+  if (me.role === 'troop_leader') return 'admin'
+  const scopes = myScopes(me).filter(x => x.scope === 'troop' || x.scope === 'section')
+  return scopes.some(x => x.rank === 'archigos') ? 'archigos' : 'yparchigos'
+}
+
+/** Effective section of any member row (own column, else via patrol). */
+export function sectionOf(r: SessionScout, patrols?: Array<typeof s.patrols.$inferSelect>): number | null {
+  if (r.sectionId != null) return r.sectionId
+  if (r.patrolId == null) return null
+  const list = patrols ?? useDb().select().from(s.patrols).all()
+  return list.find(p => p.id === r.patrolId)?.sectionId ?? null
+}
+
+/** Patrol ids inside the leader's administered sections, plus any granted directly. null = all. */
+export function scopedPatrolIds(me: SessionScout): number[] | null {
+  const secs = scopedSectionIds(me)
+  const patIds = directPatrolIds(me)
+  if (secs === null) return null
+  const inSections = useDb().select().from(s.patrols).all().filter(p => secs.includes(p.sectionId)).map(p => p.id)
+  return [...new Set([...inSections, ...patIds])]
+}
+
+/** Members (role=scout) this leader manages: everyone in administered sections,
+    plus (for patrol-level leaders) just their own patrol's members. */
 export function scopedScouts(me: SessionScout) {
   const db = useDb()
-  const pids = scopedPatrolIds(me)
+  if (me.role === 'troop_leader') return db.select().from(s.scouts).where(eq(s.scouts.role, 'scout')).all()
+  const scopes = myScopes(me)
+  if (scopes.some(x => x.scope === 'troop')) return db.select().from(s.scouts).where(eq(s.scouts.role, 'scout')).all()
+  const secIds = scopedSectionIds(me)
+  const patIds = directPatrolIds(me)
+  if (!secIds.length && !patIds.length) return []
+  const patrols = db.select().from(s.patrols).all()
   const all = db.select().from(s.scouts).where(eq(s.scouts.role, 'scout')).all()
-  return pids === null ? all : all.filter(r => r.patrolId != null && pids.includes(r.patrolId))
+  return all.filter(r => {
+    const sid = sectionOf(r, patrols)
+    if (sid != null && secIds.includes(sid)) return true
+    if (r.patrolId != null && patIds.includes(r.patrolId)) return true
+    return false
+  })
 }
 
 export function assertScoutInScope(me: SessionScout, scoutId: number) {

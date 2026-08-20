@@ -1,6 +1,6 @@
 export default defineNuxtRouteMiddleware(async (to) => {
   if (import.meta.server) return
-  const open = to.path === '/' || to.path === '/login'
+  const open = to.path === '/' || to.path === '/login' || to.path.startsWith('/family')
   if (open) return
   const me = useMe()
   if (!me.value) await loadMe()

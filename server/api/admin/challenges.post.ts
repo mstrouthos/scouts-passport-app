@@ -1,5 +1,5 @@
 import { useDb, schema as s } from '../../db'
-import { requireLeader, scopedPatrolIds } from '../../utils/guard'
+import { requireLeader, scopedSectionIds, rankOf } from '../../utils/guard'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -9,12 +9,15 @@ export default defineEventHandler(async (event) => {
   if (b.options.filter((o: any) => o.isCorrect).length !== 1)
     throw createError({ statusCode: 400, message: 'Exactly one correct option' })
 
-  const pids = scopedPatrolIds(me)
-  let patrolId: number | null = b.patrolId != null ? Number(b.patrolId) : null
-  if (pids !== null) {
-    // sector leaders always author for their own sector
-    if (patrolId === null || !pids.includes(patrolId)) patrolId = pids[0] ?? null
-    if (patrolId === null) throw createError({ statusCode: 403, message: 'No sector assigned' })
+  const secIds = scopedSectionIds(me)
+  const rank = rankOf(me)
+  let sectionId: number | null = b.sectionId != null ? Number(b.sectionId) : null
+  let forLeaders = !!b.forLeaders && rank === 'admin'   // Βαθμοφόροι quizzes: admin only
+  if (secIds !== null) {
+    // Βαθμοφόροι author for their own sector only
+    if (sectionId === null || !secIds.includes(sectionId)) sectionId = secIds[0] ?? null
+    if (sectionId === null) throw createError({ statusCode: 403, message: 'No sector assigned' })
+    forLeaders = false
   }
 
   const db = useDb()
@@ -25,7 +28,7 @@ export default defineEventHandler(async (event) => {
     explanationEl: b.explanationEl || '', explanationEn: b.explanationEn || null,
     points: Number(b.points) || 10,
     unlocksAt: b.unlocksAt || null, closesAt: b.closesAt || null,
-    patrolId, createdBy: me.id, isPublished: !!b.isPublished && !!b.unlocksAt
+    sectionId, forLeaders, createdBy: me.id, isPublished: !!b.isPublished && !!b.unlocksAt
   }).returning().all()
   db.insert(s.challengeOptions).values(
     b.options.map((o: any, i: number) => ({

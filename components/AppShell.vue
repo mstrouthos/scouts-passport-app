@@ -26,6 +26,18 @@ const isOn = (to: string) => to === '/app' || to === '/admin'
   ? route.path === to
   : route.path.startsWith(to)
 
+/* Per-section dashboard colour: Ομάδα Προσκόπων (default/troop-wide) = green,
+   Κοινότητα Ανιχνευτών = purple, Αγέλη = amber, Μικρή Αγέλη = baby blue.
+   scopeSections already resolves patrol-level leaders to their patrol's section. */
+const themeClass = computed(() => {
+  if (!isLeader.value) return null
+  const slug = me.value?.scopeSections?.[0]?.slug
+  if (slug === 'koinotita') return 'theme-koinotita'
+  if (slug === 'ageli') return 'theme-ageli'
+  if (slug === 'mikri-ageli') return 'theme-mikri-ageli'
+  return null // omada / troop-wide = default green
+})
+
 async function switchLang() {
   const next = locale.value === 'el' ? 'en' : 'el'
   await setLocale(next)
@@ -38,7 +50,7 @@ function goBack() {
 </script>
 
 <template>
-  <div class="shell" :class="{ lead: isLeader, 'with-rail': isLeader }">
+  <div class="shell" :class="{ lead: isLeader, 'with-rail': isLeader, [themeClass]: themeClass }">
     <aside v-if="isLeader" class="rail">
       <div class="brand"><span class="mark">⚜️</span> {{ t('appName') }}</div>
       <NuxtLink v-for="tb in tabs" :key="tb.to" :to="tb.to" class="tab" :class="{ on: isOn(tb.to) }">

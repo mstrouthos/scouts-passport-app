@@ -2,10 +2,11 @@
 const { t, locale, setLocale } = useI18n()
 const me = useMe()
 const lx = useLx()
-const roleLabel = computed(() => me.value?.role === 'troop_leader' ? t('troopLeader') : t('leader'))
+const roleLabel = computed(() => me.value?.role === 'troop_leader' ? t('troopLeader')
+  : me.value?.rank === 'yparchigos' ? t('yparchigos') : t('archigos'))
 const scopeLabel = computed(() => {
-  if (me.value?.role === 'troop_leader' || me.value?.scopePatrols === null) return t('allSectors')
-  return (me.value?.scopePatrols || []).map(p => `${p.emblem} ${lx(p, 'name')}`).join(' · ') || t('allSectors')
+  if (me.value?.role === 'troop_leader' || me.value?.scopeSections === null) return t('allSectors')
+  return (me.value?.scopeSections || []).map((x: any) => lx(x, 'name')).join(' · ') || t('allSectors')
 })
 async function pickLang(l: 'el' | 'en') {
   await setLocale(l)
@@ -27,7 +28,7 @@ async function rotateOwn() {
   <AppShell :title="t('profile')" :sub="roleLabel">
     <div class="pcard">
       <div class="name">{{ me?.firstName }} {{ me?.lastName }}</div>
-      <div class="meta">{{ me?.role === 'troop_leader' ? '👑 ' + t('troopLeader') : t('leader') }} · {{ lx(me?.section, 'name') }}</div>
+      <div class="meta">{{ me?.role === 'troop_leader' ? '👑 ' + t('troopLeader') : roleLabel }}</div>
       <div class="stats"><div class="stat" style="flex:1">
         <b style="font-size:14px;font-weight:600">{{ scopeLabel }}</b>
         <span>{{ t('scopeOf') }}</span>
