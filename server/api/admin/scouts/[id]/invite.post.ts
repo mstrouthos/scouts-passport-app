@@ -26,10 +26,11 @@ export default defineEventHandler(async (event) => {
     db.update(s.scouts).set({ passcodeHmac: hmacPasscode(passcode) }).where(eq(s.scouts.id, id)).run()
   }
 
-  const fullName = `${row.firstName} ${row.lastName}`.trim()
+  // Kept short on purpose: Greek text is sent as UCS-2, which fits only ~70
+  // characters per SMS part, so a longer message costs (and can fail) double.
   const message = row.locale === 'en'
-    ? `Scout Passport - 30th Ammochostos: ${fullName}'s login code is ${passcode}.`
-    : `Πύλη Προσκόπων - 30ό Σύστημα Αμμοχώστου: Ο κωδικός εισόδου του/της ${fullName} είναι ${passcode}.`
+    ? `Scout Passport: your login code is ${passcode}`
+    : `Πύλη Προσκόπων: ο κωδικός εισόδου σου είναι ${passcode}`
   const sent = (await sendSms([row.phone], message)) > 0
 
   return { passcode, sent }
