@@ -247,7 +247,11 @@
   "idCard": "Κάρτα Μέλους",
   "downloadIdCard": "⬇️ Λήψη κάρτας",
   "walletNote": "Λήψη ως εικόνα/PDF. Πλήρης υποστήριξη Apple/Google Wallet χρειάζεται λογαριασμό προγραμματιστή που δεν έχουμε ακόμη.",
-  "smsSent": "SMS",
+  "smsSent": "Το SMS στάλθηκε",
   "smsNote": "Στέλνει επίσης SMS σε όσους έχουν τηλέφωνο καταχωρημένο.",
-  "contactDetails": "Στοιχεία επικοινωνίας"
+  "contactDetails": "Στοιχεία επικοινωνίας",
+  "askSendSms": "Αποστολή του κωδικού με SMS στο {phone};",
+  "yesSendSms": "📱 Αποστολή SMS",
+  "smsNotConfigured": "Δεν στάλθηκε (δεν έχει ρυθμιστεί SMS ή απέτυχε η αποστολή).",
+  "sendSmsOnRegen": "Αποστολή του νέου κωδικού με SMS στο"
 }

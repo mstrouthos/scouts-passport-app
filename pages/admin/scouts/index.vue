@@ -34,12 +34,15 @@ const form = reactive({
   sectionId: 0 as number | 'leaders', patrolId: 0,
   leaderScope: 'troop', leaderSectionId: 0, rank: 'archigos'
 })
-const created = ref<{ passcode: string } | null>(null)
+const created = ref<{ id: number, passcode: string, phone: string | null } | null>(null)
+const smsAsked = ref(false)
+const smsOutcome = ref<'sent' | 'failed' | null>(null)
 const patrolsOf = computed(() =>
   (data.value?.sections || []).find((sec: any) => sec.id === form.sectionId)?.patrols || [])
 
 function openAdd(sectionId: number | 'leaders' = 0) {
   created.value = null
+  smsAsked.value = false; smsOutcome.value = null
   form.firstName = ''; form.lastName = ''; form.phone = ''; form.patrolId = 0
   form.leaderScope = 'troop'; form.leaderSectionId = 0; form.rank = 'archigos'
   form.sectionId = sectionId || data.value?.sections?.find((sec: any) => sec.canManage)?.id || 0
@@ -59,11 +62,23 @@ async function createScout() {
           sectionId: form.sectionId, patrolId: form.patrolId || null
         }
     const res = await $fetch<any>('/api/admin/scouts', { method: 'POST', body })
-    created.value = res
+    created.value = { ...res, phone: form.phone || null }
     form.firstName = ''; form.lastName = ''; form.phone = ''
     await refresh()
   } catch (e: any) { show(e?.data?.message || t('error')) }
 }
+
+async function sendInviteSms() {
+  if (!created.value) return
+  try {
+    const res = await $fetch<any>(`/api/admin/scouts/${created.value.id}/invite`, {
+      method: 'POST', body: { passcode: created.value.passcode }
+    })
+    smsOutcome.value = res.sent ? 'sent' : 'failed'
+  } catch { smsOutcome.value = 'failed' }
+  smsAsked.value = true
+}
+function skipSms() { smsAsked.value = true }
 const canCreate = computed(() => {
   if (!form.firstName || !form.lastName) return false
   if (form.sectionId === 'leaders') return form.leaderScope !== 'section' || !!form.leaderSectionId
@@ -168,6 +183,15 @@ async function deletePatrol() {
               <b>{{ t('passcodeIs') }} <span style="font-variant-numeric:tabular-nums">{{ created.passcode }}</span></b>
               {{ t('writeItDown') }}
             </div>
+            <template v-if="created.phone && !smsAsked">
+              <p class="tiny muted" style="text-align:center;margin:0">{{ t('askSendSms', { phone: created.phone }) }}</p>
+              <div style="display:flex;gap:8px">
+                <button class="btn ghost" style="flex:1" @click="skipSms">{{ t('cancel') }}</button>
+                <button class="btn" style="flex:1" @click="sendInviteSms">{{ t('yesSendSms') }}</button>
+              </div>
+            </template>
+            <div v-else-if="smsOutcome === 'sent'" class="tiny" style="text-align:center;color:var(--green)">📱 {{ t('smsSent') }}</div>
+            <div v-else-if="smsOutcome === 'failed'" class="tiny muted" style="text-align:center">{{ t('smsNotConfigured') }}</div>
             <button class="btn" @click="adding = false; created = null">{{ t('close') }}</button>
           </template>
           <template v-else>

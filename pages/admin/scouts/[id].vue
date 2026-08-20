@@ -8,6 +8,8 @@ const router = useRouter()
 const id = route.params.id
 const { data, refresh } = await useFetch<any>(`/api/admin/scouts/${id}`)
 const newPass = ref<string | null>(null)
+const smsOnRegen = ref(false)
+const smsOutcome = ref<'sent' | 'failed' | null>(null)
 const awarding = ref(false)
 const awardDate = ref(new Date().toISOString().slice(0, 10))
 const editingContact = ref(false)
@@ -15,8 +17,15 @@ const contact = reactive({ phone: '', idNumber: '' })
 watch(data, v => { if (v) { contact.phone = v.phone || ''; contact.idNumber = v.idNumber || '' } }, { immediate: true })
 
 async function regen() {
-  const res = await $fetch<any>(`/api/admin/scouts/${id}/passcode`, { method: 'POST' })
-  newPass.value = res.passcode
+  smsOutcome.value = null
+  if (smsOnRegen.value && data.value?.phone) {
+    const res = await $fetch<any>(`/api/admin/scouts/${id}/invite`, { method: 'POST' })
+    newPass.value = res.passcode
+    smsOutcome.value = res.sent ? 'sent' : 'failed'
+  } else {
+    const res = await $fetch<any>(`/api/admin/scouts/${id}/passcode`, { method: 'POST' })
+    newPass.value = res.passcode
+  }
 }
 async function toggleActive() {
   await $fetch(`/api/admin/scouts/${id}`, { method: 'PATCH', body: { isActive: !data.value.isActive } })
@@ -57,19 +66,27 @@ async function deleteScout() {
         </div>
 
         <div class="sec-title">{{ t('loginCard') }}</div>
-        <div class="card" style="display:flex;align-items:center;gap:12px">
-          <div style="font-size:22px">⚜️</div>
-          <div style="flex:1">
-            <template v-if="newPass">
-              <b style="font-variant-numeric:tabular-nums;font-size:16px;color:var(--accent-deep)">{{ newPass }}</b>
-              <div class="tiny muted">{{ t('writeItDown') }}</div>
-            </template>
-            <template v-else>
-              <b>••••-••••</b>
-              <div class="tiny muted">{{ t('newPasscodeSub') }}</div>
-            </template>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="font-size:22px">⚜️</div>
+            <div style="flex:1">
+              <template v-if="newPass">
+                <b style="font-variant-numeric:tabular-nums;font-size:16px;color:var(--accent-deep)">{{ newPass }}</b>
+                <div class="tiny muted">{{ t('writeItDown') }}</div>
+              </template>
+              <template v-else>
+                <b>••••-••••</b>
+                <div class="tiny muted">{{ t('newPasscodeSub') }}</div>
+              </template>
+            </div>
+            <button class="chip" @click="regen">{{ t('newPasscode') }}</button>
           </div>
-          <button class="chip" @click="regen">{{ t('newPasscode') }}</button>
+          <label v-if="data.phone" class="tiny muted" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input v-model="smsOnRegen" type="checkbox">
+            {{ t('sendSmsOnRegen') }} {{ data.phone }}
+          </label>
+          <div v-if="smsOutcome === 'sent'" class="tiny" style="color:var(--green)">📱 {{ t('smsSent') }}</div>
+          <div v-else-if="smsOutcome === 'failed'" class="tiny muted">{{ t('smsNotConfigured') }}</div>
         </div>
 
         <div class="sec-title">{{ t('contactDetails') }}</div>

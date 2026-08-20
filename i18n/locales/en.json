@@ -247,7 +247,11 @@
   "idCard": "Member ID Card",
   "downloadIdCard": "⬇️ Download card",
   "walletNote": "Downloads as an image/PDF. Full Apple/Google Wallet support needs a developer account we don't have yet.",
-  "smsSent": "SMS",
+  "smsSent": "SMS sent",
   "smsNote": "Also sends SMS to anyone with a phone number on file.",
-  "contactDetails": "Contact details"
+  "contactDetails": "Contact details",
+  "askSendSms": "Send the code by SMS to {phone}?",
+  "yesSendSms": "📱 Send SMS",
+  "smsNotConfigured": "Not sent (SMS isn't configured, or sending failed).",
+  "sendSmsOnRegen": "Also SMS the new code to"
 }
