@@ -12,8 +12,10 @@ const editing = ref<any>(null)
 const appointing = ref(false)
 const pick = reactive({ scope: 'section' as 'troop' | 'section', sectionId: 0, rank: 'archigos' as 'archigos' | 'yparchigos' })
 const rotated = ref<string | null>(null)
+const smsOnRotate = ref(false)
+const rotateSmsOutcome = ref<'sent' | 'failed' | null>(null)
 const editingContact = ref(false)
-const contact = reactive({ phone: '', idNumber: '' })
+const contact = reactive({ firstName: '', lastName: '', firstNameEn: '', lastNameEn: '', phone: '', idNumber: '' })
 const addingScope = ref(false)
 const newScope = reactive({ sectionId: 0, patrolId: 0, rank: 'archigos' as 'archigos' | 'yparchigos' })
 const notifyText = ref('')
@@ -26,6 +28,9 @@ async function refreshAndResync() {
 // ----- troop leader: appoint/edit section-level Βαθμοφόροι -----
 function open(l: any) {
   editing.value = l; rotated.value = null; editingContact.value = false; addingScope.value = false; notifyText.value = ''
+  smsOnRotate.value = false; rotateSmsOutcome.value = null
+  contact.firstName = l.firstName || ''; contact.lastName = l.lastName || ''
+  contact.firstNameEn = l.firstNameEn || ''; contact.lastNameEn = l.lastNameEn || ''
   contact.phone = l.phone || ''; contact.idNumber = l.idNumber || ''
   const sc = l.scopes?.[0]
   pick.scope = sc?.scope === 'troop' || l.role === 'troop_leader' ? 'troop' : 'section'
@@ -54,11 +59,25 @@ async function demote(scoutId: number) {
   await refresh(); editing.value = null; show('✅ ' + t('saved'))
 }
 async function rotate(scoutId: number) {
-  const res = await $fetch<any>(`/api/admin/scouts/${scoutId}/passcode`, { method: 'POST' })
-  rotated.value = res.passcode
+  rotateSmsOutcome.value = null
+  if (smsOnRotate.value && editing.value?.phone) {
+    const res = await $fetch<any>(`/api/admin/scouts/${scoutId}/invite`, { method: 'POST' })
+    rotated.value = res.passcode
+    rotateSmsOutcome.value = res.sent ? 'sent' : 'failed'
+  } else {
+    const res = await $fetch<any>(`/api/admin/scouts/${scoutId}/passcode`, { method: 'POST' })
+    rotated.value = res.passcode
+  }
 }
 async function saveContact() {
-  await $fetch(`/api/admin/scouts/${editing.value.id}`, { method: 'PATCH', body: { phone: contact.phone, idNumber: contact.idNumber } })
+  await $fetch(`/api/admin/scouts/${editing.value.id}`, {
+    method: 'PATCH',
+    body: {
+      firstName: contact.firstName, lastName: contact.lastName,
+      firstNameEn: contact.firstNameEn, lastNameEn: contact.lastNameEn,
+      phone: contact.phone, idNumber: contact.idNumber
+    }
+  })
   editingContact.value = false
   await refreshAndResync(); show('✅ ' + t('saved'))
 }
@@ -226,9 +245,13 @@ const eligibleForPatrol = computed(() => {
           <div class="sec-title" style="margin:0">{{ t('contactDetails') }}</div>
           <div class="card" style="display:flex;flex-direction:column;gap:10px">
             <template v-if="editingContact">
+              <div><label class="lab">{{ t('firstName') }}</label><input v-model="contact.firstName" class="in"></div>
+              <div><label class="lab">{{ t('lastName') }}</label><input v-model="contact.lastName" class="in"></div>
+              <div><label class="lab">{{ t('firstName') }} (EN) <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="contact.firstNameEn" class="in"></div>
+              <div><label class="lab">{{ t('lastName') }} (EN) <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="contact.lastNameEn" class="in"></div>
               <div><label class="lab">{{ t('phone') }}</label><input v-model="contact.phone" class="in" placeholder="+357 99 123456"></div>
               <div><label class="lab">{{ t('idNumber') }}</label><input v-model="contact.idNumber" class="in"></div>
-              <button class="btn" style="margin-top:2px" @click="saveContact">{{ t('save') }}</button>
+              <button class="btn" style="margin-top:2px" :disabled="!contact.firstName || !contact.lastName" @click="saveContact">{{ t('save') }}</button>
             </template>
             <template v-else>
               <div style="display:flex;justify-content:space-between;align-items:center">
@@ -248,7 +271,15 @@ const eligibleForPatrol = computed(() => {
             <b>{{ t('passcodeIs') }} <span style="font-variant-numeric:tabular-nums">{{ rotated }}</span></b>
             {{ t('writeItDown') }}
           </div>
-          <button v-else class="btn ghost" @click="rotate(editing.id)">🔑 {{ t('newPasscode') }}</button>
+          <template v-else>
+            <label v-if="editing.phone" class="tiny muted" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input v-model="smsOnRotate" type="checkbox">
+              {{ t('sendSmsOnRegen') }} {{ editing.phone }}
+            </label>
+            <button class="btn ghost" @click="rotate(editing.id)">🔑 {{ t('newPasscode') }}</button>
+          </template>
+          <div v-if="rotateSmsOutcome === 'sent'" class="tiny" style="color:var(--green)">📱 {{ t('smsSent') }}</div>
+          <div v-else-if="rotateSmsOutcome === 'failed'" class="tiny muted">{{ t('smsNotConfigured') }}</div>
           <button v-if="editing.role !== 'troop_leader' && editing.scopes?.length" class="btn danger" @click="demote(editing.id)">{{ t('demote') }}</button>
           <button v-if="editing.role !== 'troop_leader'" class="btn danger" @click="deleteLeader">🗑️ {{ t('deletePermanently') }}</button>
         </div>
