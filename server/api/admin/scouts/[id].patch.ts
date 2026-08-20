@@ -7,8 +7,10 @@ export default defineEventHandler(async (event) => {
   const id = idParam(event)
   const target = useDb().select().from(s.scouts).where(eq(s.scouts.id, id)).get()
   if (!target) throw createError({ statusCode: 404, message: 'Not found' })
-  if (target.role === 'scout') assertScoutInScope(me, id)
-  else assertLeaderInScope(me, id)
+  if (id !== me.id) {
+    if (target.role === 'scout') assertScoutInScope(me, id)
+    else assertLeaderInScope(me, id)
+  }
   const body = await readBody<{
     patrolId?: number, isActive?: boolean, firstName?: string, lastName?: string,
     firstNameEn?: string, lastNameEn?: string, phone?: string, idNumber?: string
