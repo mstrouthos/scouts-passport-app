@@ -1,11 +1,14 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
-import { requireLeader, assertScoutInScope, scopedPatrolIds, idParam } from '../../../utils/guard'
+import { requireLeader, assertScoutInScope, assertLeaderInScope, scopedPatrolIds, idParam } from '../../../utils/guard'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const id = idParam(event)
-  assertScoutInScope(me, id)
+  const target = useDb().select().from(s.scouts).where(eq(s.scouts.id, id)).get()
+  if (!target) throw createError({ statusCode: 404, message: 'Not found' })
+  if (target.role === 'scout') assertScoutInScope(me, id)
+  else assertLeaderInScope(me, id)
   const body = await readBody<{ patrolId?: number, isActive?: boolean, firstName?: string, lastName?: string, phone?: string, idNumber?: string }>(event)
   const set: any = {}
   if (typeof body?.isActive === 'boolean') set.isActive = body.isActive

@@ -4,7 +4,8 @@ export type Me = {
   role: 'scout' | 'leader' | 'troop_leader', locale: string,
   patrol?: { id: number, nameEl: string, nameEn?: string | null, emblem: string } | null,
   section?: { id: number, nameEl: string, nameEn?: string | null, slug?: string | null } | null,
-  scopePatrols?: Array<{ id: number, nameEl: string, nameEn?: string | null, emblem: string }> | null
+  scopePatrols?: Array<{ id: number, nameEl: string, nameEn?: string | null, emblem: string }> | null,
+  scopeSections?: Array<{ id: number, nameEl: string, nameEn?: string | null, slug?: string | null, hasApp?: boolean }> | null
 }
 
 export const useMe = () => useState<Me | null>('me', () => null)

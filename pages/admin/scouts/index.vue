@@ -136,7 +136,8 @@ async function deletePatrol() {
               </span>
             </div>
             <NuxtLink v-for="r in p.scouts" :key="r.id" :to="`/admin/scouts/${r.id}`" class="it">
-              <div style="flex:1"><b>{{ name(r) }}</b><span>{{ r.points }} {{ t('pts') }} · {{ r.badges }} {{ t('badges').toLowerCase() }}</span></div>
+              <Avatar :name="name(r)" :tone="r.isActive ? 'accent' : 'blue'" />
+              <div style="flex:1;min-width:0"><b>{{ name(r) }}</b><span>{{ r.points }} {{ t('pts') }} · {{ r.badges }} {{ t('badges').toLowerCase() }}</span></div>
               <span class="pill" :class="r.isActive ? 'ok' : 'draft'">{{ r.isActive ? t('active') : t('inactive') }}</span>
             </NuxtLink>
             <div v-if="!p.scouts.length" class="tiny muted" style="padding:10px 15px">{{ t('noMembersYet') }}</div>
@@ -145,7 +146,8 @@ async function deletePatrol() {
           <div v-if="sec.loose.length" class="adm">
             <div class="hdr">{{ t('members') }}</div>
             <NuxtLink v-for="r in sec.loose" :key="r.id" :to="`/admin/scouts/${r.id}`" class="it">
-              <div style="flex:1"><b>{{ name(r) }}</b><span>{{ r.points }} {{ t('pts') }}</span></div>
+              <Avatar :name="name(r)" :tone="r.isActive ? 'accent' : 'blue'" />
+              <div style="flex:1;min-width:0"><b>{{ name(r) }}</b><span>{{ r.points }} {{ t('pts') }}</span></div>
               <span class="pill" :class="r.isActive ? 'ok' : 'draft'">{{ r.isActive ? t('active') : t('inactive') }}</span>
             </NuxtLink>
           </div>
@@ -162,10 +164,12 @@ async function deletePatrol() {
           <span class="chev" :class="{ open: openSectors.has('leaders') }">›</span>
         </div>
         <div v-if="openSectors.has('leaders')" class="adm">
-          <div v-for="r in data.leaders" :key="r.id" class="it">
-            <div style="flex:1"><b>{{ name(r) }}</b></div>
+          <NuxtLink v-for="r in data.leaders" :key="r.id" :to="`/admin/roles?open=${r.id}`" class="it">
+            <Avatar :name="name(r)" :tone="r.role === 'troop_leader' ? 'gold' : 'green'" />
+            <div style="flex:1;min-width:0"><b>{{ name(r) }}</b></div>
             <span class="pill" :class="r.role === 'troop_leader' ? 'sched' : 'live'">{{ rankLabel(r) }}</span>
-          </div>
+            <span class="chev">›</span>
+          </NuxtLink>
         </div>
       </template>
 

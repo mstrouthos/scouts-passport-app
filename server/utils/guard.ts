@@ -117,6 +117,29 @@ export function assertScoutInScope(me: SessionScout, scoutId: number) {
   if (!ok) throw createError({ statusCode: 403, message: 'Out of your sector' })
 }
 
+/** Βαθμοφόροι this leader may view/edit. Troop leader: everyone but themself.
+    Section-scope leader: only patrol-level leaders within their own section's
+    patrols (mirrors the appoint rule in roles.post.ts). Patrol-only leaders
+    manage nobody. */
+export function scopedLeaders(me: SessionScout) {
+  const db = useDb()
+  const all = db.select().from(s.scouts).all().filter(r => r.role !== 'scout')
+  if (me.role === 'troop_leader') return all.filter(r => r.id !== me.id)
+  const secIds = scopedSectionIds(me)
+  if (!secIds || !secIds.length) return []
+  const myPatrols = db.select().from(s.patrols).all().filter(p => secIds.includes(p.sectionId)).map(p => p.id)
+  const scopes = db.select().from(s.leaderScopes).all()
+  const patrolLeaderIds = new Set(
+    scopes.filter(x => x.scope === 'patrol' && x.patrolId != null && myPatrols.includes(x.patrolId)).map(x => x.scoutId)
+  )
+  return all.filter(r => patrolLeaderIds.has(r.id))
+}
+
+export function assertLeaderInScope(me: SessionScout, scoutId: number) {
+  const ok = scopedLeaders(me).some(r => r.id === scoutId)
+  if (!ok) throw createError({ statusCode: 403, message: 'Out of your sector' })
+}
+
 /** Total points per scout id: challenge answers + direct awards + patrol awards. */
 export function pointTotals(): Map<number, number> {
   const db = useDb()

@@ -253,5 +253,20 @@
   "askSendSms": "Send the code by SMS to {phone}?",
   "yesSendSms": "📱 Send SMS",
   "smsNotConfigured": "Not sent (SMS isn't configured, or sending failed).",
-  "sendSmsOnRegen": "Also SMS the new code to"
+  "sendSmsOnRegen": "Also SMS the new code to",
+  "dangerZone": "Danger zone",
+  "clearDemoRoster": "🧹 Clear demo roster",
+  "clearDemoRosterNote": "Permanently deletes every member and leader except you, so you can add your own troop. Sections, patrols, events, and badges are untouched.",
+  "confirmResetRoster": "Permanently delete every member and leader except you? This cannot be undone.",
+  "confirmResetRosterAgain": "Are you sure? All their data (points, badges, history) will be lost.",
+  "membersRemoved": "members removed",
+  "rolesTitle": "Roles",
+  "noRoles": "No roles yet",
+  "addRole": "Add role",
+  "confirmRemoveScope": "Remove this role?",
+  "confirmDeleteLeader": "Permanently delete this leader? This cannot be undone.",
+  "sendNotification": "Send notification",
+  "messagePlaceholder": "Write a message…",
+  "send": "Send",
+  "notifSentOk": "Notification sent"
 }

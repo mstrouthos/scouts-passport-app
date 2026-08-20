@@ -38,16 +38,21 @@ const isOn = (to: string) => to === '/app' || to === '/admin'
   ? route.path === to
   : route.path.startsWith(to)
 
-/* Per-section dashboard colour: Ομάδα Προσκόπων (default/troop-wide) = green,
-   Κοινότητα Ανιχνευτών = purple, Αγέλη = amber, Μικρή Αγέλη = baby blue.
-   scopeSections already resolves patrol-level leaders to their patrol's section. */
+/* Per-section colour applies to everyone, not just leaders: Ομάδα Προσκόπων
+   (default/troop-wide) = green, Κοινότητα Ανιχνευτών = purple, Αγέλη = amber,
+   Μικρή Αγέλη = baby blue. Leaders use their scope's section (scopeSections
+   already resolves patrol-level leaders to their patrol's section); scouts
+   use their own membership section. */
+const mySectionSlug = computed(() => {
+  if (!me.value) return null
+  return isLeader.value ? (me.value.scopeSections?.[0]?.slug ?? null) : (me.value.section?.slug ?? null)
+})
 const themeClass = computed(() => {
-  if (!isLeader.value) return null
-  const slug = me.value?.scopeSections?.[0]?.slug
+  const slug = mySectionSlug.value
   if (slug === 'koinotita') return 'theme-koinotita'
   if (slug === 'ageli') return 'theme-ageli'
   if (slug === 'mikri-ageli') return 'theme-mikri-ageli'
-  return null // omada / troop-wide = default green
+  return null // omada / troop-wide / no section = default green
 })
 
 async function switchLang() {
@@ -62,7 +67,7 @@ function goBack() {
 </script>
 
 <template>
-  <div class="shell" :class="{ lead: isLeader, 'with-rail': isLeader, [themeClass]: themeClass }">
+  <div class="shell" :class="{ lead: !!me, 'with-rail': isLeader, [themeClass]: themeClass }">
     <aside v-if="isLeader" class="rail">
       <div class="brand"><span class="mark">⚜️</span> {{ t('appName') }}</div>
       <NuxtLink v-for="tb in tabs" :key="tb.to" :to="tb.to" class="tab" :class="{ on: isOn(tb.to) }">
