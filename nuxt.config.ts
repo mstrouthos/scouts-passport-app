@@ -63,6 +63,8 @@ export default defineNuxtConfig({
     vapidSubject: 'mailto:admin@example.org',
     resendApiKey: '',
     emailFrom: '',
+    smsToApiKey: '',
+    smsSenderId: '',
     dbPath: './data/passport.db',
     public: {
       vapidPublicKey: ''

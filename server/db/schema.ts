@@ -23,6 +23,8 @@ export const scouts = sqliteTable('scouts', {
   patrolId: integer('patrol_id').references(() => patrols.id),
   sectionId: integer('section_id').references(() => sections.id),
   firstName: text('first_name').notNull(),
+  phone: text('phone'),
+  idNumber: text('id_number'),
   lastName: text('last_name').notNull(),
   firstNameEn: text('first_name_en'),
   lastNameEn: text('last_name_en'),
@@ -192,6 +194,17 @@ export const familyContacts = sqliteTable('family_contacts', {
   addedBy: integer('added_by'),
   createdAt: text('created_at')
 }, t => [uniqueIndex('family_contact_uq').on(t.sectionId, t.email)])
+
+export const notifications = sqliteTable('notifications', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  kind: text('kind').notNull(),
+  refId: integer('ref_id'),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  createdAt: text('created_at').notNull(),
+  readAt: text('read_at')
+})
 
 export const notificationLog = sqliteTable('notification_log', {
   id: integer('id').primaryKey({ autoIncrement: true }),

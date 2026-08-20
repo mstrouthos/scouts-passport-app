@@ -6,11 +6,13 @@ export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const id = idParam(event)
   assertScoutInScope(me, id)
-  const body = await readBody<{ patrolId?: number, isActive?: boolean, firstName?: string, lastName?: string }>(event)
+  const body = await readBody<{ patrolId?: number, isActive?: boolean, firstName?: string, lastName?: string, phone?: string, idNumber?: string }>(event)
   const set: any = {}
   if (typeof body?.isActive === 'boolean') set.isActive = body.isActive
   if (body?.firstName) set.firstName = String(body.firstName).trim()
   if (body?.lastName) set.lastName = String(body.lastName).trim()
+  if (body?.phone !== undefined) set.phone = String(body.phone).trim() || null
+  if (body?.idNumber !== undefined) set.idNumber = String(body.idNumber).trim() || null
   if (body?.patrolId != null) {
     const pids = scopedPatrolIds(me)
     if (pids !== null && !pids.includes(Number(body.patrolId)))

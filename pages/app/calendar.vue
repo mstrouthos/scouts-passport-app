@@ -20,6 +20,7 @@ function sub(e: any) {
     <div class="chips">
       <button v-for="f in filters" :key="f" class="chip" :class="{ on: filter === f }" @click="filter = f">{{ t(f) }}</button>
     </div>
+    <a v-if="upcoming.length" class="chip" href="/api/calendar.ics" style="display:inline-block;text-decoration:none">{{ t('addToCalendar') }}</a>
     <template v-for="[label, list] in [[t('thisWeek'), soon], [t('upcoming'), later]]" :key="label">
       <template v-if="list.length">
         <div class="sec-title">{{ label }}</div>

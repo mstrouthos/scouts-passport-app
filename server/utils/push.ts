@@ -33,7 +33,9 @@ async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, pay
   return sent
 }
 
-/** Push to member accounts, deduplicated via notification_log. */
+/** Push to member accounts, deduplicated via notification_log. Every deduped
+    recipient also gets a row in their in-app inbox (`notifications`), so the
+    message survives even when push isn't enabled or fails to deliver. */
 export async function sendPushTo(scoutIds: number[], msg: { title: string, body: string, kind: string, refId: number }): Promise<number> {
   if (!scoutIds.length) return 0
   const db = useDb()
@@ -45,6 +47,10 @@ export async function sendPushTo(scoutIds: number[], msg: { title: string, body:
     } catch { /* already notified */ }
   }
   if (!fresh.length) return 0
+  const sentAt = now()
+  db.insert(s.notifications).values(fresh.map(id => ({
+    scoutId: id, kind: msg.kind, refId: msg.refId, title: msg.title, body: msg.body, createdAt: sentAt
+  }))).run()
   const subs = db.select().from(s.pushSubscriptions).all().filter(x => x.scoutId != null && fresh.includes(x.scoutId))
   return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body }))
 }

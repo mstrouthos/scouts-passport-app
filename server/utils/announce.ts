@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { sendPushTo, sendPushToParents } from './push'
 import { sendEmails } from './email'
+import { sendSms } from './sms'
 import { sectionOf } from './guard'
 import { now } from './passcode'
 
@@ -24,17 +25,22 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
     parentSections = a.sectionId != null ? [a.sectionId] : []
   }
 
-  const msg = { title: 'Διαβατήριο Προσκόπου', body: a.textEl, kind: 'announcement', refId: a.id }
+  const msg = { title: 'Πύλη Προσκόπων', body: a.textEl, kind: 'announcement', refId: a.id }
   const pushed = await sendPushTo(memberIds, msg)
   const parentPushed = parentSections === null || parentSections.length
     ? await sendPushToParents(parentSections, msg) : 0
 
   const contacts = db.select().from(s.familyContacts).all()
     .filter(c => a.audience === 'troop' || (a.audience === 'section' && c.sectionId === a.sectionId))
-  const emailed = await sendEmails(contacts.map(c => c.email), 'Ανακοίνωση — Διαβατήριο Προσκόπου', a.textEl)
+  const emailed = await sendEmails(contacts.map(c => c.email), 'Ανακοίνωση — Πύλη Προσκόπων', a.textEl)
+
+  // members with a phone on file also get an SMS — the reliable fallback for
+  // Βαθμοφόροι who need to see an announcement even offline / push-disabled
+  const smsNumbers = scouts.filter(r => memberIds.includes(r.id) && r.phone).map(r => r.phone!)
+  const smsSent = await sendSms(smsNumbers, `${msg.title}: ${a.textEl}`)
 
   db.update(s.announcements)
     .set({ status: 'sent', approvedBy, sentAt: now() })
     .where(eq(s.announcements.id, a.id)).run()
-  return { recipients: memberIds.length, pushed: pushed + parentPushed, emailed }
+  return { recipients: memberIds.length, pushed: pushed + parentPushed, emailed, smsSent }
 }

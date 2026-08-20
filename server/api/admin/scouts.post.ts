@@ -4,9 +4,10 @@ import { generatePasscode, hmacPasscode, now } from '../../utils/passcode'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
-  const body = await readBody<{ firstName?: string, lastName?: string, sectionId?: number, patrolId?: number }>(event)
+  const body = await readBody<{ firstName?: string, lastName?: string, sectionId?: number, patrolId?: number, phone?: string }>(event)
   const firstName = String(body?.firstName || '').trim()
   const lastName = String(body?.lastName || '').trim()
+  const phone = String(body?.phone || '').trim() || null
   const sectionId = Number(body?.sectionId)
   if (!firstName || !lastName || !Number.isInteger(sectionId))
     throw createError({ statusCode: 400, message: 'Name and section required' })
@@ -24,7 +25,7 @@ export default defineEventHandler(async (event) => {
   }
   const passcode = generatePasscode()
   const [row] = db.insert(s.scouts).values({
-    firstName, lastName, sectionId, patrolId,
+    firstName, lastName, sectionId, patrolId, phone,
     passcodeHmac: hmacPasscode(passcode), createdAt: now(), joinedOn: now().slice(0, 10)
   }).returning().all()
   return { id: row.id, passcode }

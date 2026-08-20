@@ -63,7 +63,12 @@ export function seedIfEmpty(db: Db) {
     ['Χριστίνα', 'Παύλου', 'Christina', 'Pavlou', -1, 'leader'],
     // patrol-level leaders (Αρχηγός/Υπαρχηγός Ενωμοτίας) for 🐺 Λύκοι — proves the mechanism
     ['Παναγιώτης', 'Ηλία', 'Panagiotis', 'Ilia', -1, 'leader'],
-    ['Δήμος', 'Κωνσταντίνου', 'Dimos', 'Constantinou', -1, 'leader']
+    ['Δήμος', 'Κωνσταντίνου', 'Dimos', 'Constantinou', -1, 'leader'],
+    // Κοινότητα Ανιχνευτών: a leader plus a few members, so the section isn't empty
+    ['Ανδρέας', 'Φιλίππου', 'Andreas', 'Filippou', -1, 'leader'],
+    ['Νικολέτα', 'Ευαγγέλου', 'Nikoleta', 'Evangelou', -2, 'scout'],
+    ['Ορέστης', 'Κυπριανού', 'Orestis', 'Kyprianou', -2, 'scout'],
+    ['Μελίνα', 'Χατζή', 'Melina', 'Hatzi', -2, 'scout']
   ]
   const pass = (i: number, first: string, last: string) => {
     if (last === 'Λάμπρου') return '1111-2222'
@@ -73,11 +78,12 @@ export function seedIfEmpty(db: Db) {
     if (first === 'Γιώργος') return '5555-6666'
     if (first === 'Παναγιώτης') return '6666-7777'
     if (first === 'Δήμος' && last === 'Κωνσταντίνου') return '7777-8888'
+    if (first === 'Ανδρέας' && last === 'Φιλίππου') return '8888-9999'
     return `70${String(10 + i)}-00${String(10 + i)}`
   }
   const scoutRows = db.insert(s.scouts).values(roster.map(([f, l, fe, le, p, role], i) => ({
     patrolId: p >= 0 ? P[p] : null,
-    sectionId: role === 'scout' ? S.omada : null,
+    sectionId: p === -2 ? S.koinotita : role === 'scout' ? S.omada : null,
     firstName: f, lastName: l, firstNameEn: fe, lastNameEn: le,
     passcodeHmac: hmacPasscode(pass(i, f, l)),
     role: role as any, isActive: !(f === 'Κώστας'),
@@ -91,11 +97,13 @@ export function seedIfEmpty(db: Db) {
   const giorgos = byLast('Παπαδόπουλος')
   const archLykoi = byLast('Ηλία', 'Παναγιώτης')
   const yparchLykoi = byLast('Κωνσταντίνου', 'Δήμος')
+  const archKoinotita = byLast('Φιλίππου')
 
   db.insert(s.leaderScopes).values([
     { scoutId: archOmada.id, scope: 'section', sectionId: S.omada, rank: 'archigos', assignedBy: admin.id, assignedAt: ts },
     { scoutId: yparchOmada.id, scope: 'section', sectionId: S.omada, rank: 'yparchigos', assignedBy: admin.id, assignedAt: ts },
     { scoutId: archAgeli.id, scope: 'section', sectionId: S.ageli, rank: 'archigos', assignedBy: admin.id, assignedAt: ts },
+    { scoutId: archKoinotita.id, scope: 'section', sectionId: S.koinotita, rank: 'archigos', assignedBy: admin.id, assignedAt: ts },
     { scoutId: archLykoi.id, scope: 'patrol', patrolId: P[0], rank: 'archigos', assignedBy: archOmada.id, assignedAt: ts },
     { scoutId: yparchLykoi.id, scope: 'patrol', patrolId: P[0], rank: 'yparchigos', assignedBy: archOmada.id, assignedAt: ts }
   ]).run()
@@ -305,5 +313,5 @@ export function seedIfEmpty(db: Db) {
     }
   ]).run()
 
-  console.log('[seed] 30ό Σύστημα demo created — admin 1111-2222, Αρχηγός Ομάδας 3333-4444, Υπαρχηγός 4444-5555, Αρχηγός Αγέλης 2222-3333, scout 5555-6666, Αρχηγός Ενωμοτίας Λύκων 6666-7777, Υπαρχηγός Ενωμοτίας Λύκων 7777-8888')
+  console.log('[seed] 30ό Σύστημα demo created — admin 1111-2222, Αρχηγός Ομάδας 3333-4444, Υπαρχηγός 4444-5555, Αρχηγός Αγέλης 2222-3333, scout 5555-6666, Αρχηγός Ενωμοτίας Λύκων 6666-7777, Υπαρχηγός Ενωμοτίας Λύκων 7777-8888, Αρχηγός Κοινότητας 8888-9999')
 }

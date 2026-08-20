@@ -5,6 +5,18 @@ const route = useRoute()
 const router = useRouter()
 const { locale, setLocale, t } = useI18n()
 const { msg } = useToast()
+const { items: notifs, unread, load: loadNotifs, markRead } = useNotifications()
+const notifOpen = ref(false)
+const expanded = ref<number | null>(null)
+onMounted(() => loadNotifs())
+function toggleNotif(n: any) {
+  expanded.value = expanded.value === n.id ? null : n.id
+  if (!n.read) markRead(n.id)
+}
+function fmtWhen(iso: string) {
+  const d = new Date(iso)
+  return d.toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'el-GR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
 
 const isLeader = computed(() => me.value && me.value.role !== 'scout')
 const tabs = computed(() => isLeader.value
@@ -70,6 +82,10 @@ function goBack() {
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <slot name="actions" />
+            <button class="iconbtn" style="position:relative" :aria-label="t('notifications')" @click="notifOpen = true">
+              <NavIcon name="bell" />
+              <span v-if="unread" class="notif-dot">{{ unread > 9 ? '9+' : unread }}</span>
+            </button>
             <button class="lang" :aria-label="t('language')" @click="switchLang">
               <b :class="{ on: locale === 'el' }">ΕΛ</b><b :class="{ on: locale === 'en' }">EN</b>
             </button>
@@ -89,5 +105,44 @@ function goBack() {
     </nav>
 
     <div v-if="msg" class="toast">{{ msg }}</div>
+
+    <Teleport to="body">
+      <div v-if="notifOpen" class="sheet-backdrop" @click.self="notifOpen = false">
+        <div class="sheet" style="max-height:80dvh;overflow:auto;display:flex;flex-direction:column;gap:10px">
+          <h3 style="margin:0;font-size:17px;text-align:center">{{ t('notifications') }}</h3>
+          <template v-if="notifs.length">
+            <button v-for="n in notifs" :key="n.id" class="notif-row" :class="{ unread: !n.read }" @click="toggleNotif(n)">
+              <div class="notif-dotmark" :class="{ on: !n.read }" />
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;justify-content:space-between;gap:8px">
+                  <b style="font-size:13px">{{ n.title }}</b>
+                  <span class="tiny muted" style="flex:none">{{ fmtWhen(n.createdAt) }}</span>
+                </div>
+                <p style="margin:3px 0 0;font-size:12.5px;color:var(--muted)"
+                   :style="expanded === n.id ? 'white-space:normal' : 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis'">
+                  {{ n.body }}
+                </p>
+              </div>
+            </button>
+          </template>
+          <div v-else class="empty">{{ t('noNotifs') }}</div>
+          <button class="btn ghost" @click="notifOpen = false">{{ t('close') }}</button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
+
+<style scoped>
+.notif-dot{
+  position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 3px;border-radius:999px;
+  background:var(--danger);color:#fff;font-size:9px;font-weight:700;display:grid;place-items:center;line-height:1;
+}
+.notif-row{
+  background:var(--card);border:0;border-radius:16px;padding:11px 13px;display:flex;gap:10px;align-items:flex-start;
+  width:100%;text-align:left;box-shadow:var(--shadow-sm);
+}
+.notif-row.unread{background:var(--accent-soft)}
+.notif-dotmark{flex:none;width:8px;height:8px;border-radius:50%;margin-top:5px;background:transparent}
+.notif-dotmark.on{background:var(--accent)}
+</style>

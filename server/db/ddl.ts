@@ -133,6 +133,14 @@ CREATE TABLE IF NOT EXISTS notification_log (
   sent_at TEXT NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS notification_uq ON notification_log(scout_id, kind, ref_id);
+CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  kind TEXT NOT NULL, ref_id INTEGER,
+  title TEXT NOT NULL, body TEXT NOT NULL,
+  created_at TEXT NOT NULL, read_at TEXT
+);
+CREATE INDEX IF NOT EXISTS notifications_scout_idx ON notifications(scout_id, created_at);
 CREATE TABLE IF NOT EXISTS announcements (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   audience TEXT NOT NULL,
@@ -158,5 +166,7 @@ export const MIGRATIONS = [
   "ALTER TABLE leader_scopes ADD COLUMN rank TEXT NOT NULL DEFAULT 'archigos'",
   "ALTER TABLE challenges ADD COLUMN for_leaders INTEGER NOT NULL DEFAULT 0",
   "ALTER TABLE push_subscriptions ADD COLUMN section_id INTEGER",
-  "ALTER TABLE scouts ADD COLUMN section_id INTEGER"
+  "ALTER TABLE scouts ADD COLUMN section_id INTEGER",
+  "ALTER TABLE scouts ADD COLUMN phone TEXT",
+  "ALTER TABLE scouts ADD COLUMN id_number TEXT"
 ]

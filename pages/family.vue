@@ -69,7 +69,10 @@ async function enableNotifs() {
         </div>
       </button>
 
-      <div class="sec-title">{{ t('calendar') }}</div>
+      <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>{{ t('calendar') }}</span>
+        <a v-if="data?.events?.length" :href="`/api/family/feed.ics?section=${data.current.slug}`" class="chip" style="text-decoration:none">{{ t('addToCalendar') }}</a>
+      </div>
       <div v-if="data?.events?.length" class="card" style="display:flex;flex-direction:column;gap:13px">
         <div v-for="e in data.events" :key="e.id" class="ev">
           <div class="date"><b>{{ fmtDay(e.startsAt, locale).d }}</b><span>{{ fmtDay(e.startsAt, locale).m }}</span></div>

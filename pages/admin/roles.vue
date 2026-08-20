@@ -17,7 +17,7 @@ function open(l: any) {
   editing.value = l; rotated.value = null
   const sc = l.scopes?.[0]
   pick.scope = sc?.scope === 'troop' || l.role === 'troop_leader' ? 'troop' : 'section'
-  pick.sectionId = sc?.sectionId ?? data.value?.sections?.[0]?.id ?? 0
+  pick.sectionId = sc?.sectionId ?? 0   // force an explicit choice — no silent default
   pick.rank = sc?.rank === 'yparchigos' ? 'yparchigos' : 'archigos'
 }
 async function save() {
@@ -40,10 +40,21 @@ async function rotate(scoutId: number) {
 function scopeLabel(l: any) {
   if (l.role === 'troop_leader') return t('troopLeader')
   const sc = l.scopes?.[0]
-  const rank = sc?.rank === 'yparchigos' ? t('yparchigos') : t('archigos')
-  if (!sc || sc.scope === 'troop') return `${rank} · ${t('wholeTroop')}`
+  if (!sc || sc.scope === 'troop') return `${rankLabel(l)} · ${t('wholeTroop')}`
+  if (sc.scope === 'patrol') {
+    const p = data.value?.patrols?.find((x: any) => x.id === sc.patrolId)
+    return `${patrolRankLabel(l)} · ${p ? `${p.emblem} ${lx(p, 'name')}` : t('wholeTroop')}`
+  }
   const sec = data.value?.sections?.find((x: any) => x.id === sc.sectionId)
-  return `${rank} · ${sec ? lx(sec, 'name') : t('wholeTroop')}`
+  return `${rankLabel(l)} · ${sec ? lx(sec, 'name') : t('wholeTroop')}`
+}
+function rankLabel(l: any) {
+  const sc = l.scopes?.[0]
+  return sc?.rank === 'yparchigos' ? t('yparchigos') : t('archigos')
+}
+function patrolRankLabel(l: any) {
+  const sc = l.scopes?.[0]
+  return sc?.rank === 'yparchigos' ? t('yparchigosEnomotias') : t('archigosEnomotias')
 }
 function appoint(r: any) { appointing.value = false; open({ ...r, role: 'leader', scopes: [] }) }
 
@@ -82,7 +93,7 @@ const eligibleForPatrol = computed(() => {
         <button v-for="l in data?.leaders" :key="l.id" class="it" :disabled="l.id === me?.id" @click="open(l)">
           <div style="flex:1"><b>{{ name(l) }}</b><span>{{ scopeLabel(l) }}</span></div>
           <span class="pill" :class="l.role === 'troop_leader' ? 'sched' : 'live'">
-            {{ l.role === 'troop_leader' ? t('troopLeader') : t('leader') }}
+            {{ l.role === 'troop_leader' ? t('troopLeader') : (l.scopes?.[0]?.scope === 'patrol' ? patrolRankLabel(l) : rankLabel(l)) }}
           </span>
         </button>
       </div>
@@ -128,7 +139,7 @@ const eligibleForPatrol = computed(() => {
             </div>
             <div class="tiny muted" style="margin-top:5px">{{ t('yparchNote') }}</div>
           </div>
-          <button class="btn" @click="save">{{ t('save') }}</button>
+          <button class="btn" :disabled="pick.scope === 'section' && !pick.sectionId" @click="save">{{ t('save') }}</button>
           <div v-if="rotated" class="note" style="text-align:center">
             <b>{{ t('passcodeIs') }} <span style="font-variant-numeric:tabular-nums">{{ rotated }}</span></b>
             {{ t('writeItDown') }}

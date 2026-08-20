@@ -4,11 +4,15 @@ const lx = useLx()
 const name = useName()
 const { show } = useToast()
 const route = useRoute()
+const router = useRouter()
 const id = route.params.id
 const { data, refresh } = await useFetch<any>(`/api/admin/scouts/${id}`)
 const newPass = ref<string | null>(null)
 const awarding = ref(false)
 const awardDate = ref(new Date().toISOString().slice(0, 10))
+const editingContact = ref(false)
+const contact = reactive({ phone: '', idNumber: '' })
+watch(data, v => { if (v) { contact.phone = v.phone || ''; contact.idNumber = v.idNumber || '' } }, { immediate: true })
 
 async function regen() {
   const res = await $fetch<any>(`/api/admin/scouts/${id}/passcode`, { method: 'POST' })
@@ -25,15 +29,26 @@ async function award(badgeId: number) {
   awarding.value = false
   await refresh(); show('🏅 ' + t('awardedOk'))
 }
+async function saveContact() {
+  await $fetch(`/api/admin/scouts/${id}`, { method: 'PATCH', body: { phone: contact.phone, idNumber: contact.idNumber } })
+  editingContact.value = false
+  await refresh(); show('✅ ' + t('saved'))
+}
+async function deleteScout() {
+  if (!confirm(t('confirmDelete'))) return
+  await $fetch(`/api/admin/scouts/${id}`, { method: 'DELETE' })
+  show('🗑️ ' + t('deleted'))
+  router.push('/admin/scouts')
+}
 </script>
 
 <template>
-  <AppShell v-if="data" :title="name(data)" :sub="`${data.patrol?.emblem} ${lx(data.patrol, 'name')}`" back="/admin/scouts">
+  <AppShell v-if="data" :title="name(data)" :sub="data.patrol ? `${data.patrol.emblem} ${lx(data.patrol, 'name')}` : lx(data.section, 'name')" back="/admin/scouts">
     <div class="cols-2">
       <div style="display:flex;flex-direction:column;gap:15px">
         <div class="pcard">
           <div class="name">{{ name(data) }}</div>
-          <div class="meta">{{ lx(data.patrol, 'name') }}</div>
+          <div class="meta">{{ data.patrol ? lx(data.patrol, 'name') : lx(data.section, 'name') }}</div>
           <div class="stats">
             <div class="stat"><b>{{ data.points }}</b><span>{{ t('points') }}</span></div>
             <div class="stat"><b>{{ data.badges.filter(b => b.earned).length }}/{{ data.badges.length }}</b><span>{{ t('badges') }}</span></div>
@@ -46,7 +61,7 @@ async function award(badgeId: number) {
           <div style="font-size:22px">⚜️</div>
           <div style="flex:1">
             <template v-if="newPass">
-              <b style="font-variant-numeric:tabular-nums;font-size:16px;color:var(--blue-deep)">{{ newPass }}</b>
+              <b style="font-variant-numeric:tabular-nums;font-size:16px;color:var(--accent-deep)">{{ newPass }}</b>
               <div class="tiny muted">{{ t('writeItDown') }}</div>
             </template>
             <template v-else>
@@ -56,6 +71,34 @@ async function award(badgeId: number) {
           </div>
           <button class="chip" @click="regen">{{ t('newPasscode') }}</button>
         </div>
+
+        <div class="sec-title">{{ t('contactDetails') }}</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <template v-if="editingContact">
+            <div><label class="lab">{{ t('phone') }}</label><input v-model="contact.phone" class="in" placeholder="+357 99 123456"></div>
+            <div><label class="lab">{{ t('idNumber') }}</label><input v-model="contact.idNumber" class="in" placeholder="SC-0142"></div>
+            <button class="btn" style="margin-top:2px" @click="saveContact">{{ t('save') }}</button>
+          </template>
+          <template v-else>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div class="tiny muted">{{ t('phone') }}</div>
+                <b style="font-size:13.5px">{{ data.phone || '—' }}</b>
+              </div>
+              <div style="text-align:right">
+                <div class="tiny muted">{{ t('idNumber') }}</div>
+                <b style="font-size:13.5px;font-variant-numeric:tabular-nums">{{ data.idNumber || '—' }}</b>
+              </div>
+            </div>
+            <button class="chip" style="align-self:flex-start" @click="editingContact = true">✎ {{ t('edit') }}</button>
+          </template>
+        </div>
+
+        <NuxtLink :to="`/admin/scouts/${id}/card`" class="srow">
+          <div class="ico">💳</div>
+          <div class="txt"><b>{{ t('idCard') }}</b><span>{{ t('downloadIdCard') }}</span></div>
+          <span class="chev">›</span>
+        </NuxtLink>
       </div>
 
       <div style="display:flex;flex-direction:column;gap:15px">
@@ -73,6 +116,7 @@ async function award(badgeId: number) {
         <button class="btn" :class="data.isActive ? 'danger' : 'ghost'" @click="toggleActive">
           {{ data.isActive ? t('deactivate') : t('reactivate') }}
         </button>
+        <button class="btn danger" @click="deleteScout">🗑️ {{ t('deletePermanently') }}</button>
       </div>
     </div>
 

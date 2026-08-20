@@ -233,5 +233,19 @@
   "newTeam": "New team",
   "editTeam": "Edit team",
   "deleteTeam": "Delete team",
-  "edit": "Edit"
+  "edit": "Edit",
+  "noNotifs": "No notifications yet.",
+  "confirmDelete": "Delete permanently? Badges, points and history are lost — this cannot be undone.",
+  "deletePermanently": "Delete permanently",
+  "deleted": "Deleted",
+  "phone": "Phone",
+  "optional": "optional",
+  "idNumber": "Member ID Number",
+  "addToCalendar": "📅 Add to calendar",
+  "idCard": "Member ID Card",
+  "downloadIdCard": "⬇️ Download card",
+  "walletNote": "Downloads as an image/PDF. Full Apple/Google Wallet support needs a developer account we don't have yet.",
+  "smsSent": "SMS",
+  "smsNote": "Also sends SMS to anyone with a phone number on file.",
+  "contactDetails": "Contact details"
 }

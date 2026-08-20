@@ -15,6 +15,7 @@ async function pickLang(l: 'el' | 'en') {
 async function logout() {
   await $fetch('/api/logout', { method: 'POST' })
   useMe().value = null
+  useNotifications().reset()
   navigateTo('/login')
 }
 const newPass = ref<string | null>(null)

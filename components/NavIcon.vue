@@ -12,7 +12,11 @@ const paths: Record<string, string> = {
   medal: '<circle cx="12" cy="9" r="4.5"/><path d="M8.5 13 7 21l5-2.5L17 21l-1.5-8"/>',
   more: '<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>',
   chat: '<path d="M4 5h16v11H8l-4 4V5Z"/><path d="M8 9h8M8 12.5h5"/>',
-  pencil: '<path d="M4 20h4L19.5 8.5a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5V20Z"/><path d="M14.5 6.5l3.5 3.5"/>'
+  pencil: '<path d="M4 20h4L19.5 8.5a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5V20Z"/><path d="M14.5 6.5l3.5 3.5"/>',
+  bell: '<path d="M6 9a6 6 0 0 1 12 0c0 4.5 1.4 6.2 2 7H4c.6-.8 2-2.5 2-7Z"/><path d="M9.5 19a2.5 2.5 0 0 0 5 0"/>',
+  trash: '<path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0-.8 12.1a2 2 0 0 1-2 1.9H9.8a2 2 0 0 1-2-1.9L7 7"/><path d="M10 11v6M14 11v6"/>',
+  download: '<path d="M12 4v11m0 0 4-4m-4 4-4-4"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/>',
+  wallet: '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18"/><circle cx="16.5" cy="14.5" r="1.3"/>'
 }
 </script>
 <template>

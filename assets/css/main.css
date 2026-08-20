@@ -307,7 +307,7 @@ textarea.in{resize:none;line-height:1.45}
 .sheet{
   background:rgba(248,251,254,.9);-webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
   width:100%;max-width:640px;margin:0 auto;border-radius:28px 28px 0 0;padding:10px 20px calc(env(safe-area-inset-bottom) + 26px);
-  animation:up-s .24s cubic-bezier(.2,.8,.3,1);
+  animation:up-s .16s cubic-bezier(.2,.8,.3,1);
 }
 .sheet::before{content:"";display:block;width:36px;height:5px;border-radius:3px;background:rgba(70,90,120,.28);margin:0 auto 14px}
 @keyframes up-s{from{transform:translateY(100%)}}

@@ -36,6 +36,7 @@ async function enableNotifs() {
 async function logout() {
   await $fetch('/api/logout', { method: 'POST' })
   useMe().value = null
+  useNotifications().reset()
   navigateTo('/login')
 }
 </script>

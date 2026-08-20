@@ -10,7 +10,7 @@ const activeCount = computed(() => (data.value?.sections || [])
   .filter((r: any) => r.isActive).length)
 
 const adding = ref(false)
-const form = reactive({ firstName: '', lastName: '', sectionId: 0, patrolId: 0 })
+const form = reactive({ firstName: '', lastName: '', sectionId: 0, patrolId: 0, phone: '' })
 const created = ref<{ passcode: string } | null>(null)
 const patrolsOf = computed(() =>
   (data.value?.sections || []).find((sec: any) => sec.id === form.sectionId)?.patrols || [])
@@ -19,10 +19,10 @@ async function createScout() {
   try {
     const res = await $fetch<any>('/api/admin/scouts', {
       method: 'POST',
-      body: { firstName: form.firstName, lastName: form.lastName, sectionId: form.sectionId, patrolId: form.patrolId || null }
+      body: { firstName: form.firstName, lastName: form.lastName, sectionId: form.sectionId, patrolId: form.patrolId || null, phone: form.phone || null }
     })
     created.value = res
-    form.firstName = ''; form.lastName = ''
+    form.firstName = ''; form.lastName = ''; form.phone = ''
     await refresh()
   } catch (e: any) { show(e?.data?.message || t('error')) }
 }
@@ -115,6 +115,7 @@ async function deletePatrol() {
           <template v-else>
             <div><label class="lab">{{ t('firstName') }}</label><input v-model="form.firstName" class="in"></div>
             <div><label class="lab">{{ t('lastName') }}</label><input v-model="form.lastName" class="in"></div>
+            <div><label class="lab">{{ t('phone') }} <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="form.phone" class="in" placeholder="+357 99 123456"></div>
             <div>
               <label class="lab">{{ t('sectionWord') }}</label>
               <div class="chips">
