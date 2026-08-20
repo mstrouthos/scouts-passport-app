@@ -6,7 +6,8 @@
     "dev": "nuxt dev",
     "build": "nuxt build",
     "preview": "node .output/server/index.mjs",
-    "seed": "node server/db/seed.mjs"
+    "seed": "node server/db/seed.mjs",
+    "secrets": "node scripts/gen-secrets.mjs"
   },
   "dependencies": {
     "@nuxtjs/i18n": "^9.5.4",

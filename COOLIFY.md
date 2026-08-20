@@ -24,6 +24,15 @@ seeds `passport.db` there.
 
 ## 3. Environment variables
 
+Generate everything in one command (run locally, in the repo):
+
+```bash
+npm run secrets
+```
+
+Paste the output into Coolify's Environment Variables panel, fix the
+`NUXT_VAPID_SUBJECT` email, and you're done.
+
 | Variable | Value |
 |---|---|
 | `NUXT_SESSION_PASSWORD` | random, 32+ chars |
