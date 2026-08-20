@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS scouts (
   section_id INTEGER REFERENCES sections(id),
   passcode_hmac TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'scout',
+  is_chief INTEGER NOT NULL DEFAULT 0,
   locale TEXT NOT NULL DEFAULT 'el',
   is_active INTEGER NOT NULL DEFAULT 1,
   joined_on TEXT, created_at TEXT NOT NULL DEFAULT ''
@@ -168,5 +169,6 @@ export const MIGRATIONS = [
   "ALTER TABLE push_subscriptions ADD COLUMN section_id INTEGER",
   "ALTER TABLE scouts ADD COLUMN section_id INTEGER",
   "ALTER TABLE scouts ADD COLUMN phone TEXT",
-  "ALTER TABLE scouts ADD COLUMN id_number TEXT"
+  "ALTER TABLE scouts ADD COLUMN id_number TEXT",
+  "ALTER TABLE scouts ADD COLUMN is_chief INTEGER NOT NULL DEFAULT 0"
 ]

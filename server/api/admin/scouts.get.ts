@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
     leaders: me.role === 'troop_leader'
       ? all.filter(r => r.role !== 'scout').map(r => ({
           id: r.id, firstName: r.firstName, lastName: r.lastName,
-          firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, role: r.role,
+          firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, role: r.role, isChief: !!r.isChief,
           scopes: scopes.filter(x => x.scoutId === r.id).map(x => ({ scope: x.scope, sectionId: x.sectionId, patrolId: x.patrolId, rank: x.rank }))
         }))
       : null

@@ -94,7 +94,8 @@ function scopeRank(sc: any) {
   return sc.rank === 'yparchigos' ? t('yparchigos') : t('archigos')
 }
 function rankLabel(l: any) {
-  return l.role === 'troop_leader' ? t('troopLeader') : scopeRank(l.scopes?.[0])
+  if (l.role !== 'troop_leader') return scopeRank(l.scopes?.[0])
+  return l.isChief ? t('troopLeader') : t('superAdmin')
 }
 function scopeWhere(sc: any) {
   if (!sc || sc.scope === 'troop') return t('wholeTroop')

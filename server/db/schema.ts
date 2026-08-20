@@ -30,6 +30,10 @@ export const scouts = sqliteTable('scouts', {
   lastNameEn: text('last_name_en'),
   passcodeHmac: text('passcode_hmac').notNull(),
   role: text('role', { enum: ['scout', 'leader', 'troop_leader'] }).notNull().default('scout'),
+  // Full access ('troop_leader') can be granted to several people, but only one
+  // of them actually holds the office of Αρχηγός Συστήματος — the rest are
+  // administrators. This flag is what tells the two apart in the UI.
+  isChief: integer('is_chief', { mode: 'boolean' }).notNull().default(false),
   locale: text('locale').notNull().default('el'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   joinedOn: text('joined_on'),

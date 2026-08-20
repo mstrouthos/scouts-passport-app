@@ -28,6 +28,7 @@ export default defineEventHandler(async (event) => {
     firstNameEn: me.firstNameEn, lastNameEn: me.lastNameEn,
     role: me.role, locale: me.locale,
     rank: isLeader ? rankOf(me) : null,
+    isChief: !!me.isChief,
     scopeKind: kind,
     patrol: patrol && { id: patrol.id, nameEl: patrol.nameEl, nameEn: patrol.nameEn, emblem: patrol.emblem },
     section: section && { id: section.id, nameEl: section.nameEl, nameEn: section.nameEn, slug: section.slug },

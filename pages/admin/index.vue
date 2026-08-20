@@ -2,7 +2,8 @@
 const { t, locale, setLocale } = useI18n()
 const me = useMe()
 const lx = useLx()
-const roleLabel = computed(() => me.value?.role === 'troop_leader' ? t('troopLeader')
+const roleLabel = computed(() => me.value?.role === 'troop_leader'
+  ? (me.value?.isChief ? t('troopLeader') : t('superAdmin'))
   : me.value?.rank === 'yparchigos' ? t('yparchigos') : t('archigos'))
 const scopeLabel = computed(() => {
   if (me.value?.role === 'troop_leader' || me.value?.scopeSections === null) return t('allSectors')
@@ -58,7 +59,7 @@ async function resetRoster() {
   <AppShell :title="t('profile')" :sub="roleLabel">
     <div class="pcard">
       <div class="name">{{ me?.firstName }} {{ me?.lastName }}</div>
-      <div class="meta">{{ me?.role === 'troop_leader' ? '👑 ' + t('troopLeader') : roleLabel }}</div>
+      <div class="meta">{{ me?.role === 'troop_leader' && me?.isChief ? '👑 ' + t('troopLeader') : roleLabel }}</div>
       <div class="stats"><div class="stat" style="flex:1">
         <b style="font-size:14px;font-weight:600">{{ scopeLabel }}</b>
         <span>{{ t('scopeOf') }}</span>

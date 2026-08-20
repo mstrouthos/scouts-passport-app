@@ -270,8 +270,9 @@
   "messagePlaceholder": "Write a message…",
   "notifSentOk": "Notification sent",
   "permissions": "Permissions",
-  "makeSuperAdmin": "Make Αρχηγός Συστήματος",
-  "revokeSuperAdmin": "Revoke Αρχηγός Συστήματος access",
-  "superAdminNote": "An Αρχηγός Συστήματος sees and changes everything, across every sector. Only an Αρχηγός Συστήματος can grant this.",
-  "confirmMakeAdmin": "Give this person full access to every sector, including changing roles?"
+  "makeSuperAdmin": "Make Administrator",
+  "revokeSuperAdmin": "Revoke Administrator access",
+  "superAdminNote": "An Administrator sees and changes everything, across every sector — the same as the Troop Leader. Only the Troop Leader can grant this.",
+  "confirmMakeAdmin": "Give this person full access to every sector, including changing roles?",
+  "superAdmin": "Administrator"
 }

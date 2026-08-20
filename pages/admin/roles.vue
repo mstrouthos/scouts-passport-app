@@ -145,11 +145,11 @@ function scopeRankLabel(sc: any) {
   return sc.rank === 'yparchigos' ? t('yparchigos') : t('archigos')
 }
 function avatarTone(l: any) {
-  if (l.role === 'troop_leader') return 'gold'
+  if (l.role === 'troop_leader') return l.isChief ? 'gold' : 'purple'
   return l.scopes?.[0]?.rank === 'yparchigos' ? 'blue' : 'green'
 }
 function summaryLabel(l: any) {
-  if (l.role === 'troop_leader') return t('troopLeader')
+  if (l.role === 'troop_leader') return l.isChief ? t('troopLeader') : t('superAdmin')
   if (!l.scopes?.length) return t('noRoles')
   return l.scopes.map((sc: any) => `${scopeRankLabel(sc)} · ${scopeChipLabel(sc)}`).join(' · ')
 }

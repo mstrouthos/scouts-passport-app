@@ -34,6 +34,13 @@ export function useDb() {
   sqlite.pragma('foreign_keys = ON')
   sqlite.exec(DDL)
   for (const m of MIGRATIONS) { try { sqlite.exec(m) } catch { /* column exists */ } }
+  // Databases created before is_chief existed have nobody flagged. The office
+  // belongs to the founding troop leader, so adopt the earliest one. Idempotent.
+  try {
+    sqlite.exec(`UPDATE scouts SET is_chief = 1
+      WHERE id = (SELECT MIN(id) FROM scouts WHERE role = 'troop_leader')
+        AND NOT EXISTS (SELECT 1 FROM scouts WHERE is_chief = 1)`)
+  } catch { /* no scouts yet */ }
   const db = drizzle(sqlite, { schema })
   seedIfEmpty(db)          // throws before caching, so a failed seed retries next request
   _db = db

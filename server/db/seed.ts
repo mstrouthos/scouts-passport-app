@@ -33,7 +33,7 @@ export function seedIfEmpty(db: Db) {
     firstName: 'ΠΑΝΑΓΙΩΤΗΣ', lastName: 'ΚΑΙΜΗΣ',
     firstNameEn: 'Panagiotis', lastNameEn: 'Kaimis',
     passcodeHmac: hmacPasscode('1111-2222'),
-    role: 'troop_leader', isActive: true,
+    role: 'troop_leader', isChief: true, isActive: true,
     joinedOn: ts.slice(0, 10), createdAt: ts
   }).run()
 
