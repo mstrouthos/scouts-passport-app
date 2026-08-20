@@ -15,12 +15,31 @@ bare-VPS path — **ignore them on Coolify**; its own proxy terminates TLS.
 - **Domain:** your real domain (e.g. `passport.example.org`). HTTPS must be on —
   PWA install and push require it. Coolify issues the certificate automatically.
 
-## 2. Persistent storage (required)
+## 2. Persistent storage (REQUIRED — data is destroyed without it)
 
-Add a **Volume Mount**: any name → container path **`/data`**.
+In Coolify: the application → **Storages** → **Add** → any name → container path
+**`/data`**. Then redeploy.
 
-Without this the SQLite database dies on every redeploy. First boot creates and
-seeds `passport.db` there.
+**This is not optional.** The Dockerfile declares `VOLUME /data`, so without a
+named volume Docker mounts a *throwaway anonymous volume* there. The app runs
+fine, writes its database, and then Docker discards the whole volume the next
+time the container is recreated — which is every deploy. The symptom is
+unmistakable: **every deployment wipes your scouts and the demo roster comes
+back.** If you are seeing that, this step is missing (or the mount path is not
+exactly `/data`), and it will keep happening until it is fixed.
+
+The app warns about this on boot. Check the runtime logs for:
+
+```
+[db] No existing database at /data/passport.db — creating a new one and seeding demo data.
+[db] If you expected your real roster here, /data is NOT a persistent volume.
+```
+
+A healthy deploy logs `[db] /data/passport.db (existing)` instead.
+
+Nothing can recover a roster already lost this way — the volume is gone, not
+just the file. Fix the mount *before* entering real members, and set up the
+backup task in section 5.
 
 ## 3. Environment variables
 

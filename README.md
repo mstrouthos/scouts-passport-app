@@ -19,24 +19,16 @@ npm install
 npm run dev
 ```
 
-First boot creates and seeds `data/passport.db` with a demo troop.
-
-**Demo passcodes** (login is a single 8-digit passcode):
+First boot creates `data/passport.db` with the troop structure (the four
+sections, three starter Scout Troop teams, the badge catalogue and the info
+pages) and a **single** account. The member roster starts empty.
 
 | Passcode | Who | Role |
 |---|---|---|
-| `1111-2222` | Κυριάκος Λάμπρου | Αρχηγός Συστήματος — sees everything, assigns roles |
-| `3333-4444` | Δέσποινα Αντρέου | Αρχηγός Ομάδας Προσκόπων |
-| `4444-5555` | Μάριος Σιακαλλής | Υπαρχηγός Ομάδας Προσκόπων (announcements need Δέσποινα's approval) |
-| `2222-3333` | Χριστίνα Παύλου | Αρχηγός Αγέλης (no member accounts — manages the parents' page) |
-| `6666-7777` | Παναγιώτης Ηλία | Αρχηγός Ενωμοτίας — 🐺 Λύκοι only |
-| `7777-8888` | Δήμος Κωνσταντίνου | Υπαρχηγός Ενωμοτίας — 🐺 Λύκοι only |
-| `8888-9999` | Ανδρέας Φιλίππου | Αρχηγός Κοινότητας Ανιχνευτών |
-| `5555-6666` | Γιώργος Παπαδόπουλος | Scout (🦅 Αετοί) |
-| `70NN-00NN` | other scouts | NN = 10 + roster row (7010-0010 …) |
+| `1111-2222` | ΠΑΝΑΓΙΩΤΗΣ ΚΑΙΜΗΣ | Αρχηγός Συστήματος — sees everything, assigns roles |
 
-To start from an empty real troop instead, delete `data/passport.db*`, set the
-env vars below, and create scouts from the Troop Leader account.
+Sign in with that, **rotate the passcode immediately** (Προφίλ → Νέος κωδικός),
+then add the real Βαθμοφόροι and members from Πρόσκοποι → +.
 
 ## Production
 
