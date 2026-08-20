@@ -5,16 +5,16 @@ import { requireLeader, scopedScouts, idParam } from '../../../../utils/guard'
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const eventId = idParam(event)
-  const db = useDb()
-  const e = db.select().from(s.events).where(eq(s.events.id, eventId)).get()
+  const db = (await useDb())
+  const e = (await db.select().from(s.events).where(eq(s.events.id, eventId)).limit(1))[0]
   if (!e) throw createError({ statusCode: 404, message: 'Event not found' })
-  const reviews = db.select().from(s.eventReviews).where(eq(s.eventReviews.eventId, eventId)).all()
-  const awards = db.select().from(s.pointAwards).where(eq(s.pointAwards.eventId, eventId)).all()
+  const reviews = (await db.select().from(s.eventReviews).where(eq(s.eventReviews.eventId, eventId)))
+  const awards = (await db.select().from(s.pointAwards).where(eq(s.pointAwards.eventId, eventId)))
     .filter(a => a.kind === 'game')
-  const patrols = db.select().from(s.patrols).all()
+  const patrols = (await db.select().from(s.patrols))
   return {
     event: { id: e.id, titleEl: e.titleEl, titleEn: e.titleEn, startsAt: e.startsAt, scope: e.scope },
-    scouts: scopedScouts(me).filter(r => r.isActive).map(r => {
+    scouts: (await scopedScouts(me)).filter(r => r.isActive).map(r => {
       const rev = reviews.find(x => x.scoutId === r.id)
       return {
         id: r.id, firstName: r.firstName, lastName: r.lastName,

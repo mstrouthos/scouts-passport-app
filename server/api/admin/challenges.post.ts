@@ -9,8 +9,8 @@ export default defineEventHandler(async (event) => {
   if (b.options.filter((o: any) => o.isCorrect).length !== 1)
     throw createError({ statusCode: 400, message: 'Exactly one correct option' })
 
-  const secIds = scopedSectionIds(me)
-  const rank = rankOf(me)
+  const secIds = await scopedSectionIds(me)
+  const rank = await rankOf(me)
   let sectionId: number | null = b.sectionId != null ? Number(b.sectionId) : null
   let forLeaders = !!b.forLeaders && rank === 'admin'   // Βαθμοφόροι quizzes: admin only
   if (secIds !== null) {
@@ -20,8 +20,8 @@ export default defineEventHandler(async (event) => {
     forLeaders = false
   }
 
-  const db = useDb()
-  const [row] = db.insert(s.challenges).values({
+  const db = (await useDb())
+  const [row] = (await db.insert(s.challenges).values({
     titleEl: String(b.titleEl || b.questionEl).slice(0, 80), titleEn: b.titleEn || null,
     questionEl: String(b.questionEl), questionEn: b.questionEn || null,
     imageEmoji: b.imageEmoji || null,
@@ -29,12 +29,12 @@ export default defineEventHandler(async (event) => {
     points: Number(b.points) || 10,
     unlocksAt: b.unlocksAt || null, closesAt: b.closesAt || null,
     sectionId, forLeaders, createdBy: me.id, isPublished: !!b.isPublished && !!b.unlocksAt
-  }).returning().all()
-  db.insert(s.challengeOptions).values(
+  }).returning())
+  await db.insert(s.challengeOptions).values(
     b.options.map((o: any, i: number) => ({
       challengeId: row.id, textEl: String(o.textEl), textEn: o.textEn || null,
       isCorrect: !!o.isCorrect, sortOrder: i
     }))
-  ).run()
+  )
   return { id: row.id }
 })

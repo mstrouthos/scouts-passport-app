@@ -1,16 +1,16 @@
-import { sqliteTable, text, integer, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import { pgTable, text, integer, serial, boolean, index, uniqueIndex } from 'drizzle-orm/pg-core'
 
-export const sections = sqliteTable('sections', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const sections = pgTable('sections', {
+  id: serial('id').primaryKey(),
   nameEl: text('name_el').notNull(),
   nameEn: text('name_en'),
   sortOrder: integer('sort_order').notNull().default(0),
   slug: text('slug'),
-  hasApp: integer('has_app', { mode: 'boolean' }).notNull().default(true)
+  hasApp: boolean('has_app').notNull().default(true)
 })
 
-export const patrols = sqliteTable('patrols', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const patrols = pgTable('patrols', {
+  id: serial('id').primaryKey(),
   sectionId: integer('section_id').notNull().references(() => sections.id),
   nameEl: text('name_el').notNull(),
   nameEn: text('name_en'),
@@ -18,8 +18,8 @@ export const patrols = sqliteTable('patrols', {
   sortOrder: integer('sort_order').notNull().default(0)
 })
 
-export const scouts = sqliteTable('scouts', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const scouts = pgTable('scouts', {
+  id: serial('id').primaryKey(),
   patrolId: integer('patrol_id').references(() => patrols.id),
   sectionId: integer('section_id').references(() => sections.id),
   firstName: text('first_name').notNull(),
@@ -33,15 +33,15 @@ export const scouts = sqliteTable('scouts', {
   // Full access ('troop_leader') can be granted to several people, but only one
   // of them actually holds the office of Αρχηγός Συστήματος — the rest are
   // administrators. This flag is what tells the two apart in the UI.
-  isChief: integer('is_chief', { mode: 'boolean' }).notNull().default(false),
+  isChief: boolean('is_chief').notNull().default(false),
   locale: text('locale').notNull().default('el'),
-  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  isActive: boolean('is_active').notNull().default(true),
   joinedOn: text('joined_on'),
   createdAt: text('created_at').notNull().default('')
 }, t => [uniqueIndex('scouts_passcode_uq').on(t.passcodeHmac)])
 
-export const leaderScopes = sqliteTable('leader_scopes', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const leaderScopes = pgTable('leader_scopes', {
+  id: serial('id').primaryKey(),
   scoutId: integer('scout_id').notNull().references(() => scouts.id),
   scope: text('scope', { enum: ['troop', 'section', 'patrol'] }).notNull(),
   sectionId: integer('section_id').references(() => sections.id),
@@ -51,8 +51,8 @@ export const leaderScopes = sqliteTable('leader_scopes', {
   assignedAt: text('assigned_at')
 })
 
-export const achievements = sqliteTable('achievements', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const achievements = pgTable('achievements', {
+  id: serial('id').primaryKey(),
   titleEl: text('title_el').notNull(),
   titleEn: text('title_en'),
   descriptionEl: text('description_el').notNull().default(''),
@@ -60,11 +60,11 @@ export const achievements = sqliteTable('achievements', {
   iconEmoji: text('icon_emoji').notNull().default('🏅'),
   points: integer('points').notNull().default(0),
   sortOrder: integer('sort_order').notNull().default(0),
-  isArchived: integer('is_archived', { mode: 'boolean' }).notNull().default(false)
+  isArchived: boolean('is_archived').notNull().default(false)
 })
 
-export const scoutAchievements = sqliteTable('scout_achievements', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const scoutAchievements = pgTable('scout_achievements', {
+  id: serial('id').primaryKey(),
   scoutId: integer('scout_id').notNull().references(() => scouts.id),
   achievementId: integer('achievement_id').notNull().references(() => achievements.id),
   completedOn: text('completed_on').notNull(),
@@ -73,8 +73,8 @@ export const scoutAchievements = sqliteTable('scout_achievements', {
   noteEn: text('note_en')
 }, t => [uniqueIndex('scout_achievement_uq').on(t.scoutId, t.achievementId)])
 
-export const events = sqliteTable('events', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const events = pgTable('events', {
+  id: serial('id').primaryKey(),
   scope: text('scope', { enum: ['troop', 'section', 'patrol'] }).notNull(),
   sectionId: integer('section_id').references(() => sections.id),
   patrolId: integer('patrol_id').references(() => patrols.id),
@@ -85,13 +85,13 @@ export const events = sqliteTable('events', {
   location: text('location'),
   startsAt: text('starts_at').notNull(),
   endsAt: text('ends_at'),
-  isAllDay: integer('is_all_day', { mode: 'boolean' }).notNull().default(false),
+  isAllDay: boolean('is_all_day').notNull().default(false),
   remindAt: text('remind_at'),
   createdBy: integer('created_by')
 })
 
-export const eventReviews = sqliteTable('event_reviews', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const eventReviews = pgTable('event_reviews', {
+  id: serial('id').primaryKey(),
   eventId: integer('event_id').notNull().references(() => events.id),
   scoutId: integer('scout_id').notNull().references(() => scouts.id),
   attendance: text('attendance', { enum: ['present', 'absent', 'excused'] }),
@@ -100,8 +100,8 @@ export const eventReviews = sqliteTable('event_reviews', {
   recordedAt: text('recorded_at')
 }, t => [uniqueIndex('event_review_uq').on(t.eventId, t.scoutId)])
 
-export const pointAwards = sqliteTable('point_awards', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const pointAwards = pgTable('point_awards', {
+  id: serial('id').primaryKey(),
   scoutId: integer('scout_id').references(() => scouts.id),
   patrolId: integer('patrol_id').references(() => patrols.id),
   eventId: integer('event_id').references(() => events.id),
@@ -113,8 +113,8 @@ export const pointAwards = sqliteTable('point_awards', {
   awardedAt: text('awarded_at').notNull()
 })
 
-export const challenges = sqliteTable('challenges', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const challenges = pgTable('challenges', {
+  id: serial('id').primaryKey(),
   titleEl: text('title_el').notNull(),
   titleEn: text('title_en'),
   questionEl: text('question_el').notNull(),
@@ -128,32 +128,32 @@ export const challenges = sqliteTable('challenges', {
   sectionId: integer('section_id').references(() => sections.id),
   patrolId: integer('patrol_id').references(() => patrols.id),
   createdBy: integer('created_by'),
-  isPublished: integer('is_published', { mode: 'boolean' }).notNull().default(false),
-  forLeaders: integer('for_leaders', { mode: 'boolean' }).notNull().default(false),
+  isPublished: boolean('is_published').notNull().default(false),
+  forLeaders: boolean('for_leaders').notNull().default(false),
   notifiedAt: text('notified_at')
 })
 
-export const challengeOptions = sqliteTable('challenge_options', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const challengeOptions = pgTable('challenge_options', {
+  id: serial('id').primaryKey(),
   challengeId: integer('challenge_id').notNull().references(() => challenges.id),
   textEl: text('text_el').notNull(),
   textEn: text('text_en'),
-  isCorrect: integer('is_correct', { mode: 'boolean' }).notNull().default(false),
+  isCorrect: boolean('is_correct').notNull().default(false),
   sortOrder: integer('sort_order').notNull().default(0)
 })
 
-export const challengeAnswers = sqliteTable('challenge_answers', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const challengeAnswers = pgTable('challenge_answers', {
+  id: serial('id').primaryKey(),
   challengeId: integer('challenge_id').notNull().references(() => challenges.id),
   scoutId: integer('scout_id').notNull().references(() => scouts.id),
   optionId: integer('option_id').notNull().references(() => challengeOptions.id),
-  isCorrect: integer('is_correct', { mode: 'boolean' }).notNull(),
+  isCorrect: boolean('is_correct').notNull(),
   pointsAwarded: integer('points_awarded').notNull(),
   answeredAt: text('answered_at').notNull()
 }, t => [uniqueIndex('challenge_answer_uq').on(t.challengeId, t.scoutId)])
 
-export const infoPages = sqliteTable('info_pages', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const infoPages = pgTable('info_pages', {
+  id: serial('id').primaryKey(),
   slug: text('slug').notNull(),
   iconEmoji: text('icon_emoji').notNull().default('ℹ️'),
   titleEl: text('title_el').notNull(),
@@ -164,11 +164,11 @@ export const infoPages = sqliteTable('info_pages', {
   bodyEn: text('body_en'),
   illustration: text('illustration'),
   sortOrder: integer('sort_order').notNull().default(0),
-  isPublished: integer('is_published', { mode: 'boolean' }).notNull().default(false)
+  isPublished: boolean('is_published').notNull().default(false)
 }, t => [uniqueIndex('info_slug_uq').on(t.slug)])
 
-export const pushSubscriptions = sqliteTable('push_subscriptions', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const pushSubscriptions = pgTable('push_subscriptions', {
+  id: serial('id').primaryKey(),
   scoutId: integer('scout_id').references(() => scouts.id),
   sectionId: integer('section_id').references(() => sections.id),
   endpoint: text('endpoint').notNull(),
@@ -178,8 +178,8 @@ export const pushSubscriptions = sqliteTable('push_subscriptions', {
   createdAt: text('created_at').notNull()
 }, t => [uniqueIndex('push_endpoint_uq').on(t.endpoint)])
 
-export const announcements = sqliteTable('announcements', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const announcements = pgTable('announcements', {
+  id: serial('id').primaryKey(),
   audience: text('audience', { enum: ['troop', 'section', 'leaders'] }).notNull(),
   sectionId: integer('section_id').references(() => sections.id),
   textEl: text('text_el').notNull(),
@@ -191,16 +191,16 @@ export const announcements = sqliteTable('announcements', {
   sentAt: text('sent_at')
 })
 
-export const familyContacts = sqliteTable('family_contacts', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const familyContacts = pgTable('family_contacts', {
+  id: serial('id').primaryKey(),
   sectionId: integer('section_id').notNull().references(() => sections.id),
   email: text('email').notNull(),
   addedBy: integer('added_by'),
   createdAt: text('created_at')
 }, t => [uniqueIndex('family_contact_uq').on(t.sectionId, t.email)])
 
-export const notifications = sqliteTable('notifications', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
   scoutId: integer('scout_id').notNull().references(() => scouts.id),
   kind: text('kind').notNull(),
   refId: integer('ref_id'),
@@ -210,8 +210,8 @@ export const notifications = sqliteTable('notifications', {
   readAt: text('read_at')
 })
 
-export const notificationLog = sqliteTable('notification_log', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const notificationLog = pgTable('notification_log', {
+  id: serial('id').primaryKey(),
   scoutId: integer('scout_id').notNull(),
   kind: text('kind').notNull(),
   refId: integer('ref_id'),

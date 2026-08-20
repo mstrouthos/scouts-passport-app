@@ -1,8 +1,8 @@
 # Deploying on Coolify
 
-Build pack: **Dockerfile** (not Nixpacks — `better-sqlite3` is a native module
-and the repo's Dockerfile pins Node 22, builds it in plain Debian, and ships a
-small runtime image with the `/data` volume contract baked in).
+Build pack: **Dockerfile** (not Nixpacks — the repo's Dockerfile pins Node 22
+and ships a small runtime image). Data lives in a Coolify-managed Postgres
+service, so the container itself is stateless and safe to recreate.
 
 The `docker-compose.yml` / `Caddyfile` / `deploy.sh` in this repo are for the
 bare-VPS path — **ignore them on Coolify**; its own proxy terminates TLS.
@@ -15,31 +15,38 @@ bare-VPS path — **ignore them on Coolify**; its own proxy terminates TLS.
 - **Domain:** your real domain (e.g. `passport.example.org`). HTTPS must be on —
   PWA install and push require it. Coolify issues the certificate automatically.
 
-## 2. Persistent storage (REQUIRED — data is destroyed without it)
+## 2. Database — a Coolify-managed Postgres (REQUIRED)
 
-In Coolify: the application → **Storages** → **Add** → any name → container path
-**`/data`**. Then redeploy.
+The app stores everything in Postgres. Create the database **before** the first
+deploy:
 
-**This is not optional.** The Dockerfile declares `VOLUME /data`, so without a
-named volume Docker mounts a *throwaway anonymous volume* there. The app runs
-fine, writes its database, and then Docker discards the whole volume the next
-time the container is recreated — which is every deploy. The symptom is
-unmistakable: **every deployment wipes your scouts and the demo roster comes
-back.** If you are seeing that, this step is missing (or the mount path is not
-exactly `/data`), and it will keep happening until it is fixed.
+- Coolify → **+ New → Database → PostgreSQL** (put it in the same Project as the
+  app so they share a network).
+- Once it is running, open it and copy the **internal** connection URL. It looks
+  like `postgres://postgres:<password>@<service-name>:5432/postgres`.
+- Paste that into the application's `NUXT_DATABASE_URL` environment variable
+  (section 3).
 
-The app warns about this on boot. Check the runtime logs for:
+Use the **internal** URL, not the public one — it stays on Coolify's private
+network, so the database never needs to be exposed to the internet.
+
+Coolify manages this volume itself, so the data survives redeploys, and its
+built-in database backups can be scheduled against it.
+
+The app creates its own tables on first boot and seeds a single Αρχηγός
+Συστήματος account (`1111-2222` — rotate it immediately). It never drops or
+recreates anything that already exists, so redeploying is safe.
+
+Check the logs after a deploy:
 
 ```
-[db] No existing database at /data/passport.db — creating a new one and seeding demo data.
-[db] If you expected your real roster here, /data is NOT a persistent volume.
+[db] connecting to postgres://postgres:***@.../postgres
+[db] ready
 ```
 
-A healthy deploy logs `[db] /data/passport.db (existing)` instead.
-
-Nothing can recover a roster already lost this way — the volume is gone, not
-just the file. Fix the mount *before* entering real members, and set up the
-backup task in section 5.
+`[seed] … Roster starts empty.` appears only on the very first boot against an
+empty database. **If you see that line on a later deploy, you are pointing at a
+different (empty) database** — check `NUXT_DATABASE_URL`.
 
 ## 3. Environment variables
 
@@ -57,11 +64,11 @@ Paste the output into Coolify's Environment Variables panel, fix the
 | `NUXT_SESSION_PASSWORD` | random, 32+ chars |
 | `NUXT_PASSCODE_PEPPER` | random — **set once, never change** (changing voids every passcode) |
 | `NUXT_CRON_TOKEN` | random |
+| `NUXT_DATABASE_URL` | the Postgres **internal** URL from section 2 |
 | `NUXT_PUBLIC_VAPID_PUBLIC_KEY` | from `npx web-push generate-vapid-keys` |
 | `NUXT_VAPID_PRIVATE_KEY` | ditto |
 | `NUXT_VAPID_SUBJECT` | `mailto:you@example.org` |
 
-`NUXT_DB_PATH` is already `/data/passport.db` in the image; don't override.
 
 ## 4. Scheduled task (challenge unlocks + event reminders)
 
@@ -76,26 +83,22 @@ node -e "fetch('http://localhost:3000/api/cron/tick',{method:'POST',headers:{'x-
 
 ## 5. Backups
 
-Add a second scheduled task, daily:
-
-```
-node -e "const fs=require('fs');fs.mkdirSync('/data/backups',{recursive:true});fs.copyFileSync('/data/passport.db','/data/backups/passport-'+new Date().toISOString().slice(0,10)+'.db');const l=fs.readdirSync('/data/backups').sort();l.slice(0,-14).forEach(f=>fs.rmSync('/data/backups/'+f))"
-```
-
-That keeps 14 daily snapshots **on the same volume** — still copy them off the
-server periodically (scp/rsync from the host, or Coolify's S3 backup if you
-use it). A backup that lives only on the box that dies is not a backup.
+Coolify backs the Postgres service up for you: open the database →
+**Backups** → enable scheduled backups (daily is fine) and, if you have S3
+configured, send them off-box. A backup that only lives on the machine that
+dies is not a backup.
 
 ## 6. First login & go-live
 
-1. Sign in with the seeded troop leader passcode from the README (`1111-2222`).
-2. **Immediately rotate it**: Προφίλ → Νέος κωδικός. The demo codes are public
-   in this repo — do this before anything else.
-3. Create your real scouts (Πρόσκοποι → +) and appoint leaders
-   (Άλλα → Ρόλοι & δικαιώματα), rotating each leader's passcode from that screen.
-4. Print real cards (Πρόσκοποι → Κάρτες εισόδου) — printing regenerates the
-   selected scouts' passcodes, which also voids every demo code.
-5. Deactivate the demo scouts you don't repurpose (tap scout → Απενεργοποίηση).
+1. Sign in as `1111-2222` (ΠΑΝΑΓΙΩΤΗΣ ΚΑΙΜΗΣ, Αρχηγός Συστήματος).
+2. **Immediately rotate it**: Προφίλ → Νέος κωδικός. That passcode is public in
+   this repo — do this before anything else.
+3. Add the real Βαθμοφόροι and members (Πρόσκοποι → +), texting or writing down
+   each passcode as you go.
+4. Grant full access to any other Διαχειριστές you need
+   (Άλλα → Ρόλοι & δικαιώματα → the person → Δικαιώματα).
+5. Print login cards if you prefer paper (Πρόσκοποι → Κάρτες εισόδου) — note
+   that printing regenerates the selected members' passcodes.
 
-Don't wipe `/data/passport.db` to "start clean" — an empty database reseeds the
-demo troop on next boot.
+The roster starts empty; only the structure (sections, starter teams, badge
+catalogue, info pages) and your own account are created.

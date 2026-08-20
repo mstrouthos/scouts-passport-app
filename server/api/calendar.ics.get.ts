@@ -5,9 +5,9 @@ import { buildIcs } from '../utils/ics'
 /** Authenticated scout's calendar as a downloadable .ics — same visibility rules as /api/calendar. */
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
-  const db = useDb()
-  const mySection = sectionOf(me)
-  const rows = db.select().from(s.events).all()
+  const db = (await useDb())
+  const mySection = await sectionOf(me)
+  const rows = (await db.select().from(s.events))
     .filter(e => e.scope === 'troop'
       || (e.scope === 'section' && e.sectionId === mySection)
       || (e.scope === 'patrol' && e.patrolId === me.patrolId))

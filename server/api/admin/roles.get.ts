@@ -6,14 +6,14 @@ import { requireLeader, scopedSectionIds, scopedScouts } from '../../utils/guard
     section, and only their own section's scouts as appointable candidates. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
-  const db = useDb()
-  const secIds = scopedSectionIds(me)
+  const db = (await useDb())
+  const secIds = await scopedSectionIds(me)
   if (secIds !== null && !secIds.length)
     throw createError({ statusCode: 403, message: 'Section leaders only' })
 
-  const scopes = db.select().from(s.leaderScopes).all()
-  const allLeaders = db.select().from(s.scouts).all().filter(r => r.role !== 'scout')
-  const patrols = db.select().from(s.patrols).all()
+  const scopes = (await db.select().from(s.leaderScopes))
+  const allLeaders = (await db.select().from(s.scouts)).filter(r => r.role !== 'scout')
+  const patrols = (await db.select().from(s.patrols))
     .filter(p => secIds === null || secIds.includes(p.sectionId))
     .sort((a, b) => a.sortOrder - b.sortOrder)
 
@@ -26,10 +26,10 @@ export default defineEventHandler(async (event) => {
         isActive: r.isActive, phone: r.phone, idNumber: r.idNumber,
         scopes: scopes.filter(x => x.scoutId === r.id).map(x => ({ id: x.id, scope: x.scope, sectionId: x.sectionId, patrolId: x.patrolId, rank: x.rank }))
       })),
-      scouts: db.select().from(s.scouts).all().filter(r => r.role === 'scout' && r.isActive).map(r => ({
+      scouts: (await db.select().from(s.scouts)).filter(r => r.role === 'scout' && r.isActive).map(r => ({
         id: r.id, firstName: r.firstName, lastName: r.lastName, firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn
       })),
-      sections: db.select().from(s.sections).all().sort((a, b) => a.sortOrder - b.sortOrder)
+      sections: (await db.select().from(s.sections)).sort((a, b) => a.sortOrder - b.sortOrder)
         .map(x => ({ id: x.id, nameEl: x.nameEl, nameEn: x.nameEn, slug: x.slug })),
       patrols: patrols.map(p => ({ id: p.id, sectionId: p.sectionId, nameEl: p.nameEl, nameEn: p.nameEn, emblem: p.emblem }))
     }
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
         return l && { id: l.id, firstName: l.firstName, lastName: l.lastName, firstNameEn: l.firstNameEn, lastNameEn: l.lastNameEn, rank: x.rank }
       }).filter(Boolean)
     })),
-    scouts: scopedScouts(me).filter(r => r.isActive).map(r => ({
+    scouts: (await scopedScouts(me)).filter(r => r.isActive).map(r => ({
       id: r.id, firstName: r.firstName, lastName: r.lastName, firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, patrolId: r.patrolId
     }))
   }

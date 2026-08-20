@@ -7,9 +7,9 @@ import { cascadeDeleteScout } from '../../../utils/deleteScout'
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const id = idParam(event)
-  assertScoutInScope(me, id)
+  await assertScoutInScope(me, id)
   try {
-    cascadeDeleteScout(id)
+    await cascadeDeleteScout(id)
   } catch {
     throw createError({ statusCode: 400, message: 'This record still has linked history and cannot be deleted' })
   }

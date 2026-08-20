@@ -3,39 +3,39 @@
    entered directly.
      1111-2222  ΠΑΝΑΓΙΩΤΗΣ ΚΑΙΜΗΣ — Αρχηγός Συστήματος (admin, all sectors)
    Rotate that passcode from Προφίλ → Νέος κωδικός right after go-live. */
-import type { drizzle } from 'drizzle-orm/better-sqlite3'
+import type { drizzle } from 'drizzle-orm/node-postgres'
 import * as s from './schema'
 import { hmacPasscode, now } from '../utils/passcode'
 
 type Db = ReturnType<typeof drizzle<typeof s>>
 
-export function seedIfEmpty(db: Db) {
-  if (db.select().from(s.scouts).limit(1).all().length) return
+export async function seedIfEmpty(db: Db) {
+  if ((await db.select().from(s.scouts).limit(1)).length) return
   const ts = now()
 
-  const sectionRows = db.insert(s.sections).values([
+  const sectionRows = (await db.insert(s.sections).values([
     { nameEl: 'Μικρή Αγέλη', nameEn: 'Little Pack', slug: 'mikri-ageli', hasApp: false, sortOrder: 0 },
     { nameEl: 'Αγέλη', nameEn: 'Cub Pack', slug: 'ageli', hasApp: false, sortOrder: 1 },
     { nameEl: 'Ομάδα Προσκόπων', nameEn: 'Scout Troop', slug: 'omada', hasApp: true, sortOrder: 2 },
     { nameEl: 'Κοινότητα Ανιχνευτών', nameEn: 'Venture Community', slug: 'koinotita', hasApp: true, sortOrder: 3 }
-  ]).returning().all()
+  ]).returning())
   const S = Object.fromEntries(sectionRows.map(x => [x.slug!, x.id]))
 
   // Starter teams for the Scout Troop — rename, add or delete them from
   // Πρόσκοποι → Ομάδα Προσκόπων.
-  db.insert(s.patrols).values([
+  await db.insert(s.patrols).values([
     { sectionId: S.omada, nameEl: 'Λύκοι', nameEn: 'Wolves', emblem: '🐺', sortOrder: 0 },
     { sectionId: S.omada, nameEl: 'Αετοί', nameEn: 'Eagles', emblem: '🦅', sortOrder: 1 },
     { sectionId: S.omada, nameEl: 'Κόβρες', nameEn: 'Cobras', emblem: '🐍', sortOrder: 2 }
-  ]).run()
+  ])
 
-  db.insert(s.scouts).values({
+  await db.insert(s.scouts).values({
     firstName: 'ΠΑΝΑΓΙΩΤΗΣ', lastName: 'ΚΑΙΜΗΣ',
     firstNameEn: 'Panagiotis', lastNameEn: 'Kaimis',
     passcodeHmac: hmacPasscode('1111-2222'),
     role: 'troop_leader', isChief: true, isActive: true,
     joinedOn: ts.slice(0, 10), createdAt: ts
-  }).run()
+  })
 
   // Badge catalogue — awarded to members by leaders.
   const badgeDefs: Array<[string, string, string, string, string]> = [
@@ -52,11 +52,11 @@ export function seedIfEmpty(db: Db) {
     ['📡', 'Επικοινωνίες', 'Signalling', 'Στέλνεις και λαμβάνεις μηνύματα με σήματα.', 'Sends and receives messages by signal.'],
     ['🪵', 'Ξυλοτεχνία', 'Pioneering', 'Φτιάχνεις χρήσιμες κατασκευές με ξύλα και σχοινιά.', 'Builds useful structures from spars and rope.']
   ]
-  db.insert(s.achievements).values(badgeDefs.map(([i, el, en, del_, den], idx) => ({
+  await db.insert(s.achievements).values(badgeDefs.map(([i, el, en, del_, den], idx) => ({
     iconEmoji: i, titleEl: el, titleEn: en, descriptionEl: del_, descriptionEn: den, sortOrder: idx
-  }))).run()
+  })))
 
-  db.insert(s.infoPages).values([
+  await db.insert(s.infoPages).values([
     {
       slug: 'uniforms', iconEmoji: '👔', titleEl: 'Στολές', titleEn: 'Uniforms',
       summaryEl: 'Τι φοράμε και πότε', summaryEn: 'What we wear and when',
@@ -133,7 +133,7 @@ export function seedIfEmpty(db: Db) {
       summaryEl: 'Οι αρχές μας', summaryEn: 'Our principles', sortOrder: 2, isPublished: false,
       bodyEl: 'Το επίσημο κείμενο θα προστεθεί από τον αρχηγό.', bodyEn: 'The official text will be added by a leader.'
     }
-  ]).run()
+  ])
 
   console.log('[seed] 30ό Σύστημα initialised — Αρχηγός Συστήματος ΠΑΝΑΓΙΩΤΗΣ ΚΑΙΜΗΣ, passcode 1111-2222 (rotate it now). Roster starts empty.')
 }

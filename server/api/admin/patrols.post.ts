@@ -10,17 +10,17 @@ export default defineEventHandler(async (event) => {
   const nameEl = String(b?.nameEl || '').trim()
   if (!nameEl || !Number.isInteger(sectionId))
     throw createError({ statusCode: 400, message: 'Name and section required' })
-  const secIds = scopedSectionIds(me)
+  const secIds = await scopedSectionIds(me)
   if (secIds !== null && !secIds.includes(sectionId))
     throw createError({ statusCode: 403, message: 'Out of your sector' })
-  const db = useDb()
-  if (!db.select().from(s.sections).all().some(x => x.id === sectionId))
+  const db = (await useDb())
+  if (!(await db.select().from(s.sections)).some(x => x.id === sectionId))
     throw createError({ statusCode: 400, message: 'Bad section' })
-  const existing = db.select().from(s.patrols).all().filter(p => p.sectionId === sectionId)
-  const [row] = db.insert(s.patrols).values({
+  const existing = (await db.select().from(s.patrols)).filter(p => p.sectionId === sectionId)
+  const [row] = (await db.insert(s.patrols).values({
     sectionId, nameEl, nameEn: b?.nameEn || null,
     emblem: b?.emblem || EMOJI[existing.length % EMOJI.length],
     sortOrder: existing.length
-  }).returning().all()
+  }).returning())
   return { id: row.id }
 })

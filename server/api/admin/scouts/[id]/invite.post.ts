@@ -12,18 +12,18 @@ import { sendSms } from '../../../../utils/sms'
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const id = idParam(event)
-  if (id !== me.id && me.role !== 'troop_leader') assertScoutInScope(me, id)
+  if (id !== me.id && me.role !== 'troop_leader') await assertScoutInScope(me, id)
   const body = await readBody<{ passcode?: string }>(event).catch(() => ({}))
 
-  const db = useDb()
-  const row = db.select().from(s.scouts).where(eq(s.scouts.id, id)).get()
+  const db = (await useDb())
+  const row = (await db.select().from(s.scouts).where(eq(s.scouts.id, id)).limit(1))[0]
   if (!row) throw createError({ statusCode: 404, message: 'Not found' })
   if (!row.phone) throw createError({ statusCode: 400, message: 'No phone on file' })
 
   let passcode = body?.passcode
   if (!passcode || hmacPasscode(passcode) !== row.passcodeHmac) {
     passcode = generatePasscode()
-    db.update(s.scouts).set({ passcodeHmac: hmacPasscode(passcode) }).where(eq(s.scouts.id, id)).run()
+    await db.update(s.scouts).set({ passcodeHmac: hmacPasscode(passcode) }).where(eq(s.scouts.id, id))
   }
 
   // Kept short on purpose: Greek text is sent as UCS-2, which fits only ~70

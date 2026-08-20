@@ -4,11 +4,27 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      NUXT_DB_PATH: /data/passport.db
-    volumes:
-      - ./data:/data
+      NUXT_DATABASE_URL: postgres://scouts:${POSTGRES_PASSWORD:-devpass}@db:5432/scouts
+    depends_on:
+      db:
+        condition: service_healthy
     expose:
       - "3000"
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: scouts
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpass}
+      POSTGRES_DB: scouts
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scouts"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   caddy:
     image: caddy:2
@@ -22,5 +38,6 @@ services:
       - caddy_config:/config
 
 volumes:
+  pgdata:
   caddy_data:
   caddy_config:

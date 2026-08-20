@@ -18,7 +18,7 @@ function ensureConfigured(): boolean {
 
 async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, payload: string): Promise<number> {
   if (!subs.length || !ensureConfigured()) return 0
-  const db = useDb()
+  const db = (await useDb())
   let sent = 0
   await Promise.all(subs.map(async (sub) => {
     try {
@@ -27,7 +27,7 @@ async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, pay
       sent++
     } catch (err: any) {
       if (err?.statusCode === 404 || err?.statusCode === 410)
-        db.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.id, sub.id)).run()
+        await db.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.id, sub.id))
     }
   }))
   return sent
@@ -38,28 +38,28 @@ async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, pay
     message survives even when push isn't enabled or fails to deliver. */
 export async function sendPushTo(scoutIds: number[], msg: { title: string, body: string, kind: string, refId: number }): Promise<number> {
   if (!scoutIds.length) return 0
-  const db = useDb()
+  const db = (await useDb())
   const fresh: number[] = []
   for (const id of scoutIds) {
     try {
-      db.insert(s.notificationLog).values({ scoutId: id, kind: msg.kind, refId: msg.refId, sentAt: now() }).run()
+      await db.insert(s.notificationLog).values({ scoutId: id, kind: msg.kind, refId: msg.refId, sentAt: now() })
       fresh.push(id)
     } catch { /* already notified */ }
   }
   if (!fresh.length) return 0
   const sentAt = now()
-  db.insert(s.notifications).values(fresh.map(id => ({
+  await db.insert(s.notifications).values(fresh.map(id => ({
     scoutId: id, kind: msg.kind, refId: msg.refId, title: msg.title, body: msg.body, createdAt: sentAt
-  }))).run()
-  const subs = db.select().from(s.pushSubscriptions).all().filter(x => x.scoutId != null && fresh.includes(x.scoutId))
+  })))
+  const subs = (await db.select().from(s.pushSubscriptions)).filter(x => x.scoutId != null && fresh.includes(x.scoutId))
   return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body }))
 }
 
 /** Push to anonymous parent subscriptions. sectionIds null = every parent sub.
     Dedupe via notification_log rows keyed on the negative section id. */
 export async function sendPushToParents(sectionIds: number[] | null, msg: { title: string, body: string, kind: string, refId: number }): Promise<number> {
-  const db = useDb()
-  const subs = db.select().from(s.pushSubscriptions).all()
+  const db = (await useDb())
+  const subs = (await db.select().from(s.pushSubscriptions))
     .filter(x => x.scoutId == null && x.sectionId != null)
     .filter(x => sectionIds === null || sectionIds.includes(x.sectionId!))
   if (!subs.length) return 0
@@ -67,7 +67,7 @@ export async function sendPushToParents(sectionIds: number[] | null, msg: { titl
   const fresh: number[] = []
   for (const sid of targetSections) {
     try {
-      db.insert(s.notificationLog).values({ scoutId: -sid, kind: msg.kind, refId: msg.refId, sentAt: now() }).run()
+      await db.insert(s.notificationLog).values({ scoutId: -sid, kind: msg.kind, refId: msg.refId, sentAt: now() })
       fresh.push(sid)
     } catch { /* already sent to this section */ }
   }

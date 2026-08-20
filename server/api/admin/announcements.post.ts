@@ -9,8 +9,8 @@ export default defineEventHandler(async (event) => {
   const text = String(b?.textEl || '').trim()
   if (!text) throw createError({ statusCode: 400, message: 'Message required' })
 
-  const secs = scopedSectionIds(me)
-  const rank = rankOf(me)
+  const secs = await scopedSectionIds(me)
+  const rank = await rankOf(me)
   let audience = ['troop', 'section', 'leaders'].includes(b?.audience as any) ? b!.audience as any : 'section'
   let sectionId = b?.sectionId != null ? Number(b.sectionId) : null
 
@@ -23,10 +23,10 @@ export default defineEventHandler(async (event) => {
     sectionId = null
   }
 
-  const [row] = useDb().insert(s.announcements).values({
+  const [row] = (await (await useDb()).insert(s.announcements).values({
     audience, sectionId, textEl: text, textEn: b?.textEn || null,
     status: 'pending', createdBy: me.id, createdAt: now()
-  }).returning().all()
+  }).returning())
 
   // Αρχηγός and admin send immediately; Υπαρχηγός waits for approval
   if (rank === 'admin' || rank === 'archigos') {

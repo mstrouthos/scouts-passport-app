@@ -8,18 +8,18 @@ export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const b = await readBody<{ sectionId?: number, emails?: string[] }>(event)
   const sectionId = Number(b?.sectionId)
-  const secs = scopedSectionIds(me)
+  const secs = await scopedSectionIds(me)
   if (!Number.isInteger(sectionId) || (secs !== null && !secs.includes(sectionId)))
     throw createError({ statusCode: 403, message: 'Out of your sector' })
   const emails = [...new Set((b?.emails || [])
     .map(e => String(e).trim().toLowerCase())
     .filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)))]
-  const db = useDb()
-  db.delete(s.familyContacts).where(eq(s.familyContacts.sectionId, sectionId)).run()
+  const db = (await useDb())
+  await db.delete(s.familyContacts).where(eq(s.familyContacts.sectionId, sectionId))
   if (emails.length) {
-    db.insert(s.familyContacts).values(emails.map(email => ({
+    await db.insert(s.familyContacts).values(emails.map(email => ({
       sectionId, email, addedBy: me.id, createdAt: now()
-    }))).run()
+    })))
   }
   return { saved: emails.length }
 })

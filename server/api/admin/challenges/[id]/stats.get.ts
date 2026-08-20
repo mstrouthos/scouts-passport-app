@@ -5,20 +5,20 @@ import { requireLeader, scopedPatrolIds, scopedScouts, idParam } from '../../../
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const id = idParam(event)
-  const db = useDb()
-  const c = db.select().from(s.challenges).where(eq(s.challenges.id, id)).get()
+  const db = (await useDb())
+  const c = (await db.select().from(s.challenges).where(eq(s.challenges.id, id)).limit(1))[0]
   if (!c) throw createError({ statusCode: 404, message: 'Not found' })
-  const pids = scopedPatrolIds(me)
+  const pids = await scopedPatrolIds(me)
   if (pids !== null && !(c.patrolId != null && pids.includes(c.patrolId)))
     throw createError({ statusCode: 403, message: 'Out of your sector' })
 
-  const opts = db.select().from(s.challengeOptions).where(eq(s.challengeOptions.challengeId, id)).all()
+  const opts = (await db.select().from(s.challengeOptions).where(eq(s.challengeOptions.challengeId, id)))
     .sort((a, b) => a.sortOrder - b.sortOrder)
-  const ans = db.select().from(s.challengeAnswers).where(eq(s.challengeAnswers.challengeId, id)).all()
-  const mine = scopedScouts(me).filter(r => r.isActive)
+  const ans = (await db.select().from(s.challengeAnswers).where(eq(s.challengeAnswers.challengeId, id)))
+  const mine = (await scopedScouts(me)).filter(r => r.isActive)
   const eligible = c.patrolId ? mine.filter(r => r.patrolId === c.patrolId) : mine
   const answeredIds = new Set(ans.map(a => a.scoutId))
-  const patrols = new Map(db.select().from(s.patrols).all().map(p => [p.id, p]))
+  const patrols = new Map((await db.select().from(s.patrols)).map(p => [p.id, p]))
 
   return {
     challenge: { id: c.id, titleEl: c.titleEl, titleEn: c.titleEn, questionEl: c.questionEl, questionEn: c.questionEn, points: c.points },

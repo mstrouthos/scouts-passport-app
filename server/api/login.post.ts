@@ -20,8 +20,8 @@ export default defineEventHandler(async (event) => {
   const digits = String(body?.passcode || '').replace(/\D/g, '')
   if (digits.length !== 8) throw createError({ statusCode: 400, message: 'Bad passcode' })
 
-  const db = useDb()
-  const row = db.select().from(s.scouts).where(eq(s.scouts.passcodeHmac, hmacPasscode(digits))).get()
+  const db = (await useDb())
+  const row = (await db.select().from(s.scouts).where(eq(s.scouts.passcodeHmac, hmacPasscode(digits))).limit(1))[0]
   if (!row || !row.isActive) {
     tries.set(ip, { n: (rec && nowT - rec.t < 600_000 ? rec.n : 0) + 1, t: rec && nowT - rec.t < 600_000 ? rec.t : nowT })
     globalFails.n++

@@ -10,6 +10,4 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/.output ./.output
 EXPOSE 3000
-VOLUME /data
-ENV NUXT_DB_PATH=/data/passport.db
 CMD ["node", ".output/server/index.mjs"]

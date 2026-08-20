@@ -5,22 +5,29 @@ import { now } from '../utils/passcode'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
-  const db = useDb()
+  const db = (await useDb())
   const t = now()
-  const mySection = sectionOf(me)
+  const mySection = await sectionOf(me)
 
-  const rows = db.select().from(s.challenges).all()
+  const rows = (await db.select().from(s.challenges))
     .filter(c => c.isPublished && c.unlocksAt && c.unlocksAt <= t && !c.forLeaders)
     .filter(c => (!c.sectionId && !c.patrolId)
       || (c.patrolId != null ? c.patrolId === me.patrolId : c.sectionId === mySection))
     .sort((a, b) => (b.unlocksAt || '').localeCompare(a.unlocksAt || ''))
 
-  const myAnswers = db.select().from(s.challengeAnswers).where(eq(s.challengeAnswers.scoutId, me.id)).all()
+  const myAnswers = (await db.select().from(s.challengeAnswers).where(eq(s.challengeAnswers.scoutId, me.id)))
   const ansMap = new Map(myAnswers.map(a => [a.challengeId, a]))
 
+  // all options in one query, grouped by challenge — avoids a query per row
+  const allOpts = (await db.select().from(s.challengeOptions)).sort((a, b) => a.sortOrder - b.sortOrder)
+  const optsByChallenge = new Map<number, typeof allOpts>()
+  for (const o of allOpts) {
+    const list = optsByChallenge.get(o.challengeId) || []
+    list.push(o); optsByChallenge.set(o.challengeId, list)
+  }
+
   return rows.map(c => {
-    const opts = db.select().from(s.challengeOptions).where(eq(s.challengeOptions.challengeId, c.id)).all()
-      .sort((a, b) => a.sortOrder - b.sortOrder)
+    const opts = optsByChallenge.get(c.id) || []
     const mine = ansMap.get(c.id)
     const closed = !!(c.closesAt && c.closesAt <= t)
     const revealed = !!mine || closed

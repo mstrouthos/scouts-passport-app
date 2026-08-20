@@ -1,4 +1,4 @@
-# Διαβατήριο Προσκόπου — Scout Passport
+# Πύλη Προσκόπων — Scout Portal
 
 A digital passport PWA for one scout troop: profiles, badges, calendar, quiz
 challenges with leaderboards, meeting review (attendance / uniform / game
@@ -9,17 +9,20 @@ Full product spec: [SPEC.md](SPEC.md). Design prototype: `mockups/ui-mockup.html
 
 ## Stack
 
-Nuxt 3 (SPA) · Nitro node server · SQLite + Drizzle · nuxt-auth-utils sessions ·
+Nuxt 3 (SPA) · Nitro node server · PostgreSQL + Drizzle · nuxt-auth-utils sessions ·
 @nuxtjs/i18n · @vite-pwa/nuxt · web-push (VAPID) · Docker + Caddy.
 
 ## Development
 
 ```bash
 npm install
+docker run -d --name scouts-pg -p 5432:5432 \
+  -e POSTGRES_USER=scouts -e POSTGRES_PASSWORD=devpass -e POSTGRES_DB=scouts postgres:16-alpine
+cp .env.example .env    # set NUXT_DATABASE_URL to the line above
 npm run dev
 ```
 
-First boot creates `data/passport.db` with the troop structure (the four
+First boot creates the tables with the troop structure (the four
 sections, three starter Scout Troop teams, the badge catalogue and the info
 pages) and a **single** account. The member roster starts empty.
 

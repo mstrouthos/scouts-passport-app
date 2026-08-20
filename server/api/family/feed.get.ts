@@ -5,19 +5,19 @@ import { useDb, schema as s } from '../../db'
     which sections exist, their troop+section events, published info pages.
     Contains no member names — only event and reference content. */
 export default defineEventHandler(async (event) => {
-  const db = useDb()
+  const db = (await useDb())
   const slug = String(getQuery(event).section || '')
-  const famSections = db.select().from(s.sections).all()
+  const famSections = (await db.select().from(s.sections))
     .filter(x => !x.hasApp).sort((a, b) => a.sortOrder - b.sortOrder)
   const current = famSections.find(x => x.slug === slug) || famSections[0]
   if (!current) throw createError({ statusCode: 404, message: 'No family sections' })
 
-  const events = db.select().from(s.events).all()
+  const events = (await db.select().from(s.events))
     .filter(e => e.scope === 'troop' || (e.scope === 'section' && e.sectionId === current.id))
     .filter(e => new Date(e.endsAt || e.startsAt).getTime() > Date.now() - 86400_000)
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
 
-  const info = db.select().from(s.infoPages).all()
+  const info = (await db.select().from(s.infoPages))
     .filter(p => p.isPublished).sort((a, b) => a.sortOrder - b.sortOrder)
 
   return {

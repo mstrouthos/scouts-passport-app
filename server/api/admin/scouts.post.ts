@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const lastName = String(body?.lastName || '').trim()
   const phone = normalizePhone(body?.phone)
   if (!firstName || !lastName) throw createError({ statusCode: 400, message: 'Name required' })
-  const db = useDb()
+  const db = (await useDb())
   const passcode = generatePasscode()
 
   // Βαθμοφόροι are added the same way as members, from the same sheet — but
@@ -26,33 +26,33 @@ export default defineEventHandler(async (event) => {
     let sectionId: number | null = null
     if (scope === 'section') {
       sectionId = Number(body?.sectionId)
-      if (!db.select().from(s.sections).all().some(x => x.id === sectionId))
+      if (!(await db.select().from(s.sections)).some(x => x.id === sectionId))
         throw createError({ statusCode: 400, message: 'Bad section' })
     }
-    const [row] = db.insert(s.scouts).values({
+    const [row] = (await db.insert(s.scouts).values({
       firstName, lastName, phone, role: 'leader',
       passcodeHmac: hmacPasscode(passcode), createdAt: now(), joinedOn: now().slice(0, 10)
-    }).returning().all()
-    db.insert(s.leaderScopes).values({ scoutId: row.id, scope, sectionId, rank, assignedBy: me.id, assignedAt: now() }).run()
+    }).returning())
+    await db.insert(s.leaderScopes).values({ scoutId: row.id, scope, sectionId, rank, assignedBy: me.id, assignedAt: now() })
     return { id: row.id, passcode }
   }
 
   const sectionId = Number(body?.sectionId)
   if (!Number.isInteger(sectionId))
     throw createError({ statusCode: 400, message: 'Name and section required' })
-  const sec = db.select().from(s.sections).all().find(x => x.id === sectionId)
+  const sec = (await db.select().from(s.sections)).find(x => x.id === sectionId)
   if (!sec) throw createError({ statusCode: 400, message: 'Bad section' })
-  const secIds = scopedSectionIds(me)
+  const secIds = await scopedSectionIds(me)
   if (secIds !== null && !secIds.includes(sectionId))
     throw createError({ statusCode: 403, message: 'Out of your sector' })
   let patrolId: number | null = body?.patrolId != null ? Number(body.patrolId) : null
   if (patrolId != null) {
-    const p = db.select().from(s.patrols).all().find(x => x.id === patrolId)
+    const p = (await db.select().from(s.patrols)).find(x => x.id === patrolId)
     if (!p || p.sectionId !== sectionId) patrolId = null
   }
-  const [row] = db.insert(s.scouts).values({
+  const [row] = (await db.insert(s.scouts).values({
     firstName, lastName, sectionId, patrolId, phone,
     passcodeHmac: hmacPasscode(passcode), createdAt: now(), joinedOn: now().slice(0, 10)
-  }).returning().all()
+  }).returning())
   return { id: row.id, passcode }
 })

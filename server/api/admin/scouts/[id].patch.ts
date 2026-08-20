@@ -6,11 +6,11 @@ import { normalizePhone } from '../../../utils/phone'
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const id = idParam(event)
-  const target = useDb().select().from(s.scouts).where(eq(s.scouts.id, id)).get()
+  const target = (await (await useDb()).select().from(s.scouts).where(eq(s.scouts.id, id)).limit(1))[0]
   if (!target) throw createError({ statusCode: 404, message: 'Not found' })
   if (id !== me.id) {
-    if (target.role === 'scout') assertScoutInScope(me, id)
-    else assertLeaderInScope(me, id)
+    if (target.role === 'scout') await assertScoutInScope(me, id)
+    else await assertLeaderInScope(me, id)
   }
   const body = await readBody<{
     patrolId?: number, isActive?: boolean, firstName?: string, lastName?: string,
@@ -25,11 +25,11 @@ export default defineEventHandler(async (event) => {
   if (body?.phone !== undefined) set.phone = normalizePhone(body.phone)
   if (body?.idNumber !== undefined) set.idNumber = String(body.idNumber).trim() || null
   if (body?.patrolId != null) {
-    const pids = scopedPatrolIds(me)
+    const pids = await scopedPatrolIds(me)
     if (pids !== null && !pids.includes(Number(body.patrolId)))
       throw createError({ statusCode: 403, message: 'Target patrol out of your sector' })
     set.patrolId = Number(body.patrolId)
   }
-  if (Object.keys(set).length) useDb().update(s.scouts).set(set).where(eq(s.scouts.id, id)).run()
+  if (Object.keys(set).length) await (await useDb()).update(s.scouts).set(set).where(eq(s.scouts.id, id))
   return { ok: true }
 })

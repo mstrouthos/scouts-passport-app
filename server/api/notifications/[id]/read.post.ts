@@ -6,10 +6,10 @@ import { now } from '../../../utils/passcode'
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
   const id = idParam(event)
-  const db = useDb()
-  const row = db.select().from(s.notifications)
-    .where(and(eq(s.notifications.id, id), eq(s.notifications.scoutId, me.id))).get()
+  const db = (await useDb())
+  const row = (await db.select().from(s.notifications)
+    .where(and(eq(s.notifications.id, id), eq(s.notifications.scoutId, me.id))).limit(1))[0]
   if (!row) throw createError({ statusCode: 404, message: 'Not found' })
-  if (!row.readAt) db.update(s.notifications).set({ readAt: now() }).where(eq(s.notifications.id, id)).run()
+  if (!row.readAt) await db.update(s.notifications).set({ readAt: now() }).where(eq(s.notifications.id, id))
   return { ok: true }
 })

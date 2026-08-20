@@ -3,11 +3,11 @@ import { requireLeader, scopedSectionIds } from '../../utils/guard'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
-  const db = useDb()
-  const secIds = scopedSectionIds(me)
-  const reviews = db.select().from(s.eventReviews).all()
-  const sections = new Map(db.select().from(s.sections).all().map(x => [x.id, x]))
-  return db.select().from(s.events).all()
+  const db = (await useDb())
+  const secIds = await scopedSectionIds(me)
+  const reviews = (await db.select().from(s.eventReviews))
+  const sections = new Map((await db.select().from(s.sections)).map(x => [x.id, x]))
+  return (await db.select().from(s.events))
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
     .map(e => {
       const sec = e.sectionId != null ? sections.get(e.sectionId) : null

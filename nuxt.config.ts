@@ -65,7 +65,7 @@ export default defineNuxtConfig({
     emailFrom: '',
     smsToApiKey: '',
     smsSenderId: '',
-    dbPath: './data/passport.db',
+    databaseUrl: '',
     public: {
       vapidPublicKey: ''
     }

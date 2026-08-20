@@ -3,7 +3,7 @@ import { requireScout } from '../utils/guard'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
-  const rows = useDb().select().from(s.infoPages).all()
+  const rows = (await (await useDb()).select().from(s.infoPages))
     .filter(p => p.isPublished || me.role !== 'scout')
     .sort((a, b) => a.sortOrder - b.sortOrder)
   return rows.map(p => ({

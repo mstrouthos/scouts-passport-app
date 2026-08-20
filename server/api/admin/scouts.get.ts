@@ -1,19 +1,19 @@
 import { useDb, schema as s } from '../../db'
-import { requireLeader, scopedSectionIds, visibleSectionIds, directPatrolIds, pointTotals, sectionOf } from '../../utils/guard'
+import { requireLeader, scopedSectionIds, visibleSectionIds, directPatrolIds, pointTotals, sectionOf, sectionOfWith } from '../../utils/guard'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
-  const db = useDb()
-  const secIds = scopedSectionIds(me)     // sections this leader fully administers (null = all)
-  const visIds = visibleSectionIds(me)    // sections that should render at all (null = all)
-  const patOnly = directPatrolIds(me)     // patrols granted directly (patrol-level leaders)
-  const totals = pointTotals()
-  const patrols = db.select().from(s.patrols).all().sort((a, b) => a.sortOrder - b.sortOrder)
-  const all = db.select().from(s.scouts).all()
+  const db = (await useDb())
+  const secIds = await scopedSectionIds(me)     // sections this leader fully administers (null = all)
+  const visIds = await visibleSectionIds(me)    // sections that should render at all (null = all)
+  const patOnly = await directPatrolIds(me)     // patrols granted directly (patrol-level leaders)
+  const totals = await pointTotals()
+  const patrols = (await db.select().from(s.patrols)).sort((a, b) => a.sortOrder - b.sortOrder)
+  const all = (await db.select().from(s.scouts))
   const badgeCounts = new Map<number, number>()
-  for (const a of db.select().from(s.scoutAchievements).all())
+  for (const a of await db.select().from(s.scoutAchievements))
     badgeCounts.set(a.scoutId, (badgeCounts.get(a.scoutId) || 0) + 1)
-  const scopes = db.select().from(s.leaderScopes).all()
+  const scopes = (await db.select().from(s.leaderScopes))
   const leaderNames = new Map(all.filter(r => r.role !== 'scout').map(r => [r.id, r]))
 
   const patrolLeadersOf = (patrolId: number) =>
@@ -28,12 +28,12 @@ export default defineEventHandler(async (event) => {
     isActive: r.isActive, points: totals.get(r.id) || 0, badges: badgeCounts.get(r.id) || 0
   })
 
-  const sections = db.select().from(s.sections).all()
+  const sections = (await db.select().from(s.sections))
     .filter(x => visIds === null || visIds.includes(x.id))
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map(sec => {
       const secAdmin = secIds === null || secIds.includes(sec.id)     // full section power here
-      const members = all.filter(r => r.role === 'scout' && sectionOf(r, patrols) === sec.id)
+      const members = all.filter(r => r.role === 'scout' && sectionOfWith(r, patrols) === sec.id)
       const patrolsInSec = patrols.filter(p => p.sectionId === sec.id)
         .filter(p => secAdmin || patOnly.includes(p.id))
       return {

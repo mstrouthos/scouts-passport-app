@@ -4,22 +4,22 @@ import { requireScout, scopeKind, visibleSectionIds, rankOf, sectionOf, directPa
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
-  const db = useDb()
-  const patrol = me.patrolId ? db.select().from(s.patrols).where(eq(s.patrols.id, me.patrolId)).get() : null
-  const mySectionId = sectionOf(me)
-  const section = mySectionId != null ? db.select().from(s.sections).where(eq(s.sections.id, mySectionId)).get() : null
+  const db = (await useDb())
+  const patrol = me.patrolId ? (await db.select().from(s.patrols).where(eq(s.patrols.id, me.patrolId)).limit(1))[0] : null
+  const mySectionId = await sectionOf(me)
+  const section = mySectionId != null ? (await db.select().from(s.sections).where(eq(s.sections.id, mySectionId)).limit(1))[0] : null
 
   const isLeader = me.role !== 'scout'
-  const kind = isLeader ? scopeKind(me) : null
-  const visIds = isLeader ? visibleSectionIds(me) : null
-  const allSections = db.select().from(s.sections).all().sort((a, b) => a.sortOrder - b.sortOrder)
+  const kind = isLeader ? await scopeKind(me) : null
+  const visIds = isLeader ? await visibleSectionIds(me) : null
+  const allSections = (await db.select().from(s.sections)).sort((a, b) => a.sortOrder - b.sortOrder)
   const scopeSections = !isLeader ? null
     : (visIds === null ? null : allSections.filter(x => visIds.includes(x.id)))
 
   let myPatrols: any[] = []
   if (isLeader && kind === 'patrol') {
-    const pids = directPatrolIds(me)
-    myPatrols = db.select().from(s.patrols).all().filter(p => pids.includes(p.id))
+    const pids = await directPatrolIds(me)
+    myPatrols = (await db.select().from(s.patrols)).filter(p => pids.includes(p.id))
       .map(p => ({ id: p.id, nameEl: p.nameEl, nameEn: p.nameEn, emblem: p.emblem, sectionId: p.sectionId }))
   }
 
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     id: me.id, firstName: me.firstName, lastName: me.lastName,
     firstNameEn: me.firstNameEn, lastNameEn: me.lastNameEn,
     role: me.role, locale: me.locale,
-    rank: isLeader ? rankOf(me) : null,
+    rank: isLeader ? await rankOf(me) : null,
     isChief: !!me.isChief,
     scopeKind: kind,
     patrol: patrol && { id: patrol.id, nameEl: patrol.nameEl, nameEn: patrol.nameEn, emblem: patrol.emblem },

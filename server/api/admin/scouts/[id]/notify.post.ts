@@ -9,11 +9,11 @@ import { sendPushTo } from '../../../../utils/push'
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const id = idParam(event)
-  const db = useDb()
-  const target = db.select().from(s.scouts).where(eq(s.scouts.id, id)).get()
+  const db = (await useDb())
+  const target = (await db.select().from(s.scouts).where(eq(s.scouts.id, id)).limit(1))[0]
   if (!target) throw createError({ statusCode: 404, message: 'Not found' })
-  if (target.role === 'scout') assertScoutInScope(me, id)
-  else assertLeaderInScope(me, id)
+  if (target.role === 'scout') await assertScoutInScope(me, id)
+  else await assertLeaderInScope(me, id)
 
   const body = await readBody<{ text?: string }>(event)
   const text = String(body?.text || '').trim()

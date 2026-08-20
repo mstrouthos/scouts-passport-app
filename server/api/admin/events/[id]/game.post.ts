@@ -11,16 +11,16 @@ export default defineEventHandler(async (event) => {
   const points = Number(b?.points)
   if (!Number.isInteger(patrolId) || !Number.isInteger(points) || points === 0)
     throw createError({ statusCode: 400, message: 'Patrol and points required' })
-  const pids = scopedPatrolIds(me)
+  const pids = await scopedPatrolIds(me)
   if (pids !== null && !pids.includes(patrolId))
     throw createError({ statusCode: 403, message: 'Out of your sector' })
-  const db = useDb()
-  if (!db.select().from(s.events).where(eq(s.events.id, eventId)).get())
+  const db = (await useDb())
+  if (!(await db.select().from(s.events).where(eq(s.events.id, eventId)).limit(1))[0])
     throw createError({ statusCode: 404, message: 'Event not found' })
-  db.insert(s.pointAwards).values({
+  await db.insert(s.pointAwards).values({
     patrolId, eventId, kind: 'game', points,
     reasonEl: String(b?.reasonEl || 'Παιχνίδι'), reasonEn: b?.reasonEn || null,
     awardedBy: me.id, awardedAt: now()
-  }).run()
+  })
   return { ok: true }
 })

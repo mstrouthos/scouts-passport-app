@@ -1,15 +1,15 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
-import { requireScout, pointTotals, sectionOf } from '../utils/guard'
+import { requireScout, pointTotals, sectionOf, sectionOfWith } from '../utils/guard'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
-  const db = useDb()
-  const totals = pointTotals()
-  const allPatrols = db.select().from(s.patrols).all()
-  const mySection = sectionOf(me, allPatrols)
-  const actives = db.select().from(s.scouts).where(eq(s.scouts.role, 'scout')).all()
-    .filter(r => r.isActive && sectionOf(r, allPatrols) === mySection)
+  const db = (await useDb())
+  const totals = await pointTotals()
+  const allPatrols = (await db.select().from(s.patrols))
+  const mySection = sectionOfWith(me, allPatrols)
+  const actives = (await db.select().from(s.scouts).where(eq(s.scouts.role, 'scout')))
+    .filter(r => r.isActive && sectionOfWith(r, allPatrols) === mySection)
   const patrols = allPatrols.filter(p => p.sectionId === mySection)
 
   const individual = actives.map(r => ({

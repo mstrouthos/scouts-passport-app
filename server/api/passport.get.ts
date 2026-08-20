@@ -1,22 +1,22 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
-import { requireScout, pointTotals, sectionOf } from '../utils/guard'
+import { requireScout, pointTotals, sectionOf, sectionOfWith } from '../utils/guard'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
-  const db = useDb()
-  const totals = pointTotals()
+  const db = (await useDb())
+  const totals = await pointTotals()
   const myPoints = totals.get(me.id) || 0
 
-  const allPatrols = db.select().from(s.patrols).all()
-  const mySection = sectionOf(me, allPatrols)
-  const actives = db.select().from(s.scouts).where(eq(s.scouts.role, 'scout')).all()
-    .filter(r => r.isActive && sectionOf(r, allPatrols) === mySection)
+  const allPatrols = (await db.select().from(s.patrols))
+  const mySection = sectionOfWith(me, allPatrols)
+  const actives = (await db.select().from(s.scouts).where(eq(s.scouts.role, 'scout')))
+    .filter(r => r.isActive && sectionOfWith(r, allPatrols) === mySection)
   const rank = 1 + actives.filter(r => r.id !== me.id && (totals.get(r.id) || 0) > myPoints).length
 
-  const badges = db.select().from(s.achievements).all()
+  const badges = (await db.select().from(s.achievements))
     .filter(b => !b.isArchived).sort((a, b) => a.sortOrder - b.sortOrder)
-  const earned = db.select().from(s.scoutAchievements).where(eq(s.scoutAchievements.scoutId, me.id)).all()
+  const earned = (await db.select().from(s.scoutAchievements).where(eq(s.scoutAchievements.scoutId, me.id)))
   const earnedMap = new Map(earned.map(e => [e.achievementId, e]))
 
   return {
