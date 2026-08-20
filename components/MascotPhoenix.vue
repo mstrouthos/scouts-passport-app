@@ -1,62 +1,83 @@
 <template>
-  <svg class="scene" viewBox="0 0 240 178" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="mascot">
-    <circle class="tw" cx="30" cy="26" r="2.4" fill="#FFF3C4"/>
-    <circle class="tw d1" cx="205" cy="18" r="1.9" fill="#FFF3C4"/>
-    <circle class="tw d2" cx="176" cy="44" r="1.5" fill="#FFF3C4"/>
-    <circle class="tw d3" cx="62" cy="12" r="1.6" fill="#FFF3C4"/>
-    <ellipse cx="120" cy="168" rx="86" ry="7" fill="rgba(10,40,90,.18)"/>
-    <g>
-      <circle class="glow" cx="47" cy="128" r="26" fill="#F0B429" opacity=".35"/>
-      <rect x="30" y="146" width="34" height="7" rx="3.5" fill="#7A5230" transform="rotate(-14 47 150)"/>
-      <rect x="30" y="146" width="34" height="7" rx="3.5" fill="#8C6239" transform="rotate(14 47 150)"/>
-      <path class="flameO" d="M47 106c7 9 13 15 13 24a13 13 0 0 1-26 0c0-9 6-15 13-24Z" fill="#F0B429"/>
-      <path class="flameI" d="M47 120c3.6 4.6 6.6 7.8 6.6 12.4a6.6 6.6 0 0 1-13.2 0c0-4.6 3-7.8 6.6-12.4Z" fill="#E06A2B"/>
-    </g>
-    <g class="bob">
-      <!-- tail feathers, peeking from behind -->
-      <path d="M96 118 84 138 100 132Z" fill="#2A3A8F"/>
-      <path d="M104 122 96 144 112 136Z" fill="#3B4FB0"/>
-      <path d="M136 122 144 144 128 136Z" fill="#3B4FB0"/>
-      <path d="M144 118 156 138 140 132Z" fill="#2A3A8F"/>
-      <!-- folded left wing -->
-      <path d="M64 100q-16 6-16 24q0 10 9 15q-2-12 3-21q4-8 11-11Z" fill="#2A3A8F"/>
-      <path d="M67 103q-11 6-11 20q0 7 6 11q-1-9 2-16q3-7 8-10Z" fill="#3B4FB0"/>
-      <!-- legs & feet -->
-      <rect x="105" y="140" width="5" height="14" rx="2.5" fill="#E0A22E"/>
-      <rect x="130" y="140" width="5" height="14" rx="2.5" fill="#E0A22E"/>
-      <path d="M99 154h16l-2 4H101Z" fill="#C98A1E"/>
-      <path d="M124 154h16l-2 4H126Z" fill="#C98A1E"/>
-      <path d="M107 154v5M110 154v6M113 154v5" stroke="#C98A1E" stroke-width="1.6" stroke-linecap="round"/>
-      <path d="M132 154v5M135 154v6M138 154v5" stroke="#C98A1E" stroke-width="1.6" stroke-linecap="round"/>
-      <!-- body: uniform shirt (unchanged — this is what makes it "in uniform") -->
-      <path d="M96 96h48c6 22-4 40-24 40s-30-18-24-40Z" fill="#2F6B45"/>
-      <!-- neckerchief -->
-      <path d="M100 96q20 12 40 0l-6 10q-14 8-28 0Z" fill="#F0B429"/>
-      <path d="M116 104h8l-4 12Z" fill="#E9A93B"/>
-      <rect x="116.5" y="101" width="7" height="6" rx="2.6" fill="#B23A2E"/>
-      <!-- head: phoenix, echoing the crest's blue plumage -->
-      <path d="M113 30q-3-14 7-18q-6 8-2 16Z" fill="#F0B429"/>
-      <path d="M120 26q-1-16 10-21q-8 9-6 19Z" fill="#F7C948"/>
-      <path d="M127 30q3-15 14-17q-9 7-8 16Z" fill="#F0B429"/>
-      <circle cx="120" cy="52" r="30" fill="#2E3F9E"/>
-      <path d="M96 52a24 24 0 0 1 48 0c0 3-2 5-5 5H101c-3 0-5-2-5-5Z" fill="#3B4FB0"/>
-      <ellipse cx="120" cy="60" rx="16" ry="12" fill="#5D6EC7"/>
+  <svg class="scene" viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="phoenix">
+    <circle class="tw" cx="34" cy="30" r="2.4" fill="#FFF3C4"/>
+    <circle class="tw d1" cx="206" cy="22" r="1.9" fill="#FFF3C4"/>
+    <circle class="tw d2" cx="182" cy="52" r="1.5" fill="#FFF3C4"/>
+    <circle class="tw d3" cx="60" cy="16" r="1.6" fill="#FFF3C4"/>
+
+    <!-- firelight pooling on the ground -->
+    <ellipse class="glow" cx="120" cy="192" rx="72" ry="12" fill="#F0B429" opacity=".35"/>
+
+    <g class="bird">
+      <!-- tail: long feathers fanning out and down, flanking the fire -->
+      <path d="M110 128C96 148 76 166 52 178c26-6 48-20 62-40Z" fill="#C98A1E"/>
+      <path d="M130 128c14 20 34 38 58 50-26-6-48-20-62-40Z" fill="#C98A1E"/>
+      <path d="M114 132c-10 20-26 37-46 50 22-8 40-22 50-40Z" fill="#E0A22E"/>
+      <path d="M126 132c10 20 26 37 46 50-22-8-40-22-50-40Z" fill="#E0A22E"/>
+      <path d="M118 134c-4 20-12 38-24 54 16-14 26-32 30-50Z" fill="#F0B429"/>
+      <path d="M122 134c4 20 12 38 24 54-16-14-26-32-30-50Z" fill="#F0B429"/>
+
+      <!-- left wing: three broad layered feathers -->
+      <g class="wingL">
+        <path d="M108 92C84 78 56 60 32 36c12 26 30 46 52 64Z" fill="#E0A22E"/>
+        <path d="M108 100C82 92 52 82 26 70c16 22 40 36 62 44Z" fill="#F0B429"/>
+        <path d="M106 110c-24 0-52 2-76-2 20 14 46 20 66 18Z" fill="#F7C948"/>
+      </g>
+      <!-- right wing, mirrored -->
+      <g class="wingR">
+        <path d="M132 92c24-14 52-32 76-56-12 26-30 46-52 64Z" fill="#E0A22E"/>
+        <path d="M132 100c26-8 56-18 82-30-16 22-40 36-62 44Z" fill="#F0B429"/>
+        <path d="M134 110c24 0 52 2 76-2-20 14-46 20-66 18Z" fill="#F7C948"/>
+      </g>
+
+      <!-- body -->
+      <path d="M120 72c14 0 23 15 23 32s-9 28-23 28-23-11-23-28 9-32 23-32Z" fill="#F0B429"/>
+      <path d="M120 86c8 0 12 11 12 21s-4 17-12 17-12-7-12-17 4-21 12-21Z" fill="#F7C948"/>
+
+      <!-- neckerchief: the scout half of a scout phoenix -->
+      <path d="M105 78q15 11 30 0l-5 11q-10 6-20 0Z" fill="#B23A2E"/>
+      <path d="M116 88h8l-4 13Z" fill="#9E3226"/>
+      <rect x="116.2" y="85" width="7.6" height="6" rx="2.6" fill="#2F6B45"/>
+
+      <!-- crest: a compact flame tuft -->
+      <path d="M114 48c-5-3-9-8-11-14 5 5 9 10 12 14Z" fill="#E0A22E"/>
+      <path d="M118 46c-3-6-3-12-1-18 1 6 2 12 4 18Z" fill="#F0B429"/>
+      <path d="M123 45c0-7 2-13 6-18-2 6-2 12-2 18Z" fill="#F7C948"/>
+      <path d="M127 47c4-5 9-9 15-11-5 4-10 8-12 13Z" fill="#F0B429"/>
+
+      <!-- head -->
+      <circle cx="120" cy="60" r="14" fill="#F7C948"/>
+      <path d="M106 60a14 14 0 0 1 28 0Z" fill="#FBD976"/>
+      <path d="M120 64l10 5-10 5Z" fill="#E06A2B"/>
+      <path d="M120 69h10l-10 5Z" fill="#C4551F"/>
       <g class="eyes">
-        <circle cx="108" cy="48" r="7" fill="#fff"/>
-        <circle cx="132" cy="48" r="7" fill="#fff"/>
-        <circle cx="109.5" cy="49" r="3.4" fill="#1A2140"/>
-        <circle cx="130.5" cy="49" r="3.4" fill="#1A2140"/>
-        <circle cx="110.6" cy="47.6" r="1.1" fill="#fff"/>
-        <circle cx="131.6" cy="47.6" r="1.1" fill="#fff"/>
+        <circle cx="113" cy="58" r="4.2" fill="#fff"/>
+        <circle cx="127" cy="58" r="4.2" fill="#fff"/>
+        <circle cx="113.7" cy="58.6" r="2.2" fill="#1A2140"/>
+        <circle cx="126.3" cy="58.6" r="2.2" fill="#1A2140"/>
+        <circle cx="114.4" cy="57.5" r=".85" fill="#fff"/>
+        <circle cx="127" cy="57.5" r=".85" fill="#fff"/>
       </g>
-      <path d="M112 66q9 5 16 0l4 5q-12 8-24 0Z" fill="#F0B429"/>
-      <!-- waving wing -->
-      <g class="wave">
-        <path d="M141 100q10-4 20-16q4-5 2-11q7 3 6 12q-2 13-19 21Z" fill="#2A3A8F"/>
-        <path d="M144 98q8-4 15-14q3-4 1-8q6 2 5 9q-2 11-15 18Z" fill="#3B4FB0"/>
-        <path d="M147 95q6-3 11-10q2-3 0-6q5 1 4 7q-1 8-10 13Z" fill="#F0B429"/>
-      </g>
-      <circle cx="85" cy="127" r="5.5" fill="#3B4FB0"/>
+
+      <!-- legs -->
+      <rect x="112" y="130" width="4" height="14" rx="2" fill="#E0A22E"/>
+      <rect x="124" y="130" width="4" height="14" rx="2" fill="#E0A22E"/>
+      <path d="M108 144h12l-1.5 3.2H109.5Z" fill="#C98A1E"/>
+      <path d="M120 144h12l-1.5 3.2H121.5Z" fill="#C98A1E"/>
+    </g>
+
+    <!-- campfire beneath the phoenix -->
+    <g>
+      <rect x="94" y="188" width="32" height="6" rx="3" fill="#7A5230" transform="rotate(-12 110 191)"/>
+      <rect x="114" y="188" width="32" height="6" rx="3" fill="#8C6239" transform="rotate(12 130 191)"/>
+      <path class="flL" d="M100 162c7 11 11 16 11 22a11 11 0 0 1-22 0c0-6 4-11 11-22Z" fill="#E06A2B" opacity=".9"/>
+      <path class="flR" d="M140 162c7 11 11 16 11 22a11 11 0 0 1-22 0c0-6 4-11 11-22Z" fill="#E06A2B" opacity=".9"/>
+      <path class="fl1" d="M120 148c14 18 26 28 26 38 0 8-12 12-26 12s-26-4-26-12c0-10 12-20 26-38Z" fill="#E06A2B"/>
+      <path class="fl2" d="M120 162c8 12 14 18 14 25 0 6-6 9-14 9s-14-3-14-9c0-7 6-13 14-25Z" fill="#F0B429"/>
+      <path class="fl3" d="M120 174c4 7 7 10 7 14 0 4-3 6-7 6s-7-2-7-6c0-4 3-7 7-14Z" fill="#FBD976"/>
+      <circle class="ember" cx="102" cy="176" r="2" fill="#F7C948"/>
+      <circle class="ember e1" cx="140" cy="180" r="1.6" fill="#F0B429"/>
+      <circle class="ember e2" cx="120" cy="172" r="1.4" fill="#FBD976"/>
     </g>
   </svg>
 </template>
