@@ -1,0 +1,1688 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Scout Passport — Interactive Prototype</title>
+<style>
+  :root{
+    --forest:#22352C; --green:#34544A; --moss:#4C7A6A; --leaf:#A8CCBB;
+    --blue:#3E77B6; --blue-d:#2A567F; --blue-l:#E2EDF8;
+    --gold:#E9B23B; --gold-soft:#F8EED3;
+    --sand:#EDF2EE; --card:#FFF; --ink:#1A2420;
+    --muted:#82918A; --line:#E2E9E4; --danger:#C9553D;
+    --grad:linear-gradient(168deg,#40685A 0%,#2E4A3F 55%,#22352C 100%);
+    --shadow:0 2px 6px rgba(34,53,44,.04), 0 10px 28px rgba(34,53,44,.07);
+    --page:#EFE9DC; --page-ink:#2A3A2F; --panel:#FFF; --panel-line:#DDD6C6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --page:#151A16; --page-ink:#DDE5DE; --panel:#1E2620; --panel-line:#333C35; }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--page);color:var(--page-ink);
+    font:15px/1.5 "Commissioner",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:32px 20px 60px;
+  }
+  .wrap{max-width:1040px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:-.02em}
+  .lede{opacity:.7;margin:0 0 26px;font-size:14px;max-width:620px}
+  .stage{display:flex;gap:36px;align-items:flex-start;flex-wrap:wrap;justify-content:center}
+
+  /* ---------- side panel ---------- */
+  .panel{
+    flex:1 1 300px;max-width:360px;background:var(--panel);border:1px solid var(--panel-line);
+    border-radius:16px;padding:18px;position:sticky;top:24px;
+  }
+  .panel h2{font-size:11px;text-transform:uppercase;letter-spacing:.13em;opacity:.55;margin:0 0 12px}
+  .panel h2+h2{margin-top:22px}
+  .toggle{display:flex;background:rgba(128,128,128,.14);border-radius:10px;padding:3px;gap:3px;margin-bottom:8px}
+  .toggle button{
+    flex:1;border:0;background:transparent;padding:8px;border-radius:8px;font:inherit;font-size:13px;
+    font-weight:600;color:inherit;opacity:.6;cursor:pointer;
+  }
+  .toggle button.on{background:var(--panel);opacity:1;box-shadow:0 1px 3px rgba(0,0,0,.14)}
+  .hint{font-size:12.5px;line-height:1.55;opacity:.72;margin:0 0 8px}
+  .hint ul{margin:6px 0 0;padding-left:17px}
+  .hint li{margin-bottom:5px}
+  .reset{
+    width:100%;border:1px solid var(--panel-line);background:transparent;color:inherit;font:inherit;
+    font-size:12.5px;padding:9px;border-radius:9px;cursor:pointer;margin-top:16px;opacity:.75;
+  }
+  .reset:hover{opacity:1}
+
+  /* ---------- phone ---------- */
+  .phone{
+    width:340px;height:706px;background:#0D120F;border-radius:40px;padding:9px;flex:none;
+    box-shadow:0 24px 48px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.2);
+  }
+  .screen{
+    width:100%;height:100%;background:var(--sand);border-radius:32px;overflow:hidden;position:relative;
+    display:flex;flex-direction:column;color:var(--ink);
+    font:14px/1.45 "Commissioner",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  }
+  .screen::before{content:"";position:absolute;top:0;left:0;right:0;height:238px;background:var(--grad);z-index:0}
+  .screen::after{content:"";position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:118px;height:4px;border-radius:2px;background:rgba(20,30,24,.28);z-index:6;pointer-events:none}
+  .screen.lead{
+    --forest:#1E3448; --green:#2E5578; --moss:#3E77B6; --leaf:#9CC2E4;
+    --sand:#ECF1F5; --line:#E0E8EE; --muted:#80909D;
+    --grad:linear-gradient(168deg,#3D5C7A 0%,#2C4560 58%,#1E3448 100%);
+  }
+  .screen.lead .pill.live{background:#E3EEF9;color:var(--green)}
+  .screen.lead .btn.green{background:linear-gradient(135deg,#4A79A8,#2A4560);box-shadow:0 8px 20px rgba(42,69,96,.32)}
+  .screen.lead .pcard{box-shadow:0 8px 22px rgba(20,57,94,.24)}
+  .rel{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;min-height:0}
+  .status{
+    height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;
+    padding:0 22px;font-size:11px;font-weight:600;color:#fff;background:transparent;position:relative;z-index:2;
+  }
+  .status.dim{background:transparent}
+  .appbar{flex:none;background:transparent;color:#fff;padding:4px 20px 20px;position:relative;z-index:2}
+  .appbar .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .appbar .row > div:first-child{min-width:0;flex:1}
+  .appbar h3{margin:0;font-size:19.5px;font-weight:600;letter-spacing:-.025em;line-height:1.2}
+  .appbar .sub{font-size:12px;opacity:.72;margin-top:3px}
+  .back{background:none;border:0;color:#fff;font:inherit;font-size:13px;opacity:.85;padding:0 0 4px;cursor:pointer}
+  .iconbtn{
+    width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,.35);
+    background:rgba(255,255,255,.16);
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+    color:#fff;display:grid;place-items:center;cursor:pointer;padding:0;flex:none;
+  }
+  .iconbtn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .iconbtn:active{transform:scale(.92)}
+  .art{background:#fff;border:0;box-shadow:var(--shadow);border-radius:18px;padding:12px 6px;margin-bottom:10px;display:grid;place-items:center}
+  .art svg{width:100%;max-width:196px;height:auto;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  .numdot{flex:none;width:17px;height:17px;border-radius:50%;background:var(--forest);color:#fff;font-size:9.5px;font-weight:700;display:grid;place-items:center;margin-top:1px}
+  .tick{color:var(--moss);font-weight:700;flex:none}
+  .chk{
+    flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid #CFC9BC;background:#fff;
+    display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff;
+  }
+  .chk.on{background:var(--moss);border-color:var(--moss)}
+  textarea.in{resize:none;line-height:1.45;font-family:inherit}
+  .minidate{flex:none;width:38px;text-align:center}
+  .minidate b{display:block;font-size:15px;line-height:1.1}
+  .minidate span{font-size:8.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .st{display:flex;gap:5px;flex:none}
+  .st button{
+    width:29px;height:29px;border-radius:8px;border:1.5px solid var(--line);background:#fff;
+    font:inherit;font-size:12.5px;font-weight:700;color:#B7B0A2;cursor:pointer;
+    display:grid;place-items:center;padding:0;transition:.12s;
+  }
+  .st button:active{transform:scale(.9)}
+  .st button.on.g{background:var(--moss);border-color:var(--moss);color:#fff}
+  .st button.on.r{background:var(--danger);border-color:var(--danger);color:#fff}
+  .st button.on.a{background:var(--gold);border-color:var(--gold);color:#3A2B05}
+  .tally{display:flex;gap:8px}
+  .tally div{flex:1;background:#fff;border:0;box-shadow:var(--shadow);border-radius:15px;padding:9px 6px;text-align:center}
+  .tally b{display:block;font-size:22px;line-height:1.1;font-weight:400;font-variant-numeric:tabular-nums}
+  .tally span{font-size:8.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .minidisc{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:18px;background:var(--gold-soft);border:2px solid var(--gold)}
+  .lang{
+    display:flex;gap:2px;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:2px;cursor:pointer;flex:none;
+    background:rgba(255,255,255,.16);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  }
+  .lang b{
+    font-size:9.5px;font-weight:700;letter-spacing:.05em;padding:3px 7px;border-radius:999px;
+    opacity:.5;transition:.15s;
+  }
+  .lang b.on{opacity:1;background:var(--gold);color:#3A2B05}
+  .body{flex:1;overflow-y:auto;padding:20px 16px 96px;display:flex;flex-direction:column;gap:15px;
+    background:var(--sand);border-radius:24px 24px 0 0;position:relative;z-index:1}
+  .body > *{flex:0 0 auto}                    /* never squash cards to fit */
+  .rel > .body{padding-bottom:156px}          /* clear the + button and the floating bar */
+  .body::-webkit-scrollbar{width:0}
+
+  /* tabs */
+  .tabs{
+    position:absolute;left:50%;transform:translateX(-50%);bottom:18px;height:64px;z-index:4;
+    display:flex;align-items:center;gap:4px;padding:0 12px;
+    background:rgba(22,29,24,.9);
+    -webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);
+    border:1px solid rgba(255,255,255,.08);border-radius:999px;
+    box-shadow:0 14px 34px rgba(20,32,25,.35);
+  }
+  .screen.lead .tabs{background:rgba(22,32,42,.9)}
+  .tab{
+    width:48px;height:48px;flex:none;display:grid;place-items:center;
+    color:rgba(255,255,255,.5);border:0;background:none;cursor:pointer;
+    padding:0;font-family:inherit;transition:.18s;border-radius:50%;
+  }
+  .tab span{display:none}
+  .tab svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .tab.on{color:#fff;background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+  .tab.on svg{stroke-width:2.1}
+  .tab:active{transform:scale(.93)}
+
+  /* generic */
+  .card{background:var(--card);border:0;border-radius:22px;padding:15px;box-shadow:var(--shadow)}
+  .muted{color:var(--muted)} .tiny{font-size:11px}
+  .sec-title{font-size:14.5px;font-weight:700;letter-spacing:-.01em;color:var(--ink);margin:2px 0 -4px}
+  .btn{
+    background:var(--gold);color:#3F2E04;text-align:center;font-weight:700;font-size:14px;padding:14px;
+    border-radius:999px;border:0;font-family:inherit;width:100%;cursor:pointer;transition:.15s;
+    box-shadow:0 4px 14px rgba(240,180,41,.32);
+  }
+  .btn:active{transform:scale(.98)}
+  .btn.green{background:linear-gradient(135deg,#4C7A6A,#2C463C);color:#fff;box-shadow:0 8px 20px rgba(44,70,60,.32)}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.ghost{background:#fff;border:1.5px dashed #CFD8D1;color:var(--green);font-weight:600;box-shadow:none}
+
+  .pcard{background:var(--grad);color:#fff;border-radius:26px;padding:18px;position:relative;overflow:hidden;box-shadow:0 12px 28px rgba(34,53,44,.26)}
+  .pcard::after{content:"⚜";position:absolute;right:-6px;bottom:-28px;font-size:100px;opacity:.09;line-height:1}
+  .pcard .name{font-size:18px;font-weight:700;letter-spacing:-.01em}
+  .pcard .meta{font-size:11.5px;opacity:.78;margin-top:2px}
+  .stats{display:flex;gap:8px;margin-top:13px;position:relative}
+  .stat{background:rgba(255,255,255,.14);border-radius:10px;padding:7px 10px;flex:1}
+  .stat b{display:block;font-size:23px;line-height:1.1;font-weight:400;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .stat span{font-size:9.5px;opacity:.75;text-transform:uppercase;letter-spacing:.07em}
+
+  .badges{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .badge{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;background:none;border:0;padding:0;font-family:inherit;color:inherit;cursor:pointer}
+  .badge .disc{
+    width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-size:24px;
+    background:var(--gold-soft);border:2px solid var(--gold);box-shadow:0 2px 5px rgba(217,162,39,.3);transition:.15s;
+  }
+  .badge:active .disc{transform:scale(.9)}
+  .badge .lbl{font-size:8px;line-height:1.25;font-weight:600;width:100%;overflow-wrap:anywhere;hyphens:auto}
+  .badge.off .disc{background:#F0EDE6;border:2px dashed #CFC9BC;filter:grayscale(1);opacity:.5}
+  .badge.off .lbl{color:var(--muted);font-weight:500}
+
+  .banner{
+    background:var(--gold-soft);border:1.3px solid #F3D98F;border-radius:18px;padding:13px 14px;
+    display:flex;align-items:center;gap:10px;width:100%;font-family:inherit;text-align:left;cursor:pointer;
+  }
+  .banner .ico{font-size:19px}
+  .banner b{display:block;font-size:12.5px;color:var(--ink)}
+  .banner span{font-size:11px;color:#7A6220}
+  .banner .go{margin-left:auto;font-size:17px;color:#9A7A1E}
+
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{
+    font-size:11px;font-weight:600;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.72);
+    border:0;color:var(--muted);font-family:inherit;cursor:pointer;transition:.15s;
+    box-shadow:0 1px 4px rgba(34,53,44,.06);
+  }
+  .chip.on{background:var(--green);color:#fff;box-shadow:0 4px 12px rgba(52,84,74,.3)}
+  .chip.light{color:#fff;background:rgba(255,255,255,.16);font-weight:650;box-shadow:none}
+
+  .ev{display:flex;gap:11px;align-items:flex-start}
+  .ev .date{flex:none;width:44px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:5px 0}
+  .ev .date b{display:block;font-size:17px;line-height:1}
+  .ev .date span{font-size:8.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .ev .info b{font-size:13px;display:block}
+  .ev .info span{font-size:11px;color:var(--muted)}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .dot.troop{background:var(--forest)} .dot.section{background:var(--blue)} .dot.patrol{background:var(--gold)}
+  .empty{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 10px}
+
+  .qimg{
+    height:100px;border-radius:11px;border:1px solid var(--line);display:grid;place-items:center;font-size:32px;
+    background:radial-gradient(circle at 30% 35%,#A8C9A0 0 22%,transparent 22%),linear-gradient(160deg,#CFE0C4,#9DBE97);
+  }
+  .opt{
+    background:#fff;border:1.5px solid transparent;border-radius:18px;padding:13px 15px;font-size:12.5px;box-shadow:var(--shadow);
+    display:flex;align-items:center;gap:9px;width:100%;font-family:inherit;text-align:left;color:inherit;cursor:pointer;transition:.12s;
+  }
+  .opt .k{flex:none;width:22px;height:22px;border-radius:50%;background:#F2EFE8;color:var(--muted);display:grid;place-items:center;font-size:10.5px;font-weight:700}
+  .opt.sel{border:1.5px solid var(--moss);background:#F2F7F4}
+  .opt.sel .k{background:var(--green);color:#fff}
+  .opt.correct{border:1.5px solid var(--moss);background:#EFF6F1}
+  .opt.correct .k{background:var(--moss);color:#fff}
+  .opt.wrong{border:1.5px solid #E2B3A8;background:#FBF0ED}
+  .opt.wrong .k{background:var(--danger);color:#fff}
+  .verdict{border-radius:12px;padding:12px;background:#EDF7F0;border:1px solid #BEDFC9}
+  .verdict.bad{background:#FBF0ED;border-color:#E2B3A8}
+  .verdict b{font-size:13px;color:var(--green);display:block;margin-bottom:3px}
+  .verdict.bad b{color:var(--danger)}
+  .verdict p{margin:0;font-size:11.5px;color:#3F5646;line-height:1.5}
+
+  .seg{display:flex;background:rgba(120,128,120,.14);border-radius:12px;padding:3px;gap:3px}
+  .seg button{
+    flex:1;text-align:center;font-size:11.5px;font-weight:600;padding:8px;border-radius:11px;color:var(--muted);
+    border:0;background:none;font-family:inherit;cursor:pointer;transition:.15s;
+  }
+  .seg button.on{background:#fff;color:var(--ink);box-shadow:0 3px 8px rgba(0,0,0,.12), 0 0 1px rgba(0,0,0,.08)}
+  .lb{display:flex;align-items:center;gap:10px;padding:10px 13px;border-bottom:1px solid #F5F1E8}
+  .lb:last-child{border-bottom:0}
+  .lb .rk{flex:none;width:22px;font-weight:700;font-size:13px;color:var(--muted);text-align:center}
+  .lb .rk.m1{color:var(--gold)}
+  .lb .nm{flex:1;font-size:12.5px}
+  .lb .nm span{display:block;font-size:10px;color:var(--muted)}
+  .lb .pts{font-size:12.5px;font-weight:700;color:var(--green)}
+  .lb.me{background:#F3F8F4}
+  .bar{height:5px;border-radius:3px;background:#E7E2D6;overflow:hidden;margin-top:5px}
+  .bar i{display:block;height:100%;background:var(--moss);transition:width .5s}
+
+  /* login */
+  .login{flex:1;background:var(--grad);color:#fff;padding:28px 24px;display:flex;flex-direction:column;overflow-y:auto;position:relative;z-index:2}
+  .crest{font-size:54px;text-align:center;margin-top:18px}
+  /* ---- animated welcome ---- */
+  .scene{width:238px;margin:6px auto 2px;display:block;overflow:visible;
+    animation:pop .7s cubic-bezier(.34,1.56,.64,1) both}
+  .bob{animation:bob 3.2s ease-in-out infinite;transform-origin:120px 120px}
+  .eyes{animation:blink 4.4s infinite;transform-origin:120px 74px}
+  .wave{animation:wave 2.8s ease-in-out infinite;transform-origin:151px 103px}
+  .flameO{animation:flick .42s ease-in-out infinite alternate;transform-origin:47px 128px}
+  .flameI{animation:flick .34s .1s ease-in-out infinite alternate;transform-origin:47px 132px}
+  .glow{animation:glow 1.1s ease-in-out infinite alternate}
+  .tw{animation:tw 2.6s ease-in-out infinite}
+  .tw.d1{animation-delay:.7s}.tw.d2{animation-delay:1.4s}.tw.d3{animation-delay:2s}
+  .rise{opacity:0;animation:rise .55s cubic-bezier(.2,.8,.3,1) forwards}
+  @keyframes pop{0%{transform:scale(.3) translateY(26px);opacity:0}
+    62%{transform:scale(1.07) translateY(-4px);opacity:1}100%{transform:scale(1) translateY(0)}}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+  @keyframes blink{0%,90.5%,94.5%,100%{transform:scaleY(1)}92.5%{transform:scaleY(.08)}}
+  @keyframes wave{0%,55%,100%{transform:rotate(0)}63%{transform:rotate(26deg)}
+    71%{transform:rotate(-6deg)}79%{transform:rotate(24deg)}87%{transform:rotate(0)}}
+  @keyframes flick{from{transform:scale(1) skewX(0)}to{transform:scale(1.14,.92) skewX(-3.5deg)}}
+  @keyframes glow{from{opacity:.28}to{opacity:.55}}
+  @keyframes tw{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){
+    .scene,.bob,.eyes,.wave,.flameO,.flameI,.glow,.tw{animation:none}
+    .rise{animation:none;opacity:1}
+  }
+  .login h2{text-align:center;font-size:26px;margin:10px 0 4px;font-weight:500;letter-spacing:-.03em}
+  .login .tag{text-align:center;font-size:12px;opacity:.72;margin-bottom:26px}
+  .field{margin-bottom:14px}
+  .field label{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;opacity:.7;display:block;margin-bottom:5px}
+  .field input{
+    width:100%;background:rgba(255,255,255,.13);border:1.3px solid rgba(255,255,255,.35);border-radius:999px;
+    padding:13px 18px;font:inherit;font-size:14px;color:#fff;
+  }
+  .field input::placeholder{color:rgba(255,255,255,.42)}
+  .field input:focus{outline:0;border-color:var(--gold);background:rgba(255,255,255,.18)}
+  .helper{text-align:center;font-size:11px;opacity:.6;margin-top:16px;line-height:1.6}
+
+  .srow{background:#fff;border:0;border-radius:20px;padding:12px 14px;display:flex;align-items:center;gap:12px;width:100%;font-family:inherit;color:inherit;text-align:left;cursor:pointer;box-shadow:var(--shadow)}
+  .srow .ico{
+    font-size:17px;width:42px;height:42px;flex:none;border-radius:50%;display:grid;place-items:center;
+    background:radial-gradient(circle at 32% 28%, #fff 0%, #DDEBE2 100%);
+    box-shadow:inset 0 0 0 1px rgba(76,122,106,.14);
+  }
+  .srow:nth-of-type(3n+2) .ico{background:radial-gradient(circle at 32% 28%, #fff 0%, #F5E8CB 100%);box-shadow:inset 0 0 0 1px rgba(233,178,59,.22)}
+  .srow:nth-of-type(3n) .ico{background:radial-gradient(circle at 32% 28%, #fff 0%, #DCE9F6 100%);box-shadow:inset 0 0 0 1px rgba(62,119,182,.18)}
+  .srow .txt{flex:1}
+  .srow .txt b{display:block;font-size:12.5px}
+  .srow .txt span{font-size:10.5px;color:var(--muted)}
+  .sw{flex:none;width:38px;height:22px;border-radius:999px;background:var(--moss);position:relative;transition:.2s}
+  .sw::after{content:"";position:absolute;top:2px;left:18px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+  .sw.off{background:#D7D2C6}
+  .sw.off::after{left:2px}
+  .install{background:var(--blue-l);border:1.3px dashed #A9CBEA;border-radius:16px;padding:13px;font-size:11.5px;line-height:1.65}
+  .install b{font-size:12.5px;display:block;margin-bottom:5px}
+  .install kbd{background:#fff;border:1px solid #C6DDF1;border-radius:6px;padding:1px 6px;font-size:10.5px;font-family:inherit}
+
+  .adm{background:#fff;border:0;border-radius:22px;overflow:hidden;box-shadow:var(--shadow)}
+  .adm .hdr{padding:13px 15px 5px;background:transparent;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .adm .it{padding:12px 15px;border:0;display:flex;align-items:center;gap:10px;width:100%;font-family:inherit;color:inherit;text-align:left;background:#fff;cursor:pointer;font-size:inherit;position:relative}
+  .adm .it::before{content:"";position:absolute;top:0;left:15px;right:0;height:1px;background:#EFEAE0}
+  .adm .hdr+.it::before,.adm .it:first-child::before{display:none}
+  .adm .it:active{background:#F6F3EC}
+  .adm .it b{font-size:12.5px;display:block}
+  .adm .it span{font-size:10.5px;color:var(--muted)}
+  .pill{font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap}
+  .pill.live{background:#E4F2E8;color:var(--green)}
+  .pill.draft{background:#F0EDE6;color:var(--muted)}
+  .pill.sched{background:var(--gold-soft);color:#7A6220}
+  .fab{
+    position:absolute;right:16px;bottom:96px;width:48px;height:48px;border-radius:50%;background:var(--gold);
+    color:#3A2B05;display:grid;place-items:center;font-size:26px;border:0;cursor:pointer;z-index:3;
+    box-shadow:0 6px 16px rgba(217,162,39,.45);
+  }
+  .fab:active{transform:scale(.92)}
+  .lab{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+  .in{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:12px 13px;font:inherit;font-size:12.5px;width:100%;color:inherit}
+  .in::placeholder{color:var(--muted)}
+  .in:focus{outline:0;border-color:var(--moss)}
+  .cardstack{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .lcard{background:#fff;border:0;box-shadow:var(--shadow);border-radius:16px;padding:10px;text-align:center}
+  .lcard b{display:block;font-size:10.5px;margin-top:2px}
+  .lcard .code{font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:var(--green);margin-top:4px}
+  .lcard .pin{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--muted)}
+
+  /* sheet + toast */
+  .backdrop{position:absolute;inset:0;background:rgba(10,20,14,.45);z-index:5;display:flex;align-items:flex-end;animation:fade .18s}
+  .sheet{
+    background:rgba(251,248,242,.88);
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    width:100%;border-radius:28px 28px 0 0;padding:10px 18px 26px;animation:up .24s cubic-bezier(.2,.8,.3,1);
+  }
+  .sheet::before{content:"";display:block;width:36px;height:5px;border-radius:3px;background:rgba(60,60,67,.25);margin:0 auto 14px}
+  .sheet .disc{width:70px;height:70px;border-radius:50%;display:grid;place-items:center;font-size:32px;margin:0 auto 12px;background:var(--gold-soft);border:2px solid var(--gold)}
+  .sheet .disc.off{background:#F0EDE6;border:2px dashed #CFC9BC;filter:grayscale(1);opacity:.55}
+  .sheet h4{margin:0;text-align:center;font-size:17px}
+  .sheet .when{text-align:center;font-size:11.5px;color:var(--muted);margin-top:3px}
+  .sheet p{font-size:12.5px;line-height:1.55;color:#455049;margin:14px 0 18px;text-align:center}
+  @keyframes up{from{transform:translateY(100%)}}
+  @keyframes fade{from{opacity:0}}
+  .toast{
+    position:absolute;left:50%;bottom:88px;transform:translateX(-50%);
+    background:rgba(18,42,30,.82);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);color:#fff;
+    padding:10px 16px;border-radius:999px;font-size:12.5px;font-weight:600;z-index:6;white-space:nowrap;
+    box-shadow:0 6px 18px rgba(0,0,0,.3);animation:pop .25s;
+  }
+  @keyframes pop{from{opacity:0;transform:translate(-50%,10px)}}
+  .notif{
+    position:absolute;top:34px;left:10px;right:10px;background:rgba(252,250,246,.97);backdrop-filter:blur(8px);
+    border-radius:16px;padding:11px 13px;z-index:7;display:flex;gap:10px;align-items:flex-start;
+    box-shadow:0 8px 24px rgba(0,0,0,.22);animation:drop .3s cubic-bezier(.2,.8,.3,1);cursor:pointer;
+  }
+  @keyframes drop{from{opacity:0;transform:translateY(-16px)}}
+  .notif .app{width:26px;height:26px;border-radius:7px;background:var(--forest);color:#fff;display:grid;place-items:center;font-size:14px;flex:none}
+  .notif b{display:block;font-size:12.5px;color:#111}
+  .notif p{margin:1px 0 0;font-size:11.5px;color:#444;line-height:1.35}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Scout Passport — interactive prototype</h1>
+  <p class="lede">Clickable. Log in, switch tabs, answer the challenge, flip the language, and toggle into the leader view. No backend — state resets when you reload.</p>
+
+  <div class="stage">
+    <div class="phone"><div class="screen" id="screen"></div></div>
+
+    <aside class="panel">
+      <h2>Ρόλος / Role</h2>
+      <div class="toggle" id="roleToggle">
+        <button data-role="scout" class="on">Scout</button>
+        <button data-role="leader">Leader</button>
+        <button data-role="troop">Troop lead</button>
+      </div>
+      <p class="hint"><b>Leader</b> = Δέσποινα, responsible for 🐺 Λύκοι only.<br>
+        <b>Troop lead</b> = Κυριάκος, sees everything and assigns who manages what.</p>
+
+      <h2>Try this</h2>
+      <p class="hint">
+        <ul>
+          <li>Log in with any 8-digit passcode (e.g. 1234-5678)</li>
+          <li>Tap <b>ΕΛ / EN</b> in the header — the whole UI flips</li>
+          <li>Tap a badge on the passport for its detail sheet</li>
+          <li>Answer the challenge — one attempt, instant grading, points update everywhere</li>
+          <li>Filter the calendar by troop / section / patrol</li>
+          <li>Open <b>Χρήσιμα / Info</b> → <b>Στολές</b> for the uniform page</li>
+        <li>Settings is the ⚙ in the passport header — tap <b>Preview push</b> there</li>
+      </ul>
+      <h2>As a leader</h2>
+      <p class="hint">Leaders don't get the scout app — a brief Προφίλ tab, then only management screens for their assigned sector.</p>
+      <ul>
+        <li><b>Leader</b> (Δέσποινα): sees only 🐺 Λύκοι everywhere — scouts, review, challenges, announcements</li>
+        <li>Προκλήσεις → she can author, locked to her sector</li>
+        <li><b>Troop lead</b> (Κυριάκος): all sectors, and Άλλα → <b>Ρόλοι &amp; δικαιώματα</b> to assign who manages what</li>
+        <li>Πτυχία now lives under Άλλα</li>
+        </ul>
+      </p>
+      <button class="reset" id="reset">↺ Reset prototype</button>
+    </aside>
+  </div>
+</div>
+
+<script>
+(()=>{
+/* ============================ i18n ============================ */
+const T = {
+  el:{
+    appName:"Διαβατήριο Προσκόπου", troopName:"30ό Σύστημα Προσκόπων",
+    code:"Κωδικός πρόσβασης", enter:"Είσοδος", forgot:"Ο κωδικός σου είναι στην κάρτα σου.|Τον έχασες; Ζήτα νέο από τον αρχηγό σου.",
+    codePh:"0000-0000",
+    navPassport:"Διαβατήριο", navCalendar:"Ημερολόγιο", navChallenges:"Προκλήσεις",
+    navBoard:"Κατάταξη", navSettings:"Ρυθμίσεις", navInfo:"Χρήσιμα", navMore:"Άλλα",
+    navScouts:"Πρόσκοποι", navBadges:"Πτυχία", navEvents:"Δράσεις", navAnnounce:"Ανακοινώσεις",
+    back:"Πίσω", info:"Χρήσιμα", infoSub:"Ό,τι πρέπει να ξέρεις",
+    annSub:"Στείλε ειδοποίηση σε όλους", infoAdmSub:"Διαχείριση σελίδων",
+    setAdmSub:"Λογαριασμός & γλώσσα", soon:"Ίδιο μοτίβο με τις Προκλήσεις",
+    leaders:"Αρχηγοί", leaderPill:"Αρχηγός", activeWord:"ενεργοί", patrolsWord:"ενωμοτίες",
+    resetPin:"Νέος κωδικός", resetPinSub:"Ακυρώνει τον παλιό, τυπώνεται νέα κάρτα", newPin:"Νέος κωδικός:",
+    movePatrol:"Αλλαγή ενωμοτίας", deactivate:"Απενεργοποίηση", deactivateSub:"Βγαίνει από τις κατατάξεις",
+    awardBadge:"Απονομή πτυχίου", awardBadgeSub:"Επιλογή από τη λίστα", earnedBadges:"Πτυχία που πήρε",
+    loginCard:"Κάρτα εισόδου", awardedTo:"Απονεμήθηκε σε", pickScouts:"Διάλεξε προσκόπους",
+    completedOn:"Ημερομηνία ολοκλήρωσης", awardTo:"Απονομή σε", scoutsWord:"προσκόπους", scoutWord:"πρόσκοπο",
+    awardedOk:"Απονεμήθηκε το πτυχίο", newEvent:"Νέα δράση", editEvent:"Επεξεργασία δράσης",
+    titleEl:"Τίτλος (ΕΛ) — υποχρεωτικό", titleEn:"Title (EN) — προαιρετικό",
+    locationL:"Τοποθεσία", scopeL:"Ποιους αφορά", startsL:"Έναρξη", endsL:"Λήξη",
+    remindL:"Υπενθύμιση 1 ημέρα πριν", save:"Αποθήκευση", savedOk:"Αποθηκεύτηκε",
+    statsT:"Αποτελέσματα", notAnswered:"Δεν απάντησαν ακόμη",
+    remind:"🔔 Υπενθύμιση σε όσους λείπουν", remindedOk:"Στάλθηκε υπενθύμιση",
+    audienceL:"Παραλήπτες", allScouts:"Όλοι", msgEl:"Μήνυμα (ΕΛ)", msgEn:"Message (EN)",
+    preview:"Προεπισκόπηση", send:"Αποστολή σε", sentOk:"Η ανακοίνωση στάλθηκε",
+    publishedP:"Δημοσιευμένη", printAll:"🖨️ Εκτύπωση όλων των καρτών",
+    review:"Αξιολόγηση", attendance:"Παρουσίες", uniformT:"Στολή", gamePts:"Πόντοι",
+    present:"Παρών", absent:"Απών", excused:"Δικαιολογημένος",
+    allPresent:"✓ Όλοι παρόντες", markedN:"σημειώθηκαν", presentN:"παρόντες",
+    absentN:"απόντες", excusedN:"δικαιολογημένοι",
+    uniLegend:"● πλήρης · ◐ ελλιπής · ○ χωρίς στολή",
+    uniFullN:"πλήρης στολή", onlyPresent:"Εμφανίζονται μόνο όσοι σημειώθηκαν παρόντες.",
+    markAttFirst:"Σημείωσε πρώτα τις παρουσίες.",
+    winner:"Νικήτρια ενωμοτία", reasonL:"Αιτιολογία", reasonPh:"π.χ. Σκυταλοδρομία κόμπων",
+    awardPatrol:"Απονομή στην ενωμοτία", awardsMade:"Απονομές αυτής της συγκέντρωσης",
+    noAwards:"Καμία απονομή ακόμη", awardedPts:"Απονεμήθηκαν",
+    ptsPresent:"+5 πόντοι για παρουσία", ptsUniform:"+5 πόντοι για πλήρη στολή",
+    reviewed:"Αξιολογήθηκε", notReviewed:"Εκκρεμεί", editE:"Επεξεργασία",
+    admin:"Διαχείριση", adminSub:"Πρόσκοποι, δράσεις, προκλήσεις", exitAdmin:"Τέλος",
+    leaderRole:"Αρχηγός", notRanked:"Οι αρχηγοί δεν εμφανίζονται στις κατατάξεις.",
+    pickBadge:"Διάλεξε πτυχίο", awardOne:"Απονομή", alreadyHas:"Το έχει ήδη",
+    troopLeader:"Αρχηγός Συστήματος", wholeTroop:"Όλο το Σύστημα",
+    scopeOf:"Τομέας ευθύνης", myScouts:"Οι πρόσκοποί μου",
+    roles:"Ρόλοι & δικαιώματα", rolesSub:"Ποιος διαχειρίζεται τι",
+    rolesNote:"Μόνο εσύ, ως Αρχηγός Συστήματος, μπορείς να αλλάξεις ρόλους.",
+    onlyTroopLead:"Μόνο ο Αρχηγός Συστήματος μπορεί να αλλάξει ρόλους.",
+    assignScope:"Ανάθεση τομέα", makeLeader:"Ορισμός νέου αρχηγού",
+    makeLeaderSub:"Από τη λίστα προσκόπων",
+    promote:"Ορισμός ως Αρχηγός Συστήματος", promoteSub:"Πλήρη δικαιώματα σε όλα",
+    whatTheySee:"Τι θα βλέπει", whatTheySeeBody:"Μόνο τους προσκόπους, τις δράσεις και τις παρουσίες του τομέα του.",
+    savedRole:"Ο τομέας ενημερώθηκε", readOnlyPill:"Ανάγνωση",
+    lockedEvents:"Οι δράσεις Συστήματος ορίζονται από τον Αρχηγό Συστήματος.",
+    navProfile:"Προφίλ", myChals:"Οι προκλήσεις μου", forSector:"Για τον τομέα",
+    allSectors:"Όλοι οι τομείς",
+    chalTroopOnly:"Οι προκλήσεις ορίζονται από τον Αρχηγό Συστήματος. Βλέπεις τα αποτελέσματα του τομέα σου.",
+    myPassport:"Το Διαβατήριό μου", points:"Πόντοι", rank:"Κατάταξη", badgesN:"Πτυχία",
+    badgesTitle:"Πτυχία", newChallenge:"Νέα πρόκληση!", expires:"Λήγει σε 2 ημέρες",
+    ptsShort:"πόντοι", since:"από", earnedOn:"Ολοκληρώθηκε", notEarned:"Δεν έχει ολοκληρωθεί ακόμη",
+    close:"Κλείσιμο",
+    calendar:"Ημερολόγιο", month:"Οκτώβριος 2026", all:"Όλα", troop:"Σύστημα",
+    section:"Κοινότητα", patrol:"Ενωμοτία", thisWeek:"Αυτή την εβδομάδα", upcoming:"Επόμενες",
+    noEvents:"Καμία δράση σε αυτό το φίλτρο.",
+    challenge:"Πρόκληση", answered:"Απαντήθηκε", oneTry:"Έχεις <b>μία</b> προσπάθεια. Διάλεξε προσεκτικά!",
+    submit:"Υποβολή απάντησης", correct:"Σωστά!", wrong:"Λάθος.", correctIs:"Η σωστή απάντηση ήταν",
+    previous:"Προηγούμενες", allDone:"Καμία ανοιχτή πρόκληση αυτή τη στιγμή.",
+    board:"Κατάταξη", individual:"Ατομική", patrols:"Ενωμοτίες", you:"εσύ",
+    avgNote:"Μέσος όρος πόντων ανά ενεργό μέλος.", avg:"μ.ό.",
+    settings:"Ρυθμίσεις", language:"Γλώσσα", notifications:"Ειδοποιήσεις",
+    nChal:"Νέες προκλήσεις", nChalSub:"Όταν ξεκλειδώνει πρόκληση",
+    nEvent:"Υπενθυμίσεις δράσεων", nEventSub:"Μία ημέρα πριν",
+    nAnn:"Ανακοινώσεις αρχηγού", nAnnSub:"Σπάνια",
+    install:"Εγκατάσταση", installT:"📲 Πρόσθεσέ το στην αρχική οθόνη",
+    installB:"Στο iPhone: πάτησε <kbd>Κοινή χρήση ⬆︎</kbd> και μετά <kbd>Προσθήκη στην αρχική οθόνη</kbd>.",
+    installWarn:"Χωρίς αυτό, οι ειδοποιήσεις δεν λειτουργούν στο iPhone.",
+    testPush:"🔔 Δοκιμή ειδοποίησης", logout:"Αποσύνδεση",
+    admChal:"Προκλήσεις", admSub:"Διαχείριση · Αρχηγός",
+    scheduled:"Προγραμματισμένες", active:"Ενεργές", done:"Ολοκληρωμένες",
+    unlocksAt:"Ξεκλειδώνει", noDate:"Χωρίς ημερομηνία", pillSched:"Χρονοπρ.",
+    pillDraft:"Πρόχειρο", pillLive:"Ενεργή", answeredN:"απάντησαν", correctN:"σωστά",
+    newChal:"Νέα πρόκληση", draftNote:"Πρόχειρο · μη δημοσιευμένη",
+    qEl:"Ερώτηση (ΕΛ) — υποχρεωτικό", qEn:"Question (EN) — προαιρετικό",
+    qEnPh:"Αν μείνει κενό, εμφανίζεται το ελληνικό", image:"Εικόνα", upload:"📷 Μεταφόρτωση εικόνας",
+    options:"Επιλογές", addOpt:"Προσθήκη επιλογής", pointsL:"Πόντοι", unlock:"Ξεκλείδωμα",
+    publish:"Δημοσίευση & ειδοποίηση", published:"Δημοσιεύτηκε — στάλθηκαν 18 ειδοποιήσεις",
+    scouts:"Πρόσκοποι", scoutsSub:"18 ενεργοί · 3 ενωμοτίες", loginCards:"Κάρτες εισόδου",
+    print:"🖨️ Εκτύπωση καρτών", activeM:"Ενεργός", inactiveM:"Ανενεργός", pts:"π.",
+    pushTitle:"Νέα πρόκληση ξεκλείδωσε!", pushBody:"Πυξίδα & προσανατολισμός · 10 πόντοι",
+    cancel:"Άκυρο", tapAnywhere:"Πάτησε οπουδήποτε",
+  },
+  en:{
+    appName:"Scout Passport", troopName:"30th Scout Troop",
+    code:"Passcode", enter:"Sign in", forgot:"Your passcode is on your card.|Lost it? Ask your leader for a new one.",
+    codePh:"0000-0000",
+    navPassport:"Passport", navCalendar:"Calendar", navChallenges:"Challenges",
+    navBoard:"Ranking", navSettings:"Settings", navInfo:"Info", navMore:"More",
+    navScouts:"Scouts", navBadges:"Badges", navEvents:"Events", navAnnounce:"Announcements",
+    back:"Back", info:"Useful Info", infoSub:"Everything you need to know",
+    annSub:"Push a message to everyone", infoAdmSub:"Manage pages",
+    setAdmSub:"Account & language", soon:"Same pattern as Challenges",
+    leaders:"Leaders", leaderPill:"Leader", activeWord:"active", patrolsWord:"patrols",
+    resetPin:"New passcode", resetPinSub:"Voids the old one, print a new card", newPin:"New passcode:",
+    movePatrol:"Change patrol", deactivate:"Deactivate", deactivateSub:"Drops out of leaderboards",
+    awardBadge:"Award a badge", awardBadgeSub:"Pick from the badge list", earnedBadges:"Badges earned",
+    loginCard:"Login card", awardedTo:"Awarded to", pickScouts:"Select scouts",
+    completedOn:"Completion date", awardTo:"Award to", scoutsWord:"scouts", scoutWord:"scout",
+    awardedOk:"Badge awarded", newEvent:"New event", editEvent:"Edit event",
+    titleEl:"Title (EL) — required", titleEn:"Title (EN) — optional",
+    locationL:"Location", scopeL:"Who it is for", startsL:"Starts", endsL:"Ends",
+    remindL:"Remind one day before", save:"Save", savedOk:"Saved",
+    statsT:"Results", notAnswered:"Not answered yet",
+    remind:"🔔 Remind the ones missing", remindedOk:"Reminder sent",
+    audienceL:"Recipients", allScouts:"Everyone", msgEl:"Message (EL)", msgEn:"Message (EN)",
+    preview:"Preview", send:"Send to", sentOk:"Announcement sent",
+    publishedP:"Published", printAll:"🖨️ Print all cards",
+    review:"Review", attendance:"Attendance", uniformT:"Uniform", gamePts:"Points",
+    present:"Present", absent:"Absent", excused:"Excused",
+    allPresent:"✓ Mark all present", markedN:"marked", presentN:"present",
+    absentN:"absent", excusedN:"excused",
+    uniLegend:"● full · ◐ incomplete · ○ none",
+    uniFullN:"in full uniform", onlyPresent:"Only scouts marked present are listed.",
+    markAttFirst:"Mark attendance first.",
+    winner:"Winning patrol", reasonL:"Reason", reasonPh:"e.g. Knot relay race",
+    awardPatrol:"Award to patrol", awardsMade:"Awards from this meeting",
+    noAwards:"No awards yet", awardedPts:"Awarded",
+    ptsPresent:"+5 points for attending", ptsUniform:"+5 points for full uniform",
+    reviewed:"Reviewed", notReviewed:"Pending", editE:"Edit",
+    admin:"Admin", adminSub:"Scouts, events, challenges", exitAdmin:"Done",
+    leaderRole:"Leader", notRanked:"Leaders do not appear in the rankings.",
+    pickBadge:"Pick a badge", awardOne:"Award", alreadyHas:"Already has it",
+    troopLeader:"Troop Leader", wholeTroop:"Whole troop",
+    scopeOf:"Area of responsibility", myScouts:"My scouts",
+    roles:"Roles & permissions", rolesSub:"Who manages what",
+    rolesNote:"Only you, as Troop Leader, can change roles.",
+    onlyTroopLead:"Only the Troop Leader can change roles.",
+    assignScope:"Assign an area", makeLeader:"Appoint a new leader",
+    makeLeaderSub:"From the scout roster",
+    promote:"Make Troop Leader", promoteSub:"Full rights over everything",
+    whatTheySee:"What they will see", whatTheySeeBody:"Only the scouts, events and attendance of their own area.",
+    savedRole:"Area updated", readOnlyPill:"Read-only",
+    lockedEvents:"Troop events are set by the Troop Leader.",
+    navProfile:"Profile", myChals:"My challenges", forSector:"For sector",
+    allSectors:"All sectors",
+    chalTroopOnly:"Challenges are set by the Troop Leader. You see the results for your own area.",
+    myPassport:"My Passport", points:"Points", rank:"Rank", badgesN:"Badges",
+    badgesTitle:"Badges", newChallenge:"New challenge!", expires:"Closes in 2 days",
+    ptsShort:"points", since:"since", earnedOn:"Completed", notEarned:"Not earned yet",
+    close:"Close",
+    calendar:"Calendar", month:"October 2026", all:"All", troop:"Troop",
+    section:"Section", patrol:"Patrol", thisWeek:"This week", upcoming:"Upcoming",
+    noEvents:"No events match this filter.",
+    challenge:"Challenge", answered:"Answered", oneTry:"You get <b>one</b> attempt. Choose carefully!",
+    submit:"Submit answer", correct:"Correct!", wrong:"Not quite.", correctIs:"The right answer was",
+    previous:"Previous", allDone:"No open challenge right now.",
+    board:"Ranking", individual:"Individual", patrols:"Patrols", you:"you",
+    avgNote:"Average points per active member.", avg:"avg",
+    settings:"Settings", language:"Language", notifications:"Notifications",
+    nChal:"New challenges", nChalSub:"When a challenge unlocks",
+    nEvent:"Event reminders", nEventSub:"One day before",
+    nAnn:"Leader announcements", nAnnSub:"Rare",
+    install:"Install", installT:"📲 Add it to your home screen",
+    installB:"On iPhone: tap <kbd>Share ⬆︎</kbd> then <kbd>Add to Home Screen</kbd>.",
+    installWarn:"Without this, notifications will not work on iPhone.",
+    testPush:"🔔 Preview push", logout:"Sign out",
+    admChal:"Challenges", admSub:"Admin · Leader",
+    scheduled:"Scheduled", active:"Active", done:"Finished",
+    unlocksAt:"Unlocks", noDate:"No date set", pillSched:"Scheduled",
+    pillDraft:"Draft", pillLive:"Live", answeredN:"answered", correctN:"correct",
+    newChal:"New challenge", draftNote:"Draft · not published",
+    qEl:"Question (EL) — required", qEn:"Question (EN) — optional",
+    qEnPh:"If left empty, the Greek is shown", image:"Image", upload:"📷 Upload image",
+    options:"Options", addOpt:"Add option", pointsL:"Points", unlock:"Unlocks at",
+    publish:"Publish & notify", published:"Published — 18 notifications sent",
+    scouts:"Scouts", scoutsSub:"18 active · 3 patrols", loginCards:"Login cards",
+    print:"🖨️ Print cards", activeM:"Active", inactiveM:"Inactive", pts:"pts",
+    pushTitle:"A new challenge unlocked!", pushBody:"Compass & orientation · 10 points",
+    cancel:"Cancel", tapAnywhere:"Tap anywhere",
+  }
+};
+
+/* ============================ data ============================ */
+const ME = { first:{el:"Γιώργος",en:"Giorgos"}, last:{el:"Παπαδόπουλος",en:"Papadopoulos"} };
+const PATROL = {el:"Ενωμοτία Αετών",en:"Eagles Patrol"};
+const SECTION = {el:"Πρόσκοποι",en:"Scouts"};
+
+const BADGES=[
+ {i:"🪢",el:"Κόμποι",en:"Knots",on:1,d:"12/03/2026",
+  dEl:"Δένεις με σιγουριά τους βασικούς κόμπους και ξέρεις πού χρησιμεύει ο καθένας.",
+  dEn:"Ties the core scouting knots confidently and knows what each one is for."},
+ {i:"🧭",el:"Προσανατολισμός",en:"Orienteering",on:1,d:"04/05/2026",
+  dEl:"Βρίσκεις τον δρόμο σου με χάρτη και πυξίδα, μέρα και νύχτα.",
+  dEn:"Finds their way with map and compass, by day and by night."},
+ {i:"⛺",el:"Κατασκήνωση",en:"Camping",on:1,d:"21/06/2026",
+  dEl:"Στήνεις σκηνή, οργανώνεις κατασκήνωση και φροντίζεις τον χώρο σου.",
+  dEn:"Pitches a tent, sets up camp and looks after the site."},
+ {i:"🔥",el:"Φωτιά",en:"Fire",on:1,d:"22/06/2026",
+  dEl:"Ανάβεις και σβήνεις φωτιά με ασφάλεια, σε κάθε καιρό.",
+  dEn:"Lights and safely extinguishes a fire in any weather."},
+ {i:"🩹",el:"Πρώτες Βοήθειες",en:"First Aid",on:1,d:"09/09/2026",
+  dEl:"Αντιμετωπίζεις τραυματισμούς και ξέρεις πότε να καλέσεις βοήθεια.",
+  dEn:"Handles injuries and knows when to call for help."},
+ {i:"🍳",el:"Μαγειρική",en:"Cooking",on:1,d:"22/06/2026",
+  dEl:"Ετοιμάζεις γεύμα για την ενωμοτία σου στην ύπαιθρο.",
+  dEn:"Cooks a meal for their patrol in the outdoors."},
+ {i:"🏊",el:"Κολύμβηση",en:"Swimming",on:0,dEl:"Κολυμπάς με ασφάλεια και γνωρίζεις τους κανόνες διάσωσης.",dEn:"Swims safely and knows basic water rescue rules."},
+ {i:"🗺️",el:"Χαρτογραφία",en:"Mapping",on:0,dEl:"Σχεδιάζεις και διαβάζεις χάρτες με κλίμακα και σύμβολα.",dEn:"Draws and reads maps with scale and symbols."},
+ {i:"🌿",el:"Φύση",en:"Nature",on:0,dEl:"Αναγνωρίζεις φυτά και ζώα της περιοχής σου.",dEn:"Identifies local plants and animals."},
+ {i:"🚴",el:"Ποδηλασία",en:"Cycling",on:0,dEl:"Συντηρείς το ποδήλατό σου και κινείσαι με ασφάλεια.",dEn:"Maintains a bike and rides safely."},
+ {i:"📡",el:"Επικοινωνίες",en:"Signalling",on:0,dEl:"Στέλνεις και λαμβάνεις μηνύματα με σήματα.",dEn:"Sends and receives messages by signal."},
+ {i:"🪵",el:"Ξυλοτεχνία",en:"Pioneering",on:0,dEl:"Φτιάχνεις χρήσιμες κατασκευές με ξύλα και σχοινιά.",dEn:"Builds useful structures from spars and rope."}
+];
+
+const EVENTS=[
+ {d:14,mEl:"Οκτ",mEn:"Oct",week:1,scope:"troop",el:"Εβδομαδιαία Συγκέντρωση",en:"Weekly Meeting",
+  tEl:"17:00 – 19:00 · Εστία Συστήματος",tEn:"17:00 – 19:00 · Troop Hall"},
+ {d:16,mEl:"Οκτ",mEn:"Oct",week:1,scope:"patrol",el:"Συνάντηση Ενωμοτίας Αετών",en:"Eagles Patrol Meet-up",
+  tEl:"18:00 – 19:30 · Πλατεία",tEn:"18:00 – 19:30 · Main Square"},
+ {d:22,mEl:"Οκτ",mEn:"Oct",week:0,scope:"section",el:"Πεζοπορία στον Τρόοδο",en:"Troodos Hike",
+  tEl:"Ολοήμερο · Στάση Καλής Ελπίδας",tEn:"All day · Kali Elpida stop"},
+ {d:28,mEl:"Οκτ",mEn:"Oct",week:0,scope:"troop",el:"Παρέλαση 28ης Οκτωβρίου",en:"28th October Parade",
+  tEl:"10:00 · Κεντρική Πλατεία",tEn:"10:00 · Central Square"},
+ {d:5,mEl:"Νοε",mEn:"Nov",week:0,scope:"patrol",el:"Καθαρισμός παραλίας",en:"Beach Clean-up",
+  tEl:"09:00 – 12:00 · Δασούδι",tEn:"09:00 – 12:00 · Dasoudi"},
+ {d:15,mEl:"Νοε",mEn:"Nov",week:0,scope:"troop",el:"Χειμερινή Κατασκήνωση",en:"Winter Camp",
+  tEl:"2 ημέρες · Δάσος Μαχαιρά",tEn:"2 days · Machairas Forest"}
+];
+
+const CHAL={
+  n:12, pts:10,
+  qEl:"Τι δείχνει η κόκκινη βελόνα μιας μαγνητικής πυξίδας;",
+  qEn:"What does the red needle of a magnetic compass point to?",
+  opts:[
+    {el:"Τον γεωγραφικό Νότο",en:"True South"},
+    {el:"Τον μαγνητικό Βορρά",en:"Magnetic North"},
+    {el:"Την κατεύθυνση του ανέμου",en:"The wind direction"},
+    {el:"Το υψόμετρο",en:"The altitude"}
+  ],
+  correct:1,
+  xEl:"Η κόκκινη βελόνα δείχνει πάντα τον <b>μαγνητικό</b> Βορρά, που διαφέρει ελαφρώς από τον γεωγραφικό. Η διαφορά λέγεται μαγνητική απόκλιση.",
+  xEn:"The red needle always points to <b>magnetic</b> North, which differs slightly from true North. That difference is called magnetic declination."
+};
+const PAST=[
+  {n:11,el:"Πρώτες Βοήθειες",en:"First Aid",got:10},
+  {n:10,el:"Κόμποι",en:"Knots",got:0},
+  {n:9,el:"Ιστορία Προσκοπισμού",en:"Scouting History",got:10}
+];
+
+const PEOPLE=[
+  {el:"Ανδρέας Κ.",en:"Andreas K.",pEl:"Ενωμοτία Λύκων",pEn:"Wolves Patrol",p:310},
+  {el:"Μαρία Χ.",en:"Maria C.",pEl:"Ενωμοτία Κοβρών",pEn:"Cobras Patrol",p:280},
+  {me:1,el:"Γιώργος Π.",en:"Giorgos P.",pEl:"Ενωμοτία Αετών",pEn:"Eagles Patrol",p:240},
+  {el:"Ελένη Σ.",en:"Eleni S.",pEl:"Ενωμοτία Αετών",pEn:"Eagles Patrol",p:230},
+  {el:"Νίκος Δ.",en:"Nikos D.",pEl:"Ενωμοτία Λύκων",pEn:"Wolves Patrol",p:210},
+  {el:"Άννα Μ.",en:"Anna M.",pEl:"Ενωμοτία Κοβρών",pEn:"Cobras Patrol",p:190}
+];
+const PATROLS=[
+  {i:"🐺",el:"Λύκοι",en:"Wolves",p:248},
+  {i:"🦅",el:"Αετοί",en:"Eagles",p:221},
+  {i:"🐍",el:"Κόβρες",en:"Cobras",p:205}
+];
+
+/* Roster: elFirst|elLast|enFirst|enLast|patrolIdx|points|badges|active|role */
+const SCOUTS=[
+ "Ανδρέας|Κυριάκου|Andreas|Kyriakou|0|310|8|1|scout",
+ "Χριστίνα|Γεωργίου|Christina|Georgiou|0|260|7|1|scout",
+ "Πέτρος|Σάββα|Petros|Savva|0|245|6|1|scout",
+ "Νίκος|Δημητρίου|Nikos|Dimitriou|0|210|5|1|scout",
+ "Μάριος|Ηλία|Marios|Ilia|0|190|4|1|scout",
+ "Ραφαέλλα|Παύλου|Rafaella|Pavlou|0|175|4|1|scout",
+ "Γιώργος|Παπαδόπουλος|Giorgos|Papadopoulos|1|240|6|1|scout",
+ "Ελένη|Σταύρου|Eleni|Stavrou|1|230|6|1|scout",
+ "Μαρίνα|Χριστοδούλου|Marina|Christodoulou|1|215|5|1|scout",
+ "Αντρέας|Λοΐζου|Andreas|Loizou|1|200|5|1|scout",
+ "Σοφία|Νικολάου|Sofia|Nicolaou|1|185|4|1|scout",
+ "Κώστας|Ιωάννου|Kostas|Ioannou|1|0|0|0|scout",
+ "Μαρία|Χαραλάμπους|Maria|Charalambous|2|280|7|1|scout",
+ "Στέλιος|Αντωνίου|Stelios|Antoniou|2|225|6|1|scout",
+ "Λουκία|Κωνσταντίνου|Loukia|Constantinou|2|205|5|1|scout",
+ "Άννα|Μιχαήλ|Anna|Michael|2|190|5|1|scout",
+ "Δημήτρης|Ζένιου|Dimitris|Zeniou|2|170|3|1|scout",
+ "Έλενα|Πιερή|Elena|Pieri|2|160|3|1|scout",
+ "Κυριάκος|Λάμπρου|Kyriakos|Lambrou|1|0|0|1|troop|troop|-1",
+ "Δέσποινα|Αντρέου|Despina|Andreou|0|0|0|1|leader|patrol|0",
+ "Μάριος|Σιακαλλής|Marios|Siakallis|2|0|0|1|leader|patrol|2"
+].map(r=>{const [ef,el_,nf,nl,pa,pts,bd,ac,ro,st,si]=r.split("|");
+  return {f:{el:ef,en:nf}, l:{el:el_,en:nl}, patrol:+pa, pts:+pts, badges:+bd,
+          active:+ac, role:ro, scope: ro==="scout" ? null : {t:st||"troop", i:+(si||-1)},
+          code:nf.toLowerCase()+"-"+nl[0].toLowerCase(),
+          pass:String(1000+((pts*7+nf.length*131)%9000))+"-"+String(1000+((el_.length*271+pts*13)%9000))};});
+
+const fullName=s=>`${L(s.f)} ${L(s.l)}`;
+const ME_I=6, TROOP_I=18, LEADER_I=19;   // Γιώργος / Κυριάκος (troop lead) / Δέσποινα (patrol lead)
+const me=()=>SCOUTS[{scout:ME_I, leader:LEADER_I, troop:TROOP_I}[S.role]];
+const isLeader = s => s.role!=="scout";
+const isTroopLead = () => me().role==="troop";
+const scopeOf = () => me().scope || {t:"troop", i:-1};
+/* a leader only ever sees the sector they are assigned to */
+const inScope = s => { const c=scopeOf(); return c.t!=="patrol" || s.patrol===c.i; };
+const scopeName = c => !c || c.t==="troop" ? t("wholeTroop")
+                     : c.t==="section" ? L(SECTION) : `${PATROLS[c.i].i} ${L(PATROLS[c.i])}`;
+
+/* Challenges as data, so every row opens the challenge it names */
+/* sec: "troop" or a patrol index — who the challenge is for */
+const CHALS=[
+ {n:13, el:"Σημαίες & Σήματα", en:"Flags & Signals", sec:"troop", state:"sched", when:"18/10, 17:00"},
+ {n:15, el:"Ίχνη ζώων", en:"Animal Tracks", sec:0, state:"live", answered:5, correct:4, total:6},
+ {n:14, el:"Ασφάλεια στο βουνό", en:"Mountain Safety", sec:0, state:"draft", when:null},
+ {n:12, el:"Πυξίδα", en:"Compass", sec:"troop", state:"live", answered:14, correct:11, total:18},
+ {n:11, el:"Πρώτες Βοήθειες", en:"First Aid", sec:"troop", state:"done", answered:18, correct:15, total:18},
+ {n:10, el:"Κόμποι", en:"Knots", sec:"troop", state:"done", answered:17, correct:9, total:18},
+ {n:9,  el:"Ιστορία Προσκοπισμού", en:"Scouting History", sec:"troop", state:"done", answered:18, correct:16, total:18}
+];
+const secName = c => c.sec==="troop" ? t("wholeTroop") : `${PATROLS[c.sec].i} ${L(PATROLS[c.sec])}`;
+
+/* how many scouts hold each badge, index-aligned with BADGES */
+const AWARDED=[18,14,16,15,12,13,4,3,2,1,0,0];
+
+/* Seeded roll-call for the demo meeting: 0 present, 1 absent, 2 excused */
+const SEED_ATT=(()=>{const o={};SCOUTS.forEach((s,i)=>{if(s.role!=="leader"&&s.active)o[i]=0;});o[5]=1;o[16]=2;return o;})();
+/* Uniform: 0 full, 1 incomplete, 2 none */
+const SEED_UNI=(()=>{const o={};SCOUTS.forEach((s,i)=>{if(s.role!=="leader"&&s.active)o[i]=0;});o[4]=1;o[13]=1;o[17]=2;return o;})();
+
+/* Uniform illustrations. Numbered markers key to the numbered checklist below,
+   so a single drawing serves both languages — no text inside the SVG. */
+const mark=(x,y,x2,y2,i)=>`<line x1="${x}" y1="${y}" x2="${x2}" y2="${y2}" stroke="#A7B1A9" stroke-width="1.2" stroke-dasharray="2.5 2.5"/><circle cx="${x}" cy="${y}" r="9.5" fill="#14371F"/><text x="${x}" y="${y+3.5}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff">${i}</text>`;
+
+const ART={
+formal:`<svg viewBox="0 0 200 292" xmlns="http://www.w3.org/2000/svg" role="img">
+  <rect x="72" y="150" width="24" height="106" rx="6" fill="#2B3A55"/>
+  <rect x="104" y="150" width="24" height="106" rx="6" fill="#2B3A55"/>
+  <rect x="73" y="248" width="22" height="14" fill="#1E2A3D"/>
+  <rect x="105" y="248" width="22" height="14" fill="#1E2A3D"/>
+  <rect x="66" y="260" width="32" height="11" rx="4" fill="#22262B"/>
+  <rect x="102" y="260" width="32" height="11" rx="4" fill="#22262B"/>
+  <rect x="92" y="58" width="16" height="20" fill="#DDAF86"/>
+  <rect x="52" y="80" width="18" height="68" rx="9" fill="#D8C9A3"/>
+  <rect x="130" y="80" width="18" height="68" rx="9" fill="#D8C9A3"/>
+  <circle cx="61" cy="152" r="7.5" fill="#E9BC93"/>
+  <circle cx="139" cy="152" r="7.5" fill="#E9BC93"/>
+  <rect x="70" y="74" width="60" height="78" rx="8" fill="#D8C9A3"/>
+  <path d="M70 80q30-11 60 0v-6H70z" fill="#C5B48B"/>
+  <circle cx="79" cy="48" r="4.5" fill="#DDAF86"/>
+  <circle cx="121" cy="48" r="4.5" fill="#DDAF86"/>
+  <circle cx="100" cy="44" r="21" fill="#E9BC93"/>
+  <path d="M77 34c0-14 10-22 23-22s23 8 23 22c0 3-2 4-5 4H82c-3 0-5-1-5-4z" fill="#14371F"/>
+  <rect x="74" y="33" width="52" height="7" rx="3.5" fill="#0D2515"/>
+  <circle cx="114" cy="26" r="4" fill="#D9A227"/>
+  <path d="M76 77q24-8 48 0l-4 9q-20-6-40 0z" fill="#B23A2E"/>
+  <path d="M92 87h16l-8 31z" fill="#B23A2E"/>
+  <rect x="92.5" y="82" width="15" height="10" rx="4.5" fill="#D9A227"/>
+  <rect x="70" y="140" width="60" height="12" fill="#4A3728"/>
+  <rect x="93" y="141.5" width="15" height="9" rx="2" fill="#D9A227"/>
+  <rect x="55" y="92" width="12" height="9" rx="2" fill="#B23A2E"/>
+  <rect x="55" y="105" width="12" height="7" rx="2" fill="#D9A227"/>
+  <rect x="55" y="116" width="12" height="7" rx="2" fill="#3E8E5A"/>
+  ${mark(152,24,126,30,1)}
+  ${mark(168,104,150,104,2)}
+  ${mark(34,70,78,80,3)}
+  ${mark(34,145,68,146,4)}
+  ${mark(168,196,130,196,5)}
+  ${mark(32,254,72,254,6)}
+  ${mark(154,270,136,266,7)}
+  ${mark(28,110,53,110,8)}
+</svg>`,
+
+work:`<svg viewBox="0 0 200 292" xmlns="http://www.w3.org/2000/svg" role="img">
+  <rect x="76" y="190" width="20" height="62" rx="6" fill="#E9BC93"/>
+  <rect x="104" y="190" width="20" height="62" rx="6" fill="#E9BC93"/>
+  <rect x="76" y="244" width="20" height="13" rx="3" fill="#F4F4F0"/>
+  <rect x="104" y="244" width="20" height="13" rx="3" fill="#F4F4F0"/>
+  <rect x="68" y="254" width="32" height="13" rx="5" fill="#EAEAE4"/>
+  <rect x="100" y="254" width="32" height="13" rx="5" fill="#EAEAE4"/>
+  <rect x="68" y="263" width="32" height="5" rx="2.5" fill="#4A4F4A"/>
+  <rect x="100" y="263" width="32" height="5" rx="2.5" fill="#4A4F4A"/>
+  <rect x="72" y="140" width="56" height="58" rx="7" fill="#2B3A55"/>
+  <rect x="98" y="160" width="4" height="38" fill="#243149"/>
+  <rect x="92" y="58" width="16" height="20" fill="#DDAF86"/>
+  <rect x="58" y="104" width="13" height="46" rx="6.5" fill="#E9BC93"/>
+  <rect x="129" y="104" width="13" height="46" rx="6.5" fill="#E9BC93"/>
+  <circle cx="64.5" cy="152" r="7.5" fill="#E9BC93"/>
+  <circle cx="135.5" cy="152" r="7.5" fill="#E9BC93"/>
+  <rect x="54" y="80" width="18" height="30" rx="8" fill="#2F6B45"/>
+  <rect x="128" y="80" width="18" height="30" rx="8" fill="#2F6B45"/>
+  <rect x="70" y="74" width="60" height="72" rx="8" fill="#2F6B45"/>
+  <path d="M88 74h24l-12 13z" fill="#265A3A"/>
+  <rect x="80" y="104" width="24" height="16" rx="3" fill="#D9A227" opacity=".85"/>
+  <circle cx="79" cy="48" r="4.5" fill="#DDAF86"/>
+  <circle cx="121" cy="48" r="4.5" fill="#DDAF86"/>
+  <circle cx="100" cy="44" r="21" fill="#E9BC93"/>
+  <path d="M78 36c0-13 10-21 22-21s22 8 22 21v2H78z" fill="#2F6B45"/>
+  <path d="M122 32h23c4 0 5 7 0 7h-23z" fill="#245537"/>
+  <path d="M76 77q24-8 48 0l-4 9q-20-6-40 0z" fill="#B23A2E"/>
+  <path d="M92 87h16l-8 26z" fill="#B23A2E"/>
+  <rect x="92.5" y="82" width="15" height="10" rx="4.5" fill="#D9A227"/>
+  ${mark(168,100,148,100,1)}
+  ${mark(32,70,78,80,2)}
+  ${mark(168,168,130,168,3)}
+  ${mark(154,266,136,262,4)}
+  ${mark(152,22,124,28,5)}
+</svg>`};
+
+/* Leader-editable info pages. Body = ordered blocks: p | list | note */
+const INFO=[
+ {i:"👔", el:"Στολές", en:"Uniforms", sEl:"Τι φοράμε και πότε", sEn:"What we wear and when",
+  body:[
+   {t:"p", el:"Έχουμε δύο στολές. Η σωστή στολή δείχνει σεβασμό στην ομάδα και στον εαυτό σου.",
+           en:"We have two uniforms. Wearing the right one shows respect for the group and for yourself."},
+   {t:"list", art:"formal", hEl:"Επίσημη Στολή", hEn:"Formal Uniform", items:[
+     {el:"Μπερές με το προσκοπικό σήμα", en:"Beret with the Scout badge"},
+     {el:"Πουκάμισο μακρυμάνικο, μέσα στο παντελόνι", en:"Long-sleeved shirt, tucked in"},
+     {el:"Μαντήλι Συστήματος με κρίκο", en:"Troop neckerchief with woggle"},
+     {el:"Ζώνη με προσκοπική κόπιτσα", en:"Belt with Scout buckle"},
+     {el:"Παντελόνι ή φούστα στολής", en:"Uniform trousers or skirt"},
+     {el:"Κάλτσες στολής", en:"Uniform socks"},
+     {el:"Μαύρα κλειστά παπούτσια", en:"Black closed shoes"},
+     {el:"Διακριτικά: Συστήματος, βαθμού και πτυχίων", en:"Insignia: troop, rank and badge patches"}
+   ]},
+   {t:"note", hEl:"Πότε τη φοράμε", hEn:"When we wear it",
+    el:"Σε παρελάσεις, τελετές, υποσχέσεις, εκκλησιασμούς και επίσημες επισκέψεις.",
+    en:"Parades, ceremonies, promise ceremonies, church services and official visits."},
+   {t:"list", art:"work", hEl:"Στολή Εργασίας", hEn:"Working Uniform", items:[
+     {el:"Μπλουζάκι Συστήματος", en:"Troop T-shirt"},
+     {el:"Μαντήλι Συστήματος με κρίκο", en:"Troop neckerchief with woggle"},
+     {el:"Παντελόνι ή βερμούδα, σκούρο χρώμα", en:"Trousers or shorts, dark colour"},
+     {el:"Αθλητικά παπούτσια", en:"Trainers"},
+     {el:"Καπέλο για τον ήλιο", en:"Sun hat"}
+   ]},
+   {t:"note", hEl:"Πότε τη φοράμε", hEn:"When we wear it",
+    el:"Στις εβδομαδιαίες συγκεντρώσεις, στις δράσεις, στις εκδρομές και στην κατασκήνωση.",
+    en:"Weekly meetings, activities, hikes and camp."}
+  ]},
+
+ {i:"🎒", el:"Τι φέρνω στην κατασκήνωση", en:"Camp packing list", sEl:"Λίστα ελέγχου", sEn:"Checklist",
+  body:[
+   {t:"list", hEl:"Απαραίτητα", hEn:"Essentials", items:[
+     {el:"Υπνόσακος και υπόστρωμα", en:"Sleeping bag and mat"},
+     {el:"Φακός και μπαταρίες", en:"Torch and batteries"},
+     {el:"Παγούρι νερού", en:"Water bottle"},
+     {el:"Αδιάβροχο", en:"Rain jacket"},
+     {el:"Είδη ατομικής υγιεινής", en:"Toiletries"},
+     {el:"Και οι δύο στολές", en:"Both uniforms"}
+   ]},
+   {t:"note", hEl:"Προσοχή", hEn:"Please note",
+    el:"Δεν φέρνουμε μαχαίρια, χρήματα ή ακριβές συσκευές χωρίς άδεια του αρχηγού.",
+    en:"No knives, cash or expensive devices without the leader\u2019s permission."}
+  ]},
+
+ {i:"📜", el:"Νόμος & Υπόσχεση", en:"Law & Promise", sEl:"Οι αρχές μας", sEn:"Our principles",
+  body:[{t:"note", hEl:"Προς συμπλήρωση", hEn:"To be filled in",
+   el:"Το επίσημο κείμενο θα το προσθέσει ο αρχηγός από την οθόνη διαχείρισης.",
+   en:"The official text will be added by a leader from the admin screen."}]},
+
+ {i:"🪢", el:"Βασικοί Κόμποι", en:"Basic Knots", sEl:"Με εικόνες βήμα-βήμα", sEn:"Step-by-step images",
+  body:[{t:"note", hEl:"Προς συμπλήρωση", hEn:"To be filled in",
+   el:"Οδηγίες και φωτογραφίες για κάθε κόμπο.",
+   en:"Instructions and photos for each knot."}]},
+
+ {i:"☎️", el:"Επικοινωνία & Ασφάλεια", en:"Contacts & Safety", sEl:"Ποιον καλώ και πότε", sEn:"Who to call and when",
+  body:[{t:"note", hEl:"Προς συμπλήρωση", hEn:"To be filled in",
+   el:"Τηλέφωνα αρχηγών και βασικοί κανόνες ασφάλειας.",
+   en:"Leader phone numbers and basic safety rules."}]}
+];
+
+/* ============================ state ============================ */
+const FRESH = {
+  screen:"login", lang:"el", role:"scout", tab:"passport", pass:"",
+  code:"", pin:"", filter:"all", picked:null, answered:false, points:240,
+  lbTab:"ind", sheet:null, toast:null, notif:false, notifs:{chal:1,event:1,ann:0}, info:null, sel:0, awardSel:[], audience:"all",
+  review:"att", att:SEED_ATT, uni:SEED_UNI, awards:[], winner:null,
+  admTab:"profile",
+  stacks:{profile:[],scouts:[],events:[],challenges:[],more:[]},
+};
+const fresh=(keep={})=>Object.assign(JSON.parse(JSON.stringify(FRESH)),keep);
+let S = fresh();
+const t = k => T[S.lang][k];
+/* admin navigation: one stack per admin tab, so Back always pops one level
+   and each tab remembers where you were */
+const stack = () => S.stacks[S.admTab];
+const top   = () => { const st=stack(); return st.length ? st[st.length-1] : null; };
+const push  = (v,i) => stack().push({v, i:i===undefined?-1:+i});
+const pop   = () => stack().pop();
+const L = (o,k="") => o[k ? k+(S.lang==="el"?"El":"En") : S.lang];
+
+/* ============================ icons ============================ */
+const IC={
+ passport:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2.2"/><path d="M6 16c.8-1.6 4.2-1.6 5 0M14 9h4M14 13h4"/>',
+ calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+ target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+ trophy:'<path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v1a4 4 0 0 0 3 3.8M17 6h3v1a4 4 0 0 1-3 3.8M9 20h6M12 14v6"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.4 19.6l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 4.6 14H4a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 11 3.6V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 1 1 0 4h-.1"/>',
+ people:'<path d="M16 19v-1.5a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3V19"/><circle cx="9.5" cy="8" r="3.2"/><path d="M18 8h4M20 6v4"/>',
+ medal:'<circle cx="12" cy="9" r="4.5"/><path d="M8.5 13 7 21l5-2.5L17 21l-1.5-8"/>',
+ chat:'<path d="M4 5h16v11H8l-4 4V5Z"/><path d="M8 9h8M8 12.5h5"/>',
+ info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.4"/>',
+ more:'<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>',
+ pencil:'<path d="M4 20h4L19.5 8.5a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5V20Z"/><path d="M14.5 6.5l3.5 3.5"/>',
+ shield:'<path d="M12 3l8 3v6c0 4.4-3.2 7.9-8 9-4.8-1.1-8-4.6-8-9V6l8-3Z"/>'
+};
+const svg = p => `<svg viewBox="0 0 24 24">${p}</svg>`;
+
+/* ============================ chrome ============================ */
+function appbar(title, sub, back, extra){
+  return `<div class="appbar">
+    ${back?`<button class="back" data-act="back">‹ ${t("back")}</button>`:""}
+    <div class="row">
+      <div><h3>${title}</h3>${sub?`<div class="sub">${sub}</div>`:""}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${extra||""}
+        <div class="lang" data-act="lang"><b class="${S.lang==="el"?"on":""}">ΕΛ</b><b class="${S.lang==="en"?"on":""}">EN</b></div>
+      </div>
+    </div>
+  </div>`;
+}
+function tabbar(){
+  const set = S.role==="scout"
+    ? [["passport",IC.passport,"navPassport"],["calendar",IC.calendar,"navCalendar"],
+       ["challenges",IC.target,"navChallenges"],["board",IC.trophy,"navBoard"],["info",IC.info,"navInfo"]]
+    : [["profile",IC.shield,"navProfile"],["scouts",IC.people,"navScouts"],["events",IC.calendar,"navEvents"],
+       ["challenges",IC.target,"navChallenges"],["more",IC.more,"navMore"]];
+  const cur = S.role==="scout" ? (S.tab==="settings"?"":S.tab) : S.admTab;
+  return `<nav class="tabs">${set.map(([k,ic,lbl])=>
+    `<button class="tab ${cur===k?"on":""}" data-act="tab" data-tab="${k}">${svg(ic)}<span>${t(lbl)}</span></button>`).join("")}</nav>`;
+}
+
+/* ============================ screens ============================ */
+function vLogin(){
+  const ok = S.pass.replace(/[^0-9]/g,"").length>=8;
+  return `<div class="status dim"><span>9:41</span><span>▮▮▮ ▾ ▰</span></div>
+  <div class="login">
+    <svg class="scene" viewBox="0 0 240 178" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="mascot">
+      <circle class="tw"    cx="30"  cy="26" r="2.4" fill="#F5E3A8"/>
+      <circle class="tw d1" cx="205" cy="18" r="1.9" fill="#F5E3A8"/>
+      <circle class="tw d2" cx="176" cy="44" r="1.5" fill="#F5E3A8"/>
+      <circle class="tw d3" cx="62"  cy="12" r="1.6" fill="#F5E3A8"/>
+      <ellipse cx="120" cy="168" rx="86" ry="7" fill="rgba(0,0,0,.18)"/>
+      <!-- campfire -->
+      <g>
+        <circle class="glow" cx="47" cy="128" r="26" fill="#F0B429" opacity=".35"/>
+        <rect x="30" y="146" width="34" height="7" rx="3.5" fill="#7A5230" transform="rotate(-14 47 150)"/>
+        <rect x="30" y="146" width="34" height="7" rx="3.5" fill="#8C6239" transform="rotate(14 47 150)"/>
+        <path class="flameO" d="M47 106c7 9 13 15 13 24a13 13 0 0 1-26 0c0-9 6-15 13-24Z" fill="#F0B429"/>
+        <path class="flameI" d="M47 120c3.6 4.6 6.6 7.8 6.6 12.4a6.6 6.6 0 0 1-13.2 0c0-4.6 3-7.8 6.6-12.4Z" fill="#E06A2B"/>
+      </g>
+      <!-- wolf cub -->
+      <g class="bob">
+        <!-- ears -->
+        <path d="M92 44 L99 20 L114 38 Z" fill="#C98A3B"/>
+        <path d="M148 44 L141 20 L126 38 Z" fill="#C98A3B"/>
+        <path d="M97 40 L101 27 L110 38 Z" fill="#8C5A22"/>
+        <path d="M143 40 L139 27 L130 38 Z" fill="#8C5A22"/>
+        <!-- head -->
+        <circle cx="120" cy="66" r="34" fill="#DFA34F"/>
+        <ellipse cx="120" cy="78" rx="19" ry="14" fill="#F6E7C8"/>
+        <ellipse cx="120" cy="70" rx="6.5" ry="4.6" fill="#4A3524"/>
+        <path d="M112 84q8 6 16 0" stroke="#4A3524" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+        <g class="eyes">
+          <circle cx="106" cy="62" r="7" fill="#fff"/>
+          <circle cx="134" cy="62" r="7" fill="#fff"/>
+          <circle cx="107.5" cy="63" r="3.4" fill="#2A1E12"/>
+          <circle cx="132.5" cy="63" r="3.4" fill="#2A1E12"/>
+          <circle cx="108.6" cy="61.6" r="1.1" fill="#fff"/>
+          <circle cx="133.6" cy="61.6" r="1.1" fill="#fff"/>
+        </g>
+        <!-- body: uniform shirt -->
+        <path d="M96 96h48c6 22-4 40-24 40s-30-18-24-40Z" fill="#3D6355"/>
+        <!-- neckerchief -->
+        <path d="M100 96q20 12 40 0l-6 10q-14 8-28 0Z" fill="#F0B429"/>
+        <path d="M116 104h8l-4 12Z" fill="#E9A93B"/>
+        <rect x="116.5" y="101" width="7" height="6" rx="2.6" fill="#B23A2E"/>
+        <!-- arms -->
+        <path d="M99 108q-12 6-13 18" stroke="#3D6355" stroke-width="9" stroke-linecap="round" fill="none"/>
+        <g class="wave">
+          <path d="M141 108q13 3 17 -12" stroke="#3D6355" stroke-width="9" stroke-linecap="round" fill="none"/>
+          <circle cx="159" cy="94" r="6" fill="#DFA34F"/>
+        </g>
+        <circle cx="85" cy="127" r="5.5" fill="#DFA34F"/>
+        <!-- feet -->
+        <ellipse cx="108" cy="138" rx="7.5" ry="5" fill="#C98A3B"/>
+        <ellipse cx="132" cy="138" rx="7.5" ry="5" fill="#C98A3B"/>
+      </g>
+    </svg>
+    <h2 class="rise" style="animation-delay:.32s">${t("appName")}</h2>
+    <div class="tag rise" style="animation-delay:.42s">${t("troopName")}</div>
+    <div class="field rise" style="animation-delay:.54s;margin-top:8px">
+      <label>${t("code")}</label>
+      <input id="pass" value="${S.pass}" placeholder="${t("codePh")}" inputmode="numeric"
+        maxlength="9" autocomplete="off"
+        style="text-align:center;font-size:22px;letter-spacing:.14em;font-variant-numeric:tabular-nums;font-weight:500">
+    </div>
+    <div class="rise" style="animation-delay:.66s">
+      <button class="btn" data-act="login" ${ok?"":"disabled"}>${t("enter")}</button>
+    </div>
+    <div class="helper rise" style="animation-delay:.8s">${t("forgot").split("|").join("<br>")}</div>
+  </div>`;
+}
+
+function vPassport(){
+  const gearBtn = `<button class="iconbtn" data-act="settings" title="${t("settings")}">${svg(IC.gear)}</button>`;
+  const earned = BADGES.filter(b=>b.on).length;
+  const rank = 1 + PEOPLE.filter(p=>!p.me && p.p > S.points).length;
+  const rk = S.lang==="el" ? rank+"ος" : rank+["th","st","nd","rd"][rank<4?rank:0];
+  return appbar(t("myPassport"), L(PATROL), false, gearBtn) + `<div class="body">
+    <div class="pcard">
+      <div class="name">${L(ME.first)} ${L(ME.last)}</div>
+      <div class="meta">${L(SECTION)} · ${L(PATROL)} · ${t("since")} 2023</div>
+      <div class="stats">
+        <div class="stat"><b>${S.points}</b><span>${t("points")}</span></div>
+        <div class="stat"><b>${rk}</b><span>${t("rank")}</span></div>
+        <div class="stat"><b>${earned}/12</b><span>${t("badgesN")}</span></div>
+      </div>
+    </div>
+    ${S.answered?"":`<button class="banner" data-act="tab" data-tab="challenges">
+      <div class="ico">🎯</div>
+      <div><b>${t("newChallenge")}</b><span>${t("expires")} · ${CHAL.pts} ${t("ptsShort")}</span></div>
+      <div class="go">›</div>
+    </button>`}
+    <div class="sec-title">${t("badgesTitle")}</div>
+    <div class="badges">${BADGES.map((b,i)=>
+      `<button class="badge ${b.on?"":"off"}" data-act="badge" data-i="${i}">
+        <div class="disc">${b.i}</div><div class="lbl">${L(b)}</div>
+      </button>`).join("")}</div>
+  </div>` + tabbar();
+}
+
+function vCalendar(){
+  const list = EVENTS.filter(e=>S.filter==="all"||e.scope===S.filter);
+  const grp = w => list.filter(e=>e.week===w);
+  const row = e=>`<div class="ev">
+    <div class="date"><b>${e.d}</b><span>${L(e,"m")}</span></div>
+    <div class="info"><b><span class="dot ${e.scope}"></span>${L(e)}</b><span>${L(e,"t")}</span></div>
+  </div>`;
+  const block=(k,w)=> grp(w).length
+    ? `<div class="sec-title">${t(k)}</div><div class="card" style="display:flex;flex-direction:column;gap:13px">${grp(w).map(row).join("")}</div>` : "";
+  return appbar(t("calendar"), t("month")) + `<div class="body">
+    <div class="chips">${[["all","all"],["troop","troop"],["section","section"],["patrol","patrol"]]
+      .map(([k,l])=>`<button class="chip ${S.filter===k?"on":""}" data-act="filter" data-f="${k}">${t(l)}</button>`).join("")}</div>
+    ${list.length? block("thisWeek",1)+block("upcoming",0) : `<div class="empty">${t("noEvents")}</div>`}
+    <div class="tiny muted" style="display:flex;gap:12px;padding:2px 2px 4px">
+      <span><span class="dot troop"></span>${t("troop")}</span>
+      <span><span class="dot section"></span>${t("section")}</span>
+      <span><span class="dot patrol"></span>${t("patrol")}</span>
+    </div>
+  </div>` + tabbar();
+}
+
+function vChallenge(){
+  const K=["Α","Β","Γ","Δ"], KE=["A","B","C","D"];
+  const key=i=> S.lang==="el"?K[i]:KE[i];
+  const sub = S.answered
+    ? `${t("answered")} · ${S.picked===CHAL.correct?"+"+CHAL.pts:"0"} ${t("ptsShort")}`
+    : `${t("expires")} · ${CHAL.pts} ${t("ptsShort")}`;
+
+  const opts = CHAL.opts.map((o,i)=>{
+    let cls="", k=key(i);
+    if(S.answered){
+      if(i===CHAL.correct){cls="correct";k="✓";}
+      else if(i===S.picked){cls="wrong";k="✕";}
+    } else if(S.picked===i){cls="sel";}
+    return `<button class="opt ${cls}" data-act="pick" data-i="${i}" ${S.answered?"disabled":""}>
+      <span class="k">${k}</span>${L(o)}</button>`;
+  }).join("");
+
+  const ok = S.picked===CHAL.correct;
+  return appbar(`${t("challenge")} #${CHAL.n}`, sub) + `<div class="body">
+    ${S.answered?"":`<div class="qimg">🧭</div>`}
+    <div style="font-size:14.5px;font-weight:650;line-height:1.35">${L(CHAL,"q")}</div>
+    <div style="display:flex;flex-direction:column;gap:8px">${opts}</div>
+    ${S.answered ? `
+      <div class="verdict ${ok?"":"bad"}">
+        <b>${ok?t("correct")+" +"+CHAL.pts+" "+t("ptsShort"):t("wrong")}</b>
+        <p>${ok?"":`<b>${t("correctIs")}: ${L(CHAL.opts[CHAL.correct])}.</b><br>`}${L(CHAL,"x")}</p>
+      </div>
+      <div class="sec-title">${t("previous")}</div>
+      <div class="adm">${PAST.map(p=>`<div class="it"><div style="flex:1"><b>#${p.n} ${L(p)}</b></div>
+        <span style="font-weight:700;color:${p.got?"var(--green)":"var(--danger)"}">${p.got?"+"+p.got:"0"}</span></div>`).join("")}</div>
+    ` : `
+      <div class="tiny muted" style="text-align:center">${t("oneTry")}</div>
+      <button class="btn green" data-act="submit" ${S.picked===null?"disabled":""}>${t("submit")}</button>
+    `}
+  </div>` + tabbar();
+}
+
+function vBoard(){
+  const people = PEOPLE.map(p=> p.me?{...p,p:S.points}:p).sort((a,b)=>b.p-a.p);
+  const patrols = PATROLS.map(p=> p.en==="Eagles"?{...p,p:p.p+(S.points-240)/6|0}:p).sort((a,b)=>b.p-a.p);
+  const max = patrols[0].p;
+  const ind = `<div class="card" style="padding:0">${people.map((p,i)=>
+    `<div class="lb ${p.me?"me":""}">
+      <div class="rk ${i===0?"m1":""}">${i+1}</div>
+      <div class="nm">${p.me?`<b>${L(p)}</b>`:L(p)}<span>${L(p,"p")}${p.me?" · "+t("you"):""}</span></div>
+      <div class="pts">${p.p}</div>
+    </div>`).join("")}</div>`;
+  const pat = `<div class="card" style="display:flex;flex-direction:column;gap:13px">${patrols.map(p=>
+    `<div>
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:650">
+        <span>${p.i} ${L(p)}</span><span style="color:var(--green)">${p.p} <span class="tiny muted" style="font-weight:400">${t("avg")}</span></span>
+      </div>
+      <div class="bar"><i style="width:${Math.round(p.p/max*100)}%"></i></div>
+    </div>`).join("")}
+    <div class="tiny muted">${t("avgNote")}</div></div>`;
+  return appbar(t("board"), L(SECTION)) + `<div class="body">
+    <div class="seg">
+      <button class="${S.lbTab==="ind"?"on":""}" data-act="lb" data-v="ind">${t("individual")}</button>
+      <button class="${S.lbTab==="pat"?"on":""}" data-act="lb" data-v="pat">${t("patrols")}</button>
+    </div>
+    ${S.lbTab==="ind"?ind:pat}
+  </div>` + tabbar();
+}
+
+function vSettings(){
+  const sw=(k,i,a,b)=>`<button class="srow" data-act="notif" data-k="${k}">
+    <div class="ico">${i}</div><div class="txt"><b>${t(a)}</b><span>${t(b)}</span></div>
+    <div class="sw ${S.notifs[k]?"":"off"}"></div></button>`;
+  return appbar(t("settings"), `${L(ME.first)} ${L(ME.last)}`, true) + `<div class="body">
+    <div class="sec-title">${t("language")}</div>
+    <div class="seg">
+      <button class="${S.lang==="el"?"on":""}" data-act="setlang" data-v="el">Ελληνικά</button>
+      <button class="${S.lang==="en"?"on":""}" data-act="setlang" data-v="en">English</button>
+    </div>
+    <div class="sec-title">${t("notifications")}</div>
+    ${sw("chal","🔔","nChal","nChalSub")}
+    ${sw("event","📅","nEvent","nEventSub")}
+    ${sw("ann","📣","nAnn","nAnnSub")}
+    <button class="btn ghost" data-act="testpush">${t("testPush")}</button>
+    <div class="sec-title">${t("install")}</div>
+    <div class="install">
+      <b>${t("installT")}</b>${t("installB")}<br>
+      <span style="color:var(--danger)">${t("installWarn")}</span>
+    </div>
+    <button class="btn ghost" data-act="logout" style="color:var(--danger);border-color:#E2C3BB">${t("logout")}</button>
+  </div>` + tabbar();
+}
+
+function vInfo(){
+  if(S.info!==null) return vInfoDetail();
+  return appbar(t("info"), t("infoSub")) + `<div class="body">
+    ${INFO.map((x,i)=>`<button class="srow" data-act="topic" data-i="${i}">
+      <div class="ico">${x.i}</div>
+      <div class="txt"><b>${L(x)}</b><span>${L(x,"s")}</span></div>
+      <div style="color:var(--muted);font-size:17px">›</div>
+    </button>`).join("")}
+  </div>` + tabbar();
+}
+function vInfoDetail(){
+  const x=INFO[S.info];
+  const block=b=>{
+    if(b.t==="p") return `<p style="margin:0;font-size:13px;line-height:1.6">${L(b)}</p>`;
+    if(b.t==="note") return `<div class="install"><b>${L(b,"h")}</b>${L(b)}</div>`;
+    return `<div><div class="sec-title" style="margin-bottom:9px">${L(b,"h")}</div>
+      ${b.art?`<div class="art">${ART[b.art]}</div>`:""}
+      <div class="card" style="display:flex;flex-direction:column;gap:10px">
+        ${b.items.map((it,i)=>`<div style="display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.4">
+          <span class="${b.art?"numdot":"tick"}">${b.art?i+1:"✓"}</span><span>${L(it)}</span></div>`).join("")}
+      </div></div>`;
+  };
+  return appbar(`${x.i} ${L(x)}`, t("info"), true) + `<div class="body">
+    ${x.body.map(block).join("")}
+  </div>` + tabbar();
+}
+
+/* ---------- leader: admin section ---------- */
+const roster=()=>SCOUTS.filter(s=>s.role==="scout"&&inScope(s));
+const ACTIVE=()=>SCOUTS.map((s,i)=>({s,i})).filter(x=>x.s.role==="scout"&&x.s.active&&inScope(x.s));
+const myPatrols=()=>PATROLS.map((p,pi)=>({p,pi})).filter(x=>scopeOf().t!=="patrol"||x.pi===scopeOf().i);
+const chev=`<span style="color:var(--muted);font-size:17px">›</span>`;
+const fabPush=(v,i)=>`<button class="fab" data-act="push" data-v="${v}" data-i="${i===undefined?-1:i}">+</button>`;
+const wrap=(body,f)=>`<div class="rel"><div class="body">${body}</div>${f||""}</div>`;
+const abar=(title,sub,extra)=>appbar(title,sub,stack().length>0,extra);
+
+/* ----- Scouts ----- */
+function vProfile(){
+  const m=me(), lead=isTroopLead();
+  return appbar(t("navProfile"), lead?t("troopLeader"):t("leaderPill")) + `<div class="body">
+    <div class="pcard">
+      <div class="name">${fullName(m)}</div>
+      <div class="meta">${lead?"👑 "+t("troopLeader"):t("leaderPill")} · ${L(SECTION)}</div>
+      <div class="stats"><div class="stat" style="flex:1">
+        <b style="font-size:13px;font-weight:600">${lead?t("allSectors"):scopeName(m.scope)}</b>
+        <span>${t("scopeOf")}</span></div></div>
+    </div>
+    <div class="sec-title">${t("language")}</div>
+    <div class="seg">
+      <button class="${S.lang==="el"?"on":""}" data-act="setlang" data-v="el">Ελληνικά</button>
+      <button class="${S.lang==="en"?"on":""}" data-act="setlang" data-v="en">English</button>
+    </div>
+    <div class="tiny muted" style="text-align:center">${t("notRanked")}</div>
+    <button class="btn ghost" data-act="logout" style="color:var(--danger);border-color:#E2C3BB">${t("logout")}</button>
+  </div>` + tabbar();
+}
+
+function vScoutsList(){
+  const groups=myPatrols().map(({p,pi})=>({p,list:SCOUTS.filter(s=>s.role==="scout"&&s.patrol===pi)}));
+  const act=roster().filter(s=>s.active).length;
+  const body=`
+    ${groups.map(g=>`<div class="adm">
+      <div class="hdr">${g.p.i} ${L(g.p)} · ${g.list.length}</div>
+      ${g.list.map(s=>`<button class="it" data-act="push" data-v="scout" data-i="${SCOUTS.indexOf(s)}">
+        <div style="flex:1"><b>${fullName(s)}</b><span>${s.pts} ${t("pts")} · ${s.badges}/12</span></div>
+        <span class="pill ${s.active?"live":"draft"}">${s.active?t("activeM"):t("inactiveM")}</span>
+      </button>`).join("")}
+    </div>`).join("")}
+    ${isTroopLead()?`<div class="adm"><div class="hdr">${t("leaders")}</div>
+      ${SCOUTS.filter(isLeader).map(s=>`<div class="it">
+        <div style="flex:1"><b>${fullName(s)}</b><span>${scopeName(s.scope)}</span></div>
+        <span class="pill ${s.role==="troop"?"sched":"live"}">${s.role==="troop"?t("troopLeader"):t("leaderPill")}</span>
+        </div>`).join("")}
+    </div>`:""}
+    <button class="btn ghost" data-act="print">${t("printAll")}</button>`;
+  return abar(isTroopLead()?t("scouts"):t("myScouts"),
+              `${act} ${t("activeWord")} · ${scopeName(scopeOf())}`)
+    + wrap(body, `<button class="fab" data-act="soon">+</button>`) + tabbar();
+}
+function vScoutDetail(i){
+  const s=SCOUTS[i];
+  return abar(fullName(s), L(PATROLS[s.patrol])) + `<div class="body">
+    <div class="pcard">
+      <div class="name">${fullName(s)}</div>
+      <div class="meta">${L(PATROLS[s.patrol])} · ${L(SECTION)}</div>
+      <div class="stats">
+        <div class="stat"><b>${s.pts}</b><span>${t("points")}</span></div>
+        <div class="stat"><b>${s.badges}/12</b><span>${t("badgesN")}</span></div>
+        <div class="stat"><b>${s.active?"✓":"—"}</b><span>${t("activeM")}</span></div>
+      </div>
+    </div>
+    <div class="sec-title">${t("loginCard")}</div>
+    <div class="lcard" style="text-align:left;display:flex;align-items:center;gap:12px;padding:12px">
+      <div style="font-size:22px">⚜️</div>
+      <div style="flex:1"><div class="code" style="margin:0;font-size:15px">${s.pass}</div></div>
+      <button class="chip" data-act="resetpin">${t("resetPin")}</button>
+    </div>
+    <div class="sec-title">${t("earnedBadges")}</div>
+    <div class="card">${s.badges?`<div style="display:flex;flex-wrap:wrap;gap:8px">
+      ${BADGES.slice(0,s.badges).map(b=>`<div class="minidisc">${b.i}</div>`).join("")}</div>`
+      :`<div class="tiny muted" style="text-align:center;padding:6px">—</div>`}</div>
+    <button class="srow" data-act="push" data-v="pick" data-i="${i}">
+      <div class="ico">🏅</div><div class="txt"><b>${t("awardBadge")}</b><span>${t("awardBadgeSub")}</span></div>${chev}</button>
+    <button class="srow" data-act="soon">
+      <div class="ico">🔁</div><div class="txt"><b>${t("movePatrol")}</b><span>${L(PATROLS[s.patrol])}</span></div>${chev}</button>
+    <button class="srow" data-act="soon" style="border-color:#E4C8C0">
+      <div class="ico">🚫</div><div class="txt"><b style="color:var(--danger)">${t("deactivate")}</b><span>${t("deactivateSub")}</span></div></button>
+  </div>` + tabbar();
+}
+/* award ONE badge to the scout you came from — keeps the scout in context */
+function vPickBadge(i){
+  const s=SCOUTS[i];
+  return abar(t("pickBadge"), fullName(s)) + `<div class="body">
+    <div><div class="lab">${t("completedOn")}</div><input class="in" value="19/08/2026"></div>
+    <div class="adm">${BADGES.map((b,bi)=>{
+      const has=bi<s.badges;
+      return `<button class="it" data-act="award1" data-i="${i}" data-b="${bi}" ${has?"disabled style=opacity:.45":""}>
+        <div style="font-size:20px;width:26px;text-align:center">${b.i}</div>
+        <div style="flex:1"><b>${L(b)}</b>${has?`<span>${t("alreadyHas")}</span>`:""}</div>
+        ${has?`<span style="color:var(--moss);font-weight:700">✓</span>`:chev}</button>`;}).join("")}</div>
+  </div>` + tabbar();
+}
+
+/* ----- Badges ----- */
+function vBadgesList(){
+  const body=`<div class="adm"><div class="hdr">${t("navBadges")} · ${BADGES.length}</div>
+    ${BADGES.map((b,i)=>`<button class="it" data-act="push" data-v="award" data-i="${i}">
+      <div style="font-size:20px;width:26px;text-align:center">${b.i}</div>
+      <div style="flex:1"><b>${L(b)}</b><span>${t("awardedTo")} ${AWARDED[i]}/18</span></div>
+      ${chev}</button>`).join("")}</div>`;
+  return abar(t("navBadges"), t("admSub"))
+    + wrap(body, `<button class="fab" data-act="soon">+</button>`) + tabbar();
+}
+/* award ONE badge to MANY scouts — the other direction */
+function vAward(i){
+  const b=BADGES[i];
+  return abar(`${b.i} ${L(b)}`, t("awardBadge")) + `<div class="body">
+    <div><div class="lab">${t("completedOn")}</div><input class="in" value="19/08/2026"></div>
+    <div class="sec-title">${t("pickScouts")}</div>
+    <div class="adm">${roster().map(s=>{
+      const si=SCOUTS.indexOf(s), on=S.awardSel.includes(si);
+      return `<button class="it" data-act="awtog" data-i="${si}">
+        <div class="chk ${on?"on":""}">${on?"✓":""}</div>
+        <div style="flex:1"><b>${fullName(s)}</b><span>${L(PATROLS[s.patrol])}</span></div></button>`;}).join("")}</div>
+    <button class="btn green" data-act="doaward" ${S.awardSel.length?"":"disabled"}>
+      ${t("awardTo")} ${S.awardSel.length} ${t(S.awardSel.length===1?"scoutWord":"scoutsWord")}</button>
+  </div>` + tabbar();
+}
+
+/* ----- Events ----- */
+function vEventsList(){
+  const mine=e=>isTroopLead()||e.scope==="patrol";
+  const body=`<div class="adm"><div class="hdr">${t("upcoming")} · ${EVENTS.length}</div>
+    ${EVENTS.map((e,i)=>`<button class="it" data-act="push" data-v="review" data-i="${i}">
+      <div class="minidate"><b>${e.d}</b><span>${L(e,"m")}</span></div>
+      <div style="flex:1"><b><span class="dot ${e.scope}"></span>${L(e)}</b><span>${L(e,"t")}</span></div>
+      <span class="pill ${mine(e)?(i===0?"live":"draft"):"draft"}">${
+        mine(e) ? (i===0?t("reviewed"):t("notReviewed")) : "🔒 "+t("readOnlyPill")}</span></button>`).join("")}</div>
+    ${isTroopLead()?"":`<div class="tiny muted" style="text-align:center">${t("lockedEvents")}</div>`}
+    <div class="tiny muted" style="display:flex;gap:12px;padding:0 2px">
+      <span><span class="dot troop"></span>${t("troop")}</span>
+      <span><span class="dot section"></span>${t("section")}</span>
+      <span><span class="dot patrol"></span>${t("patrol")}</span></div>`;
+  return abar(t("navEvents"), scopeName(scopeOf())) + wrap(body, isTroopLead()?fabPush("edit",-1):"") + tabbar();
+}
+function vEventEdit(i){
+  const e = i>=0 ? EVENTS[i] : null;
+  const scope = e ? e.scope : "troop";
+  const loc = e ? L(e,"t").split("·").slice(1).join("·").trim() : "";
+  return abar(e?t("editEvent"):t("newEvent"), t("admSub")) + `<div class="body">
+    <div><div class="lab">${t("titleEl")}</div><input class="in" value="${e?e.el:""}"></div>
+    <div><div class="lab">${t("titleEn")}</div><input class="in" value="${e?e.en:""}" placeholder="${t("qEnPh")}"></div>
+    <div><div class="lab">${t("scopeL")}</div>
+      <div class="chips">${["troop","section","patrol"].map(k=>
+        `<button class="chip ${scope===k?"on":""}" data-act="soon"><span class="dot ${k}"></span>${t(k)}</button>`).join("")}</div></div>
+    <div><div class="lab">${t("locationL")}</div><input class="in" value="${loc}"></div>
+    <div style="display:flex;gap:8px">
+      <div style="flex:1"><div class="lab">${t("startsL")}</div><input class="in" value="${e?e.d+"/10 · 17:00":""}"></div>
+      <div style="flex:1"><div class="lab">${t("endsL")}</div><input class="in" value="${e?e.d+"/10 · 19:00":""}"></div>
+    </div>
+    <button class="srow" data-act="soon">
+      <div class="ico">🔔</div><div class="txt"><b>${t("remindL")}</b></div><div class="sw"></div></button>
+    <button class="btn green" data-act="save">${t("save")}</button>
+  </div>` + tabbar();
+}
+
+/* ----- Event review ----- */
+function stateBtns(kind,i,cur,defs){
+  return `<div class="st">${defs.map((d,v)=>
+    `<button class="${cur===v?"on "+d.c:""}" data-act="${kind}" data-i="${i}" data-v="${v}" title="${d.t}">${d.k}</button>`
+  ).join("")}</div>`;
+}
+function vReview(i){
+  const e=EVENTS[i]||EVENTS[0];
+  const pencil=`<button class="iconbtn" data-act="push" data-v="edit" data-i="${i}" title="${t("editE")}">${svg(IC.pencil)}</button>`;
+  const seg=[["att",t("attendance")],["uni",t("uniformT")],["pts",t("gamePts")]];
+  const panel = S.review==="att" ? pAtt() : S.review==="uni" ? pUni() : pPts();
+  return abar(L(e), `${e.d} ${L(e,"m")} · ${t("review")}`, pencil) + `<div class="body">
+    <div class="seg">${seg.map(([k,lbl])=>
+      `<button class="${S.review===k?"on":""}" data-act="rev" data-v="${k}">${lbl}</button>`).join("")}</div>
+    ${panel}
+  </div>` + tabbar();
+}
+function pAtt(){
+  const list=ACTIVE();
+  const c=[0,0,0]; list.forEach(x=>{ if(S.att[x.i]!==undefined) c[S.att[x.i]]++; });
+  const defs=[{k:"✓",c:"g",t:t("present")},{k:"✕",c:"r",t:t("absent")},{k:"~",c:"a",t:t("excused")}];
+  return `
+    <div class="tally">
+      <div><b>${c[0]}</b><span>${t("presentN")}</span></div>
+      <div><b>${c[1]}</b><span>${t("absentN")}</span></div>
+      <div><b>${c[2]}</b><span>${t("excusedN")}</span></div>
+    </div>
+    <button class="btn ghost" data-act="allpresent">${t("allPresent")}</button>
+    <div class="adm">${PATROLS.map((p,pi)=>`
+      <div class="hdr">${p.i} ${L(p)}</div>
+      ${list.filter(x=>x.s.patrol===pi).map(x=>`<div class="it">
+        <div style="flex:1"><b>${fullName(x.s)}</b></div>
+        ${stateBtns("att",x.i,S.att[x.i],defs)}</div>`).join("")}`).join("")}
+    </div>
+    <div class="tiny muted" style="text-align:center">${t("ptsPresent")}</div>`;
+}
+function pUni(){
+  const list=ACTIVE().filter(x=>S.att[x.i]===0);
+  if(!list.length) return `<div class="empty">${t("markAttFirst")}</div>`;
+  const full=list.filter(x=>S.uni[x.i]===0).length;
+  const defs=[{k:"●",c:"g",t:t("uniLegend")},{k:"◐",c:"a",t:t("uniLegend")},{k:"○",c:"r",t:t("uniLegend")}];
+  return `
+    <div class="card" style="text-align:center;padding:11px">
+      <b style="font-size:19px;color:var(--green)">${full}/${list.length}</b>
+      <div class="tiny muted">${t("uniFullN")}</div></div>
+    <div class="tiny muted" style="text-align:center">${t("uniLegend")}</div>
+    <div class="adm">${PATROLS.map((p,pi)=>{
+      const g=list.filter(x=>x.s.patrol===pi); if(!g.length) return "";
+      return `<div class="hdr">${p.i} ${L(p)}</div>
+      ${g.map(x=>`<div class="it"><div style="flex:1"><b>${fullName(x.s)}</b></div>
+        ${stateBtns("uni",x.i,S.uni[x.i],defs)}</div>`).join("")}`;}).join("")}
+    </div>
+    <div class="tiny muted" style="text-align:center">${t("onlyPresent")}<br>${t("ptsUniform")}</div>`;
+}
+function pPts(){
+  const total=S.awards.reduce((a,b)=>a+b.p,0);
+  return `
+    <div><div class="lab">${t("winner")}</div>
+      <div class="chips">${PATROLS.map((p,i)=>
+        `<button class="chip ${S.winner===i?"on":""}" data-act="win" data-i="${i}">${p.i} ${L(p)}</button>`).join("")}</div></div>
+    <div style="display:flex;gap:8px">
+      <div style="flex:1"><div class="lab">${t("pointsL")}</div><input class="in" value="20"></div>
+      <div style="flex:2"><div class="lab">${t("reasonL")}</div><input class="in" placeholder="${t("reasonPh")}"></div>
+    </div>
+    <button class="btn green" data-act="awardwin" ${S.winner===null?"disabled":""}>${t("awardPatrol")}</button>
+    <div class="sec-title">${t("awardsMade")}</div>
+    ${S.awards.length ? `<div class="adm">${S.awards.map(a=>`<div class="it">
+        <div style="font-size:17px;width:24px;text-align:center">${PATROLS[a.i].i}</div>
+        <div style="flex:1"><b>${L(PATROLS[a.i])}</b><span>${a.r}</span></div>
+        <span style="font-weight:700;color:var(--green)">+${a.p}</span></div>`).join("")}</div>
+      <div class="tiny muted" style="text-align:center">${t("awardedPts")}: ${total}</div>`
+      : `<div class="empty">${t("noAwards")}</div>`}`;
+}
+
+/* ----- Challenges ----- */
+function vChalList(){
+  const mineOnly = c => isTroopLead() || c.sec===scopeOf().i;
+  const grp=(k,lbl)=>{const g=CHALS.map((c,i)=>({c,i})).filter(x=>x.c.state===k&&mineOnly(x.c)); if(!g.length) return "";
+    const pill={sched:["sched","pillSched"],draft:["draft","pillDraft"],live:["live","pillLive"],done:null}[k];
+    return `<div class="adm"><div class="hdr">${t(lbl)}</div>
+      ${g.map(({c,i})=>`<button class="it" data-act="push" data-v="${(c.state==="live"||c.state==="done")?"stats":"edit"}" data-i="${i}">
+        <div style="flex:1"><b>#${c.n} ${L(c)}</b><span>${
+          (isTroopLead()?secName(c)+" · ":"")}${
+          c.state==="sched" ? `${t("unlocksAt")} ${c.when}`
+          : c.state==="draft" ? t("noDate")
+          : `${c.answered}/${c.total} ${t("answeredN")} · ${c.correct} ${t("correctN")}`}</span></div>
+        ${pill?`<span class="pill ${pill[0]}">${t(pill[1])}</span>`:chev}</button>`).join("")}</div>`;};
+  return abar(isTroopLead()?t("admChal"):t("myChals"), isTroopLead()?t("allSectors"):scopeName(scopeOf()))
+    + wrap(grp("sched","scheduled")+grp("draft","scheduled")+grp("live","active")+grp("done","done"),
+           fabPush("edit",-1))
+    + tabbar();
+}
+function vChalEdit(i){
+  const c = i>=0 ? CHALS[i] : null;
+  return abar(c?`#${c.n} ${L(c)}`:t("newChal"), c?t("pillDraft"):t("draftNote")) + `<div class="body">
+    <div><div class="lab">${t("qEl")}</div><input class="in" value="${c?c.el:""}"></div>
+    <div><div class="lab">${t("qEn")}</div><input class="in" value="${c?c.en:""}" placeholder="${t("qEnPh")}"></div>
+    <div><div class="lab">${t("image")}</div><div class="install" style="text-align:center;padding:16px">${t("upload")}</div></div>
+    <div><div class="lab">${t("options")}</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div class="opt"><span class="k">○</span>${S.lang==="el"?"Πρώτη επιλογή":"First option"}</div>
+        <div class="opt correct"><span class="k">✓</span>${S.lang==="el"?"Σωστή απάντηση":"Correct answer"}</div>
+        <div class="opt"><span class="k">○</span>${S.lang==="el"?"Τρίτη επιλογή":"Third option"}</div>
+        <div class="opt" style="color:var(--muted);border-style:dashed"><span class="k">+</span>${t("addOpt")}</div>
+      </div></div>
+    <div><div class="lab">${t("forSector")}</div>
+      <div class="chips">${isTroopLead()
+        ? [["troop",t("wholeTroop")]].concat(PATROLS.map((p,pi)=>[pi,`${p.i} ${L(p)}`]))
+            .map(([k,lbl])=>`<button class="chip ${(c?c.sec:"troop")===k?"on":""}" data-act="soon">${lbl}</button>`).join("")
+        : `<span class="chip on">${scopeName(scopeOf())}</span>`}</div></div>
+    <div style="display:flex;gap:8px">
+      <div style="flex:1"><div class="lab">${t("pointsL")}</div><input class="in" value="10"></div>
+      <div style="flex:1.4"><div class="lab">${t("unlock")}</div><input class="in" value="${c&&c.when?c.when:""}"></div>
+    </div>
+    <button class="btn green" data-act="publish">${t("publish")}</button>
+  </div>` + tabbar();
+}
+function vChalStats(i){
+  const c=CHALS[i]||CHALS[3];
+  const K=S.lang==="el"?["Α","Β","Γ","Δ"]:["A","B","C","D"];
+  const miss=roster().filter(s=>s.active).slice(-Math.max(0,c.total-c.answered));
+  const spread=[1,c.correct,18-c.answered>0?1:1,c.answered-c.correct-2<0?1:c.answered-c.correct-2];
+  return abar(`#${c.n} ${L(c)}`, `${secName(c)} · ${c.answered}/${c.total} ${t("answeredN")}`) + `<div class="body">
+    <div style="font-size:13.5px;font-weight:650;line-height:1.35">${L(CHAL,"q")}</div>
+    <div class="card" style="display:flex;flex-direction:column;gap:13px">
+      ${CHAL.opts.map((o,oi)=>{const ok=oi===CHAL.correct;const v=ok?c.correct:spread[oi];return `<div>
+        <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:${ok?700:500}">
+          <span>${ok?"✓":K[oi]}&nbsp; ${L(o)}</span>
+          <span style="color:${ok?"var(--green)":"var(--muted)"};flex:none">${v}</span></div>
+        <div class="bar"><i style="width:${Math.round(v/c.answered*100)}%;background:${ok?"var(--moss)":"#C9C2B2"}"></i></div>
+      </div>`;}).join("")}
+    </div>
+    ${miss.length?`<div class="sec-title">${t("notAnswered")}</div>
+    <div class="adm">${miss.map(s=>`<div class="it">
+      <div style="flex:1"><b>${fullName(s)}</b><span>${L(PATROLS[s.patrol])}</span></div></div>`).join("")}</div>
+    <button class="btn ghost" data-act="remind">${t("remind")}</button>`:""}
+  </div>` + tabbar();
+}
+
+/* ----- More ----- */
+function vMoreList(){
+  const item=(ic,tl,sb,v)=>`<button class="srow" data-act="${v?"push":"soon"}" ${v?`data-v="${v}" data-i="-1"`:""}>
+    <div class="ico">${ic}</div><div class="txt"><b>${tl}</b><span>${sb}</span></div>${chev}</button>`;
+  return abar(t("navMore"), isTroopLead()?t("admSub"):scopeName(scopeOf())) + `<div class="body">
+    ${item("🏅", t("navBadges"), t("awardBadgeSub"), "badges")}
+    ${item("📣", t("navAnnounce"), t("annSub"), "announce")}
+    ${item("ℹ️", t("info"), t("infoAdmSub"), "info")}
+    ${isTroopLead()?item("👥", t("roles"), t("rolesSub"), "roles"):""}
+  </div>` + tabbar();
+}
+function vAnnounce(){
+  const msg="Μην ξεχάσετε τη στολή εργασίας αύριο!";
+  const opts = isTroopLead() ? ["all","section","patrol"] : ["patrol"];
+  const label={all:t("allScouts"), section:L(SECTION), patrol:scopeName(scopeOf())};
+  const aud = opts.includes(S.audience)?S.audience:opts[0];
+  const count = aud==="patrol" ? roster().length : 18;
+  return abar(t("navAnnounce"), scopeName(scopeOf())) + `<div class="body">
+    <div><div class="lab">${t("audienceL")}</div>
+      <div class="chips">${opts.map(k=>
+        `<button class="chip ${aud===k?"on":""}" data-act="aud" data-v="${k}">${label[k]}</button>`).join("")}</div></div>
+    <div><div class="lab">${t("msgEl")}</div><textarea class="in" rows="3">${msg}</textarea></div>
+    <div><div class="lab">${t("msgEn")}</div><textarea class="in" rows="2" placeholder="${t("qEnPh")}"></textarea></div>
+    <div class="sec-title">${t("preview")}</div>
+    <div class="notif" style="position:static;box-shadow:none;border:1px solid var(--line);animation:none;background:#fff">
+      <div class="app">⚜️</div><div><b>${t("appName")}</b><p>${msg}</p></div></div>
+    <button class="btn green" data-act="sendann">${t("send")} ${count} ${t(count===1?"scoutWord":"scoutsWord")}</button>
+  </div>` + tabbar();
+}
+function vInfoAdmin(){
+  const body=`<div class="adm"><div class="hdr">${t("info")} · ${INFO.length}</div>
+    ${INFO.map((x,i)=>`<button class="it" data-act="soon">
+      <div style="font-size:19px;width:26px;text-align:center">${x.i}</div>
+      <div style="flex:1"><b>${L(x)}</b><span>${L(x,"s")}</span></div>
+      <span class="pill ${i<2?"live":"draft"}">${i<2?t("publishedP"):t("pillDraft")}</span></button>`).join("")}</div>`;
+  return abar(t("info"), t("infoAdmSub")) + wrap(body, `<button class="fab" data-act="soon">+</button>`) + tabbar();
+}
+
+function vRoles(){
+  const leaders=SCOUTS.map((s,i)=>({s,i})).filter(x=>isLeader(x.s));
+  return abar(t("roles"), t("rolesSub")) + `<div class="body">
+    <div class="install"><b>👑 ${t("troopLeader")}</b>${t("rolesNote")}</div>
+    <div class="adm"><div class="hdr">${t("leaders")} · ${leaders.length}</div>
+      ${leaders.map(({s,i})=>`<button class="it" data-act="push" data-v="roleedit" data-i="${i}">
+        <div style="flex:1"><b>${fullName(s)}</b><span>${scopeName(s.scope)}</span></div>
+        <span class="pill ${s.role==="troop"?"sched":"live"}">${s.role==="troop"?t("troopLeader"):t("leaderPill")}</span>
+      </button>`).join("")}</div>
+    <button class="srow" data-act="soon"><div class="ico">➕</div>
+      <div class="txt"><b>${t("makeLeader")}</b><span>${t("makeLeaderSub")}</span></div>${chev}</button>
+  </div>` + tabbar();
+}
+function vRoleEdit(i){
+  const s=SCOUTS[i];
+  const cur = s.role==="troop" ? "troop" : s.scope.t==="section" ? "section" : "p"+s.scope.i;
+  const opts=[["troop",t("wholeTroop")],["section",L(SECTION)]].concat(PATROLS.map((p,pi)=>["p"+pi,`${p.i} ${L(p)}`]));
+  return abar(fullName(s), s.role==="troop"?t("troopLeader"):t("leaderPill")) + `<div class="body">
+    <div><div class="lab">${t("assignScope")}</div>
+      <div class="chips">${opts.map(([k,lbl])=>
+        `<button class="chip ${cur===k?"on":""}" data-act="setscope" data-i="${i}" data-v="${k}">${lbl}</button>`).join("")}</div></div>
+    <div class="install"><b>${t("whatTheySee")}</b>${t("whatTheySeeBody")}</div>
+    <button class="srow" data-act="soon" ${s.role==="troop"?"style=opacity:.45":""}>
+      <div class="ico">👑</div><div class="txt"><b>${t("promote")}</b><span>${t("promoteSub")}</span></div></button>
+    <button class="btn green" data-act="saverole">${t("save")}</button>
+  </div>` + tabbar();
+}
+
+const ADMIN={
+  profile:{root:vProfile},
+  scouts:{root:vScoutsList, scout:vScoutDetail, pick:vPickBadge},
+  events:{root:vEventsList, review:vReview, edit:vEventEdit},
+  challenges:{root:vChalList, edit:vChalEdit, stats:vChalStats},
+  more:{root:vMoreList, badges:vBadgesList, award:vAward, announce:vAnnounce,
+        info:vInfoAdmin, roles:vRoles, roleedit:vRoleEdit}
+};
+function viewAdmin(){
+  const R=ADMIN[S.admTab], f=top();
+  return (f ? R[f.v] : R.root)(f ? f.i : -1);
+}
+
+/* ============================ overlays ============================ */
+function overlays(){
+  let h="";
+  if(S.sheet!==null){
+    const b=BADGES[S.sheet];
+    h+=`<div class="backdrop" data-act="closeSheet"><div class="sheet">
+      <div class="disc ${b.on?"":"off"}">${b.i}</div>
+      <h4>${L(b)}</h4>
+      <div class="when">${b.on?`${t("earnedOn")} ${b.d}`:t("notEarned")}</div>
+      <p>${L(b,"d")}</p>
+      <button class="btn ghost" data-act="closeSheet">${t("close")}</button>
+    </div></div>`;
+  }
+  if(S.notif) h+=`<div class="notif" data-act="openChal">
+    <div class="app">⚜️</div>
+    <div><b>${t("appName")}</b><p>${t("pushTitle")}<br>${t("pushBody")}</p></div></div>`;
+  if(S.toast) h+=`<div class="toast">${S.toast}</div>`;
+  return h;
+}
+
+/* ============================ render ============================ */
+function view(){
+  if(S.screen==="login") return vLogin();
+  const bar = `<div class="status"><span>9:41</span><span>▮▮▮ ▾ ▰</span></div>`;
+  if(S.role!=="scout") return bar+viewAdmin();
+  const m={passport:vPassport,calendar:vCalendar,challenges:vChallenge,board:vBoard,info:vInfo,settings:vSettings};
+  return bar+(m[S.tab]||vPassport)();
+}
+function render(){
+  const el=document.getElementById("screen");
+  el.classList.toggle("lead", S.role!=="scout" && S.screen==="app");
+  const keep=el.querySelector(".body");
+  const y=keep?keep.scrollTop:0;
+  // remember which field had focus so re-rendering doesn't interrupt typing
+  const af=document.activeElement, fid=af&&af.id, caret=af&&af.selectionStart;
+  el.innerHTML=view()+overlays();
+  const nb=el.querySelector(".body");
+  if(nb) nb.scrollTop=y;
+  if(fid){
+    const back=el.querySelector("#"+fid);
+    if(back){ back.focus(); try{ back.setSelectionRange(caret,caret); }catch(_){} }
+  }
+  document.querySelectorAll("#roleToggle button").forEach(b=>b.classList.toggle("on",b.dataset.role===S.role));
+}
+function toast(msg,ms=1900){ S.toast=msg; render(); clearTimeout(toast._t); toast._t=setTimeout(()=>{S.toast=null;render();},ms); }
+
+/* ============================ events ============================ */
+document.getElementById("screen").addEventListener("click",e=>{
+  const el=e.target.closest("[data-act]"); if(!el) return;
+  const a=el.dataset.act;
+  if(a==="lang"){ S.lang = S.lang==="el"?"en":"el"; }
+  else if(a==="setlang"){ S.lang=el.dataset.v; }
+  else if(a==="login"){ if(S.pass.replace(/[^0-9]/g,"").length>=8){ S.screen="app"; S.tab="passport"; } }
+  else if(a==="logout"){ S=fresh({lang:S.lang}); }
+  else if(a==="tab"){ const k=el.dataset.tab; S.info=null;
+    if(S.role!=="scout"){ if(S.admTab===k) S.stacks[k]=[]; else S.admTab=k; }  // re-tap pops to root
+    else S.tab=k; }
+  else if(a==="filter"){ S.filter=el.dataset.f; }
+  else if(a==="badge"){ S.sheet=+el.dataset.i; }
+  else if(a==="closeSheet"){ if(e.target.closest(".sheet") && !e.target.closest("[data-act=closeSheet]")) return; S.sheet=null; }
+  else if(a==="pick"){ if(!S.answered) S.picked=+el.dataset.i; }
+  else if(a==="submit"){
+    S.answered=true;
+    if(S.picked===CHAL.correct){ S.points+=CHAL.pts; toast(`🎉 +${CHAL.pts} ${t("ptsShort")}`); }
+  }
+  else if(a==="lb"){ S.lbTab=el.dataset.v; }
+  else if(a==="notif"){ const k=el.dataset.k; S.notifs[k]=S.notifs[k]?0:1; }
+  else if(a==="testpush"){ S.notif=true; render(); setTimeout(()=>{S.notif=false;render();},4200); return; }
+  else if(a==="openChal"){ S.notif=false; S.role="scout"; S.tab="challenges"; }
+  else if(a==="settings"){ S.tab="settings"; }
+  else if(a==="push"){ const v=el.dataset.v; if(v==="award") S.awardSel=[]; if(v==="review") S.review="att";
+    push(v, el.dataset.i); }
+  else if(a==="award1"){ const s=SCOUTS[+el.dataset.i]; s.badges++; pop();
+    toast("🏅 "+L(BADGES[+el.dataset.b])+" → "+fullName(s),2200); return; }
+  else if(a==="awtog"){ const i=+el.dataset.i; const k=S.awardSel.indexOf(i);
+                        if(k<0) S.awardSel.push(i); else S.awardSel.splice(k,1); }
+  else if(a==="doaward"){ const c=S.awardSel.length; S.awardSel=[]; pop(); toast("🏅 "+t("awardedOk")+" → "+c+" "+t(c===1?"scoutWord":"scoutsWord"),2200); return; }
+  else if(a==="resetpin"){ toast("🔑 "+t("newPin")+" 5274-1938",2600); return; }
+  else if(a==="aud"){ S.audience=el.dataset.v; }
+  else if(a==="setscope"){ const s=SCOUTS[+el.dataset.i], v=el.dataset.v;
+    if(v==="troop"){ s.role="troop"; s.scope={t:"troop",i:-1}; }
+    else { s.role="leader"; s.scope = v==="section" ? {t:"section",i:-1} : {t:"patrol",i:+v.slice(1)}; } }
+  else if(a==="saverole"){ pop(); toast("✅ "+t("savedRole")); return; }
+  else if(a==="rev"){ S.review=el.dataset.v; }
+  else if(a==="att"){ S.att[+el.dataset.i]=+el.dataset.v; }
+  else if(a==="uni"){ S.uni[+el.dataset.i]=+el.dataset.v; }
+  else if(a==="allpresent"){ ACTIVE().forEach(x=>{ S.att[x.i]=0; }); toast(t("allPresent")); return; }
+  else if(a==="win"){ S.winner=+el.dataset.i; }
+  else if(a==="awardwin"){ const i=S.winner; S.awards.push({i,p:20,r:t("reasonPh").replace(/^π\.χ\. |^e\.g\. /,"")});
+    S.winner=null; toast("🏆 "+L(PATROLS[i])+" +20"); return; }
+  else if(a==="sendann"){ pop(); toast("📣 "+t("sentOk"),2200); return; }
+  else if(a==="save"){ pop(); toast("✅ "+t("savedOk")); return; }
+  else if(a==="remind"){ toast("🔔 "+t("remindedOk"),2200); return; }
+  else if(a==="topic"){ S.info=+el.dataset.i; }
+  else if(a==="soon"){ toast(t("soon")); return; }
+  else if(a==="back"){ if(S.role!=="scout") pop(); else if(S.info!==null) S.info=null; else S.tab="passport"; }
+  else if(a==="publish"){ pop(); toast("✅ "+t("published"),2400); return; }
+  else if(a==="print"){ toast("🖨️ PDF"); return; }
+  render();
+});
+document.getElementById("screen").addEventListener("input",e=>{
+  if(e.target.id==="pass"){
+    let d=e.target.value.replace(/[^0-9]/g,"").slice(0,8);
+    S.pass = d.length>4 ? d.slice(0,4)+"-"+d.slice(4) : d;
+    if(e.target.value!==S.pass) e.target.value=S.pass;
+    const b=document.querySelector("[data-act=login]"); if(b)b.disabled=d.length<8;
+  }
+});
+/* PIN: typing anywhere on the login screen fills the boxes */
+document.addEventListener("keydown",e=>{
+  if(S.screen!=="login") return;
+  if(e.key==="Enter" && S.pass.replace(/[^0-9]/g,"").length>=8){ S.screen="app"; render(); }
+});
+
+document.getElementById("roleToggle").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  S.role=b.dataset.role; S.screen="app"; S.tab="passport"; S.admTab="profile";
+  S.stacks={profile:[],scouts:[],events:[],challenges:[],more:[]}; render();
+});
+document.getElementById("reset").addEventListener("click",()=>{ S=fresh(); render(); });
+
+render();
+})();
+</script>
+</body>
+</html>

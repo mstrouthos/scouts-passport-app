@@ -1,0 +1,64 @@
+<script setup lang="ts">
+const { t, locale } = useI18n()
+const me = useMe()
+const lx = useLx()
+const { data } = await useFetch('/api/passport')
+const { data: chals } = await useFetch('/api/challenges')
+const openChal = computed(() => (chals.value || []).find((c: any) => !c.answer && !c.closed))
+const sheet = ref<any>(null)
+const rankLabel = computed(() => {
+  const r = data.value?.rank
+  if (!r) return '—'
+  return locale.value === 'el' ? `${r}ος` : `${r}${['th', 'st', 'nd', 'rd'][r % 10 < 4 && (r % 100 < 11 || r % 100 > 13) ? r % 10 : 0]}`
+})
+const earned = computed(() => (data.value?.badges || []).filter((b: any) => b.earned).length)
+</script>
+
+<template>
+  <AppShell :title="t('myPassport')" :sub="me?.patrol ? `${me.patrol.emblem} ${lx(me.patrol, 'name')}` : ''">
+    <template #actions>
+      <NuxtLink to="/app/settings" class="iconbtn" :aria-label="t('settings')"><NavIcon name="gear" /></NuxtLink>
+    </template>
+
+    <div class="pcard">
+      <div class="name">{{ me?.firstName }} {{ me?.lastName }}</div>
+      <div class="meta">{{ lx(me?.section, 'name') }} · {{ lx(me?.patrol, 'name') }}</div>
+      <div class="stats">
+        <div class="stat"><b>{{ data?.points ?? 0 }}</b><span>{{ t('points') }}</span></div>
+        <div class="stat"><b>{{ rankLabel }}</b><span>{{ t('rank') }}</span></div>
+        <div class="stat"><b>{{ earned }}/{{ data?.badges?.length ?? 0 }}</b><span>{{ t('badges') }}</span></div>
+      </div>
+    </div>
+
+    <NuxtLink v-if="openChal" to="/app/challenges" class="banner">
+      <div class="ico">🎯</div>
+      <div><b>{{ t('newChallenge') }}</b><span>{{ lx(openChal) }} · {{ openChal.points }} {{ t('pts') }}</span></div>
+      <div class="go">›</div>
+    </NuxtLink>
+
+    <div class="sec-title">{{ t('badges') }}</div>
+    <div class="badge-grid">
+      <button v-for="b in data?.badges" :key="b.id" class="btile" :class="{ off: !b.earned }" @click="sheet = b">
+        <span class="disc">{{ b.icon }}</span>
+        <span class="lbl">{{ lx(b) }}</span>
+      </button>
+    </div>
+
+    <Teleport to="body">
+      <div v-if="sheet" class="sheet-backdrop" @click.self="sheet = null">
+        <div class="sheet">
+          <div style="width:64px;height:64px;border-radius:18px;margin:0 auto 10px;display:grid;place-items:center;font-size:30px"
+               :style="sheet.earned ? 'background:linear-gradient(145deg,#FFF6DF,#FBE7B4)' : 'background:#EEF2F6;filter:grayscale(1);opacity:.6'">
+            {{ sheet.icon }}
+          </div>
+          <h3 style="margin:0;text-align:center;font-size:17px">{{ lx(sheet) }}</h3>
+          <div class="tiny muted" style="text-align:center;margin-top:3px">
+            {{ sheet.earned ? `${t('completedOn')} ${fmtDate(sheet.completedOn, locale)}` : t('notEarned') }}
+          </div>
+          <p style="font-size:13px;line-height:1.55;color:#44536B;margin:14px 0 18px;text-align:center">{{ lx(sheet, 'description') }}</p>
+          <button class="btn ghost" @click="sheet = null">{{ t('close') }}</button>
+        </div>
+      </div>
+    </Teleport>
+  </AppShell>
+</template>

@@ -1,0 +1,15 @@
+FROM node:22-bookworm-slim AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM node:22-bookworm-slim
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=build /app/.output ./.output
+EXPOSE 3000
+VOLUME /data
+ENV NUXT_DB_PATH=/data/passport.db
+CMD ["node", ".output/server/index.mjs"]

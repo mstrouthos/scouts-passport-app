@@ -1,0 +1,5 @@
+# Replace with your real domain before deploying.
+passport.example.org {
+	encode gzip
+	reverse_proxy app:3000
+}
