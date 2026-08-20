@@ -13,8 +13,9 @@ const smsOutcome = ref<'sent' | 'failed' | null>(null)
 const awarding = ref(false)
 const awardDate = ref(new Date().toISOString().slice(0, 10))
 const editingContact = ref(false)
-const contact = reactive({ phone: '', idNumber: '' })
-watch(data, v => { if (v) { contact.phone = v.phone || ''; contact.idNumber = v.idNumber || '' } }, { immediate: true })
+const contact = reactive({ phone: null as string | null, idNumber: '' })
+watch(data, v => { if (v) { contact.phone = v.phone || null; contact.idNumber = v.idNumber || '' } }, { immediate: true })
+const contactPhoneValid = computed(() => !contact.phone || /^\+357\d{8}$/.test(contact.phone))
 
 async function regen() {
   smsOutcome.value = null
@@ -39,9 +40,11 @@ async function award(badgeId: number) {
   await refresh(); show('🏅 ' + t('awardedOk'))
 }
 async function saveContact() {
-  await $fetch(`/api/admin/scouts/${id}`, { method: 'PATCH', body: { phone: contact.phone, idNumber: contact.idNumber } })
-  editingContact.value = false
-  await refresh(); show('✅ ' + t('saved'))
+  try {
+    await $fetch(`/api/admin/scouts/${id}`, { method: 'PATCH', body: { phone: contact.phone, idNumber: contact.idNumber } })
+    editingContact.value = false
+    await refresh(); show('✅ ' + t('saved'))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
 }
 async function deleteScout() {
   if (!confirm(t('confirmDelete'))) return
@@ -92,9 +95,9 @@ async function deleteScout() {
         <div class="sec-title">{{ t('contactDetails') }}</div>
         <div class="card" style="display:flex;flex-direction:column;gap:10px">
           <template v-if="editingContact">
-            <div><label class="lab">{{ t('phone') }}</label><input v-model="contact.phone" class="in" placeholder="+357 99 123456"></div>
+            <div><label class="lab">{{ t('phone') }}</label><PhoneInput v-model="contact.phone" /></div>
             <div><label class="lab">{{ t('idNumber') }}</label><input v-model="contact.idNumber" class="in" placeholder="SC-0142"></div>
-            <button class="btn" style="margin-top:2px" @click="saveContact">{{ t('save') }}</button>
+            <button class="btn" style="margin-top:2px" :disabled="!contactPhoneValid" @click="saveContact">{{ t('save') }}</button>
           </template>
           <template v-else>
             <div style="display:flex;justify-content:space-between;align-items:center">

@@ -241,6 +241,7 @@
   "deletePermanently": "Delete permanently",
   "deleted": "Deleted",
   "phone": "Phone",
+  "phoneInvalid": "The number must be 8 digits.",
   "optional": "optional",
   "idNumber": "Member ID Number",
   "addToCalendar": "📅 Add to calendar",

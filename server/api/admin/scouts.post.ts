@@ -1,6 +1,7 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
 import { generatePasscode, hmacPasscode, now } from '../../utils/passcode'
+import { normalizePhone } from '../../utils/phone'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -10,7 +11,7 @@ export default defineEventHandler(async (event) => {
   }>(event)
   const firstName = String(body?.firstName || '').trim()
   const lastName = String(body?.lastName || '').trim()
-  const phone = String(body?.phone || '').trim() || null
+  const phone = normalizePhone(body?.phone)
   if (!firstName || !lastName) throw createError({ statusCode: 400, message: 'Name required' })
   const db = useDb()
   const passcode = generatePasscode()

@@ -30,7 +30,7 @@ watch(data, (v) => {
 // ----- new member / new leader sheet -----
 const adding = ref(false)
 const form = reactive({
-  firstName: '', lastName: '', phone: '',
+  firstName: '', lastName: '', phone: null as string | null,
   sectionId: 0 as number | 'leaders', patrolId: 0,
   leaderScope: 'troop', leaderSectionId: 0, rank: 'archigos'
 })
@@ -43,7 +43,7 @@ const patrolsOf = computed(() =>
 function openAdd(sectionId: number | 'leaders' = 0) {
   created.value = null
   smsAsked.value = false; smsOutcome.value = null
-  form.firstName = ''; form.lastName = ''; form.phone = ''; form.patrolId = 0
+  form.firstName = ''; form.lastName = ''; form.phone = null; form.patrolId = 0
   form.leaderScope = 'troop'; form.leaderSectionId = 0; form.rank = 'archigos'
   form.sectionId = sectionId || data.value?.sections?.find((sec: any) => sec.canManage)?.id || 0
   adding.value = true
@@ -53,17 +53,17 @@ async function createScout() {
   try {
     const body = form.sectionId === 'leaders'
       ? {
-          firstName: form.firstName, lastName: form.lastName, phone: form.phone || null,
+          firstName: form.firstName, lastName: form.lastName, phone: form.phone,
           kind: 'leader', scope: form.leaderScope, rank: form.rank,
           sectionId: form.leaderScope === 'section' ? form.leaderSectionId : null
         }
       : {
-          firstName: form.firstName, lastName: form.lastName, phone: form.phone || null,
+          firstName: form.firstName, lastName: form.lastName, phone: form.phone,
           sectionId: form.sectionId, patrolId: form.patrolId || null
         }
     const res = await $fetch<any>('/api/admin/scouts', { method: 'POST', body })
-    created.value = { ...res, phone: form.phone || null }
-    form.firstName = ''; form.lastName = ''; form.phone = ''
+    created.value = { ...res, phone: form.phone }
+    form.firstName = ''; form.lastName = ''; form.phone = null
     await refresh()
   } catch (e: any) { show(e?.data?.message || t('error')) }
 }
@@ -79,8 +79,9 @@ async function sendInviteSms() {
   smsAsked.value = true
 }
 function skipSms() { smsAsked.value = true }
+const phoneValid = computed(() => !form.phone || /^\+357\d{8}$/.test(form.phone))
 const canCreate = computed(() => {
-  if (!form.firstName || !form.lastName) return false
+  if (!form.firstName || !form.lastName || !phoneValid.value) return false
   if (form.sectionId === 'leaders') return form.leaderScope !== 'section' || !!form.leaderSectionId
   return !!form.sectionId
 })
@@ -201,7 +202,7 @@ async function deletePatrol() {
           <template v-else>
             <div><label class="lab">{{ t('firstName') }}</label><input v-model="form.firstName" class="in"></div>
             <div><label class="lab">{{ t('lastName') }}</label><input v-model="form.lastName" class="in"></div>
-            <div><label class="lab">{{ t('phone') }} <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="form.phone" class="in" placeholder="+357 99 123456"></div>
+            <div><label class="lab">{{ t('phone') }} <span class="tiny muted">({{ t('optional') }})</span></label><PhoneInput v-model="form.phone" /></div>
             <div>
               <label class="lab">{{ t('sectionWord') }}</label>
               <div class="chips">

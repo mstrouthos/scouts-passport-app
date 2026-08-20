@@ -15,7 +15,8 @@ const rotated = ref<string | null>(null)
 const smsOnRotate = ref(false)
 const rotateSmsOutcome = ref<'sent' | 'failed' | null>(null)
 const editingContact = ref(false)
-const contact = reactive({ firstName: '', lastName: '', firstNameEn: '', lastNameEn: '', phone: '', idNumber: '' })
+const contact = reactive({ firstName: '', lastName: '', firstNameEn: '', lastNameEn: '', phone: null as string | null, idNumber: '' })
+const contactPhoneValid = computed(() => !contact.phone || /^\+357\d{8}$/.test(contact.phone))
 const addingScope = ref(false)
 const newScope = reactive({ sectionId: 0, patrolId: 0, rank: 'archigos' as 'archigos' | 'yparchigos' })
 const notifyText = ref('')
@@ -31,7 +32,7 @@ function open(l: any) {
   smsOnRotate.value = false; rotateSmsOutcome.value = null
   contact.firstName = l.firstName || ''; contact.lastName = l.lastName || ''
   contact.firstNameEn = l.firstNameEn || ''; contact.lastNameEn = l.lastNameEn || ''
-  contact.phone = l.phone || ''; contact.idNumber = l.idNumber || ''
+  contact.phone = l.phone || null; contact.idNumber = l.idNumber || ''
   const sc = l.scopes?.[0]
   pick.scope = sc?.scope === 'troop' || l.role === 'troop_leader' ? 'troop' : 'section'
   pick.sectionId = sc?.sectionId ?? 0   // force an explicit choice — no silent default
@@ -70,16 +71,18 @@ async function rotate(scoutId: number) {
   }
 }
 async function saveContact() {
-  await $fetch(`/api/admin/scouts/${editing.value.id}`, {
-    method: 'PATCH',
-    body: {
-      firstName: contact.firstName, lastName: contact.lastName,
-      firstNameEn: contact.firstNameEn, lastNameEn: contact.lastNameEn,
-      phone: contact.phone, idNumber: contact.idNumber
-    }
-  })
-  editingContact.value = false
-  await refreshAndResync(); show('✅ ' + t('saved'))
+  try {
+    await $fetch(`/api/admin/scouts/${editing.value.id}`, {
+      method: 'PATCH',
+      body: {
+        firstName: contact.firstName, lastName: contact.lastName,
+        firstNameEn: contact.firstNameEn, lastNameEn: contact.lastNameEn,
+        phone: contact.phone, idNumber: contact.idNumber
+      }
+    })
+    editingContact.value = false
+    await refreshAndResync(); show('✅ ' + t('saved'))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
 }
 async function submitAddScope() {
   try {
@@ -249,9 +252,9 @@ const eligibleForPatrol = computed(() => {
               <div><label class="lab">{{ t('lastName') }}</label><input v-model="contact.lastName" class="in"></div>
               <div><label class="lab">{{ t('firstName') }} (EN) <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="contact.firstNameEn" class="in"></div>
               <div><label class="lab">{{ t('lastName') }} (EN) <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="contact.lastNameEn" class="in"></div>
-              <div><label class="lab">{{ t('phone') }}</label><input v-model="contact.phone" class="in" placeholder="+357 99 123456"></div>
+              <div><label class="lab">{{ t('phone') }}</label><PhoneInput v-model="contact.phone" /></div>
               <div><label class="lab">{{ t('idNumber') }}</label><input v-model="contact.idNumber" class="in"></div>
-              <button class="btn" style="margin-top:2px" :disabled="!contact.firstName || !contact.lastName" @click="saveContact">{{ t('save') }}</button>
+              <button class="btn" style="margin-top:2px" :disabled="!contact.firstName || !contact.lastName || !contactPhoneValid" @click="saveContact">{{ t('save') }}</button>
             </template>
             <template v-else>
               <div style="display:flex;justify-content:space-between;align-items:center">

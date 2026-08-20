@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, assertScoutInScope, assertLeaderInScope, scopedPatrolIds, idParam } from '../../../utils/guard'
+import { normalizePhone } from '../../../utils/phone'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
   if (body?.lastName) set.lastName = String(body.lastName).trim()
   if (body?.firstNameEn !== undefined) set.firstNameEn = String(body.firstNameEn).trim() || null
   if (body?.lastNameEn !== undefined) set.lastNameEn = String(body.lastNameEn).trim() || null
-  if (body?.phone !== undefined) set.phone = String(body.phone).trim() || null
+  if (body?.phone !== undefined) set.phone = normalizePhone(body.phone)
   if (body?.idNumber !== undefined) set.idNumber = String(body.idNumber).trim() || null
   if (body?.patrolId != null) {
     const pids = scopedPatrolIds(me)
