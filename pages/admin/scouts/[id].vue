@@ -94,7 +94,7 @@ async function deleteScout() {
           </template>
         </div>
 
-        <NuxtLink :to="`/admin/scouts/${id}/card`" class="srow">
+        <NuxtLink :to="`/admin/scout-card/${id}`" class="srow">
           <div class="ico">💳</div>
           <div class="txt"><b>{{ t('idCard') }}</b><span>{{ t('downloadIdCard') }}</span></div>
           <span class="chev">›</span>

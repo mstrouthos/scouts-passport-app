@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
-import { requireScout, pointTotals } from '../utils/guard'
+import { requireScout, pointTotals, sectionOf } from '../utils/guard'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
@@ -8,7 +8,10 @@ export default defineEventHandler(async (event) => {
   const totals = pointTotals()
   const myPoints = totals.get(me.id) || 0
 
-  const actives = db.select().from(s.scouts).where(eq(s.scouts.role, 'scout')).all().filter(r => r.isActive)
+  const allPatrols = db.select().from(s.patrols).all()
+  const mySection = sectionOf(me, allPatrols)
+  const actives = db.select().from(s.scouts).where(eq(s.scouts.role, 'scout')).all()
+    .filter(r => r.isActive && sectionOf(r, allPatrols) === mySection)
   const rank = 1 + actives.filter(r => r.id !== me.id && (totals.get(r.id) || 0) > myPoints).length
 
   const badges = db.select().from(s.achievements).all()

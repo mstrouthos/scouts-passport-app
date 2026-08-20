@@ -12,6 +12,18 @@ const rankLabel = computed(() => {
   return locale.value === 'el' ? `${r}ος` : `${r}${['th', 'st', 'nd', 'rd'][r % 10 < 4 && (r % 100 < 11 || r % 100 > 13) ? r % 10 : 0]}`
 })
 const earned = computed(() => (data.value?.badges || []).filter((b: any) => b.earned).length)
+
+// Badges/achievements are a Scout-Troop concept — every other section sees
+// its upcoming events on the dashboard instead.
+const showBadges = computed(() => me.value?.section?.slug === 'omada')
+const { data: events } = await useFetch('/api/calendar')
+const upcomingEvents = computed(() => (events.value || [])
+  .filter((e: any) => new Date(e.endsAt || e.startsAt).getTime() > Date.now() - 86400_000)
+  .slice(0, 4))
+function sub(e: any) {
+  const time = e.isAllDay ? t('allDay') : `${fmtTime(e.startsAt)}${e.endsAt ? ' – ' + fmtTime(e.endsAt) : ''}`
+  return `${time}${e.location ? ' · ' + e.location : ''}`
+}
 </script>
 
 <template>
@@ -26,7 +38,8 @@ const earned = computed(() => (data.value?.badges || []).filter((b: any) => b.ea
       <div class="stats">
         <div class="stat"><b>{{ data?.points ?? 0 }}</b><span>{{ t('points') }}</span></div>
         <div class="stat"><b>{{ rankLabel }}</b><span>{{ t('rank') }}</span></div>
-        <div class="stat"><b>{{ earned }}/{{ data?.badges?.length ?? 0 }}</b><span>{{ t('badges') }}</span></div>
+        <div v-if="showBadges" class="stat"><b>{{ earned }}/{{ data?.badges?.length ?? 0 }}</b><span>{{ t('badges') }}</span></div>
+        <div v-else class="stat"><b>{{ upcomingEvents.length }}</b><span>{{ t('events') }}</span></div>
       </div>
     </div>
 
@@ -36,13 +49,29 @@ const earned = computed(() => (data.value?.badges || []).filter((b: any) => b.ea
       <div class="go">›</div>
     </NuxtLink>
 
-    <div class="sec-title">{{ t('badges') }}</div>
-    <div class="badge-grid">
-      <button v-for="b in data?.badges" :key="b.id" class="btile" :class="{ off: !b.earned }" @click="sheet = b">
-        <span class="disc">{{ b.icon }}</span>
-        <span class="lbl">{{ lx(b) }}</span>
-      </button>
-    </div>
+    <template v-if="showBadges">
+      <div class="sec-title">{{ t('badges') }}</div>
+      <div class="badge-grid">
+        <button v-for="b in data?.badges" :key="b.id" class="btile" :class="{ off: !b.earned }" @click="sheet = b">
+          <span class="disc">{{ b.icon }}</span>
+          <span class="lbl">{{ lx(b) }}</span>
+        </button>
+      </div>
+    </template>
+
+    <template v-else>
+      <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>{{ t('upcoming') }}</span>
+        <NuxtLink to="/app/calendar" class="tiny" style="color:var(--accent-deep);font-weight:650">{{ t('calendar') }} ›</NuxtLink>
+      </div>
+      <div v-if="upcomingEvents.length" class="card" style="display:flex;flex-direction:column;gap:13px">
+        <div v-for="e in upcomingEvents" :key="e.id" class="ev">
+          <div class="date"><b>{{ fmtDay(e.startsAt, locale).d }}</b><span>{{ fmtDay(e.startsAt, locale).m }}</span></div>
+          <div class="info"><b><span class="dot" :class="e.scope" />{{ lx(e) }}</b><span>{{ sub(e) }}</span></div>
+        </div>
+      </div>
+      <div v-else class="empty">{{ t('noEvents') }}</div>
+    </template>
 
     <Teleport to="body">
       <div v-if="sheet" class="sheet-backdrop" @click.self="sheet = null">

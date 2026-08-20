@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   })
 
   const sections = db.select().from(s.sections).all()
-    .filter(x => x.hasApp && (visIds === null || visIds.includes(x.id)))
+    .filter(x => visIds === null || visIds.includes(x.id))
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map(sec => {
       const secAdmin = secIds === null || secIds.includes(sec.id)     // full section power here

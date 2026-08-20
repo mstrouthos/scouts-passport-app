@@ -211,6 +211,17 @@ export function seedIfEmpty(db: Db) {
     ['Ο σκύλος', 'A dog', true],
     ['Το πουλί', 'A bird', false]
   ])
+  mkChallenge({
+    titleEl: 'Σχεδιασμός Εξόρμησης', titleEn: 'Expedition Planning',
+    questionEl: 'Ποιο είναι το πρώτο βήμα στον σχεδιασμό μιας πολυήμερης εξόρμησης;', questionEn: 'What is the first step in planning a multi-day expedition?',
+    imageEmoji: '🗺️', points: 15, isPublished: true, createdBy: archKoinotita.id, sectionId: S.koinotita,
+    unlocksAt: iso(-1), closesAt: iso(6),
+    explanationEl: 'Πριν από εξοπλισμό ή διαδρομή, εκτιμούμε τους κινδύνους της περιοχής και των καιρικών συνθηκών.', explanationEn: 'Before gear or route, we assess the risks of the terrain and weather.'
+  }, [
+    ['Εκτίμηση κινδύνου', 'Risk assessment', true],
+    ['Αγορά εξοπλισμού', 'Buying gear', false],
+    ['Κράτηση καταλύματος', 'Booking accommodation', false]
+  ])
 
   const correctPast = past.optRows.find(o => o.isCorrect)!
   const answers: any[] = []

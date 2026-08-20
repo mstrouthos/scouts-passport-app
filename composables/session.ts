@@ -3,7 +3,7 @@ export type Me = {
   firstNameEn?: string | null, lastNameEn?: string | null,
   role: 'scout' | 'leader' | 'troop_leader', locale: string,
   patrol?: { id: number, nameEl: string, nameEn?: string | null, emblem: string } | null,
-  section?: { id: number, nameEl: string, nameEn?: string | null } | null,
+  section?: { id: number, nameEl: string, nameEn?: string | null, slug?: string | null } | null,
   scopePatrols?: Array<{ id: number, nameEl: string, nameEn?: string | null, emblem: string }> | null
 }
 
