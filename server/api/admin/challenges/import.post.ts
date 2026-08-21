@@ -1,0 +1,88 @@
+import { useDb, schema as s } from '../../../db'
+import { requireLeader, scopedSectionIds, rankOf } from '../../../utils/guard'
+
+type InOption = { textEl?: string, textEn?: string, isCorrect?: boolean }
+type InQuestion = {
+  titleEl?: string, titleEn?: string,
+  questionEl?: string, questionEn?: string,
+  imageEmoji?: string,
+  explanationEl?: string, explanationEn?: string,
+  points?: number,
+  unlocksAt?: string, closesAt?: string,
+  sectionId?: number, forLeaders?: boolean,
+  options?: InOption[]
+}
+
+/** Bulk import of quiz questions pasted as JSON. Applies exactly the same
+    validation and sector rules as creating one by hand, per question — a bad
+    row is reported and skipped rather than failing the whole batch. */
+export default defineEventHandler(async (event) => {
+  const me = await requireLeader(event)
+  const body = await readBody<any>(event)
+
+  // accept either a bare array or { questions: [...] }, and a JSON string
+  let raw: any = body
+  if (typeof raw === 'string') { try { raw = JSON.parse(raw) } catch { raw = null } }
+  if (raw && !Array.isArray(raw) && Array.isArray(raw.questions)) raw = raw.questions
+  if (!Array.isArray(raw) || !raw.length)
+    throw createError({ statusCode: 400, message: 'Expected a JSON array of questions' })
+  if (raw.length > 200)
+    throw createError({ statusCode: 400, message: 'Too many questions in one import (max 200)' })
+
+  const secIds = await scopedSectionIds(me)
+  const rank = await rankOf(me)
+  const db = (await useDb())
+  const sections = await db.select().from(s.sections)
+
+  const errors: string[] = []
+  let imported = 0
+
+  for (const [i, q] of (raw as InQuestion[]).entries()) {
+    const at = `#${i + 1}`
+    const questionEl = String(q?.questionEl || '').trim()
+    const options = Array.isArray(q?.options) ? q.options : []
+    if (!questionEl) { errors.push(`${at}: missing questionEl`); continue }
+    if (options.length < 2) { errors.push(`${at}: needs at least 2 options`); continue }
+    if (options.some(o => !String(o?.textEl || '').trim())) { errors.push(`${at}: an option has no textEl`); continue }
+    if (options.filter(o => o?.isCorrect).length !== 1) { errors.push(`${at}: exactly one option must be isCorrect`); continue }
+
+    let sectionId: number | null = q.sectionId != null ? Number(q.sectionId) : null
+    if (sectionId != null && !sections.some(x => x.id === sectionId)) {
+      errors.push(`${at}: unknown sectionId ${sectionId}`); continue
+    }
+    let forLeaders = !!q.forLeaders && rank === 'admin'
+    if (secIds !== null) {
+      // a sector leader can only import into their own sector
+      if (sectionId === null || !secIds.includes(sectionId)) sectionId = secIds[0] ?? null
+      if (sectionId === null) { errors.push(`${at}: no sector assigned`); continue }
+      forLeaders = false
+    }
+
+    const unlocksAt = q.unlocksAt ? String(q.unlocksAt) : null
+    if (unlocksAt && Number.isNaN(Date.parse(unlocksAt))) { errors.push(`${at}: unlocksAt is not a valid date`); continue }
+    const closesAt = q.closesAt ? String(q.closesAt) : null
+    if (closesAt && Number.isNaN(Date.parse(closesAt))) { errors.push(`${at}: closesAt is not a valid date`); continue }
+
+    const [row] = (await db.insert(s.challenges).values({
+      titleEl: String(q.titleEl || questionEl).slice(0, 80), titleEn: q.titleEn || null,
+      questionEl, questionEn: q.questionEn || null,
+      imageEmoji: q.imageEmoji || null,
+      explanationEl: q.explanationEl || '', explanationEn: q.explanationEn || null,
+      points: Number(q.points) || 10,
+      unlocksAt, closesAt,
+      sectionId, forLeaders, createdBy: me.id,
+      // published only when it has an unlock time, mirroring single creation
+      isPublished: !!unlocksAt
+    }).returning())
+
+    await db.insert(s.challengeOptions).values(
+      options.map((o, n) => ({
+        challengeId: row.id, textEl: String(o.textEl).trim(), textEn: o.textEn || null,
+        isCorrect: !!o.isCorrect, sortOrder: n
+      }))
+    )
+    imported++
+  }
+
+  return { imported, skipped: errors.length, errors: errors.slice(0, 20) }
+})

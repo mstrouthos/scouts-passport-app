@@ -1,8 +1,40 @@
 <script setup lang="ts">
+import { IMPORT_PROMPT_EL, IMPORT_PROMPT_EN } from '~/utils/importPrompt'
 const { t } = useI18n()
 const me = useMe()
 const lx = useLx()
-const { data } = await useFetch('/api/admin/challenges')
+const { data, refresh } = await useFetch('/api/admin/challenges')
+const { show } = useToast()
+
+// ----- bulk import -----
+const importing = ref(false)
+const showPrompt = ref(false)
+const raw = ref('')
+const busy = ref(false)
+const result = ref<{ imported: number, skipped: number, errors: string[] } | null>(null)
+
+function openImport() {
+  importing.value = true; showPrompt.value = false
+  raw.value = ''; result.value = null
+}
+async function copyPrompt(which: 'el' | 'en') {
+  try {
+    await navigator.clipboard.writeText(which === 'el' ? IMPORT_PROMPT_EL : IMPORT_PROMPT_EN)
+    show('✅ ' + t('copied'))
+  } catch { /* clipboard blocked — the text is on screen to copy by hand */ }
+}
+async function runImport() {
+  let parsed: any
+  try { parsed = JSON.parse(raw.value) }
+  catch { show(t('importBadJson')); return }
+  busy.value = true
+  try {
+    result.value = await $fetch('/api/admin/challenges/import', { method: 'POST', body: parsed })
+    await refresh()
+    show(`✅ ${result.value!.imported} ${t('importedN')}`)
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+  finally { busy.value = false }
+}
 const isTroop = computed(() => me.value?.role === 'troop_leader')
 const groups = computed(() => {
   const rows = data.value || []
@@ -33,6 +65,62 @@ function sub(c: any) {
       </NuxtLink>
     </div>
     <div v-if="!groups.length" class="empty">{{ t('noChallenges') }}</div>
+
+    <button class="srow" @click="openImport">
+      <div class="ico">📥</div>
+      <div class="txt"><b>{{ t('importQuestions') }}</b><span>{{ t('importSub') }}</span></div>
+      <span class="chev">›</span>
+    </button>
+
     <NuxtLink to="/admin/challenges/new" class="fab" aria-label="new">+</NuxtLink>
+
+    <Teleport to="body">
+      <div v-if="importing" class="sheet-backdrop" @click.self="importing = false">
+        <div class="sheet" style="display:flex;flex-direction:column;gap:12px;max-height:88dvh;overflow:auto">
+          <div style="display:flex;align-items:center;gap:8px">
+            <h3 style="margin:0;font-size:17px;flex:1">{{ t('importQuestions') }}</h3>
+            <button class="chip" :aria-label="t('importHowTo')" @click="showPrompt = !showPrompt">
+              {{ showPrompt ? '✕' : 'ℹ️' }}
+            </button>
+          </div>
+
+          <template v-if="showPrompt">
+            <div class="note"><b>{{ t('importPromptTitle') }}</b>{{ t('importPromptHelp') }}</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn ghost" style="flex:1" @click="copyPrompt('el')">🇬🇷 {{ t('copyPrompt') }}</button>
+              <button class="btn ghost" style="flex:1" @click="copyPrompt('en')">🇬🇧 {{ t('copyPrompt') }}</button>
+            </div>
+            <pre class="prompt">{{ IMPORT_PROMPT_EL }}</pre>
+            <pre class="prompt">{{ IMPORT_PROMPT_EN }}</pre>
+          </template>
+
+          <template v-else>
+            <textarea v-model="raw" class="in" rows="10" :placeholder="t('importPaste')" style="font-family:ui-monospace,monospace;font-size:11.5px" />
+            <div v-if="result" class="note">
+              <b>✅ {{ result.imported }} {{ t('importedN') }}</b>
+              <template v-if="result.skipped">
+                <span style="color:var(--danger)">{{ result.skipped }} {{ t('skippedN') }}</span>
+                <ul style="margin:6px 0 0;padding-left:18px">
+                  <li v-for="(e, i) in result.errors" :key="i" class="tiny">{{ e }}</li>
+                </ul>
+              </template>
+            </div>
+            <button class="btn" :disabled="!raw.trim() || busy" @click="runImport">
+              {{ busy ? t('loading') : t('importRun') }}
+            </button>
+          </template>
+
+          <button class="btn ghost" @click="importing = false">{{ t('close') }}</button>
+        </div>
+      </div>
+    </Teleport>
   </AppShell>
 </template>
+
+<style scoped>
+.prompt{
+  background:var(--card); border:1px solid var(--line); border-radius:14px;
+  padding:12px; font-size:10.5px; line-height:1.5; white-space:pre-wrap;
+  word-break:break-word; max-height:280px; overflow:auto; margin:0;
+}
+</style>

@@ -274,5 +274,17 @@
   "revokeSuperAdmin": "Revoke Administrator access",
   "superAdminNote": "An Administrator sees and changes everything, across every sector — the same as the Troop Leader. Only the Troop Leader can grant this.",
   "confirmMakeAdmin": "Give this person full access to every sector, including changing roles?",
-  "superAdmin": "Administrator"
+  "superAdmin": "Administrator",
+  "importQuestions": "Import questions",
+  "importSub": "Paste JSON from an AI",
+  "importPaste": "Paste the JSON here",
+  "importRun": "Import",
+  "importHowTo": "How do I make the JSON?",
+  "importPromptTitle": "Ready-made AI prompt",
+  "importPromptHelp": "Copy the prompt, fill in your topics and opening time, then paste the AI's reply into the import box.",
+  "copyPrompt": "Copy prompt",
+  "copied": "Copied",
+  "importedN": "questions imported",
+  "skippedN": "skipped",
+  "importBadJson": "That text is not valid JSON. Check you copied the whole reply."
 }
