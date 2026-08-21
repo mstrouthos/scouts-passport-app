@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
       const sec = c.sectionId != null ? sections.get(c.sectionId) : null
       return {
         id: c.id, titleEl: c.titleEl, titleEn: c.titleEn, points: c.points,
-        unlocksAt: c.unlocksAt, closesAt: c.closesAt, state, forLeaders: c.forLeaders,
+        unlocksAt: c.unlocksAt, closesAt: c.closesAt, state, forLeaders: c.forLeaders, isBonus: c.isBonus,
         sectionEl: sec?.nameEl ?? null, sectionEn: sec?.nameEn ?? null,
         answered: ans.length, correct: ans.filter(a => a.isCorrect).length
       }

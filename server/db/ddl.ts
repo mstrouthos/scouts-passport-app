@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS challenges (
   created_by INTEGER,
   is_published BOOLEAN NOT NULL DEFAULT FALSE,
   for_leaders BOOLEAN NOT NULL DEFAULT FALSE,
+  is_bonus BOOLEAN NOT NULL DEFAULT FALSE,
   notified_at TEXT
 );
 CREATE TABLE IF NOT EXISTS challenge_options (
@@ -114,6 +115,14 @@ CREATE TABLE IF NOT EXISTS challenge_answers (
   answered_at TEXT NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS challenge_answer_uq ON challenge_answers(challenge_id, scout_id);
+CREATE TABLE IF NOT EXISTS challenge_reveals (
+  id           SERIAL PRIMARY KEY,
+  challenge_id INTEGER NOT NULL REFERENCES challenges(id),
+  scout_id     INTEGER NOT NULL REFERENCES scouts(id),
+  revealed_at  TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS challenge_reveal_uq ON challenge_reveals (challenge_id, scout_id);
+
 CREATE TABLE IF NOT EXISTS info_pages (
   id SERIAL PRIMARY KEY,
   slug TEXT NOT NULL,
@@ -219,5 +228,6 @@ export const MIGRATIONS = [
   "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS group_id INTEGER",
   "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS via_push BOOLEAN NOT NULL DEFAULT TRUE",
   "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS via_sms BOOLEAN NOT NULL DEFAULT FALSE",
-  "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS scheduled_at TEXT"
+  "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS scheduled_at TEXT",
+  "ALTER TABLE challenges ADD COLUMN IF NOT EXISTS is_bonus BOOLEAN NOT NULL DEFAULT FALSE"
 ]

@@ -25,6 +25,7 @@ export default defineEventHandler(async (event) => {
   if (b?.explanationEl !== undefined) set.explanationEl = String(b.explanationEl || '')
   if (b?.imageEmoji !== undefined) set.imageEmoji = String(b.imageEmoji || '').trim() || null
   if (b?.points !== undefined) set.points = Number(b.points) || 10
+  if (b?.isBonus !== undefined) set.isBonus = !!b.isBonus
   for (const k of ['unlocksAt', 'closesAt'] as const) {
     if (b?.[k] === undefined) continue
     const v = b[k] ? String(b[k]) : null

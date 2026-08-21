@@ -138,6 +138,8 @@ export const challenges = pgTable('challenges', {
   createdBy: integer('created_by'),
   isPublished: boolean('is_published').notNull().default(false),
   forLeaders: boolean('for_leaders').notNull().default(false),
+  // bonus questions are only offered to scouts who kept a full Mon-Sun streak
+  isBonus: boolean('is_bonus').notNull().default(false),
   notifiedAt: text('notified_at')
 })
 
@@ -159,6 +161,15 @@ export const challengeAnswers = pgTable('challenge_answers', {
   pointsAwarded: integer('points_awarded').notNull(),
   answeredAt: text('answered_at').notNull()
 }, t => [uniqueIndex('challenge_answer_uq').on(t.challengeId, t.scoutId)])
+
+/** When a scout asked to see a question's options. The answer clock runs from
+    here, server-side, so the countdown cannot be reset by reloading the page. */
+export const challengeReveals = pgTable('challenge_reveals', {
+  id: serial('id').primaryKey(),
+  challengeId: integer('challenge_id').notNull().references(() => challenges.id),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  revealedAt: text('revealed_at').notNull()
+}, t => [uniqueIndex('challenge_reveal_uq').on(t.challengeId, t.scoutId)])
 
 export const infoPages = pgTable('info_pages', {
   id: serial('id').primaryKey(),

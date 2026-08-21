@@ -8,6 +8,7 @@ type InQuestion = {
   titleEl?: string, titleEn?: string,
   questionEl?: string, questionEn?: string,
   imageEmoji?: string,
+  isBonus?: boolean,
   explanationEl?: string, explanationEn?: string,
   points?: number,
   unlocksAt?: string, closesAt?: string,
@@ -65,7 +66,7 @@ export default defineEventHandler(async (event) => {
       explanationEl: q.explanationEl || '', explanationEn: q.explanationEn || null,
       points: Number(q.points) || 10,
       unlocksAt, closesAt,
-      sectionId: batchSection, forLeaders: false, createdBy: me.id,
+      sectionId: batchSection, forLeaders: false, isBonus: !!q.isBonus, createdBy: me.id,
       // published only when it has an unlock time, mirroring single creation
       isPublished: !!unlocksAt
     }).returning())

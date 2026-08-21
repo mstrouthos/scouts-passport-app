@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
     explanationEl: c.explanationEl, explanationEn: c.explanationEn,
     imageEmoji: c.imageEmoji, points: c.points,
     unlocksAt: c.unlocksAt, closesAt: c.closesAt,
-    sectionId: c.sectionId, forLeaders: c.forLeaders, isPublished: c.isPublished,
+    sectionId: c.sectionId, forLeaders: c.forLeaders, isBonus: c.isBonus, isPublished: c.isPublished,
     // once anyone has answered, changing the options would invalidate their answers
     answeredCount: answers.length,
     options: opts.map(o => ({ id: o.id, textEl: o.textEl, textEn: o.textEn, isCorrect: o.isCorrect }))

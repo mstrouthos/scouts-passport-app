@@ -18,7 +18,7 @@ const busy = ref(false)
 const form = reactive<any>({
   titleEl: '', questionEl: '', explanationEl: '', imageEmoji: '',
   points: 10, unlocksAt: '', closesAt: '', options: [] as any[], answeredCount: 0,
-  sectionId: null as number | null
+  sectionId: null as number | null, isBonus: false
 })
 /** ISO -> the value a datetime-local input wants, in local time. */
 function toLocal(iso: string | null) {
@@ -39,6 +39,7 @@ async function openEdit() {
   form.closesAt = toLocal(c.closesAt)
   form.answeredCount = c.answeredCount
   form.sectionId = c.sectionId ?? null
+  form.isBonus = !!c.isBonus
   form.options = c.options.map((o: any) => ({ textEl: o.textEl, isCorrect: o.isCorrect }))
   editing.value = true
 }
@@ -63,7 +64,8 @@ async function save() {
       points: form.points,
       unlocksAt: form.unlocksAt ? new Date(form.unlocksAt).toISOString() : null,
       closesAt: form.closesAt ? new Date(form.closesAt).toISOString() : null,
-      sectionId: form.sectionId
+      sectionId: form.sectionId,
+      isBonus: form.isBonus
     }
     if (!locked.value) body.options = form.options
     await $fetch(`/api/admin/challenges/${id}`, { method: 'PATCH', body })
@@ -139,6 +141,11 @@ async function remove() {
                       @click="form.sectionId = sec.id">{{ lx(sec, 'name') }}</button>
             </div>
           </div>
+
+          <label class="tiny muted" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input v-model="form.isBonus" type="checkbox"> 🎁 {{ t('markBonus') }}
+          </label>
+          <div v-if="form.isBonus" class="tiny muted">{{ t('bonusHint') }}</div>
 
           <div class="sec-title" style="margin:0">{{ t('options') }}</div>
           <div v-if="locked" class="note">{{ t('lockedAfterAnswers') }}</div>

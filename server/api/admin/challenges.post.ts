@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     explanationEl: b.explanationEl || '', explanationEn: b.explanationEn || null,
     points: Number(b.points) || 10,
     unlocksAt: toUtcIso(b.unlocksAt), closesAt: toUtcIso(b.closesAt),
-    sectionId, forLeaders: false, createdBy: me.id, isPublished: !!b.isPublished && !!b.unlocksAt
+    sectionId, forLeaders: false, isBonus: !!b.isBonus, createdBy: me.id, isPublished: !!b.isPublished && !!b.unlocksAt
   }).returning())
   await db.insert(s.challengeOptions).values(
     b.options.map((o: any, i: number) => ({
