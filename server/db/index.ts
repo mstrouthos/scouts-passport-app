@@ -50,6 +50,32 @@ async function init(): Promise<Db> {
       AND NOT EXISTS (SELECT 1 FROM scouts WHERE is_chief = TRUE)`)
 
   _db = drizzle(_pool, { schema })
+
+  // Say exactly which server/database we reached and what is already in it.
+  // If a redeploy reports a different host, or 0 scouts when you expect many,
+  // the app is pointed at a different (or fresh) database — it never deletes.
+  const info = await _pool.query(`SELECT current_database() AS db,
+      inet_server_addr()::text AS host, inet_server_port() AS port`)
+  const counts = await _pool.query(`SELECT
+      (SELECT count(*) FROM scouts)     AS scouts,
+      (SELECT count(*) FROM challenges) AS challenges,
+      (SELECT count(*) FROM events)     AS events`)
+  const { db: dbName, host, port } = info.rows[0]
+  const c = counts.rows[0]
+  console.log(`[db] server ${host ?? 'local'}:${port} database "${dbName}"`)
+  console.log(`[db] existing rows — scouts:${c.scouts} challenges:${c.challenges} events:${c.events}`)
+
+  const empty = Number(c.scouts) === 0
+  if (empty && process.env.NODE_ENV === 'production') {
+    console.warn(
+      `[db] This database is EMPTY, so it is about to be seeded from scratch.\n` +
+      `[db] The app never deletes data — if you expected an existing roster here,\n` +
+      `[db] it is connected to a different or brand-new database. Check that\n` +
+      `[db] NUXT_DATABASE_URL is unchanged and that the Postgres service itself\n` +
+      `[db] was not recreated by the deploy.`
+    )
+  }
+
   await seedIfEmpty(_db)
   console.log('[db] ready')
   return _db
