@@ -1,16 +1,15 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
-import { requireLeader, scopedPatrolIds, scopedScouts, idParam } from '../../../../utils/guard'
+import { requireLeader, scopedScouts, idParam } from '../../../../utils/guard'
+import { challengeInScope } from '../../../../utils/challengeScope'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const id = idParam(event)
+  // scope by SECTION: challenges are authored per section, so the previous
+  // patrol-based check 403'd a sector leader on their own section's questions
+  const c = await challengeInScope(me, id)
   const db = (await useDb())
-  const c = (await db.select().from(s.challenges).where(eq(s.challenges.id, id)).limit(1))[0]
-  if (!c) throw createError({ statusCode: 404, message: 'Not found' })
-  const pids = await scopedPatrolIds(me)
-  if (pids !== null && !(c.patrolId != null && pids.includes(c.patrolId)))
-    throw createError({ statusCode: 403, message: 'Out of your sector' })
 
   const opts = (await db.select().from(s.challengeOptions).where(eq(s.challengeOptions.challengeId, id)))
     .sort((a, b) => a.sortOrder - b.sortOrder)

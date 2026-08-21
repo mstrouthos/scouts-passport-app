@@ -1,8 +1,66 @@
-/* Ready-made prompts the leader can hand to an AI to generate quiz
-   questions in the exact shape /api/admin/challenges/import expects.
-   Kept out of the i18n JSON on purpose: vue-i18n would try to parse the
-   JSON braces in the examples as interpolation syntax. */
+/* Builds the Greek prompt the leader hands to an AI so it returns quiz
+   questions in exactly the shape /api/admin/challenges/import expects.
+   Kept out of the i18n JSON on purpose: vue-i18n parses `{}` in messages as
+   interpolation and would choke on the JSON example. */
 
-export const IMPORT_PROMPT_EL = "Είσαι βοηθός αρχηγού προσκόπων. Δημιούργησε ερωτήσεις κουίζ πολλαπλής επιλογής στα ελληνικά.\n\nΘΕΜΑΤΑ: [ΣΥΜΠΛΗΡΩΣΕ ΤΑ ΘΕΜΑΤΑ, π.χ. κόμποι, πρώτες βοήθειες, προσανατολισμός]\nΑΡΙΘΜΟΣ ΕΡΩΤΗΣΕΩΝ: [π.χ. 10]\nΗΛΙΚΙΑΚΗ ΟΜΑΔΑ: [π.χ. Ομάδα Προσκόπων, 11-15 ετών]\nΗΜΕΡΟΜΗΝΙΑ/ΩΡΑ ΠΟΥ ΑΝΟΙΓΟΥΝ: [π.χ. 2026-09-15 18:00]\nΩΡΑ ΜΕΤΑΞΥ ΕΡΩΤΗΣΕΩΝ: [π.χ. καμία - όλες μαζί, ή 1 ερώτηση κάθε μέρα]\n\nΚΑΝΟΝΕΣ:\n- Κάθε ερώτηση: 3-4 επιλογές, ΑΚΡΙΒΩΣ ΜΙΑ σωστή.\n- Σύντομη εξήγηση της σωστής απάντησης.\n- Γλώσσα απλή και κατάλληλη για την ηλικία.\n- Το unlocksAt σε μορφή ISO 8601 με ζώνη ώρας (π.χ. 2026-09-15T18:00:00+03:00).\n- Αν ζητήθηκε απόσταση μεταξύ ερωτήσεων, δώσε διαφορετικό unlocksAt σε κάθε μία.\n\nΑΠΑΝΤΗΣΕ ΜΟΝΟ ΜΕ JSON, χωρίς σχόλια, χωρίς markdown, σε αυτή τη μορφή:\n[\n  {\n    \"titleEl\": \"Σύντομος τίτλος\",\n    \"questionEl\": \"Το κείμενο της ερώτησης;\",\n    \"explanationEl\": \"Γιατί αυτή είναι η σωστή απάντηση.\",\n    \"imageEmoji\": \"🪢\",\n    \"points\": 10,\n    \"unlocksAt\": \"2026-09-15T18:00:00+03:00\",\n    \"options\": [\n      { \"textEl\": \"Λάθος επιλογή\", \"isCorrect\": false },\n      { \"textEl\": \"Σωστή επιλογή\", \"isCorrect\": true },\n      { \"textEl\": \"Λάθος επιλογή\", \"isCorrect\": false }\n    ]\n  }\n]"
+export type PromptFields = {
+  topics: string
+  count: number | string
+  ageGroup: string
+  opensAt: string      // datetime-local value, e.g. 2026-09-15T18:00
+  spacing: string
+}
 
-export const IMPORT_PROMPT_EN = "You are assisting a scout leader. Create multiple-choice quiz questions in Greek.\n\nTOPICS: [FILL IN THE TOPICS, e.g. knots, first aid, orienteering]\nNUMBER OF QUESTIONS: [e.g. 10]\nAGE GROUP: [e.g. Scout Troop, ages 11-15]\nWHEN THEY OPEN: [e.g. 2026-09-15 18:00]\nSPACING BETWEEN QUESTIONS: [e.g. none - all at once, or one per day]\n\nRULES:\n- Each question: 3-4 options, EXACTLY ONE correct.\n- Include a short explanation of the correct answer.\n- Keep the language simple and age-appropriate.\n- unlocksAt must be ISO 8601 with a timezone (e.g. 2026-09-15T18:00:00+03:00).\n- If spacing was requested, give each question a different unlocksAt.\n\nREPLY WITH JSON ONLY — no commentary, no markdown fences — in this shape:\n[\n  {\n    \"titleEl\": \"Short title\",\n    \"questionEl\": \"The question text?\",\n    \"explanationEl\": \"Why this is the right answer.\",\n    \"imageEmoji\": \"🪢\",\n    \"points\": 10,\n    \"unlocksAt\": \"2026-09-15T18:00:00+03:00\",\n    \"options\": [\n      { \"textEl\": \"Wrong option\", \"isCorrect\": false },\n      { \"textEl\": \"Correct option\", \"isCorrect\": true },\n      { \"textEl\": \"Wrong option\", \"isCorrect\": false }\n    ]\n  }\n]"
+const SHAPE = `[
+  {
+    "titleEl": "Σύντομος τίτλος",
+    "questionEl": "Το κείμενο της ερώτησης;",
+    "explanationEl": "Γιατί αυτή είναι η σωστή απάντηση.",
+    "imageEmoji": "🪢",
+    "points": 10,
+    "unlocksAt": "2026-09-15T18:00:00+03:00",
+    "options": [
+      { "textEl": "Λάθος επιλογή", "isCorrect": false },
+      { "textEl": "Σωστή επιλογή", "isCorrect": true },
+      { "textEl": "Λάθος επιλογή", "isCorrect": false }
+    ]
+  }
+]`
+
+/** Turn a datetime-local value into ISO 8601 with the Cyprus offset. */
+function toIso(v: string): string {
+  if (!v) return '[ΣΥΜΠΛΗΡΩΣΕ ΗΜΕΡΟΜΗΝΙΑ/ΩΡΑ]'
+  const d = new Date(v)
+  if (Number.isNaN(d.getTime())) return v
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const off = -d.getTimezoneOffset()
+  const sign = off >= 0 ? '+' : '-'
+  const oh = pad(Math.floor(Math.abs(off) / 60)), om = pad(Math.abs(off) % 60)
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T` +
+         `${pad(d.getHours())}:${pad(d.getMinutes())}:00${sign}${oh}:${om}`
+}
+
+export function buildImportPrompt(f: PromptFields): string {
+  const topics = f.topics.trim() || '[ΣΥΜΠΛΗΡΩΣΕ ΤΑ ΘΕΜΑΤΑ]'
+  const count = String(f.count || '10')
+  const age = f.ageGroup.trim() || '[ΣΥΜΠΛΗΡΩΣΕ ΗΛΙΚΙΑΚΗ ΟΜΑΔΑ]'
+  const opens = toIso(f.opensAt)
+  const spacing = f.spacing.trim() || 'όλες ανοίγουν την ίδια ώρα'
+  return `Είσαι βοηθός αρχηγού προσκόπων. Δημιούργησε ${count} ερωτήσεις κουίζ πολλαπλής επιλογής στα ελληνικά.
+
+ΘΕΜΑΤΑ: ${topics}
+ΗΛΙΚΙΑΚΗ ΟΜΑΔΑ: ${age}
+ΩΡΑ ΠΟΥ ΑΝΟΙΓΕΙ Η ΠΡΩΤΗ: ${opens}
+ΑΠΟΣΤΑΣΗ ΜΕΤΑΞΥ ΕΡΩΤΗΣΕΩΝ: ${spacing}
+
+ΚΑΝΟΝΕΣ:
+- Κάθε ερώτηση: 3-4 επιλογές, ΑΚΡΙΒΩΣ ΜΙΑ σωστή.
+- Σύντομη εξήγηση της σωστής απάντησης στο explanationEl.
+- Γλώσσα απλή και κατάλληλη για την ηλικία.
+- Το unlocksAt σε μορφή ISO 8601 με ζώνη ώρας, όπως το παράδειγμα.
+- Ξεκίνα από την ώρα που δόθηκε και πρόσθεσε την απόσταση σε κάθε επόμενη ερώτηση.
+- Χρησιμοποίησε ένα σχετικό emoji στο imageEmoji.
+
+ΑΠΑΝΤΗΣΕ ΜΟΝΟ ΜΕ JSON — χωρίς σχόλια, χωρίς markdown — σε αυτή ακριβώς τη μορφή:
+${SHAPE}`
+}
