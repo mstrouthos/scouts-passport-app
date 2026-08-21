@@ -4,10 +4,69 @@ const lx = useLx()
 const name = useName()
 const { show } = useToast()
 const route = useRoute()
+const router = useRouter()
+const me = useMe()
 const id = route.params.id
 const { data, refresh } = await useFetch<any>(`/api/admin/events/${id}/review`)
 const tab = ref<'att' | 'uni' | 'pts'>('att')
 const game = reactive({ patrolId: 0, points: 20, reason: '' })
+
+// ----- edit / delete -----
+const { data: secs } = await useFetch<any>('/api/admin/contacts')
+const isTroop = computed(() => me.value?.role === 'troop_leader')
+const editing = ref(false)
+const busy = ref(false)
+const meta = ref<any>(null)
+const form = reactive<any>({
+  titleEl: '', location: '', startsAt: '', endsAt: '', isAllDay: false,
+  tracksAttendance: true, scope: 'section', sectionId: null as number | null
+})
+function toLocal(iso: string | null) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+async function openEdit() {
+  const e = await $fetch<any>(`/api/admin/events/${id}`)
+  meta.value = e
+  form.titleEl = e.titleEl || ''
+  form.location = e.location || ''
+  form.startsAt = toLocal(e.startsAt)
+  form.endsAt = toLocal(e.endsAt)
+  form.isAllDay = !!e.isAllDay
+  form.tracksAttendance = !!e.tracksAttendance
+  form.scope = e.scope
+  form.sectionId = e.sectionId ?? null
+  editing.value = true
+}
+async function saveEvent() {
+  busy.value = true
+  try {
+    await $fetch(`/api/admin/events/${id}`, {
+      method: 'PATCH',
+      body: {
+        titleEl: form.titleEl, location: form.location,
+        startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : null,
+        endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
+        isAllDay: form.isAllDay, tracksAttendance: form.tracksAttendance,
+        scope: form.scope, sectionId: form.sectionId
+      }
+    })
+    editing.value = false
+    await refresh(); show('✅ ' + t('saved'))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+  finally { busy.value = false }
+}
+async function deleteEvent() {
+  if (!confirm(t('confirmDeleteEvent'))) return
+  try {
+    await $fetch(`/api/admin/events/${id}`, { method: 'DELETE' })
+    show('🗑️ ' + t('deleted'))
+    router.push('/admin/events')
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+}
 
 const byPatrol = computed(() => (data.value?.patrols || [])
   .map((p: any) => ({ p, list: (data.value?.scouts || []).filter((r: any) => r.patrolId === p.id) }))
@@ -49,6 +108,10 @@ const uniDefs = [
 <template>
   <AppShell v-if="data" :title="lx(data.event)"
             :sub="`${fmtDate(data.event.startsAt, locale)} · ${t('review')}`" back="/admin/events">
+    <template #actions>
+      <button class="iconbtn" :aria-label="t('editEvent')" @click="openEdit">✎</button>
+    </template>
+
     <div class="seg">
       <button :class="{ on: tab === 'att' }" @click="tab = 'att'">{{ t('attendance') }}</button>
       <button :class="{ on: tab === 'uni' }" @click="tab = 'uni'">{{ t('uniform') }}</button>
@@ -126,6 +189,46 @@ const uniDefs = [
       </div>
       <div v-else class="empty">{{ t('noAwards') }}</div>
     </template>
+  
+    <Teleport to="body">
+      <div v-if="editing" class="sheet-backdrop" @click.self="editing = false">
+        <div class="sheet" style="display:flex;flex-direction:column;gap:12px;max-height:88dvh;overflow:auto">
+          <h3 style="margin:0;font-size:17px;text-align:center">{{ t('editEvent') }}</h3>
+
+          <div><label class="lab">{{ t('titleEl') }}</label><input v-model="form.titleEl" class="in"></div>
+          <div><label class="lab">{{ t('location') }}</label><input v-model="form.location" class="in"></div>
+          <div style="display:flex;gap:8px">
+            <div style="flex:1"><label class="lab">{{ t('starts') }}</label><input v-model="form.startsAt" type="datetime-local" class="in"></div>
+            <div style="flex:1"><label class="lab">{{ t('ends') }}</label><input v-model="form.endsAt" type="datetime-local" class="in"></div>
+          </div>
+          <label class="tiny muted" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input v-model="form.isAllDay" type="checkbox"> {{ t('allDay') }}
+          </label>
+          <label class="tiny muted" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input v-model="form.tracksAttendance" type="checkbox"> {{ t('tracksAttendance') }}
+          </label>
+
+          <div v-if="isTroop || (secs?.length || 0) > 1">
+            <label class="lab">{{ t('scopeQ') }}</label>
+            <div class="chips">
+              <button v-if="isTroop" class="chip" :class="{ on: form.scope === 'troop' }"
+                      @click="form.scope = 'troop'; form.sectionId = null">{{ t('wholeTroop') }}</button>
+              <button v-for="sec in secs" :key="sec.id" class="chip"
+                      :class="{ on: form.scope === 'section' && form.sectionId === sec.id }"
+                      @click="form.scope = 'section'; form.sectionId = sec.id">{{ lx(sec, 'name') }}</button>
+            </div>
+          </div>
+
+          <button class="btn" :disabled="!form.titleEl || !form.startsAt || busy" @click="saveEvent">
+            {{ busy ? t('loading') : t('save') }}
+          </button>
+
+          <div v-if="meta && !meta.canDelete" class="note">{{ t('eventLocked') }}</div>
+          <button v-else class="btn danger" @click="deleteEvent">🗑️ {{ t('deleteEvent') }}</button>
+          <button class="btn ghost" @click="editing = false">{{ t('close') }}</button>
+        </div>
+      </div>
+    </Teleport>
   </AppShell>
 </template>
 

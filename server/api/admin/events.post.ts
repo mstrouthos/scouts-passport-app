@@ -33,7 +33,8 @@ export default defineEventHandler(async (event) => {
     titleEl: String(b.titleEl), titleEn: b.titleEn || null,
     location: b.location || null,
     startsAt: String(b.startsAt), endsAt: b.endsAt || null,
-    isAllDay: !!b.isAllDay, remindAt: b.remindAt || null, createdBy: me.id
+    isAllDay: !!b.isAllDay, tracksAttendance: b.tracksAttendance !== false,
+    remindAt: b.remindAt || null, createdBy: me.id
   }).returning())
   return { id: row.id }
 })

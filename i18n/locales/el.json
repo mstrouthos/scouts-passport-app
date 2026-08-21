@@ -308,5 +308,16 @@
   "confirmDeleteSelected": "Οριστική διαγραφή {n} ερωτήσεων; Θα χαθούν και οι απαντήσεις τους.",
   "deletedN": "ερωτήσεις διαγράφηκαν",
   "cancelSelect": "Άκυρο",
-  "promptSector": "Τμήμα"
+  "promptSector": "Τμήμα",
+  "tracksAttendance": "Καταγραφή παρουσιών",
+  "deleteEvent": "Διαγραφή δράσης",
+  "confirmDeleteEvent": "Οριστική διαγραφή αυτής της δράσης;",
+  "eventLocked": "Η δράση έχει ήδη αξιολογηθεί και δεν διαγράφεται.",
+  "pointRules": "Πόντοι παρουσιών",
+  "pointRulesSub": "Πόσοι πόντοι για κάθε περίπτωση",
+  "ptsPresentL": "Παρουσία",
+  "ptsExcusedL": "Δικαιολογημένη απουσία",
+  "ptsAbsentL": "Αδικαιολόγητη απουσία",
+  "ptsUniformL": "Πλήρης στολή",
+  "pointRulesNote": "Μπορεί να είναι και αρνητικοί (ποινή)."
 }

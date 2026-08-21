@@ -2,9 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 import { requireLeader, assertScoutInScope, idParam } from '../../../../utils/guard'
 import { now } from '../../../../utils/passcode'
-
-const ATTEND_POINTS = 5
-const UNIFORM_POINTS = 5
+import { getPointRules } from '../../../../utils/settings'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -13,8 +11,10 @@ export default defineEventHandler(async (event) => {
   const scoutId = Number(b?.scoutId)
   await assertScoutInScope(me, scoutId)
   const db = (await useDb())
-  if (!(await db.select().from(s.events).where(eq(s.events.id, eventId)).limit(1))[0])
-    throw createError({ statusCode: 404, message: 'Event not found' })
+  const ev = (await db.select().from(s.events).where(eq(s.events.id, eventId)).limit(1))[0]
+  if (!ev) throw createError({ statusCode: 404, message: 'Event not found' })
+  if (!ev.tracksAttendance)
+    throw createError({ statusCode: 400, message: 'This event does not track attendance' })
 
   const attendance = ['present', 'absent', 'excused'].includes(b?.attendance as any) ? b!.attendance as any : null
   const uniform = attendance === 'present' && ['full', 'partial', 'none'].includes(b?.uniform as any) ? b!.uniform as any : null
@@ -33,9 +33,19 @@ export default defineEventHandler(async (event) => {
   const auto = (await db.select().from(s.pointAwards).where(eq(s.pointAwards.eventId, eventId)))
     .filter(a => a.scoutId === scoutId && (a.kind === 'attendance' || a.kind === 'uniform'))
   for (const a of auto) await db.delete(s.pointAwards).where(eq(s.pointAwards.id, a.id))
-  if (attendance === 'present' && ATTEND_POINTS)
-    await db.insert(s.pointAwards).values({ scoutId, eventId, kind: 'attendance', points: ATTEND_POINTS, reasonEl: 'Παρουσία', reasonEn: 'Attendance', awardedBy: me.id, awardedAt: t })
-  if (uniform === 'full' && UNIFORM_POINTS)
-    await db.insert(s.pointAwards).values({ scoutId, eventId, kind: 'uniform', points: UNIFORM_POINTS, reasonEl: 'Πλήρης στολή', reasonEn: 'Full uniform', awardedBy: me.id, awardedAt: t })
+  // point values are configured troop-wide; absence may be worth 0 or negative
+  const rules = await getPointRules()
+  const attendPoints =
+    attendance === 'present' ? rules.present :
+    attendance === 'excused' ? rules.excused :
+    attendance === 'absent'  ? rules.absent  : 0
+  const attendReason =
+    attendance === 'present' ? ['Παρουσία', 'Attendance'] :
+    attendance === 'excused' ? ['Δικαιολογημένη απουσία', 'Excused absence'] :
+                               ['Απουσία', 'Absence']
+  if (attendance && attendPoints)
+    await db.insert(s.pointAwards).values({ scoutId, eventId, kind: 'attendance', points: attendPoints, reasonEl: attendReason[0], reasonEn: attendReason[1], awardedBy: me.id, awardedAt: t })
+  if (uniform === 'full' && rules.uniformFull)
+    await db.insert(s.pointAwards).values({ scoutId, eventId, kind: 'uniform', points: rules.uniformFull, reasonEl: 'Πλήρης στολή', reasonEn: 'Full uniform', awardedBy: me.id, awardedAt: t })
   return { ok: true }
 })

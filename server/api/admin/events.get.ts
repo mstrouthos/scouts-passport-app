@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
         sectionEl: sec?.nameEl ?? null, sectionEn: sec?.nameEn ?? null,
         titleEl: e.titleEl, titleEn: e.titleEn, location: e.location,
         startsAt: e.startsAt, endsAt: e.endsAt, isAllDay: e.isAllDay, remindAt: e.remindAt,
+        tracksAttendance: e.tracksAttendance,
         editable: secIds === null || (e.sectionId != null && secIds.includes(e.sectionId)),
         reviewed: reviews.some(r => r.eventId === e.id)
       }

@@ -9,7 +9,8 @@ const form = reactive({
   titleEl: '', titleEn: '', location: '',
   scope: isTroop.value ? 'troop' : 'section',
   sectionId: 0,
-  date: new Date().toISOString().slice(0, 10), start: '17:00', end: '19:00', remind: true
+  date: new Date().toISOString().slice(0, 10), start: '17:00', end: '19:00', remind: true,
+  tracksAttendance: true
 })
 watchEffect(() => { if (!form.sectionId && secs.value?.length) form.sectionId = secs.value[0].id })
 
@@ -21,7 +22,8 @@ async function save() {
     await $fetch('/api/admin/events', {
       method: 'POST',
       body: { titleEl: form.titleEl, titleEn: form.titleEn || null, location: form.location || null,
-              scope: form.scope, sectionId: form.scope === 'section' ? form.sectionId : null, startsAt, endsAt, remindAt }
+              scope: form.scope, sectionId: form.scope === 'section' ? form.sectionId : null, startsAt, endsAt, remindAt,
+              tracksAttendance: form.tracksAttendance }
     })
     show('✅ ' + t('saved'))
     navigateTo('/admin/events')
@@ -56,6 +58,10 @@ async function save() {
         <button class="srow" @click="form.remind = !form.remind">
           <div class="ico">🔔</div><div class="txt"><b>{{ t('remind1d') }}</b></div>
           <span class="sw" :class="{ off: !form.remind }" />
+        </button>
+        <button class="srow" @click="form.tracksAttendance = !form.tracksAttendance">
+          <div class="ico">📋</div><div class="txt"><b>{{ t('tracksAttendance') }}</b></div>
+          <span class="sw" :class="{ off: !form.tracksAttendance }" />
         </button>
         <button class="btn" :disabled="!form.titleEl" @click="save">{{ t('save') }}</button>
       </div>

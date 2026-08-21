@@ -308,5 +308,16 @@
   "confirmDeleteSelected": "Permanently delete {n} questions? Their answers go too.",
   "deletedN": "questions deleted",
   "cancelSelect": "Cancel",
-  "promptSector": "Section"
+  "promptSector": "Section",
+  "tracksAttendance": "Track attendance",
+  "deleteEvent": "Delete event",
+  "confirmDeleteEvent": "Permanently delete this event?",
+  "eventLocked": "This event has been reviewed and cannot be deleted.",
+  "pointRules": "Attendance points",
+  "pointRulesSub": "Points awarded for each case",
+  "ptsPresentL": "Present",
+  "ptsExcusedL": "Excused absence",
+  "ptsAbsentL": "Unexcused absence",
+  "ptsUniformL": "Full uniform",
+  "pointRulesNote": "May be negative (a penalty)."
 }

@@ -86,8 +86,16 @@ export const events = pgTable('events', {
   startsAt: text('starts_at').notNull(),
   endsAt: text('ends_at'),
   isAllDay: boolean('is_all_day').notNull().default(false),
+  // some events (a parade, a parents' meeting) are not scored at all
+  tracksAttendance: boolean('tracks_attendance').notNull().default(true),
   remindAt: text('remind_at'),
   createdBy: integer('created_by')
+})
+
+/** Small key/value store for troop-wide settings (attendance point values, …). */
+export const settings = pgTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull()
 })
 
 export const eventReviews = pgTable('event_reviews', {
