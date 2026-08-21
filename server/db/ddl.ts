@@ -147,12 +147,29 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TEXT NOT NULL, read_at TEXT
 );
 CREATE INDEX IF NOT EXISTS notifications_scout_idx ON notifications(scout_id, created_at);
+CREATE TABLE IF NOT EXISTS notify_groups (
+  id SERIAL PRIMARY KEY,
+  name_el TEXT NOT NULL, name_en TEXT,
+  emoji TEXT NOT NULL DEFAULT '🎺',
+  section_id INTEGER REFERENCES sections(id),
+  created_by INTEGER, created_at TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS notify_group_members (
+  id SERIAL PRIMARY KEY,
+  group_id INTEGER NOT NULL REFERENCES notify_groups(id),
+  scout_id INTEGER NOT NULL REFERENCES scouts(id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS notify_group_member_uq ON notify_group_members(group_id, scout_id);
 CREATE TABLE IF NOT EXISTS announcements (
   id SERIAL PRIMARY KEY,
   audience TEXT NOT NULL,
   section_id INTEGER REFERENCES sections(id),
+  group_id INTEGER REFERENCES notify_groups(id),
   text_el TEXT NOT NULL, text_en TEXT,
   status TEXT NOT NULL DEFAULT 'pending',
+  via_push BOOLEAN NOT NULL DEFAULT TRUE,
+  via_sms BOOLEAN NOT NULL DEFAULT FALSE,
+  scheduled_at TEXT,
   created_by INTEGER NOT NULL, created_at TEXT NOT NULL,
   approved_by INTEGER, sent_at TEXT
 );
@@ -176,5 +193,9 @@ export const MIGRATIONS = [
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS phone TEXT",
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS id_number TEXT",
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS is_chief BOOLEAN NOT NULL DEFAULT FALSE",
-  "ALTER TABLE events ADD COLUMN IF NOT EXISTS tracks_attendance BOOLEAN NOT NULL DEFAULT TRUE"
+  "ALTER TABLE events ADD COLUMN IF NOT EXISTS tracks_attendance BOOLEAN NOT NULL DEFAULT TRUE",
+  "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS group_id INTEGER",
+  "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS via_push BOOLEAN NOT NULL DEFAULT TRUE",
+  "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS via_sms BOOLEAN NOT NULL DEFAULT FALSE",
+  "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS scheduled_at TEXT"
 ]

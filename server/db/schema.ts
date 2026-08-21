@@ -186,13 +186,37 @@ export const pushSubscriptions = pgTable('push_subscriptions', {
   createdAt: text('created_at').notNull()
 }, t => [uniqueIndex('push_endpoint_uq').on(t.endpoint)])
 
+/** A named list of people to notify together — e.g. η μπάντα, who need a
+    reminder before a performance regardless of which section they are in. */
+export const notifyGroups = pgTable('notify_groups', {
+  id: serial('id').primaryKey(),
+  nameEl: text('name_el').notNull(),
+  nameEn: text('name_en'),
+  emoji: text('emoji').notNull().default('🎺'),
+  // null = the group spans the whole troop; otherwise it belongs to one section
+  sectionId: integer('section_id').references(() => sections.id),
+  createdBy: integer('created_by'),
+  createdAt: text('created_at').notNull().default('')
+})
+
+export const notifyGroupMembers = pgTable('notify_group_members', {
+  id: serial('id').primaryKey(),
+  groupId: integer('group_id').notNull().references(() => notifyGroups.id),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id)
+}, t => [uniqueIndex('notify_group_member_uq').on(t.groupId, t.scoutId)])
+
 export const announcements = pgTable('announcements', {
   id: serial('id').primaryKey(),
-  audience: text('audience', { enum: ['troop', 'section', 'leaders'] }).notNull(),
+  audience: text('audience', { enum: ['troop', 'section', 'leaders', 'group'] }).notNull(),
   sectionId: integer('section_id').references(() => sections.id),
+  groupId: integer('group_id').references(() => notifyGroups.id),
   textEl: text('text_el').notNull(),
   textEn: text('text_en'),
-  status: text('status', { enum: ['pending', 'sent'] }).notNull().default('pending'),
+  status: text('status', { enum: ['pending', 'scheduled', 'sent'] }).notNull().default('pending'),
+  // which channels the sender chose — push always, SMS only when asked
+  viaPush: boolean('via_push').notNull().default(true),
+  viaSms: boolean('via_sms').notNull().default(false),
+  scheduledAt: text('scheduled_at'),
   createdBy: integer('created_by').notNull(),
   createdAt: text('created_at').notNull(),
   approvedBy: integer('approved_by'),

@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { sendPushTo, sendPushToParents } from '../../utils/push'
+import { dispatchAnnouncement } from '../../utils/announce'
 import { sectionOf, sectionOfWith } from '../../utils/guard'
 import { now } from '../../utils/passcode'
 
@@ -47,5 +48,14 @@ export default defineEventHandler(async (event) => {
     else if (e.scope === 'section' && e.sectionId != null && famSections.includes(e.sectionId))
       notified += await sendPushToParents([e.sectionId], msg)
   }
-  return { ok: true, notified, at: t }
+  // scheduled announcements whose time has come
+  let announced = 0
+  for (const a of await db.select().from(s.announcements)) {
+    if (a.status !== 'scheduled' || !a.scheduledAt || a.scheduledAt > t) continue
+    const res = await dispatchAnnouncement(a, a.createdBy)
+    announced++
+    notified += res.pushed
+  }
+
+  return { ok: true, notified, announced, at: t }
 })

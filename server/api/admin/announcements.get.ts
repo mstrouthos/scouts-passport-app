@@ -17,7 +17,8 @@ export default defineEventHandler(async (event) => {
       const canApprove = a.status === 'pending' &&
         (rank === 'admin' || (rank === 'archigos' && a.sectionId != null && (secs === null || secs.includes(a.sectionId))))
       return {
-        id: a.id, audience: a.audience, textEl: a.textEl, status: a.status,
+        id: a.id, audience: a.audience, groupId: a.groupId, textEl: a.textEl, status: a.status,
+        viaSms: a.viaSms, scheduledAt: a.scheduledAt,
         sectionEl: sec?.nameEl ?? null, sectionEn: sec?.nameEn ?? null,
         byFirst: by?.firstName ?? '', byLast: by?.lastName ?? '',
         createdAt: a.createdAt, sentAt: a.sentAt, canApprove, mine: a.createdBy === me.id

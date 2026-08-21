@@ -18,6 +18,9 @@ const canSeeRoles = computed(() => me.value?.role === 'troop_leader' || me.value
     <NuxtLink to="/admin/infopages" class="srow">
       <div class="ico">ℹ️</div><div class="txt"><b>{{ t('infoAdmin') }}</b><span>{{ t('infoAdminSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>
+    <NuxtLink to="/admin/groups" class="srow">
+      <div class="ico">🎺</div><div class="txt"><b>{{ t('groups') }}</b><span>{{ t('groupsSub') }}</span></div><span class="chev">›</span>
+    </NuxtLink>
     <NuxtLink to="/admin/points" class="srow">
       <div class="ico">🎯</div><div class="txt"><b>{{ t('pointRules') }}</b><span>{{ t('pointRulesSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>
