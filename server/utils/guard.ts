@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
+import { passcodeVersion } from './passcode'
 
 export type SessionScout = typeof s.scouts.$inferSelect
 type Patrol = typeof s.patrols.$inferSelect
@@ -11,6 +12,11 @@ export async function requireScout(event: H3Event): Promise<SessionScout> {
   const db = await useDb()
   const row = id ? (await db.select().from(s.scouts).where(eq(s.scouts.id, id)).limit(1))[0] : null
   if (!row || !row.isActive) throw createError({ statusCode: 401, message: 'Not signed in' })
+  // Sessions issued before this check have no `pv` and are left alone; any
+  // session that carries one must still match the passcode on file.
+  const pv = (session.user as any)?.pv
+  if (pv && pv !== passcodeVersion(row.passcodeHmac))
+    throw createError({ statusCode: 401, message: 'Passcode changed — sign in again' })
   return row
 }
 

@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 import { requireLeader, assertScoutInScope, idParam } from '../../../../utils/guard'
-import { generatePasscode, hmacPasscode } from '../../../../utils/passcode'
+import { generatePasscode, hmacPasscode, passcodeVersion } from '../../../../utils/passcode'
 import { sendSms } from '../../../../utils/sms'
 
 /** Text a scout's login passcode to their phone on file. If the exact current
@@ -23,7 +23,11 @@ export default defineEventHandler(async (event) => {
   let passcode = body?.passcode
   if (!passcode || hmacPasscode(passcode) !== row.passcodeHmac) {
     passcode = generatePasscode()
-    await db.update(s.scouts).set({ passcodeHmac: hmacPasscode(passcode) }).where(eq(s.scouts.id, id))
+    const hmac = hmacPasscode(passcode)
+    await db.update(s.scouts).set({ passcodeHmac: hmac }).where(eq(s.scouts.id, id))
+    // rotating your own code must not sign you out of the session doing it
+    if (id === me.id)
+      await setUserSession(event, { user: { id: me.id, role: me.role, pv: passcodeVersion(hmac) } })
   }
 
   // Kept short on purpose: Greek text is sent as UCS-2, which fits only ~70

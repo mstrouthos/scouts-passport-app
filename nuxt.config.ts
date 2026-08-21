@@ -57,6 +57,14 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    // Stay signed in until an explicit logout or a passcode rotation. Without
+    // an explicit maxAge, h3 writes a *browser session* cookie, which is
+    // dropped the moment the browser or installed PWA is closed — that was the
+    // "it keeps asking me to log in" symptom.
+    session: {
+      maxAge: 60 * 60 * 24 * 365,          // 1 year, from the moment of login
+      cookie: { sameSite: 'lax', path: '/' }
+    },
     passcodePepper: 'dev-pepper-change-me',
     cronToken: 'dev-cron-token',
     vapidPrivateKey: '',

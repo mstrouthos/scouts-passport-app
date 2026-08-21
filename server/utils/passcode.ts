@@ -17,3 +17,10 @@ export function generatePasscode(): string {
 export function now(): string {
   return new Date().toISOString()
 }
+
+/** Short fingerprint of the passcode currently on file. Stored in the session
+    so that rotating a passcode invalidates sessions issued against the old one
+    — the "signed in until logout or a password reset" behaviour. */
+export function passcodeVersion(passcodeHmac: string): string {
+  return passcodeHmac.slice(0, 16)
+}
