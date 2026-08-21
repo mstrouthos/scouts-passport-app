@@ -215,6 +215,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS family_contact_uq ON family_contacts(section_i
 
 /* Best-effort column adds for databases created before these fields existed. */
 export const MIGRATIONS = [
+  "UPDATE challenges SET points = 10 WHERE points <> 10",
   "ALTER TABLE sections ADD COLUMN IF NOT EXISTS slug TEXT",
   "ALTER TABLE sections ADD COLUMN IF NOT EXISTS has_app BOOLEAN NOT NULL DEFAULT TRUE",
   "ALTER TABLE leader_scopes ADD COLUMN IF NOT EXISTS rank TEXT NOT NULL DEFAULT 'archigos'",

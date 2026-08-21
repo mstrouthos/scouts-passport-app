@@ -17,7 +17,7 @@ const editing = ref(false)
 const busy = ref(false)
 const form = reactive<any>({
   titleEl: '', questionEl: '', explanationEl: '', imageEmoji: '',
-  points: 10, unlocksAt: '', closesAt: '', options: [] as any[], answeredCount: 0,
+  unlocksAt: '', closesAt: '', options: [] as any[], answeredCount: 0,
   sectionId: null as number | null, isBonus: false
 })
 /** ISO -> the value a datetime-local input wants, in local time. */
@@ -34,7 +34,6 @@ async function openEdit() {
   form.questionEl = c.questionEl || ''
   form.explanationEl = c.explanationEl || ''
   form.imageEmoji = c.imageEmoji || ''
-  form.points = c.points
   form.unlocksAt = toLocal(c.unlocksAt)
   form.closesAt = toLocal(c.closesAt)
   form.answeredCount = c.answeredCount
@@ -61,7 +60,6 @@ async function save() {
       questionEl: form.questionEl,
       explanationEl: form.explanationEl,
       imageEmoji: form.imageEmoji,
-      points: form.points,
       unlocksAt: form.unlocksAt ? new Date(form.unlocksAt).toISOString() : null,
       closesAt: form.closesAt ? new Date(form.closesAt).toISOString() : null,
       sectionId: form.sectionId,
@@ -125,7 +123,7 @@ async function remove() {
           <div><label class="lab">{{ t('explanation') }}</label><textarea v-model="form.explanationEl" class="in" rows="2" /></div>
           <div style="display:flex;gap:8px">
             <div style="flex:1"><label class="lab">{{ t('icon') }}</label><input v-model="form.imageEmoji" class="in"></div>
-            <div style="flex:1"><label class="lab">{{ t('pts') }}</label><input v-model.number="form.points" type="number" class="in"></div>
+            <div style="flex:1"><label class="lab">{{ t('pts') }}</label><div class="in ro">{{ t('fixedScoring') }}</div></div>
           </div>
           <div style="display:flex;gap:8px">
             <div style="flex:1"><label class="lab">{{ t('unlocksAtLabel') }}</label><input v-model="form.unlocksAt" type="datetime-local" class="in"></div>

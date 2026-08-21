@@ -3,7 +3,7 @@ import { useDb, schema as s } from '../../../db'
 import { requireScout, idParam } from '../../../utils/guard'
 import { now, isAfter, isAtOrBefore } from '../../../utils/passcode'
 import { localDay, bonusEarned } from '../../../utils/streak'
-import { pointsAfter } from '../../../utils/scoring'
+import { pointsAfter, MAX_POINTS } from '../../../utils/scoring'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
   const rev = (await db.select().from(s.challengeReveals)
     .where(and(eq(s.challengeReveals.challengeId, id), eq(s.challengeReveals.scoutId, me.id))).limit(1))[0]
   const elapsed = rev ? Date.parse(t) - Date.parse(rev.revealedAt) : 0
-  const points = opt.isCorrect ? pointsAfter(c.points, elapsed) : 0
+  const points = opt.isCorrect ? pointsAfter(elapsed) : 0
   await db.insert(s.challengeAnswers).values({
     challengeId: id, scoutId: me.id, optionId: opt.id,
     isCorrect: opt.isCorrect, pointsAwarded: points, answeredAt: t
@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
 
   const opts = (await db.select().from(s.challengeOptions).where(eq(s.challengeOptions.challengeId, id)))
   return {
-    isCorrect: opt.isCorrect, points, fullPoints: c.points,
+    isCorrect: opt.isCorrect, points, fullPoints: MAX_POINTS,
     correctOptionId: opts.find(o => o.isCorrect)?.id,
     explanationEl: c.explanationEl, explanationEn: c.explanationEn
   }

@@ -380,5 +380,6 @@
   "markBonus": "Bonus question",
   "readFirst": "Read the question at your own pace. The clock starts when you see the answers.",
   "showOptions": "Show the answers",
-  "ptsNow": "points now"
+  "ptsNow": "points now",
+  "fixedScoring": "Fixed 10 → 5 (−1 every 5s)"
 }

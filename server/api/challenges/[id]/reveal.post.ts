@@ -2,7 +2,7 @@ import { eq, and } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireScout, idParam } from '../../../utils/guard'
 import { now, isAfter, isAtOrBefore } from '../../../utils/passcode'
-import { DECAY_EVERY_MS, MIN_POINTS } from '../../../utils/scoring'
+import { DECAY_EVERY_MS, MIN_POINTS, MAX_POINTS } from '../../../utils/scoring'
 
 /** Start the answer clock. Recording the moment here — and only the first time —
     means the countdown survives a reload and cannot be restarted by the client. */
@@ -27,6 +27,6 @@ export default defineEventHandler(async (event) => {
   return {
     revealedAt,
     elapsedMs: Math.max(0, Date.parse(t) - Date.parse(revealedAt)),
-    points: c.points, minPoints: Math.min(MIN_POINTS, c.points), decayEveryMs: DECAY_EVERY_MS
+    points: MAX_POINTS, minPoints: MIN_POINTS, decayEveryMs: DECAY_EVERY_MS
   }
 })

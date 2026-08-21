@@ -27,7 +27,6 @@ const SHAPE = `[
     "questionEl": "Το κείμενο της ερώτησης;",
     "explanationEl": "Γιατί αυτή είναι η σωστή απάντηση.",
     "imageEmoji": "🪢",
-    "points": 10,
     "unlocksAt": "2026-09-15T18:00:00+03:00",
     "options": [
       { "textEl": "Λάθος επιλογή", "isCorrect": false },

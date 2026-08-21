@@ -1,5 +1,6 @@
 import { useDb, schema as s } from '../../../db'
 import { requireLeader } from '../../../utils/guard'
+import { MAX_POINTS } from '../../../utils/scoring'
 import { toUtcIso } from '../../../utils/passcode'
 import { resolveQuizSection } from '../../../utils/quizSector'
 
@@ -10,7 +11,6 @@ type InQuestion = {
   imageEmoji?: string,
   isBonus?: boolean,
   explanationEl?: string, explanationEn?: string,
-  points?: number,
   unlocksAt?: string, closesAt?: string,
   options?: InOption[]
 }
@@ -64,7 +64,7 @@ export default defineEventHandler(async (event) => {
       questionEl, questionEn: q.questionEn || null,
       imageEmoji: q.imageEmoji || null,
       explanationEl: q.explanationEl || '', explanationEn: q.explanationEn || null,
-      points: Number(q.points) || 10,
+      points: MAX_POINTS,
       unlocksAt, closesAt,
       sectionId: batchSection, forLeaders: false, isBonus: !!q.isBonus, createdBy: me.id,
       // published only when it has an unlock time, mirroring single creation
