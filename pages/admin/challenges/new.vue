@@ -4,11 +4,11 @@ const me = useMe()
 const lx = useLx()
 const { show } = useToast()
 const isTroop = computed(() => me.value?.role === 'troop_leader')
-const { data: secs } = await useFetch<any>('/api/admin/contacts')     // sections in my scope
+const { data: secs } = await useFetch<any>('/api/admin/quiz-sections')   // only sections that run quizzes
 
 const form = reactive({
   questionEl: '', questionEn: '', explanationEl: '', imageEmoji: '',
-  points: 10, sectionId: null as number | null, forLeaders: false,
+  points: 10, sectionId: null as number | null,
   date: new Date(Date.now() + 86400_000).toISOString().slice(0, 10), time: '17:00', closeDays: 3
 })
 watchEffect(() => { if (!isTroop.value && form.sectionId === null && secs.value?.length) form.sectionId = secs.value[0].id })
@@ -32,7 +32,7 @@ async function publish() {
         questionEl: form.questionEl, questionEn: form.questionEn || null,
         titleEl: form.questionEl.slice(0, 60), explanationEl: form.explanationEl,
         imageEmoji: form.imageEmoji || null, points: form.points,
-        sectionId: form.forLeaders ? null : form.sectionId, forLeaders: form.forLeaders,
+        sectionId: form.sectionId,
         unlocksAt, closesAt, isPublished: true,
         options: options.value.filter(o => o.textEl.trim())
       }
@@ -70,13 +70,11 @@ async function publish() {
           <label class="lab">{{ t('forSector') }}</label>
           <div class="chips">
             <template v-if="isTroop">
-              <button class="chip" :class="{ on: form.sectionId === null && !form.forLeaders }"
-                      @click="form.sectionId = null; form.forLeaders = false">{{ t('wholeTroop') }}</button>
+              <button class="chip" :class="{ on: form.sectionId === null }"
+                      @click="form.sectionId = null">{{ t('wholeTroop') }}</button>
               <button v-for="sec in secs" :key="sec.id" class="chip"
-                      :class="{ on: form.sectionId === sec.id && !form.forLeaders }"
-                      @click="form.sectionId = sec.id; form.forLeaders = false">{{ lx(sec, 'name') }}</button>
-              <button class="chip" :class="{ on: form.forLeaders }"
-                      @click="form.forLeaders = true">{{ t('vathmoforoi') }}</button>
+                      :class="{ on: form.sectionId === sec.id }"
+                      @click="form.sectionId = sec.id">{{ lx(sec, 'name') }}</button>
             </template>
             <template v-else>
               <button v-for="sec in secs" :key="sec.id" class="chip" :class="{ on: form.sectionId === sec.id }"

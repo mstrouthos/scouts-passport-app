@@ -7,7 +7,7 @@ const router = useRouter()
 const { show } = useToast()
 const id = route.params.id
 const { data, refresh } = await useFetch<any>(`/api/admin/challenges/${id}/stats`)
-const { data: secs } = await useFetch<any>('/api/admin/contacts')   // sections in my scope
+const { data: secs } = await useFetch<any>('/api/admin/quiz-sections')   // only sections that run quizzes
 const me = useMe()
 const isTroop = computed(() => me.value?.role === 'troop_leader')
 const K = ['Α', 'Β', 'Γ', 'Δ', 'Ε', 'Ζ']
@@ -18,7 +18,7 @@ const busy = ref(false)
 const form = reactive<any>({
   titleEl: '', questionEl: '', explanationEl: '', imageEmoji: '',
   points: 10, unlocksAt: '', closesAt: '', options: [] as any[], answeredCount: 0,
-  sectionId: null as number | null, forLeaders: false
+  sectionId: null as number | null
 })
 /** ISO -> the value a datetime-local input wants, in local time. */
 function toLocal(iso: string | null) {
@@ -39,7 +39,6 @@ async function openEdit() {
   form.closesAt = toLocal(c.closesAt)
   form.answeredCount = c.answeredCount
   form.sectionId = c.sectionId ?? null
-  form.forLeaders = !!c.forLeaders
   form.options = c.options.map((o: any) => ({ textEl: o.textEl, isCorrect: o.isCorrect }))
   editing.value = true
 }
@@ -64,8 +63,7 @@ async function save() {
       points: form.points,
       unlocksAt: form.unlocksAt ? new Date(form.unlocksAt).toISOString() : null,
       closesAt: form.closesAt ? new Date(form.closesAt).toISOString() : null,
-      sectionId: form.forLeaders ? null : form.sectionId,
-      forLeaders: form.forLeaders
+      sectionId: form.sectionId
     }
     if (!locked.value) body.options = form.options
     await $fetch(`/api/admin/challenges/${id}`, { method: 'PATCH', body })
@@ -135,13 +133,10 @@ async function remove() {
           <div>
             <label class="lab">{{ t('forSector') }}</label>
             <div class="chips">
-              <button v-if="isTroop" class="chip" :class="{ on: form.sectionId === null && !form.forLeaders }"
-                      @click="form.sectionId = null; form.forLeaders = false">{{ t('wholeTroop') }}</button>
-              <button v-for="sec in secs" :key="sec.id" class="chip"
-                      :class="{ on: form.sectionId === sec.id && !form.forLeaders }"
-                      @click="form.sectionId = sec.id; form.forLeaders = false">{{ lx(sec, 'name') }}</button>
-              <button v-if="isTroop" class="chip" :class="{ on: form.forLeaders }"
-                      @click="form.forLeaders = true">{{ t('vathmoforoi') }}</button>
+              <button v-if="isTroop" class="chip" :class="{ on: form.sectionId === null }"
+                      @click="form.sectionId = null">{{ t('wholeTroop') }}</button>
+              <button v-for="sec in secs" :key="sec.id" class="chip" :class="{ on: form.sectionId === sec.id }"
+                      @click="form.sectionId = sec.id">{{ lx(sec, 'name') }}</button>
             </div>
           </div>
 

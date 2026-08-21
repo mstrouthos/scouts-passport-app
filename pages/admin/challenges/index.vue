@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { buildImportPrompt } from '~/utils/importPrompt'
+import { buildImportPrompt, QUIZ_SECTORS, type QuizSector } from '~/utils/importPrompt'
 const { t } = useI18n()
 const me = useMe()
 const lx = useLx()
 const { data, refresh } = await useFetch('/api/admin/challenges')
-const { data: secs } = await useFetch<any>('/api/admin/contacts')   // sections in my scope
+const { data: secs } = await useFetch<any>('/api/admin/quiz-sections')   // only sections that run quizzes
 const { show } = useToast()
 
 // ----- multi-select + bulk delete -----
@@ -38,15 +38,19 @@ const busy = ref(false)
 const result = ref<{ imported: number, skipped: number, errors: string[] } | null>(null)
 
 // the leader fills these in, and the prompt is built from them live
-const fields = reactive({ topics: '', count: 10, ageGroup: '', opensAt: '', spacing: '', sectionId: null as number | null, forLeaders: false })
-const sectorLabel = computed(() => {
-  if (fields.forLeaders) return t('vathmoforoi')
-  const sec = (secs.value || []).find((x: any) => x.id === fields.sectionId)
-  return sec ? lx(sec, 'name') : t('wholeTroop')
-})
-const prompt = computed(() => buildImportPrompt({ ...fields, sector: sectorLabel.value }))
+const fields = reactive({ topics: '', count: 10, opensAt: '', spacing: '', sector: 'omada' as QuizSector })
+/** the dropdown picks both the section to import into and the ages in the prompt */
+const sectorOptions = computed(() => QUIZ_SECTORS.filter(o =>
+  o.key === 'troop'
+    ? isTroop.value
+    : (secs.value || []).some((x: any) => x.slug === o.key)))
+const sectorSectionId = computed(() =>
+  fields.sector === 'troop' ? null : ((secs.value || []).find((x: any) => x.slug === fields.sector)?.id ?? null))
+const prompt = computed(() => buildImportPrompt(fields))
 
 function openImport() {
+  if (!sectorOptions.value.some(o => o.key === fields.sector))
+    fields.sector = sectorOptions.value[0]?.key ?? 'omada'
   importing.value = true; showPrompt.value = false
   raw.value = ''; result.value = null
 }
@@ -65,7 +69,7 @@ async function runImport() {
     const questions = Array.isArray(parsed) ? parsed : parsed?.questions
     result.value = await $fetch('/api/admin/challenges/import', {
       method: 'POST',
-      body: { questions, sectionId: fields.forLeaders ? null : fields.sectionId, forLeaders: fields.forLeaders }
+      body: { questions, sectionId: sectorSectionId.value }
     })
     await refresh()
     show(`✅ ${result.value!.imported} ${t('importedN')}`)
@@ -138,21 +142,13 @@ function sub(c: any) {
             <div style="flex:2"><label class="lab">{{ t('promptOpens') }}</label>
               <input v-model="fields.opensAt" type="datetime-local" class="in"></div>
           </div>
-          <div><label class="lab">{{ t('promptAge') }}</label>
-            <input v-model="fields.ageGroup" class="in" :placeholder="t('promptAgePh')"></div>
           <div><label class="lab">{{ t('promptSpacing') }}</label>
             <input v-model="fields.spacing" class="in" :placeholder="t('promptSpacingPh')"></div>
           <div>
             <label class="lab">{{ t('promptSector') }}</label>
-            <div class="chips">
-              <button v-if="isTroop" class="chip" :class="{ on: fields.sectionId === null && !fields.forLeaders }"
-                      @click="fields.sectionId = null; fields.forLeaders = false">{{ t('wholeTroop') }}</button>
-              <button v-for="sec in secs" :key="sec.id" class="chip"
-                      :class="{ on: fields.sectionId === sec.id && !fields.forLeaders }"
-                      @click="fields.sectionId = sec.id; fields.forLeaders = false">{{ lx(sec, 'name') }}</button>
-              <button v-if="isTroop" class="chip" :class="{ on: fields.forLeaders }"
-                      @click="fields.forLeaders = true">{{ t('vathmoforoi') }}</button>
-            </div>
+            <select v-model="fields.sector" class="in">
+              <option v-for="o in sectorOptions" :key="o.key" :value="o.key">{{ o.labelEl }} · {{ o.ages }}</option>
+            </select>
           </div>
 
           <div style="display:flex;gap:8px">

@@ -6,16 +6,24 @@
 export type PromptFields = {
   topics: string
   count: number | string
-  ageGroup: string
   opensAt: string      // datetime-local value, e.g. 2026-09-15T18:00
   spacing: string
-  sector?: string      // which section the batch is for — context for the AI,
-                       // the actual assignment happens at import time
+  sector: QuizSector   // also decides the age range quoted to the AI
 }
+
+/** The only sections that run quizzes. Αγέλη / Μικρή Αγέλη have no member
+    logins, and there is no Βαθμοφόροι quiz. */
+export type QuizSector = 'omada' | 'koinotita' | 'troop'
+
+export const QUIZ_SECTORS: Array<{ key: QuizSector, labelEl: string, ages: string }> = [
+  { key: 'omada',     labelEl: 'Ομάδα Προσκόπων',      ages: '11-15 ετών' },
+  { key: 'koinotita', labelEl: 'Κοινότητα Ανιχνευτών', ages: '15-18 ετών' },
+  { key: 'troop',     labelEl: 'Όλο το Σύστημα',       ages: '11-18 ετών' }
+]
 
 const SHAPE = `[
   {
-    "titleEl": "Σύντομος τίτλος",
+    "titleEl": "Κόμποι",
     "questionEl": "Το κείμενο της ερώτησης;",
     "explanationEl": "Γιατί αυτή είναι η σωστή απάντηση.",
     "imageEmoji": "🪢",
@@ -45,19 +53,22 @@ function toIso(v: string): string {
 export function buildImportPrompt(f: PromptFields): string {
   const topics = f.topics.trim() || '[ΣΥΜΠΛΗΡΩΣΕ ΤΑ ΘΕΜΑΤΑ]'
   const count = String(f.count || '10')
-  const age = f.ageGroup.trim() || '[ΣΥΜΠΛΗΡΩΣΕ ΗΛΙΚΙΑΚΗ ΟΜΑΔΑ]'
+  const sector = QUIZ_SECTORS.find(x => x.key === f.sector) ?? QUIZ_SECTORS[2]
   const opens = toIso(f.opensAt)
   const spacing = f.spacing.trim() || 'όλες ανοίγουν την ίδια ώρα'
   return `Είσαι βοηθός αρχηγού προσκόπων. Δημιούργησε ${count} ερωτήσεις κουίζ πολλαπλής επιλογής στα ελληνικά.
 
 ΘΕΜΑΤΑ: ${topics}
-ΤΜΗΜΑ: ${f.sector || 'Όλο το Σύστημα'}
-ΗΛΙΚΙΑΚΗ ΟΜΑΔΑ: ${age}
+ΤΜΗΜΑ: ${sector.labelEl}
+ΗΛΙΚΙΑ: ${sector.ages}
 ΩΡΑ ΠΟΥ ΑΝΟΙΓΕΙ Η ΠΡΩΤΗ: ${opens}
 ΑΠΟΣΤΑΣΗ ΜΕΤΑΞΥ ΕΡΩΤΗΣΕΩΝ: ${spacing}
 
 ΚΑΝΟΝΕΣ:
 - Κάθε ερώτηση: 3-4 επιλογές, ΑΚΡΙΒΩΣ ΜΙΑ σωστή.
+- Ο τίτλος (titleEl) είναι ΜΟΝΟ το θέμα, 1-3 λέξεις — π.χ. «Κόμποι», «Πυξίδα».
+  ΠΟΤΕ μην βάλεις τη σωστή απάντηση ή υπαινιγμό της στον τίτλο: ο τίτλος
+  φαίνεται στους προσκόπους ΠΡΙΝ απαντήσουν.
 - Σύντομη εξήγηση της σωστής απάντησης στο explanationEl.
 - Γλώσσα απλή και κατάλληλη για την ηλικία.
 - Το unlocksAt σε μορφή ISO 8601 με ζώνη ώρας, όπως το παράδειγμα.
