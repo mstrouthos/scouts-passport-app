@@ -7,6 +7,9 @@ const router = useRouter()
 const { show } = useToast()
 const id = route.params.id
 const { data, refresh } = await useFetch<any>(`/api/admin/challenges/${id}/stats`)
+const { data: secs } = await useFetch<any>('/api/admin/contacts')   // sections in my scope
+const me = useMe()
+const isTroop = computed(() => me.value?.role === 'troop_leader')
 const K = ['Α', 'Β', 'Γ', 'Δ', 'Ε', 'Ζ']
 
 // ----- edit -----
@@ -14,7 +17,8 @@ const editing = ref(false)
 const busy = ref(false)
 const form = reactive<any>({
   titleEl: '', questionEl: '', explanationEl: '', imageEmoji: '',
-  points: 10, unlocksAt: '', closesAt: '', options: [] as any[], answeredCount: 0
+  points: 10, unlocksAt: '', closesAt: '', options: [] as any[], answeredCount: 0,
+  sectionId: null as number | null, forLeaders: false
 })
 /** ISO -> the value a datetime-local input wants, in local time. */
 function toLocal(iso: string | null) {
@@ -34,6 +38,8 @@ async function openEdit() {
   form.unlocksAt = toLocal(c.unlocksAt)
   form.closesAt = toLocal(c.closesAt)
   form.answeredCount = c.answeredCount
+  form.sectionId = c.sectionId ?? null
+  form.forLeaders = !!c.forLeaders
   form.options = c.options.map((o: any) => ({ textEl: o.textEl, isCorrect: o.isCorrect }))
   editing.value = true
 }
@@ -57,7 +63,9 @@ async function save() {
       imageEmoji: form.imageEmoji,
       points: form.points,
       unlocksAt: form.unlocksAt ? new Date(form.unlocksAt).toISOString() : null,
-      closesAt: form.closesAt ? new Date(form.closesAt).toISOString() : null
+      closesAt: form.closesAt ? new Date(form.closesAt).toISOString() : null,
+      sectionId: form.forLeaders ? null : form.sectionId,
+      forLeaders: form.forLeaders
     }
     if (!locked.value) body.options = form.options
     await $fetch(`/api/admin/challenges/${id}`, { method: 'PATCH', body })
@@ -122,6 +130,19 @@ async function remove() {
           <div style="display:flex;gap:8px">
             <div style="flex:1"><label class="lab">{{ t('unlocksAtLabel') }}</label><input v-model="form.unlocksAt" type="datetime-local" class="in"></div>
             <div style="flex:1"><label class="lab">{{ t('closesAtLabel') }}</label><input v-model="form.closesAt" type="datetime-local" class="in"></div>
+          </div>
+
+          <div>
+            <label class="lab">{{ t('forSector') }}</label>
+            <div class="chips">
+              <button v-if="isTroop" class="chip" :class="{ on: form.sectionId === null && !form.forLeaders }"
+                      @click="form.sectionId = null; form.forLeaders = false">{{ t('wholeTroop') }}</button>
+              <button v-for="sec in secs" :key="sec.id" class="chip"
+                      :class="{ on: form.sectionId === sec.id && !form.forLeaders }"
+                      @click="form.sectionId = sec.id; form.forLeaders = false">{{ lx(sec, 'name') }}</button>
+              <button v-if="isTroop" class="chip" :class="{ on: form.forLeaders }"
+                      @click="form.forLeaders = true">{{ t('vathmoforoi') }}</button>
+            </div>
           </div>
 
           <div class="sec-title" style="margin:0">{{ t('options') }}</div>

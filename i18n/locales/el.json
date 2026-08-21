@@ -301,5 +301,12 @@
   "deleteQuestion": "Διαγραφή ερώτησης",
   "confirmDeleteQuestion": "Οριστική διαγραφή αυτής της ερώτησης; Θα χαθούν και οι απαντήσεις.",
   "unlocksAtLabel": "Ξεκλειδώνει",
-  "closesAtLabel": "Κλείνει (προαιρετικό)"
+  "closesAtLabel": "Κλείνει (προαιρετικό)",
+  "selectMode": "Επιλογή",
+  "selectedN": "επιλεγμένες",
+  "deleteSelected": "Διαγραφή επιλεγμένων",
+  "confirmDeleteSelected": "Οριστική διαγραφή {n} ερωτήσεων; Θα χαθούν και οι απαντήσεις τους.",
+  "deletedN": "ερωτήσεις διαγράφηκαν",
+  "cancelSelect": "Άκυρο",
+  "promptSector": "Τμήμα"
 }

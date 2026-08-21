@@ -301,5 +301,12 @@
   "deleteQuestion": "Delete question",
   "confirmDeleteQuestion": "Permanently delete this question? Its answers are deleted too.",
   "unlocksAtLabel": "Unlocks",
-  "closesAtLabel": "Closes (optional)"
+  "closesAtLabel": "Closes (optional)",
+  "selectMode": "Select",
+  "selectedN": "selected",
+  "deleteSelected": "Delete selected",
+  "confirmDeleteSelected": "Permanently delete {n} questions? Their answers go too.",
+  "deletedN": "questions deleted",
+  "cancelSelect": "Cancel",
+  "promptSector": "Section"
 }

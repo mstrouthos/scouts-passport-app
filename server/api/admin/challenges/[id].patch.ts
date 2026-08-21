@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
-import { requireLeader, idParam } from '../../../utils/guard'
+import { requireLeader, scopedSectionIds, rankOf, idParam } from '../../../utils/guard'
 import { challengeInScope } from '../../../utils/challengeScope'
 
 /** Edit a challenge. Text, timing and points can always change. Options may
@@ -32,6 +32,24 @@ export default defineEventHandler(async (event) => {
   }
   // publication follows the unlock time, exactly as on create/import
   if (set.unlocksAt !== undefined) set.isPublished = !!set.unlocksAt
+
+  // ----- which sector the question is for -----
+  if (b?.sectionId !== undefined || b?.forLeaders !== undefined) {
+    const secIds = await scopedSectionIds(me)
+    const rank = await rankOf(me)
+    let sectionId: number | null = b.sectionId != null ? Number(b.sectionId) : null
+    let forLeaders = !!b.forLeaders && rank === 'admin'   // Βαθμοφόροι quizzes: admin only
+    if (sectionId != null && !(await db.select().from(s.sections)).some(x => x.id === sectionId))
+      throw createError({ statusCode: 400, message: 'Bad section' })
+    if (secIds !== null) {
+      // a sector leader keeps it inside their own sector
+      if (sectionId === null || !secIds.includes(sectionId)) sectionId = secIds[0] ?? null
+      if (sectionId === null) throw createError({ statusCode: 403, message: 'No sector assigned' })
+      forLeaders = false
+    }
+    set.sectionId = forLeaders ? null : sectionId
+    set.forLeaders = forLeaders
+  }
 
   if (Object.keys(set).length)
     await db.update(s.challenges).set(set).where(eq(s.challenges.id, id))

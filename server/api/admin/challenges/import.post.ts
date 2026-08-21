@@ -20,10 +20,18 @@ export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const body = await readBody<any>(event)
 
-  // accept either a bare array or { questions: [...] }, and a JSON string
+  // accept either a bare array or { questions: [...] }, and a JSON string.
+  // The sector is chosen once for the whole batch in the UI rather than asked
+  // of the AI, which has no way to know the section ids.
   let raw: any = body
+  let batchSectionId: number | null | undefined
+  let batchForLeaders = false
   if (typeof raw === 'string') { try { raw = JSON.parse(raw) } catch { raw = null } }
-  if (raw && !Array.isArray(raw) && Array.isArray(raw.questions)) raw = raw.questions
+  if (raw && !Array.isArray(raw) && Array.isArray(raw.questions)) {
+    if ('sectionId' in raw) batchSectionId = raw.sectionId == null ? null : Number(raw.sectionId)
+    batchForLeaders = !!raw.forLeaders
+    raw = raw.questions
+  }
   if (!Array.isArray(raw) || !raw.length)
     throw createError({ statusCode: 400, message: 'Expected a JSON array of questions' })
   if (raw.length > 200)
@@ -46,11 +54,14 @@ export default defineEventHandler(async (event) => {
     if (options.some(o => !String(o?.textEl || '').trim())) { errors.push(`${at}: an option has no textEl`); continue }
     if (options.filter(o => o?.isCorrect).length !== 1) { errors.push(`${at}: exactly one option must be isCorrect`); continue }
 
-    let sectionId: number | null = q.sectionId != null ? Number(q.sectionId) : null
+    // the batch choice wins over anything the AI put in the row
+    let sectionId: number | null = batchSectionId !== undefined
+      ? batchSectionId
+      : (q.sectionId != null ? Number(q.sectionId) : null)
     if (sectionId != null && !sections.some(x => x.id === sectionId)) {
       errors.push(`${at}: unknown sectionId ${sectionId}`); continue
     }
-    let forLeaders = !!q.forLeaders && rank === 'admin'
+    let forLeaders = (batchForLeaders || !!q.forLeaders) && rank === 'admin'
     if (secIds !== null) {
       // a sector leader can only import into their own sector
       if (sectionId === null || !secIds.includes(sectionId)) sectionId = secIds[0] ?? null
@@ -70,7 +81,7 @@ export default defineEventHandler(async (event) => {
       explanationEl: q.explanationEl || '', explanationEn: q.explanationEn || null,
       points: Number(q.points) || 10,
       unlocksAt, closesAt,
-      sectionId, forLeaders, createdBy: me.id,
+      sectionId: forLeaders ? null : sectionId, forLeaders, createdBy: me.id,
       // published only when it has an unlock time, mirroring single creation
       isPublished: !!unlocksAt
     }).returning())

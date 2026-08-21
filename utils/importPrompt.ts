@@ -9,6 +9,8 @@ export type PromptFields = {
   ageGroup: string
   opensAt: string      // datetime-local value, e.g. 2026-09-15T18:00
   spacing: string
+  sector?: string      // which section the batch is for — context for the AI,
+                       // the actual assignment happens at import time
 }
 
 const SHAPE = `[
@@ -49,6 +51,7 @@ export function buildImportPrompt(f: PromptFields): string {
   return `Είσαι βοηθός αρχηγού προσκόπων. Δημιούργησε ${count} ερωτήσεις κουίζ πολλαπλής επιλογής στα ελληνικά.
 
 ΘΕΜΑΤΑ: ${topics}
+ΤΜΗΜΑ: ${f.sector || 'Όλο το Σύστημα'}
 ΗΛΙΚΙΑΚΗ ΟΜΑΔΑ: ${age}
 ΩΡΑ ΠΟΥ ΑΝΟΙΓΕΙ Η ΠΡΩΤΗ: ${opens}
 ΑΠΟΣΤΑΣΗ ΜΕΤΑΞΥ ΕΡΩΤΗΣΕΩΝ: ${spacing}
@@ -60,6 +63,8 @@ export function buildImportPrompt(f: PromptFields): string {
 - Το unlocksAt σε μορφή ISO 8601 με ζώνη ώρας, όπως το παράδειγμα.
 - Ξεκίνα από την ώρα που δόθηκε και πρόσθεσε την απόσταση σε κάθε επόμενη ερώτηση.
 - Χρησιμοποίησε ένα σχετικό emoji στο imageEmoji.
+- Προσάρμοσε τη δυσκολία στο τμήμα και στην ηλικία που δόθηκαν.
+- ΜΗΝ βάλεις πεδίο sectionId — το τμήμα ορίζεται κατά την εισαγωγή.
 
 ΑΠΑΝΤΗΣΕ ΜΟΝΟ ΜΕ JSON — χωρίς σχόλια, χωρίς markdown — σε αυτή ακριβώς τη μορφή:
 ${SHAPE}`
