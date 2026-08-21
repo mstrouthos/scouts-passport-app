@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { requireScout, sectionOf } from '../utils/guard'
-import { now } from '../utils/passcode'
+import { now, isAtOrBefore } from '../utils/passcode'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const mySection = await sectionOf(me)
 
   const rows = (await db.select().from(s.challenges))
-    .filter(c => c.isPublished && c.unlocksAt && c.unlocksAt <= t && !c.forLeaders)
+    .filter(c => c.isPublished && isAtOrBefore(c.unlocksAt, t) && !c.forLeaders)
     .filter(c => (!c.sectionId && !c.patrolId)
       || (c.patrolId != null ? c.patrolId === me.patrolId : c.sectionId === mySection))
     .sort((a, b) => (b.unlocksAt || '').localeCompare(a.unlocksAt || ''))
@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   return rows.map(c => {
     const opts = optsByChallenge.get(c.id) || []
     const mine = ansMap.get(c.id)
-    const closed = !!(c.closesAt && c.closesAt <= t)
+    const closed = isAtOrBefore(c.closesAt, t)
     const revealed = !!mine || closed
     return {
       id: c.id, titleEl: c.titleEl, titleEn: c.titleEn,

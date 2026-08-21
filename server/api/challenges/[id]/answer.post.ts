@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireScout, idParam } from '../../../utils/guard'
-import { now } from '../../../utils/passcode'
+import { now, isAfter, isAtOrBefore } from '../../../utils/passcode'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
@@ -11,9 +11,9 @@ export default defineEventHandler(async (event) => {
   const t = now()
 
   const c = (await db.select().from(s.challenges).where(eq(s.challenges.id, id)).limit(1))[0]
-  if (!c || !c.isPublished || !c.unlocksAt || c.unlocksAt > t)
+  if (!c || !c.isPublished || !c.unlocksAt || isAfter(c.unlocksAt, t))
     throw createError({ statusCode: 404, message: 'Challenge not found' })
-  if (c.closesAt && c.closesAt <= t)
+  if (isAtOrBefore(c.closesAt, t))
     throw createError({ statusCode: 400, message: 'Challenge closed' })
 
   const existing = (await db.select().from(s.challengeAnswers)

@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../../../db'
 import { requireLeader, idParam } from '../../../utils/guard'
 import { resolveQuizSection } from '../../../utils/quizSector'
 import { challengeInScope } from '../../../utils/challengeScope'
+import { toUtcIso } from '../../../utils/passcode'
 
 /** Edit a challenge. Text, timing and points can always change. Options may
     only be replaced while nobody has answered — otherwise existing answers
@@ -29,7 +30,7 @@ export default defineEventHandler(async (event) => {
     const v = b[k] ? String(b[k]) : null
     if (v && Number.isNaN(Date.parse(v)))
       throw createError({ statusCode: 400, message: `${k} is not a valid date` })
-    set[k] = v
+    set[k] = toUtcIso(v)
   }
   // publication follows the unlock time, exactly as on create/import
   if (set.unlocksAt !== undefined) set.isPublished = !!set.unlocksAt

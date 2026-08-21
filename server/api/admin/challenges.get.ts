@@ -1,6 +1,6 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
-import { now } from '../../utils/passcode'
+import { now, isAfter, isAtOrBefore } from '../../utils/passcode'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -15,8 +15,8 @@ export default defineEventHandler(async (event) => {
     .map(c => {
       const ans = answers.filter(a => a.challengeId === c.id)
       const state = !c.isPublished || !c.unlocksAt ? 'draft'
-        : c.unlocksAt > t ? 'scheduled'
-        : (c.closesAt && c.closesAt <= t) ? 'done' : 'live'
+        : isAfter(c.unlocksAt, t) ? 'scheduled'
+        : isAtOrBefore(c.closesAt, t) ? 'done' : 'live'
       const sec = c.sectionId != null ? sections.get(c.sectionId) : null
       return {
         id: c.id, titleEl: c.titleEl, titleEn: c.titleEn, points: c.points,

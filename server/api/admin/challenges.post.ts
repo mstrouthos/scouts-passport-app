@@ -1,6 +1,7 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader } from '../../utils/guard'
 import { resolveQuizSection } from '../../utils/quizSector'
+import { toUtcIso } from '../../utils/passcode'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
     imageEmoji: b.imageEmoji || null,
     explanationEl: b.explanationEl || '', explanationEn: b.explanationEn || null,
     points: Number(b.points) || 10,
-    unlocksAt: b.unlocksAt || null, closesAt: b.closesAt || null,
+    unlocksAt: toUtcIso(b.unlocksAt), closesAt: toUtcIso(b.closesAt),
     sectionId, forLeaders: false, createdBy: me.id, isPublished: !!b.isPublished && !!b.unlocksAt
   }).returning())
   await db.insert(s.challengeOptions).values(

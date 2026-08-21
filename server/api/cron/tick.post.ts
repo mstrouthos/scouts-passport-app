@@ -3,7 +3,7 @@ import { useDb, schema as s } from '../../db'
 import { sendPushTo, sendPushToParents } from '../../utils/push'
 import { dispatchAnnouncement } from '../../utils/announce'
 import { sectionOf, sectionOfWith } from '../../utils/guard'
-import { now } from '../../utils/passcode'
+import { now, isAfter, isAtOrBefore } from '../../utils/passcode'
 
 /** Hit by host cron every few minutes with the token:
     curl -X POST -H "x-cron-token: $TOKEN" https://.../api/cron/tick */
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
   // challenges that just unlocked
   for (const c of await db.select().from(s.challenges)) {
-    if (!c.isPublished || !c.unlocksAt || c.unlocksAt > t || c.notifiedAt) continue
+    if (!c.isPublished || !c.unlocksAt || isAfter(c.unlocksAt, t) || c.notifiedAt) continue
     const pool = c.forLeaders ? scouts.filter(r => r.role !== 'scout') : scouts.filter(r => r.role === 'scout')
     const targets = pool.filter(r =>
       (!c.sectionId && !c.patrolId)
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
   // event reminders due — members with accounts, plus parent subscriptions
   const famSections = (await db.select().from(s.sections)).filter(x => !x.hasApp).map(x => x.id)
   for (const e of await db.select().from(s.events)) {
-    if (!e.remindAt || e.remindAt > t || e.startsAt <= t) continue
+    if (!e.remindAt || isAfter(e.remindAt, t) || isAtOrBefore(e.startsAt, t)) continue
     const targets = scouts.filter(r => r.role === 'scout').filter(r =>
       e.scope === 'troop'
       || (e.scope === 'patrol' && r.patrolId === e.patrolId)
@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
   // scheduled announcements whose time has come
   let announced = 0
   for (const a of await db.select().from(s.announcements)) {
-    if (a.status !== 'scheduled' || !a.scheduledAt || a.scheduledAt > t) continue
+    if (a.status !== 'scheduled' || !a.scheduledAt || isAfter(a.scheduledAt, t)) continue
     const res = await dispatchAnnouncement(a, a.createdBy)
     announced++
     notified += res.pushed

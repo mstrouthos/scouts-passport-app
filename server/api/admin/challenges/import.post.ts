@@ -1,5 +1,6 @@
 import { useDb, schema as s } from '../../../db'
 import { requireLeader } from '../../../utils/guard'
+import { toUtcIso } from '../../../utils/passcode'
 import { resolveQuizSection } from '../../../utils/quizSector'
 
 type InOption = { textEl?: string, textEn?: string, isCorrect?: boolean }
@@ -51,10 +52,11 @@ export default defineEventHandler(async (event) => {
     if (options.some(o => !String(o?.textEl || '').trim())) { errors.push(`${at}: an option has no textEl`); continue }
     if (options.filter(o => o?.isCorrect).length !== 1) { errors.push(`${at}: exactly one option must be isCorrect`); continue }
 
-    const unlocksAt = q.unlocksAt ? String(q.unlocksAt) : null
-    if (unlocksAt && Number.isNaN(Date.parse(unlocksAt))) { errors.push(`${at}: unlocksAt is not a valid date`); continue }
-    const closesAt = q.closesAt ? String(q.closesAt) : null
-    if (closesAt && Number.isNaN(Date.parse(closesAt))) { errors.push(`${at}: closesAt is not a valid date`); continue }
+    // normalise to UTC so every stored timestamp has the same shape
+    if (q.unlocksAt && Number.isNaN(Date.parse(String(q.unlocksAt)))) { errors.push(`${at}: unlocksAt is not a valid date`); continue }
+    if (q.closesAt && Number.isNaN(Date.parse(String(q.closesAt)))) { errors.push(`${at}: closesAt is not a valid date`); continue }
+    const unlocksAt = toUtcIso(q.unlocksAt)
+    const closesAt = toUtcIso(q.closesAt)
 
     const [row] = (await db.insert(s.challenges).values({
       titleEl: String(q.titleEl || questionEl).slice(0, 80), titleEn: q.titleEn || null,
