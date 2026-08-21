@@ -173,6 +173,28 @@ CREATE TABLE IF NOT EXISTS announcements (
   created_by INTEGER NOT NULL, created_at TEXT NOT NULL,
   approved_by INTEGER, sent_at TEXT
 );
+CREATE TABLE IF NOT EXISTS files (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL, mime TEXT NOT NULL, size INTEGER NOT NULL,
+  data TEXT NOT NULL, uploaded_by INTEGER, created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS parents (
+  id SERIAL PRIMARY KEY,
+  section_id INTEGER NOT NULL REFERENCES sections(id),
+  name TEXT NOT NULL, email TEXT, phone TEXT,
+  passcode_hmac TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  added_by INTEGER, created_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS parent_passcode_uq ON parents(passcode_hmac);
+CREATE TABLE IF NOT EXISTS parent_posts (
+  id SERIAL PRIMARY KEY,
+  section_id INTEGER REFERENCES sections(id),
+  title_el TEXT NOT NULL, body_el TEXT NOT NULL DEFAULT '',
+  file_id INTEGER REFERENCES files(id),
+  is_published BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by INTEGER, created_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS family_contacts (
   id SERIAL PRIMARY KEY,
   section_id INTEGER NOT NULL REFERENCES sections(id),

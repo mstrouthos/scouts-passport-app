@@ -223,6 +223,45 @@ export const announcements = pgTable('announcements', {
   sentAt: text('sent_at')
 })
 
+/** Uploaded files (parent announcements as PDF). Stored IN the database on
+    purpose: the app container is stateless, so anything written to its disk
+    disappears on the next deploy. */
+export const files = pgTable('files', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  mime: text('mime').notNull(),
+  size: integer('size').notNull(),
+  data: text('data').notNull(),          // base64
+  uploadedBy: integer('uploaded_by'),
+  createdAt: text('created_at').notNull()
+})
+
+/** One parent, belonging to the section their child is in. Each has their own
+    access code for the parents' page — no shared password. */
+export const parents = pgTable('parents', {
+  id: serial('id').primaryKey(),
+  sectionId: integer('section_id').notNull().references(() => sections.id),
+  name: text('name').notNull(),
+  email: text('email'),
+  phone: text('phone'),
+  passcodeHmac: text('passcode_hmac'),
+  isActive: boolean('is_active').notNull().default(true),
+  addedBy: integer('added_by'),
+  createdAt: text('created_at').notNull()
+}, t => [uniqueIndex('parent_passcode_uq').on(t.passcodeHmac)])
+
+/** A note or PDF announcement for parents of one section (or the whole troop). */
+export const parentPosts = pgTable('parent_posts', {
+  id: serial('id').primaryKey(),
+  sectionId: integer('section_id').references(() => sections.id),   // null = all sections
+  titleEl: text('title_el').notNull(),
+  bodyEl: text('body_el').notNull().default(''),
+  fileId: integer('file_id').references(() => files.id),
+  isPublished: boolean('is_published').notNull().default(true),
+  createdBy: integer('created_by'),
+  createdAt: text('created_at').notNull()
+})
+
 export const familyContacts = pgTable('family_contacts', {
   id: serial('id').primaryKey(),
   sectionId: integer('section_id').notNull().references(() => sections.id),
