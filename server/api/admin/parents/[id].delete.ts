@@ -3,10 +3,16 @@ import { useDb, schema as s } from '../../../db'
 import { requireLeader, idParam } from '../../../utils/guard'
 import { parentInScope } from './[id].patch'
 
+/** Remove a parent and the push subscriptions that belong to them, so their
+    phone stops receiving notifications the moment the entry is gone. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const id = idParam(event)
   await parentInScope(me, id)
-  await (await useDb()).delete(s.parents).where(eq(s.parents.id, id))
+  const db = (await useDb())
+  await db.transaction(async tx => {
+    await tx.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.parentId, id))
+    await tx.delete(s.parents).where(eq(s.parents.id, id))
+  })
   return { ok: true }
 })

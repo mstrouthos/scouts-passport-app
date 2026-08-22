@@ -189,6 +189,7 @@ export const infoPages = pgTable('info_pages', {
 export const pushSubscriptions = pgTable('push_subscriptions', {
   id: serial('id').primaryKey(),
   scoutId: integer('scout_id').references(() => scouts.id),
+  parentId: integer('parent_id').references(() => parents.id),
   sectionId: integer('section_id').references(() => sections.id),
   endpoint: text('endpoint').notNull(),
   p256dh: text('p256dh').notNull(),
@@ -227,6 +228,8 @@ export const announcements = pgTable('announcements', {
   // which channels the sender chose — push always, SMS only when asked
   viaPush: boolean('via_push').notNull().default(true),
   viaSms: boolean('via_sms').notNull().default(false),
+  // whether the parents of the recipients hear about it too
+  toParents: boolean('to_parents').notNull().default(true),
   scheduledAt: text('scheduled_at'),
   createdBy: integer('created_by').notNull(),
   createdAt: text('created_at').notNull(),
@@ -247,10 +250,16 @@ export const files = pgTable('files', {
   createdAt: text('created_at').notNull()
 })
 
-/** One parent, belonging to the section their child is in. Each has their own
-    access code for the parents' page — no shared password. */
+/** One parent, linked to their child. The link is what makes "notify the
+    parents of the band" possible: a parent is reached through their kid, not
+    through a list someone has to keep in step by hand. Each has their own
+    access code for the parents' page — no shared password.
+
+    sectionId is a fallback for parents added before the link existed; the
+    section that counts is the one their child is in (see sectionOfParent). */
 export const parents = pgTable('parents', {
   id: serial('id').primaryKey(),
+  scoutId: integer('scout_id').references(() => scouts.id),
   sectionId: integer('section_id').notNull().references(() => sections.id),
   name: text('name').notNull(),
   email: text('email'),

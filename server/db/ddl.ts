@@ -178,6 +178,7 @@ CREATE TABLE IF NOT EXISTS announcements (
   status TEXT NOT NULL DEFAULT 'pending',
   via_push BOOLEAN NOT NULL DEFAULT TRUE,
   via_sms BOOLEAN NOT NULL DEFAULT FALSE,
+  to_parents BOOLEAN NOT NULL DEFAULT TRUE,
   scheduled_at TEXT,
   created_by INTEGER NOT NULL, created_at TEXT NOT NULL,
   approved_by INTEGER, sent_at TEXT
@@ -189,6 +190,7 @@ CREATE TABLE IF NOT EXISTS files (
 );
 CREATE TABLE IF NOT EXISTS parents (
   id SERIAL PRIMARY KEY,
+  scout_id INTEGER REFERENCES scouts(id),
   section_id INTEGER NOT NULL REFERENCES sections(id),
   name TEXT NOT NULL, email TEXT, phone TEXT,
   passcode_hmac TEXT,
@@ -215,6 +217,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS family_contact_uq ON family_contacts(section_i
 
 /* Best-effort column adds for databases created before these fields existed. */
 export const MIGRATIONS = [
+  "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS to_parents BOOLEAN NOT NULL DEFAULT TRUE",
+  "ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES parents(id)",
+  "ALTER TABLE parents ADD COLUMN IF NOT EXISTS scout_id INTEGER REFERENCES scouts(id)",
   "UPDATE challenges SET points = 10 WHERE points <> 10",
   "ALTER TABLE sections ADD COLUMN IF NOT EXISTS slug TEXT",
   "ALTER TABLE sections ADD COLUMN IF NOT EXISTS has_app BOOLEAN NOT NULL DEFAULT TRUE",

@@ -1,14 +1,18 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
-import { sendPushTo, sendPushToParents } from './push'
+import { sendPushTo, sendPushToParents, sendPushToParentIds } from './push'
 import { sendEmails } from './email'
 import { sendSms } from './sms'
 import { sectionOfWith } from './guard'
+import { parentsOfScouts } from './parents'
 import { now } from './passcode'
 
 /** Deliver an approved announcement over the channels it was created with:
-    in-app/push always, SMS only when the sender asked for it (it costs money),
-    plus parent email for troop/section audiences. */
+    in-app/push always, SMS only when the sender asked for it (it costs money).
+
+    Parents are reached through their children, so whoever the message is aimed
+    at — a section, the troop, or a named group like the band — their parents
+    come along unless the sender turned that off. */
 export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelect, approvedBy: number | null) {
   const db = (await useDb())
   const scouts = (await db.select().from(s.scouts)).filter(r => r.isActive)
@@ -34,21 +38,36 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
   const msg = { title: 'Πύλη Προσκόπων', body: a.textEl, kind: 'announcement', refId: a.id }
   // the in-app inbox is always written; push delivery rides along with it
   const pushed = await sendPushTo(memberIds, msg)
-  const parentPushed = parentSections === null || parentSections.length
-    ? await sendPushToParents(parentSections, msg) : 0
+
+  // parents of the scouts this went to — this is what makes "tell the parents
+  // of the band" work, without anyone keeping a second list of families
+  const toParents = a.toParents !== false && a.audience !== 'leaders'
+  const parents = toParents ? await parentsOfScouts(memberIds) : []
+  const parentPushed = toParents
+    ? await sendPushToParentIds(parents.map(p => p.id), msg)
+      // parents who never signed in still have a section-wide subscription
+      + (parentSections === null || parentSections.length ? await sendPushToParents(parentSections, msg) : 0)
+    : 0
 
   const contacts = (await db.select().from(s.familyContacts))
     .filter(c => a.audience === 'troop' || (a.audience === 'section' && c.sectionId === a.sectionId))
-  const emailed = await sendEmails(contacts.map(c => c.email), 'Ανακοίνωση — Πύλη Προσκόπων', a.textEl)
+  const addresses = [...new Set([
+    ...(toParents ? parents.map(p => p.email).filter(Boolean) as string[] : []),
+    ...(toParents ? contacts.map(c => c.email) : [])
+  ])]
+  const emailed = await sendEmails(addresses, 'Ανακοίνωση — Πύλη Προσκόπων', a.textEl)
 
   let smsSent = 0
   if (a.viaSms) {
-    const numbers = scouts.filter(r => memberIds.includes(r.id) && r.phone).map(r => r.phone!)
+    const numbers = [...new Set([
+      ...scouts.filter(r => memberIds.includes(r.id) && r.phone).map(r => r.phone!),
+      ...(toParents ? parents.map(p => p.phone).filter(Boolean) as string[] : [])
+    ])]
     smsSent = await sendSms(numbers, `Πύλη Προσκόπων: ${a.textEl}`)
   }
 
   await db.update(s.announcements)
     .set({ status: 'sent', approvedBy, sentAt: now() })
     .where(eq(s.announcements.id, a.id))
-  return { recipients: memberIds.length, pushed: pushed + parentPushed, emailed, smsSent }
+  return { recipients: memberIds.length, parents: parents.length, pushed: pushed + parentPushed, emailed, smsSent }
 }

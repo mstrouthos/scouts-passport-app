@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
-import { requireLeader, scopedSectionIds, idParam } from '../../../../utils/guard'
+import { requireLeader, idParam } from '../../../../utils/guard'
+import { parentInScope } from '../[id].patch'
 import { generatePasscode, hmacPasscode } from '../../../../utils/passcode'
 import { sendSms } from '../../../../utils/sms'
 import { sendEmails } from '../../../../utils/email'
@@ -11,11 +12,7 @@ export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const id = idParam(event)
   const db = (await useDb())
-  const p = (await db.select().from(s.parents).where(eq(s.parents.id, id)).limit(1))[0]
-  if (!p) throw createError({ statusCode: 404, message: 'Not found' })
-  const secIds = await scopedSectionIds(me)
-  if (secIds !== null && !secIds.includes(p.sectionId))
-    throw createError({ statusCode: 403, message: 'Out of your sector' })
+  const p = await parentInScope(me, id)
 
   const b = await readBody<{ via?: string }>(event).catch(() => ({}))
   const via = b?.via === 'sms' ? 'sms' : b?.via === 'email' ? 'email' : 'none'

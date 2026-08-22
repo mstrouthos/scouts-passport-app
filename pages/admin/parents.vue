@@ -10,17 +10,12 @@ const tab = ref<'people' | 'posts'>('people')
 const editing = ref<any>(null)
 const busy = ref(false)
 const issued = ref<{ id: number, passcode: string } | null>(null)
-function openNew() {
-  issued.value = null
-  editing.value = { name: '', email: '', phone: null, sectionId: data.value?.sections?.[0]?.id ?? 0 }
-}
 function openEdit(p: any) { issued.value = null; editing.value = { ...p } }
 async function saveParent() {
   const p = editing.value
   busy.value = true
   try {
-    if (p.id) await $fetch(`/api/admin/parents/${p.id}`, { method: 'PATCH', body: p })
-    else await $fetch('/api/admin/parents', { method: 'POST', body: p })
+    await $fetch(`/api/admin/parents/${p.id}`, { method: 'PATCH', body: p })
     editing.value = null
     await refresh(); show('✅ ' + t('saved'))
   } catch (e: any) { show(e?.data?.message || t('error')) }
@@ -98,7 +93,7 @@ async function deletePost(id: number) {
                   class="it" @click="openEdit(p)">
             <div style="flex:1;min-width:0">
               <b>{{ p.name }}</b>
-              <span>{{ p.email || p.phone }}</span>
+              <span>{{ p.scoutName ? `👦 ${p.scoutName}` : t('parentNoChild') }} · {{ p.email || p.phone }}</span>
             </div>
             <span class="pill" :class="p.hasCode ? 'ok' : 'draft'">{{ p.hasCode ? t('hasCode') : t('noCode') }}</span>
             <span class="chev">›</span>
@@ -108,8 +103,7 @@ async function deletePost(id: number) {
           </div>
         </div>
       </template>
-      <div class="tiny muted">{{ t('parentsNote') }}</div>
-      <button class="fab" :aria-label="t('newParent')" @click="openNew">+</button>
+      <div class="tiny muted">{{ t('parentsAddedOnScout') }}</div>
     </template>
 
     <template v-else>
@@ -132,18 +126,12 @@ async function deletePost(id: number) {
       <!-- parent -->
       <div v-if="editing" class="sheet-backdrop" @click.self="editing = null">
         <div class="sheet" style="display:flex;flex-direction:column;gap:12px;max-height:88dvh;overflow:auto">
-          <h3 style="margin:0;font-size:17px;text-align:center">{{ editing.id ? t('editParent') : t('newParent') }}</h3>
+          <h3 style="margin:0;font-size:17px;text-align:center">{{ t('editParent') }}</h3>
           <div><label class="lab">{{ t('parentName') }}</label><input v-model="editing.name" class="in"></div>
           <div><label class="lab">Email</label><input v-model="editing.email" class="in" type="email"></div>
           <div><label class="lab">{{ t('phone') }}</label><PhoneInput v-model="editing.phone" /></div>
-          <div>
-            <label class="lab">{{ t('sectionWord') }}</label>
-            <div class="chips">
-              <button v-for="sec in data?.sections" :key="sec.id" class="chip"
-                      :class="{ on: editing.sectionId === sec.id }" @click="editing.sectionId = sec.id">
-                {{ lx(sec, 'name') }}
-              </button>
-            </div>
+          <div v-if="editing.scoutName" class="tiny muted">
+            👦 {{ editing.scoutName }} · {{ sectionName(editing.sectionId) }}
           </div>
           <button class="btn" :disabled="!editing.name || busy" @click="saveParent">{{ busy ? t('loading') : t('save') }}</button>
 

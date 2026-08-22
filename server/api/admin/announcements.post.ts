@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const b = await readBody<{
     audience?: string, sectionId?: number, groupId?: number,
     textEl?: string, textEn?: string,
-    viaSms?: boolean, scheduledAt?: string
+    viaSms?: boolean, toParents?: boolean, scheduledAt?: string
   }>(event)
   const text = String(b?.textEl || '').trim()
   if (!text) throw createError({ statusCode: 400, message: 'Message required' })
@@ -45,11 +45,12 @@ export default defineEventHandler(async (event) => {
     if (when.getTime() > Date.now() + 60_000) scheduledAt = when.toISOString()
   }
   const viaSms = !!b?.viaSms
+  const toParents = b?.toParents !== false
 
   const canSendWithoutApproval = rank === 'admin' || rank === 'archigos'
   const [row] = (await db.insert(s.announcements).values({
     audience, sectionId, groupId, textEl: text, textEn: b?.textEn || null,
-    viaPush: true, viaSms, scheduledAt,
+    viaPush: true, viaSms, toParents, scheduledAt,
     // scheduled only counts once it is allowed to go out unattended
     status: canSendWithoutApproval && scheduledAt ? 'scheduled' : 'pending',
     createdBy: me.id, createdAt: now()

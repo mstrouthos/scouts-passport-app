@@ -1,22 +1,34 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, visibleSectionIds } from '../../utils/guard'
+import { sectionOfParent } from '../../utils/parents'
 
-/** Parents in the sections this leader can see, one entry per person. */
+/** Parents in the sections this leader can see, each shown with their child. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const db = (await useDb())
   const visIds = await visibleSectionIds(me)
   const sections = (await db.select().from(s.sections)).sort((a, b) => a.sortOrder - b.sortOrder)
+  const scouts = await db.select().from(s.scouts)
+  const patrols = await db.select().from(s.patrols)
+  const kidOf = new Map(scouts.map(x => [x.id, x]))
+
   const rows = (await db.select().from(s.parents))
-    .filter(p => visIds === null || visIds.includes(p.sectionId))
-    .sort((a, b) => a.name.localeCompare(b.name, 'el'))
+    .map(p => ({ p, sectionId: sectionOfParent(p, scouts, patrols) }))
+    .filter(r => r.sectionId != null && (visIds === null || visIds.includes(r.sectionId)))
+    .sort((a, b) => a.p.name.localeCompare(b.p.name, 'el'))
+
   return {
     sections: sections
       .filter(x => visIds === null || visIds.includes(x.id))
       .map(x => ({ id: x.id, nameEl: x.nameEl, nameEn: x.nameEn, slug: x.slug })),
-    parents: rows.map(p => ({
-      id: p.id, sectionId: p.sectionId, name: p.name, email: p.email, phone: p.phone,
-      isActive: p.isActive, hasCode: !!p.passcodeHmac
-    }))
+    parents: rows.map(({ p, sectionId }) => {
+      const kid = p.scoutId != null ? kidOf.get(p.scoutId) : null
+      return {
+        id: p.id, sectionId, name: p.name, email: p.email, phone: p.phone,
+        isActive: p.isActive, hasCode: !!p.passcodeHmac,
+        scoutId: p.scoutId,
+        scoutName: kid ? `${kid.firstName} ${kid.lastName}` : null
+      }
+    })
   }
 })

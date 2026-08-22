@@ -14,6 +14,9 @@ const audience = ref<'troop' | 'leaders' | number | string>(isAdmin.value ? 'tro
 const text = ref('')
 const busy = ref(false)
 const viaSms = ref(false)
+/* Parents are reached through their children, so this works for a group like
+   the band just as it does for a whole section. */
+const toParents = ref(true)
 const whenMode = ref<'now' | 'later'>('now')
 const scheduledAt = ref('')
 
@@ -31,7 +34,7 @@ async function send() {
   busy.value = true
   try {
     const a = audience.value
-    const base: any = { textEl: text.value, viaSms: viaSms.value }
+    const base: any = { textEl: text.value, viaSms: viaSms.value, toParents: toParents.value }
     if (whenMode.value === 'later' && scheduledAt.value)
       base.scheduledAt = new Date(scheduledAt.value).toISOString()
     const body = typeof a === 'number' ? { ...base, audience: 'section', sectionId: a }
@@ -90,9 +93,12 @@ function channels(a: any) {
       <div class="chips">
         <button class="chip on" disabled>🔔 {{ t('chPush') }}</button>
         <button class="chip" :class="{ on: viaSms }" @click="viaSms = !viaSms">📱 {{ t('chSms') }}</button>
+        <button v-if="audience !== 'leaders'" class="chip" :class="{ on: toParents }"
+                @click="toParents = !toParents">👪 {{ t('chParents') }}</button>
       </div>
       <div class="tiny muted" style="margin-top:5px">
         {{ viaSms ? t('chSmsOn') : t('chPushOnly') }}
+        <template v-if="toParents && audience !== 'leaders'"> · {{ t('chParentsOn') }}</template>
         <template v-if="target"> · {{ target.n }} {{ t('members') }}<template v-if="viaSms">, {{ target.sms }} {{ t('withPhone') }}</template></template>
       </div>
     </div>

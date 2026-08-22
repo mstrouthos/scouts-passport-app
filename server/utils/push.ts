@@ -55,12 +55,33 @@ export async function sendPushTo(scoutIds: number[], msg: { title: string, body:
   return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body }))
 }
 
+/** Push to named parents — the ones linked to the scouts a message went to.
+    Deduped per parent, so a parent with two kids in the group hears once. */
+export async function sendPushToParentIds(parentIds: number[], msg: { title: string, body: string, kind: string, refId: number }): Promise<number> {
+  if (!parentIds.length) return 0
+  const db = (await useDb())
+  const ids = new Set(parentIds)
+  const subs = (await db.select().from(s.pushSubscriptions)).filter(x => x.parentId != null && ids.has(x.parentId))
+  if (!subs.length) return 0
+  // negative keys keep parent rows from colliding with scout ids in the log
+  const fresh: number[] = []
+  for (const pid of [...new Set(subs.map(x => x.parentId!))]) {
+    try {
+      await db.insert(s.notificationLog).values({ scoutId: -1_000_000 - pid, kind: msg.kind, refId: msg.refId, sentAt: now() })
+      fresh.push(pid)
+    } catch { /* already sent to this parent */ }
+  }
+  if (!fresh.length) return 0
+  return deliver(subs.filter(x => fresh.includes(x.parentId!)), JSON.stringify({ title: msg.title, body: msg.body }))
+}
+
 /** Push to anonymous parent subscriptions. sectionIds null = every parent sub.
     Dedupe via notification_log rows keyed on the negative section id. */
 export async function sendPushToParents(sectionIds: number[] | null, msg: { title: string, body: string, kind: string, refId: number }): Promise<number> {
   const db = (await useDb())
   const subs = (await db.select().from(s.pushSubscriptions))
-    .filter(x => x.scoutId == null && x.sectionId != null)
+    // parents who signed in are reached by id instead, so skip them here
+    .filter(x => x.scoutId == null && x.parentId == null && x.sectionId != null)
     .filter(x => sectionIds === null || sectionIds.includes(x.sectionId!))
   if (!subs.length) return 0
   const targetSections = [...new Set(subs.map(x => x.sectionId!))]

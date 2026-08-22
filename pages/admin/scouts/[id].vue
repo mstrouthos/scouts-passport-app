@@ -17,6 +17,45 @@ const contact = reactive({ phone: null as string | null, idNumber: '' })
 watch(data, v => { if (v) { contact.phone = v.phone || null; contact.idNumber = v.idNumber || '' } }, { immediate: true })
 const contactPhoneValid = computed(() => !contact.phone || /^\+357\d{8}$/.test(contact.phone))
 
+/* Parents live on the child's profile: that link is what lets a notification
+   to a section or a group reach the right families. */
+const { data: parents, refresh: refreshParents } = await useFetch<any[]>(`/api/admin/scouts/${id}/parents`)
+const addingParent = ref(false)
+const pForm = reactive({ name: '', email: '', phone: null as string | null })
+const pBusy = ref(false)
+const parentCode = ref<{ id: number, passcode: string, sent: boolean, via: string } | null>(null)
+const pPhoneValid = computed(() => !pForm.phone || /^\+357\d{8}$/.test(pForm.phone))
+const pCanSave = computed(() => !!pForm.name.trim() && (!!pForm.email.trim() || !!pForm.phone) && pPhoneValid.value)
+
+function openAddParent() {
+  pForm.name = ''; pForm.email = ''; pForm.phone = null
+  addingParent.value = true
+}
+async function saveParent() {
+  if (!pCanSave.value || pBusy.value) return
+  pBusy.value = true
+  try {
+    await $fetch('/api/admin/parents', { method: 'POST', body: { ...pForm, scoutId: Number(id) } })
+    addingParent.value = false
+    await refreshParents(); show('✅ ' + t('saved'))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+  finally { pBusy.value = false }
+}
+async function removeParent(p: any) {
+  if (!confirm(t('confirmDeleteParent'))) return
+  try {
+    await $fetch(`/api/admin/parents/${p.id}`, { method: 'DELETE' })
+    await refreshParents(); show('🗑️ ' + t('deleted'))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+}
+async function issueParentCode(p: any, via: 'sms' | 'email' | 'none') {
+  try {
+    const res = await $fetch<any>(`/api/admin/parents/${p.id}/code`, { method: 'POST', body: { via } })
+    parentCode.value = { id: p.id, passcode: res.passcode, sent: res.sent, via }
+    await refreshParents()
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+}
+
 async function regen() {
   smsOutcome.value = null
   if (smsOnRegen.value && data.value?.phone) {
@@ -114,6 +153,42 @@ async function deleteScout() {
           </template>
         </div>
 
+        <div class="sec-title">{{ t('parents') }}</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:11px">
+          <template v-if="parents?.length">
+            <div v-for="p in parents" :key="p.id" class="prow">
+              <div style="flex:1;min-width:0">
+                <b>{{ p.name }}</b>
+                <div class="tiny muted">{{ [p.phone, p.email].filter(Boolean).join(' · ') || '—' }}</div>
+                <div v-if="parentCode && parentCode.id === p.id" class="tiny" style="color:var(--accent-deep)">
+                  <b style="font-variant-numeric:tabular-nums">{{ parentCode.passcode }}</b>
+                  <span v-if="parentCode.via !== 'none'"> · {{ parentCode.sent ? t('sent') : t('smsNotConfigured') }}</span>
+                </div>
+                <div v-else-if="!p.hasCode" class="tiny muted">{{ t('parentNoCode') }}</div>
+              </div>
+              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
+                <button v-if="p.phone" class="chip" @click="issueParentCode(p, 'sms')">📱</button>
+                <button v-if="p.email" class="chip" @click="issueParentCode(p, 'email')">✉️</button>
+                <button class="chip" @click="issueParentCode(p, 'none')">🔑</button>
+                <button class="chip" @click="removeParent(p)">🗑️</button>
+              </div>
+            </div>
+          </template>
+          <div v-else class="tiny muted">{{ t('noParentsYet') }}</div>
+
+          <template v-if="addingParent">
+            <div><label class="lab">{{ t('name') }}</label><input v-model="pForm.name" class="in"></div>
+            <div><label class="lab">{{ t('email') }}</label><input v-model="pForm.email" class="in" type="email" inputmode="email"></div>
+            <div><label class="lab">{{ t('phone') }}</label><PhoneInput v-model="pForm.phone" /></div>
+            <div class="tiny muted">{{ t('parentContactHint') }}</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn" :disabled="!pCanSave || pBusy" @click="saveParent">{{ t('save') }}</button>
+              <button class="btn ghost" @click="addingParent = false">{{ t('cancel') }}</button>
+            </div>
+          </template>
+          <button v-else class="chip" style="align-self:flex-start" @click="openAddParent">+ {{ t('addParent') }}</button>
+        </div>
+
         <NuxtLink :to="`/admin/scout-card/${id}`" class="srow">
           <div class="ico">💳</div>
           <div class="txt"><b>{{ t('idCard') }}</b><span>{{ t('downloadIdCard') }}</span></div>
@@ -159,3 +234,8 @@ async function deleteScout() {
     </Teleport>
   </AppShell>
 </template>
+
+<style scoped>
+.prow{display:flex; align-items:flex-start; gap:10px; padding-bottom:10px; border-bottom:1px solid var(--line)}
+.prow:last-of-type{border-bottom:0; padding-bottom:0}
+</style>

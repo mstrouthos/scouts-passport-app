@@ -382,5 +382,14 @@
   "showOptions": "Show the answers",
   "ptsNow": "points now",
   "fixedScoring": "Fixed 10 → 5 (−1 every 5s)",
-  "upToPts": "up to {n} pts"
+  "upToPts": "up to {n} pts",
+  "addParent": "Add a parent",
+  "parentNoCode": "No code yet",
+  "name": "Name",
+  "email": "Email",
+  "parentContactHint": "An email or phone is needed so the code can be sent.",
+  "parentsAddedOnScout": "Parents are added from their child's profile.",
+  "parentNoChild": "Not linked to a scout",
+  "chParents": "Parents",
+  "chParentsOn": "their parents are told too"
 }
