@@ -28,9 +28,13 @@ function toLocal(iso: string | null) {
   const p = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
 }
+async function loadMeta() {
+  meta.value = await $fetch<any>(`/api/admin/events/${id}`)
+  return meta.value
+}
+onMounted(loadMeta)
 async function openEdit() {
-  const e = await $fetch<any>(`/api/admin/events/${id}`)
-  meta.value = e
+  const e = await loadMeta()
   form.titleEl = e.titleEl || ''
   form.location = e.location || ''
   form.startsAt = toLocal(e.startsAt)
@@ -110,6 +114,9 @@ const uniDefs = [
             :sub="`${fmtDate(data.event.startsAt, locale)} · ${t('review')}`" back="/admin/events">
     <template #actions>
       <button class="iconbtn" :aria-label="t('editEvent')" @click="openEdit">✎</button>
+      <button v-if="meta?.canDelete" class="iconbtn" :aria-label="t('deleteEvent')" @click="deleteEvent">
+        <NavIcon name="trash" />
+      </button>
     </template>
 
     <div class="seg">
