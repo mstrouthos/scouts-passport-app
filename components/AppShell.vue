@@ -19,6 +19,16 @@ function fmtWhen(iso: string) {
 }
 
 const isLeader = computed(() => me.value && me.value.role !== 'scout')
+
+/* Signing out is one tap from anywhere, but it is easy to hit by accident on
+   a phone, so it asks first. */
+async function logout() {
+  if (!confirm(t('confirmLogout'))) return
+  await $fetch('/api/logout', { method: 'POST' })
+  useMe().value = null
+  useNotifications().reset()
+  navigateTo('/login')
+}
 const tabs = computed(() => isLeader.value
   ? [
       { to: '/admin', icon: 'shield', label: t('nav.profile') },
@@ -93,6 +103,9 @@ function goBack() {
             </button>
             <button class="lang" :aria-label="t('language')" @click="switchLang">
               <b :class="{ on: locale === 'el' }">ΕΛ</b><b :class="{ on: locale === 'en' }">EN</b>
+            </button>
+            <button v-if="me" class="iconbtn" :aria-label="t('logout')" @click="logout">
+              <NavIcon name="logout" />
             </button>
           </div>
         </div>

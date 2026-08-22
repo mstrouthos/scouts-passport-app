@@ -1,4 +1,7 @@
 <script setup lang="ts">
+/* A leader's own settings: language, notifications and their access code.
+   The code lives here rather than on the profile because it is a thing you
+   change, not a thing you are. */
 const { t, locale, setLocale } = useI18n()
 const me = useMe()
 const { show } = useToast()
@@ -33,10 +36,19 @@ async function enableNotifs() {
   notifState.value = 'granted'
   show(t('notifGranted'))
 }
+
+const newPass = ref<string | null>(null)
+async function rotateOwn() {
+  if (!confirm(t('confirmNewPasscode'))) return
+  try {
+    const res = await $fetch<any>(`/api/admin/scouts/${me.value!.id}/passcode`, { method: 'POST' })
+    newPass.value = res.passcode
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+}
 </script>
 
 <template>
-  <AppShell :title="t('settings')" :sub="`${me?.firstName} ${me?.lastName}`" back="/app">
+  <AppShell :title="t('settings')" :sub="`${me?.firstName} ${me?.lastName}`" back="/admin">
     <div class="sec-title">{{ t('language') }}</div>
     <div class="seg">
       <button :class="{ on: locale === 'el' }" @click="pickLang('el')">Ελληνικά</button>
@@ -53,11 +65,15 @@ async function enableNotifs() {
       </div>
     </button>
 
-    <div class="sec-title">{{ t('install') }}</div>
-    <div class="note">
-      <b>{{ t('installTitle') }}</b>
-      <span>{{ t('installBody') }}</span><br>
-      <span style="color:var(--danger)">{{ t('installWarn') }}</span>
+    <div class="sec-title">{{ t('loginCard') }}</div>
+    <div v-if="newPass" class="note" style="text-align:center">
+      <b>{{ t('passcodeIs') }} <span style="font-variant-numeric:tabular-nums">{{ newPass }}</span></b>
+      {{ t('writeItDown') }}
     </div>
+    <button v-else class="srow" @click="rotateOwn">
+      <div class="ico">🔑</div>
+      <div class="txt"><b>{{ t('newPasscode') }}</b><span>{{ t('newPasscodeSub') }}</span></div>
+      <span class="chev">›</span>
+    </button>
   </AppShell>
 </template>

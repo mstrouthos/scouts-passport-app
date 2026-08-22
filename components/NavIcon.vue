@@ -16,6 +16,7 @@ const paths: Record<string, string> = {
   bell: '<path d="M6 9a6 6 0 0 1 12 0c0 4.5 1.4 6.2 2 7H4c.6-.8 2-2.5 2-7Z"/><path d="M9.5 19a2.5 2.5 0 0 0 5 0"/>',
   trash: '<path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0-.8 12.1a2 2 0 0 1-2 1.9H9.8a2 2 0 0 1-2-1.9L7 7"/><path d="M10 11v6M14 11v6"/>',
   download: '<path d="M12 4v11m0 0 4-4m-4 4-4-4"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/>',
+  logout: '<path d="M15 17v1.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2V7"/><path d="M11 12h9m0 0-3-3m3 3-3 3"/>',
   wallet: '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18"/><circle cx="16.5" cy="14.5" r="1.3"/>'
 }
 </script>
