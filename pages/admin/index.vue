@@ -45,14 +45,6 @@ async function saveDetails() {
     await loadMe(); editingDetails.value = false; show('✅ ' + t('saved'))
   } catch (e: any) { show(e?.data?.message || t('error')) }
 }
-async function resetRoster() {
-  if (!confirm(t('confirmResetRoster'))) return
-  if (!confirm(t('confirmResetRosterAgain'))) return
-  try {
-    const res = await $fetch<any>('/api/admin/scouts/reset-roster', { method: 'POST', body: { confirm: true } })
-    show(`🧹 ${res.deleted} ${t('membersRemoved')}`)
-  } catch (e: any) { show(e?.data?.message || t('error')) }
-}
 </script>
 
 <template>
@@ -99,11 +91,5 @@ async function resetRoster() {
 
     <div class="tiny muted" style="text-align:center">{{ t('notRanked') }}</div>
     <button class="btn danger" @click="logout">{{ t('logout') }}</button>
-
-    <template v-if="me?.role === 'troop_leader'">
-      <div class="sec-title" style="color:var(--danger)">{{ t('dangerZone') }}</div>
-      <button class="btn danger" @click="resetRoster">{{ t('clearDemoRoster') }}</button>
-      <div class="tiny muted">{{ t('clearDemoRosterNote') }}</div>
-    </template>
   </AppShell>
 </template>
