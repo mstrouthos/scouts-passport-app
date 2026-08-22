@@ -3,8 +3,9 @@ const { t, locale } = useI18n()
 const me = useMe()
 const lx = useLx()
 const { data } = await useFetch('/api/passport')
-const { data: chals } = await useFetch('/api/challenges')
-const openChal = computed(() => (chals.value || []).find((c: any) => !c.answer && !c.closed))
+const { data: chals } = await useFetch<any>('/api/challenges')
+// /api/challenges returns the path plus its streak header, not a bare list
+const openChal = computed(() => (chals.value?.items || []).find((c: any) => c.state === 'open'))
 const sheet = ref<any>(null)
 const rankLabel = computed(() => {
   const r = data.value?.rank
@@ -45,7 +46,7 @@ function sub(e: any) {
 
     <NuxtLink v-if="openChal" to="/app/challenges" class="banner">
       <div class="ico">🎯</div>
-      <div><b>{{ t('newChallenge') }}</b><span>{{ lx(openChal) }} · {{ openChal.points }} {{ t('pts') }}</span></div>
+      <div><b>{{ t('newChallenge') }}</b><span>{{ lx(openChal) }} · {{ t('upToPts', { n: openChal.points }) }}</span></div>
       <div class="go">›</div>
     </NuxtLink>
 
