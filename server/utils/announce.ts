@@ -41,7 +41,7 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
 
   // parents of the scouts this went to — this is what makes "tell the parents
   // of the band" work, without anyone keeping a second list of families
-  const toParents = a.toParents !== false && a.audience !== 'leaders'
+  const toParents = a.toParents === true && a.audience !== 'leaders'
   const parents = toParents ? await parentsOfScouts(memberIds) : []
   const parentPushed = toParents
     ? await sendPushToParentIds(parents.map(p => p.id), msg)

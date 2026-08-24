@@ -385,7 +385,7 @@
   "parentsAddedOnScout": "Parents are added from their child's profile.",
   "parentNoChild": "Not linked to a scout",
   "chParents": "Parents",
-  "chParentsOn": "their parents are told too",
+  "chParentsOn": "their parents are told too ({who})",
   "confirmLogout": "Sign out of the app?",
   "confirmNewPasscode": "Your current code stops working and you will need to sign in again. Continue?",
   "scoutRequirements": "Scout Requirements",

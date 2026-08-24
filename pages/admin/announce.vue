@@ -14,9 +14,10 @@ const audience = ref<'troop' | 'leaders' | number | string>(isAdmin.value ? 'tro
 const text = ref('')
 const busy = ref(false)
 const viaSms = ref(false)
-/* Parents are reached through their children, so this works for a group like
-   the band just as it does for a whole section. */
-const toParents = ref(true)
+/* Parents are reached through their children, so whoever the message is aimed
+   at, their parents are the ones who hear it. Off unless asked for: telling a
+   scout something is not the same as telling their family. */
+const toParents = ref(false)
 const whenMode = ref<'now' | 'later'>('now')
 const scheduledAt = ref('')
 
@@ -28,6 +29,17 @@ const target = computed(() => {
     return { n: g?.members.length ?? 0, sms: (g?.members || []).filter((m: any) => m.phone).length }
   }
   return null
+})
+
+/** Who the message is aimed at, named — parents follow the same audience, so
+    the chip says whose parents will hear it. */
+const targetLabel = computed(() => {
+  const a = audience.value
+  if (a === 'troop') return t('wholeTroop')
+  if (a === 'leaders') return t('vathmoforoi')
+  if (typeof a === 'string' && a.startsWith('g:'))
+    return (groups.value || []).find((x: any) => String(x.id) === a.slice(2))?.nameEl ?? ''
+  return lx((roster.value || []).find((x: any) => x.id === a) || {}, 'name')
 })
 
 async function send() {
@@ -98,7 +110,7 @@ function channels(a: any) {
       </div>
       <div class="tiny muted" style="margin-top:5px">
         {{ viaSms ? t('chSmsOn') : t('chPushOnly') }}
-        <template v-if="toParents && audience !== 'leaders'"> · {{ t('chParentsOn') }}</template>
+        <template v-if="toParents && audience !== 'leaders'"> · {{ t('chParentsOn', { who: targetLabel }) }}</template>
         <template v-if="target"> · {{ target.n }} {{ t('members') }}<template v-if="viaSms">, {{ target.sms }} {{ t('withPhone') }}</template></template>
       </div>
     </div>

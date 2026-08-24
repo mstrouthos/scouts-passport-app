@@ -43,6 +43,11 @@
 
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
+/* Kill the double-tap-to-zoom gesture, which fires by accident on tightly
+   packed rows and leaves the app zoomed. Pinch zoom is left alone — taking it
+   away would lock out anyone who needs to magnify the text. */
+html{-webkit-text-size-adjust:100%; text-size-adjust:100%}
+body{touch-action:manipulation}
 body{
   font-family:var(--font);font-size:15px;line-height:1.5;color:var(--ink);
   background:linear-gradient(180deg,#E1EEFB 0%,#D2E3F6 60%,#C7DCF2 100%) fixed, var(--bg);
@@ -215,6 +220,13 @@ input,textarea,select{font-family:inherit}
   background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px 13px;
   font-size:13px;width:100%;color:inherit;
 }
+/* Safari gives date and time inputs an intrinsic width from their formatted
+   value, and a flex item will not shrink below its content, so inside a sheet
+   they push past the edge. Strip the native sizing and let them shrink. */
+.in[type="date"], .in[type="datetime-local"], .in[type="time"]{
+  -webkit-appearance:none; appearance:none; min-width:0; max-width:100%;
+}
+.sheet > *, .sheet > * > *{min-width:0}
 .in:focus{outline:0;border-color:var(--accent)}
 .in.ro{background:#F4F7FA; color:var(--muted); display:flex; align-items:center}
 textarea.in{resize:none;line-height:1.45}

@@ -45,7 +45,8 @@ export default defineEventHandler(async (event) => {
     if (when.getTime() > Date.now() + 60_000) scheduledAt = when.toISOString()
   }
   const viaSms = !!b?.viaSms
-  const toParents = b?.toParents !== false
+  // opt-in: an announcement reaches parents only when the sender asked
+  const toParents = b?.toParents === true
 
   const canSendWithoutApproval = rank === 'admin' || rank === 'archigos'
   const [row] = (await db.insert(s.announcements).values({

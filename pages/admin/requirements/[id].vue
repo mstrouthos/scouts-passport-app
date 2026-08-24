@@ -42,12 +42,18 @@ async function setDone(done: boolean) {
             :back="`/admin/scouts/${id}`">
     <div v-if="!data.canAward" class="note">{{ t('onlyArchigosAwards') }}</div>
 
+    <div class="hero-card">
+      <div class="big">{{ data.earned }}<span>/{{ data.total }}</span></div>
+      <div class="lbl">{{ t('requirementsDone') }}</div>
+      <div class="bar"><i :style="{ width: (data.total ? (data.earned / data.total) * 100 : 0) + '%' }" /></div>
+    </div>
+
     <div v-for="st in stages" :key="st.slug" class="stage">
       <button class="tile" :class="{ done: st.complete }" :style="{ '--tone': st.colour }"
               @click="openStage = openStage === st.slug ? null : st.slug">
         <span class="badge">{{ st.emoji }}</span>
         <span class="txt"><b>{{ st.titleEl }}</b><span>{{ st.earned }}/{{ st.total }} · {{ pct(st) }}%</span></span>
-        <span class="chev">{{ openStage === st.slug ? '⌄' : '›' }}</span>
+        <span class="ring" :style="{ '--p': pct(st) }"><i>{{ st.complete ? '★' : pct(st) + '%' }}</i></span>
       </button>
       <div v-if="openStage === st.slug" class="items">
         <button v-for="it in st.items" :key="it.id" class="item" :class="{ got: it.completedOn }"
@@ -104,7 +110,24 @@ async function setDone(done: boolean) {
 .tile .txt{flex:1;min-width:0;display:flex;flex-direction:column}
 .tile .txt b{font-size:14.5px}
 .tile .txt span{font-size:11.5px;color:var(--muted)}
-.tile .chev{color:var(--muted)}
+.tile .ring{
+  flex:none; width:44px; height:44px; border-radius:50%;
+  background:conic-gradient(var(--tone) calc(var(--p) * 1%), #EEF2F6 0);
+  display:grid; place-items:center;
+}
+.tile .ring i{
+  width:34px; height:34px; border-radius:50%; background:var(--card);
+  display:grid; place-items:center; font-style:normal; font-size:10.5px; font-weight:800;
+}
+.hero-card{
+  background:var(--card); border-radius:var(--r-card); box-shadow:var(--shadow);
+  padding:16px; text-align:center;
+}
+.hero-card .big{font-size:30px; font-weight:800; line-height:1}
+.hero-card .big span{font-size:16px; color:var(--muted); font-weight:600}
+.hero-card .lbl{font-size:12px; color:var(--muted); margin-top:2px}
+.hero-card .bar{height:9px; border-radius:5px; background:#EEF2F6; margin-top:11px; overflow:hidden}
+.hero-card .bar i{display:block; height:100%; border-radius:5px; background:var(--accent); transition:width .4s}
 .tile.done{background:linear-gradient(180deg,#F2FBF5,#fff)}
 .items{display:flex;flex-direction:column;gap:7px;padding-left:6px}
 .item{display:flex;gap:10px;text-align:left;background:var(--card);border-radius:13px;padding:10px 12px;box-shadow:var(--shadow)}
