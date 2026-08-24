@@ -159,7 +159,7 @@ CREATE TABLE IF NOT EXISTS info_pages (
   illustration TEXT, sort_order INTEGER NOT NULL DEFAULT 0,
   is_published BOOLEAN NOT NULL DEFAULT FALSE
 );
-CREATE UNIQUE INDEX IF NOT EXISTS info_slug_uq ON info_pages(slug);
+
 CREATE TABLE IF NOT EXISTS push_subscriptions (
   id SERIAL PRIMARY KEY,
   scout_id INTEGER REFERENCES scouts(id),
@@ -243,6 +243,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS family_contact_uq ON family_contacts(section_i
 
 /* Best-effort column adds for databases created before these fields existed. */
 export const MIGRATIONS = [
+  "ALTER TABLE info_pages ADD COLUMN IF NOT EXISTS section_id INTEGER REFERENCES sections(id)",
+  "DROP INDEX IF EXISTS info_slug_uq",
+  "CREATE UNIQUE INDEX IF NOT EXISTS info_slug_section_uq ON info_pages (slug, COALESCE(section_id, 0))",
   "ALTER TABLE achievements ADD COLUMN IF NOT EXISTS category TEXT",
   "ALTER TABLE achievements ADD COLUMN IF NOT EXISTS slug TEXT",
   "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS to_parents BOOLEAN NOT NULL DEFAULT TRUE",

@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     }),
     patrols: patrols.map(p => ({ id: p.id, nameEl: p.nameEl, nameEn: p.nameEn, emblem: p.emblem })),
     gameAwards: awards.map(a => ({
-      patrolId: a.patrolId, points: a.points, reasonEl: a.reasonEl, reasonEn: a.reasonEn
+      patrolId: a.patrolId, scoutId: a.scoutId, points: a.points, reasonEl: a.reasonEl, reasonEn: a.reasonEn
     }))
   }
 })

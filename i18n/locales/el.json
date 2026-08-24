@@ -400,5 +400,13 @@
   "badgeRequirements": "Τι ζητά το πτυχίο",
   "seeRequirements": "Προσκοπικές Απαιτήσεις",
   "onlyArchigosAwards": "Μόνο ο Αρχηγός απονέμει απαιτήσεις",
-  "orAlternative": "— ή —"
+  "orAlternative": "— ή —",
+  "ptsUniformPartialL": "Ελλιπής στολή",
+  "ptsUniformNoneL": "Χωρίς στολή",
+  "toPatrol": "Σε ενωμοτία",
+  "toScout": "Σε πρόσκοπο",
+  "whichScout": "Ποιος πρόσκοπος",
+  "awardScout": "Απονομή στον πρόσκοπο",
+  "whoFor": "Για ποιους",
+  "infoSectionNote": "Οι σελίδες ενός τμήματος υπερισχύουν της αντίστοιχης σελίδας για όλο το Σύστημα — π.χ. διαφορετική στολή ανά τμήμα."
 }

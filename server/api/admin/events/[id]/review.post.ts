@@ -45,7 +45,14 @@ export default defineEventHandler(async (event) => {
                                ['Απουσία', 'Absence']
   if (attendance && attendPoints)
     await db.insert(s.pointAwards).values({ scoutId, eventId, kind: 'attendance', points: attendPoints, reasonEl: attendReason[0], reasonEn: attendReason[1], awardedBy: me.id, awardedAt: t })
-  if (uniform === 'full' && rules.uniformFull)
-    await db.insert(s.pointAwards).values({ scoutId, eventId, kind: 'uniform', points: rules.uniformFull, reasonEl: 'Πλήρης στολή', reasonEn: 'Full uniform', awardedBy: me.id, awardedAt: t })
+  // every uniform verdict can carry points, including a penalty for none
+  const uniformPts = uniform === 'full' ? rules.uniformFull
+    : uniform === 'partial' ? rules.uniformPartial
+    : uniform === 'none' ? rules.uniformNone : 0
+  const uniformLabel = uniform === 'full' ? ['Πλήρης στολή', 'Full uniform']
+    : uniform === 'partial' ? ['Ελλιπής στολή', 'Partial uniform']
+    : ['Χωρίς στολή', 'No uniform']
+  if (uniform && uniformPts)
+    await db.insert(s.pointAwards).values({ scoutId, eventId, kind: 'uniform', points: uniformPts, reasonEl: uniformLabel[0], reasonEn: uniformLabel[1], awardedBy: me.id, awardedAt: t })
   return { ok: true }
 })

@@ -9,7 +9,15 @@ const me = useMe()
 const id = route.params.id
 const { data, refresh } = await useFetch<any>(`/api/admin/events/${id}/review`)
 const tab = ref<'att' | 'uni' | 'pts'>('att')
-const game = reactive({ patrolId: 0, points: 20, reason: '' })
+const game = reactive({ patrolId: 0, scoutId: 0, points: 20, reason: '' })
+/* Points go to a whole ενωμοτία or to one scout — never both at once. */
+const gameTarget = ref<'patrol' | 'scout'>('patrol')
+const gameName = (a: any) => a.scoutId
+  ? name((data.value?.scouts || []).find((r: any) => r.id === a.scoutId) || {})
+  : lx((data.value?.patrols || []).find((p: any) => p.id === a.patrolId), 'name')
+const gameIcon = (a: any) => a.scoutId
+  ? '🎖️'
+  : (data.value?.patrols || []).find((p: any) => p.id === a.patrolId)?.emblem || '🏆'
 
 // ----- edit / delete -----
 const { data: secs } = await useFetch<any>('/api/admin/contacts')
@@ -94,11 +102,15 @@ async function allPresent() {
   await refresh()
 }
 async function awardGame() {
-  if (!game.patrolId || !game.points) return
+  const toScout = gameTarget.value === 'scout'
+  if (!game.points || (toScout ? !game.scoutId : !game.patrolId)) return
   await $fetch(`/api/admin/events/${id}/game`, {
-    method: 'POST', body: { patrolId: game.patrolId, points: game.points, reasonEl: game.reason || 'Παιχνίδι' }
+    method: 'POST',
+    body: toScout
+      ? { scoutId: game.scoutId, points: game.points, reasonEl: game.reason || 'Παιχνίδι' }
+      : { patrolId: game.patrolId, points: game.points, reasonEl: game.reason || 'Παιχνίδι' }
   })
-  game.patrolId = 0; game.reason = ''
+  game.patrolId = 0; game.scoutId = 0; game.reason = ''
   await refresh(); show('🏆 +' + game.points)
 }
 const attDefs = [
@@ -175,22 +187,34 @@ const uniDefs = [
     </template>
 
     <template v-else>
-      <div><label class="lab">{{ t('winner') }}</label>
+      <div class="seg">
+        <button :class="{ on: gameTarget === 'patrol' }" @click="gameTarget = 'patrol'">{{ t('toPatrol') }}</button>
+        <button :class="{ on: gameTarget === 'scout' }" @click="gameTarget = 'scout'">{{ t('toScout') }}</button>
+      </div>
+      <div v-if="gameTarget === 'patrol'"><label class="lab">{{ t('winner') }}</label>
         <div class="chips">
           <button v-for="p in data.patrols" :key="p.id" class="chip" :class="{ on: game.patrolId === p.id }"
                   @click="game.patrolId = p.id">{{ p.emblem }} {{ lx(p, 'name') }}</button>
+        </div>
+      </div>
+      <div v-else><label class="lab">{{ t('whichScout') }}</label>
+        <div class="chips">
+          <button v-for="r in data.scouts" :key="r.id" class="chip" :class="{ on: game.scoutId === r.id }"
+                  @click="game.scoutId = r.id">{{ name(r) }}</button>
         </div>
       </div>
       <div style="display:flex;gap:8px">
         <div style="flex:1"><label class="lab">{{ t('points') }}</label><input v-model.number="game.points" type="number" class="in"></div>
         <div style="flex:2"><label class="lab">{{ t('reason') }}</label><input v-model="game.reason" class="in" :placeholder="t('reasonPh')"></div>
       </div>
-      <button class="btn" :disabled="!game.patrolId" @click="awardGame">{{ t('awardPatrol') }}</button>
+      <button class="btn" :disabled="gameTarget === 'scout' ? !game.scoutId : !game.patrolId" @click="awardGame">
+        {{ gameTarget === 'scout' ? t('awardScout') : t('awardPatrol') }}
+      </button>
       <div class="sec-title">{{ t('awardsMade') }}</div>
       <div v-if="data.gameAwards.length" class="adm">
         <div v-for="(a, i) in data.gameAwards" :key="i" class="it">
-          <div style="font-size:17px;width:24px;text-align:center">{{ data.patrols.find(p => p.id === a.patrolId)?.emblem }}</div>
-          <div style="flex:1"><b>{{ lx(data.patrols.find(p => p.id === a.patrolId), 'name') }}</b><span>{{ lx(a, 'reason') }}</span></div>
+          <div style="font-size:17px;width:24px;text-align:center">{{ gameIcon(a) }}</div>
+          <div style="flex:1"><b>{{ gameName(a) }}</b><span>{{ lx(a, 'reason') }}</span></div>
           <span style="font-weight:700;color:var(--green)">+{{ a.points }}</span>
         </div>
       </div>

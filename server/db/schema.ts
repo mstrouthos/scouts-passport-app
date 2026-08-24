@@ -216,6 +216,9 @@ export const infoPages = pgTable('info_pages', {
   bodyEl: text('body_el').notNull().default(''),
   bodyEn: text('body_en'),
   illustration: text('illustration'),
+  // null = the whole troop; otherwise the page belongs to one section, because
+  // the uniform (and much else) differs between Αγέλη and Ομάδα
+  sectionId: integer('section_id').references(() => sections.id),
   sortOrder: integer('sort_order').notNull().default(0),
   isPublished: boolean('is_published').notNull().default(false)
 }, t => [uniqueIndex('info_slug_uq').on(t.slug)])

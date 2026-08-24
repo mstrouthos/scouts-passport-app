@@ -16,8 +16,15 @@ export default defineEventHandler(async (event) => {
     bodyEl: b.bodyEl || '', bodyEn: b.bodyEn || null,
     isPublished: !!b.isPublished, sortOrder: Number(b.sortOrder) || 50
   }
-  const existing = (await db.select().from(s.infoPages).where(eq(s.infoPages.slug, slug)).limit(1))[0]
-  if (existing) await db.update(s.infoPages).set(set).where(eq(s.infoPages.id, existing.id))
-  else await db.insert(s.infoPages).values({ slug, ...set })
-  return { ok: true, slug }
+  // null = written once for the whole troop; a section id = only that sector
+  const sectionId = b?.sectionId == null || b.sectionId === '' ? null : Number(b.sectionId)
+  if (sectionId != null && !(await db.select().from(s.sections)).some(x => x.id === sectionId))
+    throw createError({ statusCode: 400, message: 'Bad section' })
+
+  // a page is identified by slug *and* sector, so "Στολές" can differ per sector
+  const existing = (await db.select().from(s.infoPages))
+    .find(x => x.slug === slug && (x.sectionId ?? null) === sectionId)
+  if (existing) await db.update(s.infoPages).set({ ...set, sectionId }).where(eq(s.infoPages.id, existing.id))
+  else await db.insert(s.infoPages).values({ slug, sectionId, ...set })
+  return { ok: true, slug, sectionId }
 })

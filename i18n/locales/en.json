@@ -400,5 +400,13 @@
   "badgeRequirements": "What the badge asks for",
   "seeRequirements": "Scout Requirements",
   "onlyArchigosAwards": "Only the Αρχηγός awards requirements",
-  "orAlternative": "— or —"
+  "orAlternative": "— or —",
+  "ptsUniformPartialL": "Partial uniform",
+  "ptsUniformNoneL": "No uniform",
+  "toPatrol": "To a patrol",
+  "toScout": "To a scout",
+  "whichScout": "Which scout",
+  "awardScout": "Award the scout",
+  "whoFor": "Who it is for",
+  "infoSectionNote": "A sector's page overrides the troop-wide one with the same slug — e.g. a different uniform per sector."
 }

@@ -7,7 +7,8 @@ export default defineEventHandler(async (event) => {
   const b = await readBody<any>(event)
   await setPointRules({
     present: b?.present, excused: b?.excused,
-    absent: b?.absent, uniformFull: b?.uniformFull
+    absent: b?.absent, uniformFull: b?.uniformFull,
+    uniformPartial: b?.uniformPartial, uniformNone: b?.uniformNone
   })
   return getPointRules()
 })

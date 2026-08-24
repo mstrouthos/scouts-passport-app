@@ -8,11 +8,17 @@ export type PointRules = {
   excused: number      // justified absence
   absent: number
   uniformFull: number
+  uniformPartial: number
+  uniformNone: number     // may be negative — a penalty for turning up out of uniform
 }
 
-export const DEFAULT_POINTS: PointRules = { present: 5, excused: 0, absent: 0, uniformFull: 5 }
+export const DEFAULT_POINTS: PointRules = {
+  present: 5, excused: 0, absent: 0,
+  uniformFull: 5, uniformPartial: 0, uniformNone: 0
+}
 
-const KEYS = ['points.present', 'points.excused', 'points.absent', 'points.uniformFull'] as const
+const KEYS = ['points.present', 'points.excused', 'points.absent',
+  'points.uniformFull', 'points.uniformPartial', 'points.uniformNone'] as const
 
 export async function getPointRules(): Promise<PointRules> {
   const db = (await useDb())
@@ -26,7 +32,9 @@ export async function getPointRules(): Promise<PointRules> {
     present: read('points.present', DEFAULT_POINTS.present),
     excused: read('points.excused', DEFAULT_POINTS.excused),
     absent: read('points.absent', DEFAULT_POINTS.absent),
-    uniformFull: read('points.uniformFull', DEFAULT_POINTS.uniformFull)
+    uniformFull: read('points.uniformFull', DEFAULT_POINTS.uniformFull),
+    uniformPartial: read('points.uniformPartial', DEFAULT_POINTS.uniformPartial),
+    uniformNone: read('points.uniformNone', DEFAULT_POINTS.uniformNone)
   }
 }
 
@@ -34,7 +42,8 @@ export async function setPointRules(next: Partial<PointRules>) {
   const db = (await useDb())
   for (const [field, key] of [
     ['present', 'points.present'], ['excused', 'points.excused'],
-    ['absent', 'points.absent'], ['uniformFull', 'points.uniformFull']
+    ['absent', 'points.absent'], ['uniformFull', 'points.uniformFull'],
+    ['uniformPartial', 'points.uniformPartial'], ['uniformNone', 'points.uniformNone']
   ] as const) {
     const v = next[field]
     if (v === undefined) continue
