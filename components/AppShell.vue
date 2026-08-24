@@ -79,7 +79,7 @@ function goBack() {
 <template>
   <div class="shell" :class="{ lead: !!me, 'with-rail': isLeader, [themeClass]: themeClass }">
     <aside v-if="isLeader" class="rail">
-      <div class="brand"><span class="mark">⚜️</span> {{ t('appName') }}</div>
+      <div class="brand"><img class="mark" src="/images/logo-256.png" alt=""> {{ t('appName') }}</div>
       <NuxtLink v-for="tb in tabs" :key="tb.to" :to="tb.to" class="tab" :class="{ on: isOn(tb.to) }">
         <NavIcon :name="tb.icon" /><span class="tlbl">{{ tb.label }}</span>
       </NuxtLink>

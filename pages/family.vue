@@ -64,7 +64,7 @@ async function enableNotifs() {
     <header class="hero" style="background:var(--grad-auth)">
       <div class="row">
         <div style="display:flex;align-items:center;gap:12px">
-          <img src="/images/logo-256.png" alt="" style="width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(255,255,255,.5)">
+          <img src="/images/logo-256.png" alt="" style="width:44px;height:44px;object-fit:contain">
           <div>
             <h1>{{ t('familyTitle') }}</h1>
             <div class="sub">{{ me?.section ? lx(me.section, 'name') : t('troopName') }}</div>
