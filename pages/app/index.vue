@@ -82,7 +82,9 @@ function sub(e: any) {
       <div class="name">{{ me?.firstName }} {{ me?.lastName }}</div>
       <div class="meta">{{ lx(me?.section, 'name') }} · {{ lx(me?.patrol, 'name') }}</div>
       <div class="stats">
-        <div class="stat"><b>{{ data?.points ?? 0 }}</b><span>{{ t('points') }}</span></div>
+        <NuxtLink to="/app/points" class="stat tappable">
+          <b>{{ data?.points ?? 0 }}</b><span>{{ t('points') }} ›</span>
+        </NuxtLink>
         <div class="stat"><b>{{ rankLabel }}</b><span>{{ t('rank') }}</span></div>
         <div v-if="showBadges" class="stat"><b>{{ earned }}/{{ data?.badges?.length ?? 0 }}</b><span>{{ t('badges') }}</span></div>
         <div v-else class="stat"><b>{{ upcomingEvents.length }}</b><span>{{ t('events') }}</span></div>
@@ -180,6 +182,10 @@ function sub(e: any) {
 </template>
 
 <style scoped>
+/* the points tile leads to the breakdown, so it reads as something to press */
+.stat.tappable{cursor:pointer}
+.stat.tappable:active{transform:translateY(1px)}
+
 .banner.req .ico{background:#FBF2D8}
 .catgroup{display:flex; flex-direction:column}
 .cathead{

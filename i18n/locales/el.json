@@ -417,5 +417,15 @@
   "openIt": "Δες το",
   "badgeEarned": "Νέο πτυχίο!",
   "requirementDone": "Απαίτηση ολοκληρωμένη!",
-  "noSectorYet": "Χωρίς τομέα"
+  "noSectorYet": "Χωρίς τομέα",
+  "pointsBreakdownSub": "Από πού μαζεύτηκαν",
+  "pointsTotal": "συνολικοί πόντοι",
+  "allPoints": "Όλα τα πόντα",
+  "noPointsYet": "Δεν έχεις πόντους ακόμη.",
+  "ptsFromChallenges": "Προκλήσεις",
+  "ptsFromAttendance": "Παρουσίες",
+  "ptsFromUniform": "Στολή",
+  "ptsFromGames": "Παιχνίδια",
+  "ptsFromPatrol": "Ενωμοτία",
+  "ptsFromManual": "Απονομές"
 }

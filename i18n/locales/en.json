@@ -417,5 +417,15 @@
   "openIt": "Open it",
   "badgeEarned": "New badge!",
   "requirementDone": "Requirement complete!",
-  "noSectorYet": "No sector yet"
+  "noSectorYet": "No sector yet",
+  "pointsBreakdownSub": "Where they came from",
+  "pointsTotal": "points in total",
+  "allPoints": "All points",
+  "noPointsYet": "No points yet.",
+  "ptsFromChallenges": "Challenges",
+  "ptsFromAttendance": "Attendance",
+  "ptsFromUniform": "Uniform",
+  "ptsFromGames": "Games",
+  "ptsFromPatrol": "Patrol",
+  "ptsFromManual": "Awards"
 }
