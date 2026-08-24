@@ -37,24 +37,7 @@ export async function seedIfEmpty(db: Db) {
     joinedOn: ts.slice(0, 10), createdAt: ts
   })
 
-  // Badge catalogue — awarded to members by leaders.
-  const badgeDefs: Array<[string, string, string, string, string]> = [
-    ['🪢', 'Κόμποι', 'Knots', 'Δένεις με σιγουριά τους βασικούς κόμπους και ξέρεις πού χρησιμεύει ο καθένας.', 'Ties the core scouting knots confidently and knows what each one is for.'],
-    ['🧭', 'Προσανατολισμός', 'Orienteering', 'Βρίσκεις τον δρόμο σου με χάρτη και πυξίδα, μέρα και νύχτα.', 'Finds their way with map and compass, by day and by night.'],
-    ['⛺', 'Κατασκήνωση', 'Camping', 'Στήνεις σκηνή, οργανώνεις κατασκήνωση και φροντίζεις τον χώρο σου.', 'Pitches a tent, sets up camp and looks after the site.'],
-    ['🔥', 'Φωτιά', 'Fire', 'Ανάβεις και σβήνεις φωτιά με ασφάλεια, σε κάθε καιρό.', 'Lights and safely extinguishes a fire in any weather.'],
-    ['🩹', 'Πρώτες Βοήθειες', 'First Aid', 'Αντιμετωπίζεις τραυματισμούς και ξέρεις πότε να καλέσεις βοήθεια.', 'Handles injuries and knows when to call for help.'],
-    ['🍳', 'Μαγειρική', 'Cooking', 'Ετοιμάζεις γεύμα για την ενωμοτία σου στην ύπαιθρο.', 'Cooks a meal for their patrol in the outdoors.'],
-    ['🏊', 'Κολύμβηση', 'Swimming', 'Κολυμπάς με ασφάλεια και γνωρίζεις τους κανόνες διάσωσης.', 'Swims safely and knows basic water rescue rules.'],
-    ['🗺️', 'Χαρτογραφία', 'Mapping', 'Σχεδιάζεις και διαβάζεις χάρτες με κλίμακα και σύμβολα.', 'Draws and reads maps with scale and symbols.'],
-    ['🌿', 'Φύση', 'Nature', 'Αναγνωρίζεις φυτά και ζώα της περιοχής σου.', 'Identifies local plants and animals.'],
-    ['🚴', 'Ποδηλασία', 'Cycling', 'Συντηρείς το ποδήλατό σου και κινείσαι με ασφάλεια.', 'Maintains a bike and rides safely.'],
-    ['📡', 'Επικοινωνίες', 'Signalling', 'Στέλνεις και λαμβάνεις μηνύματα με σήματα.', 'Sends and receives messages by signal.'],
-    ['🪵', 'Ξυλοτεχνία', 'Pioneering', 'Φτιάχνεις χρήσιμες κατασκευές με ξύλα και σχοινιά.', 'Builds useful structures from spars and rope.']
-  ]
-  await db.insert(s.achievements).values(badgeDefs.map(([i, el, en, del_, den], idx) => ({
-    iconEmoji: i, titleEl: el, titleEn: en, descriptionEl: del_, descriptionEn: den, sortOrder: idx
-  })))
+  // The Πτυχία catalogue comes from the passport — see seedPassport.ts.
 
   await db.insert(s.infoPages).values([
     {

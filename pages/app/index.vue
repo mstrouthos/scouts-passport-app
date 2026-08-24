@@ -17,6 +17,18 @@ const earned = computed(() => (data.value?.badges || []).filter((b: any) => b.ea
 // Badges/achievements are a Scout-Troop concept — every other section sees
 // its upcoming events on the dashboard instead.
 const showBadges = computed(() => me.value?.section?.slug === 'omada')
+
+/* Some πτυχία offer one route "ή" another, and the passport restarts its
+   numbering after that word. Number the steps ourselves so the separator is
+   not counted as one of them. */
+const sheetSteps = computed(() => {
+  let n = 0
+  return (sheet.value?.requirementsEl || []).map((text: string) => {
+    if (text === '— ή —') { n = 0; return { kind: 'sep', text } }
+    if (text.startsWith(':: ')) return { kind: 'lead', text: text.slice(3) }
+    return { kind: 'step', n: ++n, text }
+  })
+})
 const { data: events } = await useFetch('/api/calendar')
 const upcomingEvents = computed(() => (events.value || [])
   .filter((e: any) => new Date(e.endsAt || e.startsAt).getTime() > Date.now() - 86400_000)
@@ -85,10 +97,37 @@ function sub(e: any) {
           <div class="tiny muted" style="text-align:center;margin-top:3px">
             {{ sheet.earned ? `${t('completedOn')} ${fmtDate(sheet.completedOn, locale)}` : t('notEarned') }}
           </div>
-          <p style="font-size:13px;line-height:1.55;color:#44536B;margin:14px 0 18px;text-align:center">{{ lx(sheet, 'description') }}</p>
-          <button class="btn ghost" @click="sheet = null">{{ t('close') }}</button>
+          <p v-if="lx(sheet, 'description')" style="font-size:13px;line-height:1.55;color:#44536B;margin:14px 0 4px;text-align:center">{{ lx(sheet, 'description') }}</p>
+
+          <!-- what the passport asks for to earn this Πτυχίο -->
+          <template v-if="sheet.requirementsEl?.length">
+            <div class="sec-title" style="margin:14px 0 8px">{{ t('badgeRequirements') }}</div>
+            <ul class="breq">
+              <li v-for="(r, i) in sheetSteps" :key="i" :class="r.kind">
+                <template v-if="r.kind === 'sep'">{{ t('orAlternative') }}</template>
+                <template v-else-if="r.kind === 'lead'">{{ r.text }}</template>
+                <template v-else><b>{{ r.n }}.</b> {{ r.text }}</template>
+              </li>
+            </ul>
+          </template>
+
+          <NuxtLink to="/app/requirements" class="btn" style="margin-top:14px;display:block;text-align:center">
+            ⚜️ {{ t('seeRequirements') }}
+          </NuxtLink>
+          <button class="btn ghost" style="margin-top:8px" @click="sheet = null">{{ t('close') }}</button>
         </div>
       </div>
     </Teleport>
   </AppShell>
 </template>
+
+<style scoped>
+.breq{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:7px}
+.breq li{font-size:12.5px; line-height:1.5; color:#44536B; display:flex; gap:7px}
+.breq li b{color:var(--accent); font-weight:800; flex:none}
+.breq li.lead{font-weight:700; color:var(--ink)}
+.breq li.sep{
+  justify-content:center; font-weight:800; color:var(--muted); font-size:11.5px;
+  letter-spacing:.08em; text-transform:uppercase; margin:3px 0;
+}
+</style>

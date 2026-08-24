@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import * as schema from './schema'
 import { DDL, MIGRATIONS } from './ddl'
 import { seedIfEmpty } from './seed'
+import { seedPassport } from './seedPassport'
 
 type Db = ReturnType<typeof drizzle<typeof schema>>
 
@@ -77,6 +78,8 @@ async function init(): Promise<Db> {
   }
 
   await seedIfEmpty(_db)
+  // the passport catalogue is fixed by the programme, so it is refreshed every boot
+  await seedPassport(_db)
   console.log('[db] ready')
   return _db
 }

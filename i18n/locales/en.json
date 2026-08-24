@@ -387,5 +387,18 @@
   "chParents": "Parents",
   "chParentsOn": "their parents are told too",
   "confirmLogout": "Sign out of the app?",
-  "confirmNewPasscode": "Your current code stops working and you will need to sign in again. Continue?"
+  "confirmNewPasscode": "Your current code stops working and you will need to sign in again. Continue?",
+  "scoutRequirements": "Scout Requirements",
+  "scoutRequirementsSub": "Your passport progress",
+  "requirementsDone": "requirements done",
+  "requirementNo": "requirement",
+  "howToAchieve": "Suggested route",
+  "requirementLevel": "Level",
+  "awardedByArchigos": "Awarded by the Αρχηγός",
+  "markDone": "Mark done",
+  "undoAward": "Undo",
+  "badgeRequirements": "What the badge asks for",
+  "seeRequirements": "Scout Requirements",
+  "onlyArchigosAwards": "Only the Αρχηγός awards requirements",
+  "orAlternative": "— or —"
 }

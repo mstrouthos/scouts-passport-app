@@ -189,6 +189,12 @@ async function deleteScout() {
           <button v-else class="chip" style="align-self:flex-start" @click="openAddParent">+ {{ t('addParent') }}</button>
         </div>
 
+        <NuxtLink :to="`/admin/requirements/${id}`" class="srow">
+          <div class="ico">⚜️</div>
+          <div class="txt"><b>{{ t('scoutRequirements') }}</b><span>{{ t('scoutRequirementsSub') }}</span></div>
+          <span class="chev">›</span>
+        </NuxtLink>
+
         <NuxtLink :to="`/admin/scout-card/${id}`" class="srow">
           <div class="ico">💳</div>
           <div class="txt"><b>{{ t('idCard') }}</b><span>{{ t('downloadIdCard') }}</span></div>

@@ -43,6 +43,32 @@ CREATE TABLE IF NOT EXISTS achievements (
   sort_order INTEGER NOT NULL DEFAULT 0,
   is_archived BOOLEAN NOT NULL DEFAULT FALSE
 );
+CREATE TABLE IF NOT EXISTS scout_requirements (
+  id SERIAL PRIMARY KEY,
+  n INTEGER NOT NULL,
+  stage TEXT NOT NULL,
+  theme_el TEXT NOT NULL DEFAULT '',
+  text_el TEXT NOT NULL,
+  means_el TEXT NOT NULL DEFAULT '',
+  level TEXT NOT NULL DEFAULT ''
+);
+CREATE UNIQUE INDEX IF NOT EXISTS scout_requirement_n_uq ON scout_requirements(n);
+CREATE TABLE IF NOT EXISTS requirement_awards (
+  id SERIAL PRIMARY KEY,
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  requirement_id INTEGER NOT NULL REFERENCES scout_requirements(id),
+  completed_on TEXT NOT NULL,
+  awarded_by INTEGER,
+  created_at TEXT NOT NULL DEFAULT ''
+);
+CREATE UNIQUE INDEX IF NOT EXISTS requirement_award_uq ON requirement_awards(scout_id, requirement_id);
+CREATE TABLE IF NOT EXISTS achievement_requirements (
+  id SERIAL PRIMARY KEY,
+  achievement_id INTEGER NOT NULL REFERENCES achievements(id),
+  idx INTEGER NOT NULL,
+  text_el TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS achievement_requirement_uq ON achievement_requirements(achievement_id, idx);
 CREATE TABLE IF NOT EXISTS scout_achievements (
   id SERIAL PRIMARY KEY,
   scout_id INTEGER NOT NULL REFERENCES scouts(id),
@@ -217,6 +243,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS family_contact_uq ON family_contacts(section_i
 
 /* Best-effort column adds for databases created before these fields existed. */
 export const MIGRATIONS = [
+  "ALTER TABLE achievements ADD COLUMN IF NOT EXISTS category TEXT",
+  "ALTER TABLE achievements ADD COLUMN IF NOT EXISTS slug TEXT",
   "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS to_parents BOOLEAN NOT NULL DEFAULT TRUE",
   "ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES parents(id)",
   "ALTER TABLE parents ADD COLUMN IF NOT EXISTS scout_id INTEGER REFERENCES scouts(id)",

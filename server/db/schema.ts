@@ -60,8 +60,42 @@ export const achievements = pgTable('achievements', {
   iconEmoji: text('icon_emoji').notNull().default('🏅'),
   points: integer('points').notNull().default(0),
   sortOrder: integer('sort_order').notNull().default(0),
+  // slug ties a badge to the passport catalogue so reseeding updates in place
+  slug: text('slug'),
+  category: text('category'),
   isArchived: boolean('is_archived').notNull().default(false)
 })
+
+/** One requirement from the Προσκοπικό Διαβατήριο (pages 5–19). The catalogue
+    is fixed by the national programme, so it is seeded, never user-edited. */
+export const scoutRequirements = pgTable('scout_requirements', {
+  id: serial('id').primaryKey(),
+  n: integer('n').notNull(),                       // the number printed in the passport
+  stage: text('stage').notNull(),                  // arxarios | xalkino | argyro | xryso
+  themeEl: text('theme_el').notNull().default(''), // θεματική ενότητα
+  textEl: text('text_el').notNull(),
+  meansEl: text('means_el').notNull().default(''), // προτεινόμενοι τρόποι επίτευξης
+  level: text('level').notNull().default('')
+}, t => [uniqueIndex('scout_requirement_n_uq').on(t.n)])
+
+/** A requirement signed off for one scout — the app's version of the Αρχηγός
+    signing and dating the passport. */
+export const requirementAwards = pgTable('requirement_awards', {
+  id: serial('id').primaryKey(),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  requirementId: integer('requirement_id').notNull().references(() => scoutRequirements.id),
+  completedOn: text('completed_on').notNull(),
+  awardedBy: integer('awarded_by'),
+  createdAt: text('created_at').notNull().default('')
+}, t => [uniqueIndex('requirement_award_uq').on(t.scoutId, t.requirementId)])
+
+/** What a Πτυχίο asks for (pages 21–48), in the order the passport lists it. */
+export const achievementRequirements = pgTable('achievement_requirements', {
+  id: serial('id').primaryKey(),
+  achievementId: integer('achievement_id').notNull().references(() => achievements.id),
+  idx: integer('idx').notNull(),
+  textEl: text('text_el').notNull()
+}, t => [uniqueIndex('achievement_requirement_uq').on(t.achievementId, t.idx)])
 
 export const scoutAchievements = pgTable('scout_achievements', {
   id: serial('id').primaryKey(),
