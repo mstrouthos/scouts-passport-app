@@ -1,10 +1,11 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { requireLeader } from '../../utils/guard'
+import { assertCan } from '../../utils/permissions'
 
 /** Create or update an info page (upsert by slug). */
 export default defineEventHandler(async (event) => {
-  await requireLeader(event)
+  await assertCan(await requireLeader(event), 'info.edit')
   const b = await readBody<any>(event)
   const slug = String(b?.slug || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '-')
   if (!slug || !b?.titleEl) throw createError({ statusCode: 400, message: 'Slug and Greek title required' })

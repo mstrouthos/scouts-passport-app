@@ -2,9 +2,11 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 import { requireLeader, assertScoutInScope, idParam } from '../../../../utils/guard'
 import { generatePasscode, hmacPasscode, passcodeVersion } from '../../../../utils/passcode'
+import { assertCan } from '../../../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'roster.edit')
   const id = idParam(event)
   // any leader may rotate their own passcode; the troop leader may rotate anyone's;
   // sector leaders may rotate their own scouts'

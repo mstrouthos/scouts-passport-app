@@ -1,11 +1,13 @@
 import { requireLeader, assertScoutInScope, idParam } from '../../../utils/guard'
 import { cascadeDeleteScout } from '../../../utils/deleteScout'
+import { assertCan } from '../../../utils/permissions'
 
 /** Permanent deletion — cascades every row that references this scout, then
     removes the scout itself. Deactivate (see PATCH) is the reversible default;
     this is for when a record genuinely needs to be gone. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'roster.edit')
   const id = idParam(event)
   await assertScoutInScope(me, id)
   try {

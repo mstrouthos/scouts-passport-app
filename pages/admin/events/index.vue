@@ -22,6 +22,6 @@ const isTroop = computed(() => me.value?.role === 'troop_leader')
       </NuxtLink>
     </div>
     <div v-if="!isTroop" class="tiny muted" style="text-align:center">{{ t('lockedEvents') }}</div>
-    <NuxtLink to="/admin/events/new" class="fab" aria-label="new">+</NuxtLink>
+    <NuxtLink v-if="me?.can?.events !== false" to="/admin/events/new" class="fab" aria-label="new">+</NuxtLink>
   </AppShell>
 </template>

@@ -1,9 +1,11 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
 import { now } from '../../utils/passcode'
+import { assertCan } from '../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'roster.edit')
   const b = await readBody<{ nameEl?: string, emoji?: string, sectionId?: number | null }>(event)
   const nameEl = String(b?.nameEl || '').trim()
   if (!nameEl) throw createError({ statusCode: 400, message: 'Name required' })

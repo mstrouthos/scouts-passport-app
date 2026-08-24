@@ -1,10 +1,12 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, visibleSectionIds } from '../../utils/guard'
 import { sectionOfParent } from '../../utils/parents'
+import { assertCan } from '../../utils/permissions'
 
 /** Parents in the sections this leader can see, each shown with their child. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'parents.view')
   const db = (await useDb())
   const visIds = await visibleSectionIds(me)
   const sections = (await db.select().from(s.sections)).sort((a, b) => a.sortOrder - b.sortOrder)

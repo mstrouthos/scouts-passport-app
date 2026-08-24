@@ -1,9 +1,12 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, assertScoutInScope, idParam, pointTotals, sectionOf } from '../../../utils/guard'
+import { can } from '../../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  // a Υπαρχηγός may see who is in their sector, not how to reach them
+  const canSeeDetails = await can(me, 'roster.viewDetails')
   const id = idParam(event)
   await assertScoutInScope(me, id)
   const db = (await useDb())
@@ -17,7 +20,8 @@ export default defineEventHandler(async (event) => {
   return {
     id: r.id, firstName: r.firstName, lastName: r.lastName,
     firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, isActive: r.isActive,
-    phone: r.phone, idNumber: r.idNumber,
+    phone: canSeeDetails ? r.phone : null, idNumber: canSeeDetails ? r.idNumber : null,
+    canSeeDetails,
     patrol: patrol && { id: patrol.id, nameEl: patrol.nameEl, nameEn: patrol.nameEn, emblem: patrol.emblem },
     section: section && { id: section.id, nameEl: section.nameEl, nameEn: section.nameEn },
     points: (await pointTotals()).get(id) || 0,

@@ -1,6 +1,7 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
 import { now } from '../../utils/passcode'
+import { assertCan } from '../../utils/permissions'
 
 const MAX_PDF = 8 * 1024 * 1024   // 8 MB — plenty for a scanned announcement
 
@@ -8,6 +9,7 @@ const MAX_PDF = 8 * 1024 * 1024   // 8 MB — plenty for a scanned announcement
     Body: { sectionId, titleEl, bodyEl, file?: { name, mime, dataBase64 } } */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'parents.view')
   const b = await readBody<any>(event)
   const titleEl = String(b?.titleEl || '').trim()
   if (!titleEl) throw createError({ statusCode: 400, message: 'Title required' })

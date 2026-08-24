@@ -1,9 +1,11 @@
 import { useDb, schema as s } from '../../../../db'
 import { requireLeader, idParam, assertScoutInScope } from '../../../../utils/guard'
+import { assertCan } from '../../../../utils/permissions'
 
 /** The parents on one scout's profile. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'parents.view')
   const id = idParam(event)
   if (id !== me.id) await assertScoutInScope(me, id)
   const db = (await useDb())

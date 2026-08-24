@@ -2,10 +2,12 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
 import { now } from '../../utils/passcode'
+import { assertCan } from '../../utils/permissions'
 
 /** Replace the parent email list for one section. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'roster.edit')
   const b = await readBody<{ sectionId?: number, emails?: string[] }>(event)
   const sectionId = Number(b?.sectionId)
   const secs = await scopedSectionIds(me)

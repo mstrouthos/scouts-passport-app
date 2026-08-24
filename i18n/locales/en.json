@@ -408,5 +408,6 @@
   "whichScout": "Which scout",
   "awardScout": "Award the scout",
   "whoFor": "Who it is for",
-  "infoSectionNote": "A sector's page overrides the troop-wide one with the same slug — e.g. a different uniform per sector."
+  "infoSectionNote": "A sector's page overrides the troop-wide one with the same slug — e.g. a different uniform per sector.",
+  "leadersEvent": "Leaders"
 }

@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../../../../db'
 import { requireLeader, assertScoutInScope, idParam } from '../../../../utils/guard'
 import { generatePasscode, hmacPasscode, passcodeVersion } from '../../../../utils/passcode'
 import { sendSms } from '../../../../utils/sms'
+import { assertCan } from '../../../../utils/permissions'
 
 /** Text a scout's login passcode to their phone on file. If the exact current
     passcode is supplied (e.g. right after creation, while it's still known in
@@ -11,6 +12,7 @@ import { sendSms } from '../../../../utils/sms'
     own page, since only the HMAC of the passcode is ever stored. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'roster.edit')
   const id = idParam(event)
   if (id !== me.id && me.role !== 'troop_leader') await assertScoutInScope(me, id)
   const body = await readBody<{ passcode?: string }>(event).catch(() => ({}))

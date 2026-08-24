@@ -1,9 +1,11 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, scopedSectionIds, idParam } from '../../../utils/guard'
+import { assertCan } from '../../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'parents.view')
   const id = idParam(event)
   const db = (await useDb())
   const post = (await db.select().from(s.parentPosts).where(eq(s.parentPosts.id, id)).limit(1))[0]

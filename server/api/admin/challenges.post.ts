@@ -3,9 +3,11 @@ import { MAX_POINTS } from '../../utils/scoring'
 import { requireLeader } from '../../utils/guard'
 import { resolveQuizSection } from '../../utils/quizSector'
 import { toUtcIso } from '../../utils/passcode'
+import { assertCan } from '../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'challenge.write')
   const b = await readBody<any>(event)
   if (!b?.questionEl || !Array.isArray(b?.options) || b.options.length < 2)
     throw createError({ statusCode: 400, message: 'Question and at least 2 options required' })

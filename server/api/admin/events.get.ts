@@ -1,13 +1,19 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
+import { can } from '../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const db = (await useDb())
   const secIds = await scopedSectionIds(me)
+  // a Υπαρχηγός sees their own sector, the whole troop and Βαθμοφόροι events —
+  // not another sector's programme
+  const seeAll = await can(me, 'events.edit')
   const reviews = (await db.select().from(s.eventReviews))
   const sections = new Map((await db.select().from(s.sections)).map(x => [x.id, x]))
   return (await db.select().from(s.events))
+    .filter(e => seeAll || secIds === null || e.scope === 'troop' || e.scope === 'leaders'
+      || (e.sectionId != null && secIds.includes(e.sectionId)))
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
     .map(e => {
       const sec = e.sectionId != null ? sections.get(e.sectionId) : null

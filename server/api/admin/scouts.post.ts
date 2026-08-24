@@ -2,9 +2,11 @@ import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
 import { generatePasscode, hmacPasscode, now } from '../../utils/passcode'
 import { normalizePhone } from '../../utils/phone'
+import { assertCan } from '../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'roster.edit')
   const body = await readBody<{
     firstName?: string, lastName?: string, phone?: string,
     kind?: string, sectionId?: number, patrolId?: number, scope?: string, rank?: string

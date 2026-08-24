@@ -1,9 +1,11 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, scopedSectionIds, idParam } from '../../../utils/guard'
+import { assertCan } from '../../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'roster.edit')
   const id = idParam(event)
   const db = (await useDb())
   const g = (await db.select().from(s.notifyGroups).where(eq(s.notifyGroups.id, id)).limit(1))[0]

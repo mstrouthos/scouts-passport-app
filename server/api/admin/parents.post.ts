@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds, sectionOfWith } from '../../utils/guard'
 import { now } from '../../utils/passcode'
 import { normalizePhone } from '../../utils/phone'
+import { assertCan } from '../../utils/permissions'
 
 /** Add a parent to a scout. The child is required: a parent is reached through
     their kid, which is what lets an announcement to a group or a section find
@@ -10,6 +11,7 @@ import { normalizePhone } from '../../utils/phone'
     from the child rather than being chosen separately. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'parents.view')
   const b = await readBody<{ name?: string, email?: string, phone?: string, scoutId?: number }>(event)
   const name = String(b?.name || '').trim()
   if (!name) throw createError({ statusCode: 400, message: 'Name required' })

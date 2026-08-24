@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { requireScout, scopeKind, visibleSectionIds, rankOf, sectionOf, directPatrolIds } from '../utils/guard'
+import { can } from '../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
@@ -34,6 +35,18 @@ export default defineEventHandler(async (event) => {
     section: section && { id: section.id, nameEl: section.nameEl, nameEn: section.nameEn, slug: section.slug },
     myPatrols,
     // null = all sectors (admin / troop scope); otherwise the leader's visible sections
-    scopeSections: scopeSections?.map(x => ({ id: x.id, nameEl: x.nameEl, nameEn: x.nameEn, slug: x.slug, hasApp: x.hasApp })) ?? null
+    scopeSections: scopeSections?.map(x => ({ id: x.id, nameEl: x.nameEl, nameEn: x.nameEn, slug: x.slug, hasApp: x.hasApp })) ?? null,
+    // the UI hides what the API would refuse, so a Υπαρχηγός is not shown
+    // buttons that only produce a 403
+    can: !isLeader ? null : {
+      rosterEdit: await can(me, 'roster.edit'),
+      rosterDetails: await can(me, 'roster.viewDetails'),
+      parents: await can(me, 'parents.view'),
+      events: await can(me, 'events.edit'),
+      settings: await can(me, 'settings.edit'),
+      challenges: await can(me, 'challenge.write'),
+      requirements: await can(me, 'requirements.award'),
+      badges: await can(me, 'badges.award')
+    }
   }
 })

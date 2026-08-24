@@ -2,9 +2,11 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, assertScoutInScope, assertLeaderInScope, scopedPatrolIds, idParam } from '../../../utils/guard'
 import { normalizePhone } from '../../../utils/phone'
+import { assertCan } from '../../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'roster.edit')
   const id = idParam(event)
   const target = (await (await useDb()).select().from(s.scouts).where(eq(s.scouts.id, id)).limit(1))[0]
   if (!target) throw createError({ statusCode: 404, message: 'Not found' })

@@ -3,6 +3,7 @@ const { t } = useI18n()
 const lx = useLx()
 const name = useName()
 const { show } = useToast()
+const me = useMe()
 const route = useRoute()
 const router = useRouter()
 const id = route.params.id
@@ -107,6 +108,7 @@ async function deleteScout() {
           </div>
         </div>
 
+        <template v-if="me?.can?.rosterEdit !== false">
         <div class="sec-title">{{ t('loginCard') }}</div>
         <div class="card" style="display:flex;flex-direction:column;gap:10px">
           <div style="display:flex;align-items:center;gap:12px">
@@ -131,6 +133,9 @@ async function deleteScout() {
           <div v-else-if="smsOutcome === 'failed'" class="tiny muted">{{ t('smsNotConfigured') }}</div>
         </div>
 
+        </template>
+
+        <template v-if="me?.can?.rosterDetails !== false">
         <div class="sec-title">{{ t('contactDetails') }}</div>
         <div class="card" style="display:flex;flex-direction:column;gap:10px">
           <template v-if="editingContact">
@@ -153,6 +158,9 @@ async function deleteScout() {
           </template>
         </div>
 
+        </template>
+
+        <template v-if="me?.can?.parents !== false">
         <div class="sec-title">{{ t('parents') }}</div>
         <div class="card" style="display:flex;flex-direction:column;gap:11px">
           <template v-if="parents?.length">
@@ -189,13 +197,15 @@ async function deleteScout() {
           <button v-else class="chip" style="align-self:flex-start" @click="openAddParent">+ {{ t('addParent') }}</button>
         </div>
 
+        </template>
+
         <NuxtLink :to="`/admin/requirements/${id}`" class="srow">
           <div class="ico">⚜️</div>
           <div class="txt"><b>{{ t('scoutRequirements') }}</b><span>{{ t('scoutRequirementsSub') }}</span></div>
           <span class="chev">›</span>
         </NuxtLink>
 
-        <NuxtLink :to="`/admin/scout-card/${id}`" class="srow">
+        <NuxtLink v-if="me?.can?.rosterDetails !== false" :to="`/admin/scout-card/${id}`" class="srow">
           <div class="ico">💳</div>
           <div class="txt"><b>{{ t('idCard') }}</b><span>{{ t('downloadIdCard') }}</span></div>
           <span class="chev">›</span>
@@ -209,15 +219,17 @@ async function deleteScout() {
             <span class="disc">{{ b.icon }}</span><span class="lbl">{{ lx(b) }}</span>
           </div>
         </div>
-        <button class="srow" @click="awarding = true">
+        <button v-if="me?.can?.badges !== false" class="srow" @click="awarding = true">
           <div class="ico">🏅</div>
           <div class="txt"><b>{{ t('awardBadge') }}</b><span>{{ t('pickFromList') }}</span></div>
           <span class="chev">›</span>
         </button>
-        <button class="btn" :class="data.isActive ? 'danger' : 'ghost'" @click="toggleActive">
-          {{ data.isActive ? t('deactivate') : t('reactivate') }}
-        </button>
-        <button class="btn danger" @click="deleteScout">🗑️ {{ t('deletePermanently') }}</button>
+        <template v-if="me?.can?.rosterEdit !== false">
+          <button class="btn" :class="data.isActive ? 'danger' : 'ghost'" @click="toggleActive">
+            {{ data.isActive ? t('deactivate') : t('reactivate') }}
+          </button>
+          <button class="btn danger" @click="deleteScout">🗑️ {{ t('deletePermanently') }}</button>
+        </template>
       </div>
     </div>
 

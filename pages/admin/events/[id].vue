@@ -125,8 +125,8 @@ const uniDefs = [
   <AppShell v-if="data" :title="lx(data.event)"
             :sub="`${fmtDate(data.event.startsAt, locale)} · ${t('review')}`" back="/admin/events">
     <template #actions>
-      <button class="iconbtn" :aria-label="t('editEvent')" @click="openEdit">✎</button>
-      <button v-if="meta?.canDelete" class="iconbtn" :aria-label="t('deleteEvent')" @click="deleteEvent">
+      <button v-if="me?.can?.events !== false" class="iconbtn" :aria-label="t('editEvent')" @click="openEdit">✎</button>
+      <button v-if="meta?.canDelete && me?.can?.events !== false" class="iconbtn" :aria-label="t('deleteEvent')" @click="deleteEvent">
         <NavIcon name="trash" />
       </button>
     </template>

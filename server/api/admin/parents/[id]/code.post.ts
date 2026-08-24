@@ -5,11 +5,13 @@ import { parentInScope } from '../[id].patch'
 import { generatePasscode, hmacPasscode } from '../../../../utils/passcode'
 import { sendSms } from '../../../../utils/sms'
 import { sendEmails } from '../../../../utils/email'
+import { assertCan } from '../../../../utils/permissions'
 
 /** Issue (or re-issue) a parent's access code and optionally deliver it.
     Body: { via: 'sms' | 'email' | 'none' } */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'parents.view')
   const id = idParam(event)
   const db = (await useDb())
   const p = await parentInScope(me, id)

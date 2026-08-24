@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds, scopedScouts, assertLeaderInScope } from '../../utils/guard'
 import { now } from '../../utils/passcode'
+import { assertCan } from '../../utils/permissions'
 import { cascadeDeleteScout } from '../../utils/deleteScout'
 
 const MAX_PATROL_LEADERS = 2
@@ -12,6 +13,7 @@ const MAX_PATROL_LEADERS = 2
     patrol of their own section, capped at two per team. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'roster.edit')
   const b = await readBody<{
     action?: string, scoutId?: number, scopeId?: number, admin?: boolean,
     role?: string, scope?: string, sectionId?: number, patrolId?: number, rank?: string

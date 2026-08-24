@@ -1,6 +1,7 @@
 import { and, eq, inArray } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, scopedSectionIds, scopedScouts, idParam } from '../../../utils/guard'
+import { assertCan } from '../../../utils/permissions'
 
 async function groupInScope(me: any, id: number) {
   const db = (await useDb())
@@ -16,6 +17,7 @@ async function groupInScope(me: any, id: number) {
     actually manages can be added. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'roster.edit')
   const id = idParam(event)
   await groupInScope(me, id)
   const b = await readBody<{ nameEl?: string, emoji?: string, memberIds?: number[] }>(event)

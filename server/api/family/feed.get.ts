@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
   if (!current) throw createError({ statusCode: 404, message: 'No family sections' })
 
   const events = (await db.select().from(s.events))
+    .filter(e => e.scope !== 'leaders')
     .filter(e => e.scope === 'troop' || (e.scope === 'section' && e.sectionId === current.id))
     .filter(e => new Date(e.endsAt || e.startsAt).getTime() > Date.now() - 86400_000)
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))

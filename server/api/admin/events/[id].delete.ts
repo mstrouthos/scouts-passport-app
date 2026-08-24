@@ -2,12 +2,14 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, idParam } from '../../../utils/guard'
 import { eventInScope, eventHasData } from '../../../utils/eventScope'
+import { assertCan } from '../../../utils/permissions'
 
 /** Upcoming events can always be removed. A finished one that already carries
     attendance or awarded points is history and is kept — deleting it would
     silently rewrite the leaderboard. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'events.edit')
   const id = idParam(event)
   const ev = await eventInScope(me, id)
   const past = new Date(ev.endsAt || ev.startsAt).getTime() < Date.now()

@@ -4,6 +4,7 @@ import { requireLeader, idParam } from '../../../utils/guard'
 import { resolveQuizSection } from '../../../utils/quizSector'
 import { challengeInScope } from '../../../utils/challengeScope'
 import { toUtcIso } from '../../../utils/passcode'
+import { assertCan } from '../../../utils/permissions'
 
 /** Edit a challenge. Text and timing can always change. Points are fixed for
     every question (see utils/scoring), so they are not editable. Options may
@@ -11,6 +12,7 @@ import { toUtcIso } from '../../../utils/passcode'
     would point at options that no longer exist. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'challenge.write')
   const id = idParam(event)
   await challengeInScope(me, id)
   const b = await readBody<any>(event)

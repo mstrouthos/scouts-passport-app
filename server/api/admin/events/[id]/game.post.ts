@@ -3,11 +3,13 @@ import { useDb, schema as s } from '../../../../db'
 import { requireLeader, scopedPatrolIds, idParam } from '../../../../utils/guard'
 import { assertScoutVisible } from '../../../../utils/requirements'
 import { now } from '../../../../utils/passcode'
+import { assertCan } from '../../../../utils/permissions'
 
 /** Award points during an event, either to a whole ενωμοτία or to one scout —
     a patrol wins the game, but one scout can earn something on their own. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'points.award')
   const eventId = idParam(event)
   const b = await readBody<{ patrolId?: number, scoutId?: number, points?: number, reasonEl?: string, reasonEn?: string }>(event)
   const points = Number(b?.points)

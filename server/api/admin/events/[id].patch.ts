@@ -2,9 +2,11 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, scopedSectionIds, idParam } from '../../../utils/guard'
 import { eventInScope } from '../../../utils/eventScope'
+import { assertCan } from '../../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'events.edit')
   const id = idParam(event)
   await eventInScope(me, id)
   const b = await readBody<any>(event)

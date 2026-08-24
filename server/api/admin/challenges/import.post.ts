@@ -3,6 +3,7 @@ import { requireLeader } from '../../../utils/guard'
 import { MAX_POINTS } from '../../../utils/scoring'
 import { toUtcIso } from '../../../utils/passcode'
 import { resolveQuizSection } from '../../../utils/quizSector'
+import { assertCan } from '../../../utils/permissions'
 
 type InOption = { textEl?: string, textEn?: string, isCorrect?: boolean }
 type InQuestion = {
@@ -20,6 +21,7 @@ type InQuestion = {
     row is reported and skipped rather than failing the whole batch. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'challenge.write')
   const body = await readBody<any>(event)
 
   // accept either a bare array or { questions: [...] }, and a JSON string.

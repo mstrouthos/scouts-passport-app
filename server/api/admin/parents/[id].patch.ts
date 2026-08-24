@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../../../db'
 import { requireLeader, scopedSectionIds, idParam } from '../../../utils/guard'
 import { normalizePhone } from '../../../utils/phone'
 import { sectionOfParent } from '../../../utils/parents'
+import { assertCan } from '../../../utils/permissions'
 
 /** A parent is in scope when their child's section is. Scoping on the child
     means a scout moving up carries their parents' visibility with them. */
@@ -21,6 +22,7 @@ export async function parentInScope(me: any, id: number) {
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'parents.view')
   const id = idParam(event)
   await parentInScope(me, id)
   const b = await readBody<any>(event)

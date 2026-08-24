@@ -1,10 +1,12 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
+import { assertCan } from '../../utils/permissions'
 
 const EMOJI = ['🦉', '🦅', '🐺', '🐍', '🦊', '🦌', '🐻', '🦫', '🦔', '🐿️']
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'roster.edit')
   const b = await readBody<{ sectionId?: number, nameEl?: string, nameEn?: string, emblem?: string }>(event)
   const sectionId = Number(b?.sectionId)
   const nameEl = String(b?.nameEl || '').trim()

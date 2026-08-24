@@ -2,11 +2,13 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedScouts } from '../../utils/guard'
 import { generatePasscode, hmacPasscode } from '../../utils/passcode'
+import { assertCan } from '../../utils/permissions'
 
 /** Regenerates passcodes for the requested scouts (voiding old ones) and
     returns plaintexts once, for the printable card sheet. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'roster.edit')
   const body = await readBody<{ scoutIds?: number[] }>(event)
   const ids = (body?.scoutIds || []).map(Number).filter(Number.isInteger)
   if (!ids.length) throw createError({ statusCode: 400, message: 'No scouts selected' })

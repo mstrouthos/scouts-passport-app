@@ -2,9 +2,11 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 import { requireLeader, scopedScouts, idParam } from '../../../../utils/guard'
 import { now } from '../../../../utils/passcode'
+import { assertCan } from '../../../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'badges.award')
   const badgeId = idParam(event)
   const body = await readBody<{ scoutIds?: number[], completedOn?: string }>(event)
   const ids = (body?.scoutIds || []).map(Number).filter(Number.isInteger)

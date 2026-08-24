@@ -43,7 +43,8 @@ export const scouts = pgTable('scouts', {
 export const leaderScopes = pgTable('leader_scopes', {
   id: serial('id').primaryKey(),
   scoutId: integer('scout_id').notNull().references(() => scouts.id),
-  scope: text('scope', { enum: ['troop', 'section', 'patrol'] }).notNull(),
+  // 'leaders' = a Βαθμοφόροι meeting: never shown to scouts or parents
+  scope: text('scope', { enum: ['troop', 'section', 'patrol', 'leaders'] }).notNull(),
   sectionId: integer('section_id').references(() => sections.id),
   patrolId: integer('patrol_id').references(() => patrols.id),
   rank: text('rank', { enum: ['archigos', 'yparchigos'] }).notNull().default('archigos'),
@@ -109,7 +110,8 @@ export const scoutAchievements = pgTable('scout_achievements', {
 
 export const events = pgTable('events', {
   id: serial('id').primaryKey(),
-  scope: text('scope', { enum: ['troop', 'section', 'patrol'] }).notNull(),
+  // 'leaders' = a Βαθμοφόροι meeting: never shown to scouts or parents
+  scope: text('scope', { enum: ['troop', 'section', 'patrol', 'leaders'] }).notNull(),
   sectionId: integer('section_id').references(() => sections.id),
   patrolId: integer('patrol_id').references(() => patrols.id),
   titleEl: text('title_el').notNull(),

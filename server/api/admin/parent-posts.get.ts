@@ -1,8 +1,10 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, visibleSectionIds } from '../../utils/guard'
+import { assertCan } from '../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'parents.view')
   const db = (await useDb())
   const visIds = await visibleSectionIds(me)
   const files = new Map((await db.select().from(s.files)).map(f => [f.id, f]))

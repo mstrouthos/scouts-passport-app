@@ -3,9 +3,11 @@ import { useDb, schema as s } from '../../../../db'
 import { requireLeader, assertScoutInScope, idParam } from '../../../../utils/guard'
 import { now } from '../../../../utils/passcode'
 import { getPointRules } from '../../../../utils/settings'
+import { assertCan } from '../../../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await assertCan(me, 'attendance.record')
   const eventId = idParam(event)
   const b = await readBody<{ scoutId?: number, attendance?: string | null, uniform?: string | null }>(event)
   const scoutId = Number(b?.scoutId)
