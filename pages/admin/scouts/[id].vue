@@ -199,7 +199,13 @@ async function deleteScout() {
 
         </template>
 
-        <NuxtLink :to="`/admin/requirements/${id}`" class="srow">
+        <NuxtLink v-if="data.section?.slug === 'koinotita'" :to="`/admin/venture/${id}`" class="srow">
+          <div class="ico">🏵️</div>
+          <div class="txt"><b>{{ t('ventureBook') }}</b><span>{{ t('ventureBookSub') }}</span></div>
+          <span class="chev">›</span>
+        </NuxtLink>
+
+        <NuxtLink v-if="data.section?.slug === 'omada'" :to="`/admin/requirements/${id}`" class="srow">
           <div class="ico">⚜️</div>
           <div class="txt"><b>{{ t('scoutRequirements') }}</b><span>{{ t('scoutRequirementsSub') }}</span></div>
           <span class="chev">›</span>

@@ -62,6 +62,39 @@ CREATE TABLE IF NOT EXISTS requirement_awards (
   created_at TEXT NOT NULL DEFAULT ''
 );
 CREATE UNIQUE INDEX IF NOT EXISTS requirement_award_uq ON requirement_awards(scout_id, requirement_id);
+CREATE TABLE IF NOT EXISTS venture_requirements (
+  id SERIAL PRIMARY KEY,
+  award TEXT NOT NULL, code TEXT NOT NULL,
+  area_el TEXT NOT NULL, text_el TEXT NOT NULL,
+  bullets_el TEXT, options_el TEXT,
+  needs_note BOOLEAN NOT NULL DEFAULT FALSE,
+  group_key TEXT, group_min INTEGER,
+  sort_order INTEGER NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX IF NOT EXISTS venture_requirement_uq ON venture_requirements(award, code);
+CREATE TABLE IF NOT EXISTS venture_awards (
+  id SERIAL PRIMARY KEY,
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  requirement_id INTEGER NOT NULL REFERENCES venture_requirements(id),
+  completed_on TEXT NOT NULL,
+  chosen_el TEXT, note_el TEXT,
+  awarded_by INTEGER, created_at TEXT NOT NULL DEFAULT ''
+);
+CREATE UNIQUE INDEX IF NOT EXISTS venture_award_uq ON venture_awards(scout_id, requirement_id);
+CREATE TABLE IF NOT EXISTS venture_milestones (
+  id SERIAL PRIMARY KEY,
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  key TEXT NOT NULL, on_date TEXT NOT NULL, recorded_by INTEGER
+);
+CREATE UNIQUE INDEX IF NOT EXISTS venture_milestone_uq ON venture_milestones(scout_id, key);
+CREATE TABLE IF NOT EXISTS venture_logs (
+  id SERIAL PRIMARY KEY,
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  kind TEXT NOT NULL,
+  dates_el TEXT NOT NULL DEFAULT '', form_el TEXT NOT NULL DEFAULT '',
+  place_el TEXT NOT NULL DEFAULT '', oe_el TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT ''
+);
 CREATE TABLE IF NOT EXISTS achievement_requirements (
   id SERIAL PRIMARY KEY,
   achievement_id INTEGER NOT NULL REFERENCES achievements(id),

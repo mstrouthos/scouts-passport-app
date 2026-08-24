@@ -1,6 +1,7 @@
 import { eq, inArray, notInArray } from 'drizzle-orm'
 import * as s from './schema'
 import { REQUIREMENTS, BADGES } from './passportData'
+import { VENTURE_REQUIREMENTS } from './ventureData'
 
 /** Load the Προσκοπικό Διαβατήριο catalogue into the database.
 
@@ -10,6 +11,7 @@ import { REQUIREMENTS, BADGES } from './passportData'
    sign-offs that point at it. Badges from before this catalogue existed are
    archived rather than deleted — scouts may already have been awarded them. */
 export async function seedPassport(db: any) {
+  await seedVenture(db)
   const existing = await db.select().from(s.scoutRequirements)
   const byN = new Map(existing.map((r: any) => [r.n, r]))
   for (const r of REQUIREMENTS) {
@@ -46,4 +48,26 @@ export async function seedPassport(db: any) {
     .where(inArray(s.achievements.id,
       badges.filter((b: any) => !b.slug).map((b: any) => b.id).length
         ? badges.filter((b: any) => !b.slug).map((b: any) => b.id) : [-1]))
+}
+
+
+/** The Κοινότητα Ανιχνευτών programme, matched by award + code so edits reach
+    an existing troop without disturbing what has already been signed off. */
+async function seedVenture(db: any) {
+  const existing = await db.select().from(s.ventureRequirements)
+  const byKey = new Map(existing.map((r: any) => [`${r.award}:${r.code}`, r]))
+  let order = 0
+  for (const r of VENTURE_REQUIREMENTS) {
+    const vals = {
+      areaEl: r.areaEl, textEl: r.textEl,
+      bulletsEl: r.bulletsEl ? JSON.stringify(r.bulletsEl) : null,
+      optionsEl: r.optionsEl ? JSON.stringify(r.optionsEl) : null,
+      needsNote: !!r.needsNote,
+      groupKey: r.groupKey ?? null, groupMin: r.groupMin ?? null,
+      sortOrder: order++
+    }
+    const row: any = byKey.get(`${r.award}:${r.code}`)
+    if (!row) await db.insert(s.ventureRequirements).values({ award: r.award, code: r.code, ...vals })
+    else await db.update(s.ventureRequirements).set(vals).where(eq(s.ventureRequirements.id, row.id))
+  }
 }

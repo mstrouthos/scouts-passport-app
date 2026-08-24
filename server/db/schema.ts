@@ -91,6 +91,56 @@ export const requirementAwards = pgTable('requirement_awards', {
   createdAt: text('created_at').notNull().default('')
 }, t => [uniqueIndex('requirement_award_uq').on(t.scoutId, t.requirementId)])
 
+/** The Κοινότητα Ανιχνευτών programme (Η.Κ.Α.Δ.Ε.). Separate from the Ομάδα's
+    passport because it is a different programme, not a variation of one. */
+export const ventureRequirements = pgTable('venture_requirements', {
+  id: serial('id').primaryKey(),
+  award: text('award').notNull(),                    // eisdochi | teleiopoiisis | dimokratias
+  code: text('code').notNull(),                      // Α, Β1, Η7 …
+  areaEl: text('area_el').notNull(),
+  textEl: text('text_el').notNull(),
+  bulletsEl: text('bullets_el'),                     // JSON array, fixed sub-points
+  optionsEl: text('options_el'),                     // JSON array, themes to choose from
+  needsNote: boolean('needs_note').notNull().default(false),
+  groupKey: text('group_key'),                       // e.g. the "2 of 5" choice set
+  groupMin: integer('group_min'),
+  sortOrder: integer('sort_order').notNull().default(0)
+}, t => [uniqueIndex('venture_requirement_uq').on(t.award, t.code)])
+
+/** One requirement signed off for one Ανιχνευτής, with what they chose and
+    wrote. The Α.Κ.Α. signs; the booklet's second signature is not modelled. */
+export const ventureAwards = pgTable('venture_awards', {
+  id: serial('id').primaryKey(),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  requirementId: integer('requirement_id').notNull().references(() => ventureRequirements.id),
+  completedOn: text('completed_on').notNull(),
+  chosenEl: text('chosen_el'),                       // which theme they took
+  noteEl: text('note_el'),                           // their own account of it
+  awardedBy: integer('awarded_by'),
+  createdAt: text('created_at').notNull().default('')
+}, t => [uniqueIndex('venture_award_uq').on(t.scoutId, t.requirementId)])
+
+/** Dates the booklet records on their own line — εισδοχή, ΜΑΙΑΝΔΡΟΣ and so on. */
+export const ventureMilestones = pgTable('venture_milestones', {
+  id: serial('id').primaryKey(),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  key: text('key').notNull(),
+  onDate: text('on_date').notNull(),
+  recordedBy: integer('recorded_by')
+}, t => [uniqueIndex('venture_milestone_uq').on(t.scoutId, t.key)])
+
+/** The logbooks at the back of the booklet. */
+export const ventureLogs = pgTable('venture_logs', {
+  id: serial('id').primaryKey(),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  kind: text('kind').notNull(),                      // activity | exploration | bigOutdoor
+  datesEl: text('dates_el').notNull().default(''),
+  formEl: text('form_el').notNull().default(''),
+  placeEl: text('place_el').notNull().default(''),
+  oeEl: text('oe_el').notNull().default(''),
+  createdAt: text('created_at').notNull().default('')
+})
+
 /** What a Πτυχίο asks for (pages 21–48), in the order the passport lists it. */
 export const achievementRequirements = pgTable('achievement_requirements', {
   id: serial('id').primaryKey(),

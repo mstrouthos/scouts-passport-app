@@ -17,6 +17,8 @@ const earned = computed(() => earnedBadges.value.length)
 // Badges/achievements are a Scout-Troop concept — every other section sees
 // its upcoming events on the dashboard instead.
 const showBadges = computed(() => me.value?.section?.slug === 'omada')
+// the Κοινότητα follows the Η.Κ.Α.Δ.Ε. instead, which has no Πτυχία
+const showVenture = computed(() => me.value?.section?.slug === 'koinotita')
 
 const { data: events } = await useFetch<any[]>('/api/calendar')
 const upcomingEvents = computed(() => (events.value || [])
@@ -79,6 +81,12 @@ function sub(e: any) {
         </div>
       </template>
     </template>
+
+    <NuxtLink v-if="showVenture" to="/app/venture" class="banner">
+      <div class="ico">🏵️</div>
+      <div><b>{{ t('ventureBook') }}</b><span>{{ t('ventureBookSub') }}</span></div>
+      <div class="go">›</div>
+    </NuxtLink>
 
     <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>{{ t('upcoming') }}</span>

@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
     phone: canSeeDetails ? r.phone : null, idNumber: canSeeDetails ? r.idNumber : null,
     canSeeDetails,
     patrol: patrol && { id: patrol.id, nameEl: patrol.nameEl, nameEn: patrol.nameEn, emblem: patrol.emblem },
-    section: section && { id: section.id, nameEl: section.nameEl, nameEn: section.nameEn },
+    section: section && { id: section.id, nameEl: section.nameEl, nameEn: section.nameEn, slug: section.slug },
     points: (await pointTotals()).get(id) || 0,
     badges: badges.filter(b => !b.isArchived).sort((a, b) => a.sortOrder - b.sortOrder).map(b => ({
       id: b.id, icon: b.iconEmoji, titleEl: b.titleEl, titleEn: b.titleEn, earned: earnedIds.has(b.id)

@@ -429,5 +429,17 @@
   "ptsFromManual": "Awards",
   "scoutBadges": "Scout Badges",
   "noUpcoming": "Nothing on the programme yet.",
-  "allBadges": "All badges"
+  "allBadges": "All badges",
+  "ventureBook": "Venture Logbook",
+  "ventureBookSub": "The Venture Scout's record",
+  "ventureLogs": "Logbooks",
+  "chooseOne": "Choose one theme:",
+  "myAccount": "My account of it",
+  "chooseAtLeast": "{n} of the {total} fields are required",
+  "ventureOnly": "Venture Community only",
+  "addLogEntry": "Add an entry",
+  "logDates": "Dates",
+  "logForm": "Form of action",
+  "logPlace": "Place",
+  "logOe": "Working group"
 }

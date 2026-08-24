@@ -7,7 +7,7 @@ import { sendPushTo } from './push'
    rather than dropping them on a list. */
 export async function notifyAward(
   scoutId: number,
-  kind: 'badge' | 'requirement',
+  kind: 'badge' | 'requirement' | 'venture',
   refId: number,
   titleEl: string
 ): Promise<number> {
