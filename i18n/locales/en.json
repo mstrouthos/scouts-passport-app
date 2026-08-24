@@ -416,5 +416,6 @@
   "nice": "Nice!",
   "openIt": "Open it",
   "badgeEarned": "New badge!",
-  "requirementDone": "Requirement complete!"
+  "requirementDone": "Requirement complete!",
+  "noSectorYet": "No sector yet"
 }

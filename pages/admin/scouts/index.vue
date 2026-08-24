@@ -112,6 +112,32 @@ function leaderSub(l: any) {
   return l.scopes.map((sc: any) => `${scopeRank(sc)} · ${scopeWhere(sc)}`).join(' · ')
 }
 
+/* Βαθμοφόροι are filed under the sector they serve, and someone who covers two
+   sectors appears under both — that is how a troop actually reads the list.
+   Troop-wide leaders sit in their own group rather than being repeated
+   everywhere. */
+const leaderGroups = computed(() => {
+  const leaders = data.value?.leaders || []
+  const groups: Array<{ key: string, label: string, emoji: string, people: any[] }> = []
+  const troopWide = leaders.filter((l: any) =>
+    l.role === 'troop_leader' || l.scopes.some((sc: any) => sc.scope === 'troop'))
+  if (troopWide.length)
+    groups.push({ key: 'troop', label: t('wholeTroop'), emoji: '👑', people: troopWide })
+
+  for (const sec of (data.value?.sections || [])) {
+    const people = leaders.filter((l: any) => l.scopes.some((sc: any) =>
+      (sc.scope === 'section' && sc.sectionId === sec.id) ||
+      (sc.scope === 'patrol' && (sec.patrols || []).some((p: any) => p.id === sc.patrolId))))
+    if (people.length) groups.push({ key: 's' + sec.id, label: lx(sec, 'name'), emoji: '🎖️', people })
+  }
+
+  // nobody should silently vanish because their scope is unusual
+  const placed = new Set(groups.flatMap(g => g.people.map((p: any) => p.id)))
+  const rest = leaders.filter((l: any) => !placed.has(l.id))
+  if (rest.length) groups.push({ key: 'none', label: t('noSectorYet'), emoji: '❔', people: rest })
+  return groups
+})
+
 // ----- patrol (team) management, for section-admin leaders only -----
 const editingPatrol = ref<any>(null)   // { id?, sectionId, nameEl, nameEn, emblem }
 function newPatrol(sectionId: number) { editingPatrol.value = { sectionId, nameEl: '', nameEn: '', emblem: '' } }
@@ -187,13 +213,18 @@ async function deletePatrol() {
           <button class="chip" style="flex:none" @click.stop="openAdd('leaders')">+ {{ t('newScout') }}</button>
           <span class="chev" :class="{ open: openSectors.has('leaders') }">›</span>
         </div>
-        <div v-if="openSectors.has('leaders')" class="adm">
-          <NuxtLink v-for="r in data.leaders" :key="r.id" :to="`/admin/roles?open=${r.id}`" class="it">
-            <Avatar :name="name(r)" :tone="r.role === 'troop_leader' ? 'gold' : 'green'" />
-            <div style="flex:1;min-width:0"><b>{{ name(r) }}</b><span>{{ leaderSub(r) }}</span></div>
-            <span class="pill" :class="r.role === 'troop_leader' ? 'sched' : 'live'">{{ rankLabel(r) }}</span>
-            <span class="chev">›</span>
-          </NuxtLink>
+        <div v-if="openSectors.has('leaders')" style="display:flex;flex-direction:column;gap:11px">
+          <template v-for="g in leaderGroups" :key="g.key">
+            <div class="lgrp-hdr">{{ g.emoji }} {{ g.label }}</div>
+            <div class="adm">
+              <NuxtLink v-for="r in g.people" :key="g.key + '-' + r.id" :to="`/admin/roles?open=${r.id}`" class="it">
+                <Avatar :name="name(r)" :tone="r.role === 'troop_leader' ? 'gold' : 'green'" />
+                <div style="flex:1;min-width:0"><b>{{ name(r) }}</b><span>{{ leaderSub(r) }}</span></div>
+                <span class="pill" :class="r.role === 'troop_leader' ? 'sched' : 'live'">{{ rankLabel(r) }}</span>
+                <span class="chev">›</span>
+              </NuxtLink>
+            </div>
+          </template>
         </div>
       </template>
 
@@ -282,6 +313,11 @@ async function deletePatrol() {
 </template>
 
 <style scoped>
+.lgrp-hdr{
+  font-size:11px; font-weight:800; color:var(--muted); letter-spacing:.05em;
+  text-transform:uppercase; padding:2px 4px 0;
+}
+
 .sector-hdr{ cursor:pointer }
 .sector-hdr .chev{ transition:transform .2s }
 .sector-hdr .chev.open{ transform:rotate(90deg) }
