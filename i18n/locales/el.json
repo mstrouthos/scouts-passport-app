@@ -398,7 +398,6 @@
   "markDone": "Ολοκληρώθηκε",
   "undoAward": "Αναίρεση",
   "badgeRequirements": "Τι ζητά το πτυχίο",
-  "seeRequirements": "Προσκοπικές Απαιτήσεις",
   "onlyArchigosAwards": "Μόνο ο Αρχηγός απονέμει απαιτήσεις",
   "orAlternative": "— ή —",
   "ptsUniformPartialL": "Ελλιπής στολή",
@@ -427,5 +426,7 @@
   "ptsFromUniform": "Στολή",
   "ptsFromGames": "Παιχνίδια",
   "ptsFromPatrol": "Ενωμοτία",
-  "ptsFromManual": "Απονομές"
+  "ptsFromManual": "Απονομές",
+  "scoutBadges": "Πτυχία Προσκόπου",
+  "noUpcoming": "Καμία δράση στο πρόγραμμα ακόμη."
 }

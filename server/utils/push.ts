@@ -2,7 +2,7 @@ import webpush from 'web-push'
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { now } from './passcode'
-import { linkForNotification } from './celebrate'
+import { linkForNotification } from './notifyLinks'
 
 let configured: boolean | null = null
 function ensureConfigured(): boolean {
@@ -18,7 +18,10 @@ function ensureConfigured(): boolean {
 }
 
 async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, payload: string): Promise<number> {
-  if (!subs.length || !ensureConfigured()) return 0
+  // say why nothing went out: a silent zero here is indistinguishable from
+  // "nobody was subscribed", which is what made a broken push hard to see
+  if (!subs.length) { console.log('[push] nothing sent — no subscriptions for these recipients'); return 0 }
+  if (!ensureConfigured()) { console.warn('[push] nothing sent — VAPID keys are not configured'); return 0 }
   const db = (await useDb())
   let sent = 0
   await Promise.all(subs.map(async (sub) => {
@@ -27,6 +30,7 @@ async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, pay
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload)
       sent++
     } catch (err: any) {
+      console.warn(`[push] delivery failed (${err?.statusCode ?? '?'}) for ${sub.endpoint.slice(0, 48)}`, err?.body || err?.message || '')
       if (err?.statusCode === 404 || err?.statusCode === 410)
         await db.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.id, sub.id))
     }

@@ -398,7 +398,6 @@
   "markDone": "Mark done",
   "undoAward": "Undo",
   "badgeRequirements": "What the badge asks for",
-  "seeRequirements": "Scout Requirements",
   "onlyArchigosAwards": "Only the Αρχηγός awards requirements",
   "orAlternative": "— or —",
   "ptsUniformPartialL": "Partial uniform",
@@ -427,5 +426,7 @@
   "ptsFromUniform": "Uniform",
   "ptsFromGames": "Games",
   "ptsFromPatrol": "Patrol",
-  "ptsFromManual": "Awards"
+  "ptsFromManual": "Awards",
+  "scoutBadges": "Scout Badges",
+  "noUpcoming": "Nothing on the programme yet."
 }

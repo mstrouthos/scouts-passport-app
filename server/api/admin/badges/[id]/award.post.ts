@@ -19,14 +19,17 @@ export default defineEventHandler(async (event) => {
   if (!badge) throw createError({ statusCode: 404, message: 'Badge not found' })
   const mine = new Set((await scopedScouts(me)).map(r => r.id))
   let awarded = 0
+  let pushed = 0
   for (const scoutId of ids) {
     if (!mine.has(scoutId)) throw createError({ statusCode: 403, message: 'Out of your sector' })
     try {
       await db.insert(s.scoutAchievements).values({ scoutId, achievementId: badgeId, completedOn, awardedBy: me.id })
       awarded++
-      // only a genuinely new badge is worth celebrating
-      await notifyAward(scoutId, 'badge', badgeId, badge.titleEl)
-    } catch { /* already has it — skip */ }
+    } catch { continue }   // already has it — nothing new to announce
+    // outside the insert's catch: a failure to notify is a real problem and
+    // must not be mistaken for "this scout already had the badge"
+    try { pushed += await notifyAward(scoutId, 'badge', badgeId, badge.titleEl) }
+    catch (err) { console.error('[award] badge notification failed', err) }
   }
-  return { awarded }
+  return { awarded, pushed }
 })

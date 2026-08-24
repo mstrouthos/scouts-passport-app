@@ -1,7 +1,7 @@
 import { eq, desc } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { requireScout } from '../utils/guard'
-import { linkForNotification } from '../utils/celebrate'
+import { linkForNotification } from '../utils/notifyLinks'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
