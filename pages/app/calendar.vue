@@ -2,8 +2,18 @@
 const { t, locale } = useI18n()
 const lx = useLx()
 const { data } = await useFetch('/api/calendar')
+const me = useMe()
 const filter = ref('all')
-const filters = ['all', 'troop', 'section', 'patrol']
+
+/* Named after what they are: a scout in the Ομάδα gets "Όλο το Σύστημα" and
+   "Ομάδα Προσκόπων", not the abstract words troop and section. The feed only
+   ever carries their own sector's events, so filtering on scope is enough. */
+const filters = computed(() => {
+  const out = [{ key: 'all', label: t('all') }, { key: 'troop', label: t('wholeTroop') }]
+  if (me.value?.section) out.push({ key: 'section', label: lx(me.value.section, 'name') })
+  if (me.value?.patrol) out.push({ key: 'patrol', label: lx(me.value.patrol, 'name') })
+  return out
+})
 const upcoming = computed(() => (data.value || [])
   .filter((e: any) => (filter.value === 'all' || e.scope === filter.value))
   .filter((e: any) => new Date(e.endsAt || e.startsAt).getTime() > Date.now() - 86400_000))
@@ -18,7 +28,8 @@ function sub(e: any) {
 <template>
   <AppShell :title="t('calendar')">
     <div class="chips">
-      <button v-for="f in filters" :key="f" class="chip" :class="{ on: filter === f }" @click="filter = f">{{ t(f) }}</button>
+      <button v-for="f in filters" :key="f.key" class="chip" :class="{ on: filter === f.key }"
+              @click="filter = f.key">{{ f.label }}</button>
     </div>
     <a v-if="upcoming.length" class="chip" href="/api/calendar.ics" style="display:inline-block;text-decoration:none">{{ t('addToCalendar') }}</a>
     <template v-for="[label, list] in [[t('thisWeek'), soon], [t('upcoming'), later]]" :key="label">
@@ -33,10 +44,11 @@ function sub(e: any) {
       </template>
     </template>
     <div v-if="!upcoming.length" class="empty">{{ t('noEvents') }}</div>
-    <div class="tiny muted" style="display:flex;gap:12px;padding:0 2px">
-      <span><span class="dot troop" />{{ t('troop') }}</span>
-      <span><span class="dot section" />{{ t('section') }}</span>
-      <span><span class="dot patrol" />{{ t('patrol') }}</span>
+    <!-- the key names the scout's own sector and team, not the abstract words -->
+    <div class="tiny muted" style="display:flex;gap:12px;padding:0 2px;flex-wrap:wrap">
+      <span><span class="dot troop" />{{ t('wholeTroop') }}</span>
+      <span v-if="me?.section"><span class="dot section" />{{ lx(me.section, 'name') }}</span>
+      <span v-if="me?.patrol"><span class="dot patrol" />{{ lx(me.patrol, 'name') }}</span>
     </div>
   </AppShell>
 </template>
