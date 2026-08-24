@@ -3,7 +3,8 @@
    what each award asks, what they chose, what they wrote, and when the
    Α.Κ.Α. signed it off. */
 const { t, locale } = useI18n()
-const { data } = await useFetch<any>('/api/venture')
+const { data, refresh } = await useFetch<any>('/api/venture')
+const { show } = useToast()
 const openAward = ref<string | null>(null)
 const detail = ref<any>(null)
 const openLog = ref<string | null>(null)
@@ -12,6 +13,28 @@ const awards = computed<any[]>(() => data.value?.awards || [])
 const pct = (a: any) => a.total ? Math.round((a.earned / a.total) * 100) : 0
 /* Δημοκρατίας follows Τελειοποιήσεως, which follows admission. */
 function locked(i: number) { return i > 0 && !awards.value[i - 1]?.complete }
+
+/* The logbooks are the Ανιχνευτής's own pages to fill in — the Α.Κ.Α. signs
+   requirements, but the record of what you did is yours. */
+const busy = ref(false)
+const logForm = reactive({ datesEl: '', formEl: '', placeEl: '', oeEl: '' })
+async function addLog(kind: string) {
+  if (!logForm.formEl.trim() || busy.value) return
+  busy.value = true
+  try {
+    await $fetch('/api/venture/log', { method: 'POST', body: { kind, ...logForm } })
+    Object.assign(logForm, { datesEl: '', formEl: '', placeEl: '', oeEl: '' })
+    await refresh(); show('✅ ' + t('saved'))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+  finally { busy.value = false }
+}
+async function removeLog(logId: number) {
+  if (!confirm(t('confirmDeleteLog'))) return
+  try {
+    await $fetch('/api/venture/log', { method: 'POST', body: { remove: true, logId } })
+    await refresh()
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+}
 
 const route = useRoute(); const router = useRouter()
 const party = ref<any>(null)
@@ -83,9 +106,22 @@ watch(() => route.query.req, (raw) => {
               <b>{{ e.formEl || '—' }}</b>
               <span>{{ [e.datesEl, e.placeEl, e.oeEl].filter(Boolean).join(' · ') }}</span>
             </div>
+            <button class="chip" @click="removeLog(e.id)">🗑️</button>
           </div>
         </div>
         <div v-else class="empty">{{ l.hintEl }}</div>
+
+        <div class="logform">
+          <div style="display:flex;gap:8px">
+            <div style="flex:1"><label class="lab">{{ t('logDates') }}</label><input v-model="logForm.datesEl" class="in"></div>
+            <div style="flex:1"><label class="lab">{{ t('logPlace') }}</label><input v-model="logForm.placeEl" class="in"></div>
+          </div>
+          <div><label class="lab">{{ t('logForm') }}</label><input v-model="logForm.formEl" class="in"></div>
+          <div><label class="lab">{{ t('logOe') }}</label><input v-model="logForm.oeEl" class="in"></div>
+          <button class="btn" :disabled="!logForm.formEl.trim() || busy" @click="addLog(l.kind)">
+            + {{ t('addLogEntry') }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -168,7 +204,8 @@ watch(() => route.query.req, (raw) => {
 .cathead .clbl{flex:1;min-width:0;font-size:13.5px;font-weight:650}
 .cathead .cn{font-size:11px;font-weight:800;color:var(--muted);background:#EEF2F6;border-radius:999px;padding:2px 8px}
 .cathead .chev{color:var(--muted)}
-.logwrap{margin-top:8px}
+.logwrap{margin-top:8px;display:flex;flex-direction:column;gap:9px}
+.logform{display:flex;flex-direction:column;gap:9px}
 .logwrap .n{flex:none;width:24px;height:24px;border-radius:8px;background:#EEF2F6;display:grid;place-items:center;font-size:11px;font-weight:800;color:var(--muted)}
 
 .blist{margin:0; padding-left:19px; display:flex; flex-direction:column; gap:6px}

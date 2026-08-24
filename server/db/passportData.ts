@@ -4,11 +4,11 @@
 
 export type StageSlug = 'arxarios' | 'xalkino' | 'argyro' | 'xryso'
 
-export const STAGES: Array<{ slug: StageSlug, titleEl: string, titleEn: string, emoji: string, colour: string }> = [
-  { slug: 'arxarios', titleEl: 'Αρχάριος Πρόσκοπος', titleEn: 'Tenderfoot Scout', emoji: '🌱', colour: '#5FA85F' },
-  { slug: 'xalkino', titleEl: 'Χάλκινο Τρίφυλλο', titleEn: 'Bronze Trefoil', emoji: '🥉', colour: '#B87333' },
-  { slug: 'argyro', titleEl: 'Αργυρό Τρίφυλλο', titleEn: 'Silver Trefoil', emoji: '🥈', colour: '#8E9BA8' },
-  { slug: 'xryso', titleEl: 'Χρυσό Τρίφυλλο', titleEn: 'Gold Trefoil', emoji: '🥇', colour: '#D4A32C' }
+export const STAGES: Array<{ slug: StageSlug, titleEl: string, ofEl: string, titleEn: string, emoji: string, colour: string }> = [
+  { slug: 'arxarios', titleEl: 'Αρχάριος Πρόσκοπος', ofEl: 'Αρχάριος Πρόσκοπος', titleEn: 'Tenderfoot Scout', emoji: '🌱', colour: '#5FA85F' },
+  { slug: 'xalkino', titleEl: 'Χάλκινο Τρίφυλλο', ofEl: 'Πρόσκοπος Χάλκινου Τριφύλλου', titleEn: 'Bronze Trefoil', emoji: '🥉', colour: '#B87333' },
+  { slug: 'argyro', titleEl: 'Αργυρό Τρίφυλλο', ofEl: 'Πρόσκοπος Αργυρού Τριφύλλου', titleEn: 'Silver Trefoil', emoji: '🥈', colour: '#8E9BA8' },
+  { slug: 'xryso', titleEl: 'Χρυσό Τρίφυλλο', ofEl: 'Πρόσκοπος Χρυσού Τριφύλλου', titleEn: 'Gold Trefoil', emoji: '🥇', colour: '#D4A32C' }
 ]
 
 export const REQUIREMENTS: Array<{ n: number, stage: StageSlug, themeEl: string, textEl: string, meansEl: string, level: string }> = [
@@ -170,4 +170,42 @@ export const BADGES: Array<{ slug: string, titleEl: string, category: string, em
   { slug: 'perivallontos', titleEl: 'Περιβάλλοντος', category: 'eidikotitas', emoji: '♻️', requirementsEl: [':: Επιλέγω για να πραγματοποιήσω δύο τουλάχιστον από τα πιο κάτω:', 'Γνωρίζω τα κυριότερα ήδη ρύπανσης του περιβάλλοντος και εκθέτω απλούς τρόπους αντιμετώπισης.', 'Γνωρίζω πέντε απλούς τρόπους εξοικονόμησης νερού.', 'Ετοιμάζω ένα σκίτσο με τον ΚΥΚΛΟ ΤΗΣ ΖΩΗΣ.', 'Καταγράφω τη χλωρίδα και την πανίδα του τόπου που με ιδιαίτερη αναφορά σε όσα είδη κινδυνεύουν με εξαφάνιση.', 'Καταγράφω τις βασικότερες αιτίες πρόκλησης δασικών πυρκαγιών και τους τρόπους πρόληψης. Πραγματοποιώ υποχρεωτικά τα πιο κάτω:', 'Περπατώ σε ένα μονοπάτι της φύσης ή σε ένα πάρκο, καταγράφω πέντε φυτά που θα συναντήσω και γνωρίζω λίγα λόγια για το καθένα.', 'Συμμετέχω σε μια εκστρατεία καθαριότητας (π.χ. παραλιών) ή σε μια δεντροφύτευση.', 'Ετοιμάζω μια πρωτότυπη κατασκευή από ανακυκλώσιμα υλικά.', 'Ετοιμάζω μια φωλιά ή μια ταΐστρα για πουλιά.', 'Ετοιμάζω μια αφίσα με θέμα την προστασία του περιβάλλοντος.'] },
   { slug: 'agroti', titleEl: 'Αγρότη', category: 'eidikotitas', emoji: '🌾', requirementsEl: ['Επισκέπτομαι ένα από τα πιο κάτω, συμμετέχω στις εργασίες και παίρνω πληροφορίες για το επάγγελμα: - Γεωργική μονάδα - Κτηνοτροφική μονάδα - Πτηνοτροφική μονάδα - Μελισσοκομείο - Ιχθυοκαλλιέργεια - Μονάδας μεταποίησης αγροτικών προϊόντων', 'Γνωρίζω τον κύκλο εργασιών της μονάδας που επισκέφτηκα.', 'Ετοιμάζω μία παρουσίαση η οποία να περιλαμβάνει στοιχεία για τη μονάδα που επισκέφτηκα, όπως η φροντίδα, συγκομιδή και τα διάφορα προϊόντα που παράγονται, καθώς επίσης, και φωτογραφικό υλικό από την επίσκεψη μου.', 'Μπορώ να αναγνωρίσω τέσσερα γεωργικά μηχανήματα, γνωρίζω τη χρήση και την επικινδυνότητα τους.', 'Συλλέγω πληροφορίες για την παρασκευή ενός παραδοσιακού κυπριακού προϊόντος (π.χ. χαλούμι, σουτζούκο, χαρουπόμελο, κλπ)', 'Ενημερώνομαι για τις προφυλάξεις που πρέπει να πάρω (μέτρα προστασίας, σωστή ένδυση κλπ) προτού εισέλθω στη μονάδα που θα επισκεφτώ.', 'Γνωρίζω για τη χρήση φυτοφαρμάκων και άλλων ουσιών καθώς επίσης, γιατί η μη ορθή χρήση τους είναι επιβλαβής για τον οργανισμό.'] },
   { slug: 'dasonomoy', titleEl: 'Δασονόμου', category: 'eidikotitas', emoji: '🌲', requirementsEl: ['Αναγνωρίζω στις διάφορες εποχές του χρόνου τα εξής δασικά ενδημικά δέντρα: Πεύκος, Κυπαρίσσι, Ευκάλυπτος, Κέδρος, Έλατο, Πλάτανος, Λεύκη, Χαρουπιά, Ελιά.', 'Αναγνωρίζω στις διάφορες εποχές του χρόνου έξι θάμνους και αγριολούλουδα της Κύπρου.', 'Εξηγώ τον κύκλο της ζωής και τη σημασία του δάσους.', 'Εξηγώ τους κινδύνους που διατρέχει το δάσος από την πυρκαγιά, τα ζώα και τις ασθένειες.', 'Επισκέπτομαι ένα δασικό σταθμό και συζητώ με τους δασονόμους για την ενδυνάμωση της βλάστησης στα δάση, την αραίωση των δασών και την πυροπροστασία.', 'Γνωρίζω τις αρχές υλοτομίας, όπως το κόψιμο ενός δέντρου και τον κατατεμαχισμό του και τη χρησιμότητα των διαφόρων μερών του.', 'Κατά τη διάρκεια δράσης ή κατασκήνωσης εντοπίζω κάποια δασικά δέντρα ανάλογα με την περιοχή που είμαι, συλλέγω φύλλα και καρπούς και τα παρουσιάζω στην Ενωμοτία ή στην Ομάδα μου.'] }
+]
+
+/* Οι Δάφνες and the Πτυχίο Εξειδίκευσης (pages 18–19). These are not signed
+   off row by row: they are earned by holding a stage and a set of Πτυχία, so
+   the app works out where a scout stands rather than asking anyone to tick. */
+export const HONOURS: Array<{
+  slug: string, titleEl: string, emoji: string, colour: string,
+  needsStage?: StageSlug, needsHonour?: string,
+  perCategory?: Array<{ category: string, count: number }>,
+  namedBadges?: string[]
+}> = [
+  {
+    slug: 'argyri-dafni', titleEl: 'Αργυρή Δάφνη', emoji: '🥈', colour: '#8E9BA8',
+    needsStage: 'argyro',
+    perCategory: [
+      { category: 'drasis', count: 1 }, { category: 'texnikis', count: 1 },
+      { category: 'eidikotitas', count: 1 }, { category: 'texnologias', count: 1 },
+      { category: 'anaptyxis', count: 1 }, { category: 'ypiresias', count: 1 },
+      { category: 'psyxagogias', count: 1 }
+    ]
+  },
+  {
+    slug: 'chrysi-dafni', titleEl: 'Χρυσή Δάφνη', emoji: '🥇', colour: '#D4A32C',
+    needsStage: 'xryso', needsHonour: 'argyri-dafni',
+    // the Χρυσή asks for a second badge in each category, on top of the Αργυρή
+    perCategory: [
+      { category: 'drasis', count: 2 }, { category: 'texnikis', count: 2 },
+      { category: 'eidikotitas', count: 2 }, { category: 'texnologias', count: 2 },
+      { category: 'anaptyxis', count: 2 }, { category: 'ypiresias', count: 2 },
+      { category: 'psyxagogias', count: 2 }
+    ]
+  },
+  {
+    slug: 'exeidikefsis', titleEl: 'Πτυχίο Εξειδίκευσης', emoji: '🎖️', colour: '#B87333',
+    needsStage: 'argyro',
+    perCategory: [{ category: 'eidikotitas', count: 2 }],
+    namedBadges: ['kataskinoti', 'exereyniti', 'skapanikis', 'proton-voitheion', 'kataskinotikis-technikis']
+  }
 ]

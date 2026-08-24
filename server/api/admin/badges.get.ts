@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
   const mine = new Set((await scopedScouts(me)).map(r => r.id))
   return badges.map(b => ({
     id: b.id, icon: b.iconEmoji, titleEl: b.titleEl, titleEn: b.titleEn,
+    category: b.category, slug: b.slug,
     descriptionEl: b.descriptionEl, descriptionEn: b.descriptionEn,
     awarded: all.filter(a => a.achievementId === b.id && mine.has(a.scoutId)).length,
     total: mine.size

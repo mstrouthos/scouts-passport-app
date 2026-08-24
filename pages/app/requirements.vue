@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /* Προσκοπικές Απαιτήσεις — the passport's progression, as a set of levels a
    scout climbs. Same cartoon language as the challenge path: chunky 3D tiles,
-   a colour per stage, and a clear "locked until the one before it" story. */
+   a colour per stage. Every stage is open: the paper passport lets a scout
+   read ahead, and requirements are often signed off out of order. */
 const { t, locale } = useI18n()
 const { data } = await useFetch<any>('/api/requirements')
 
@@ -10,11 +11,6 @@ const detail = ref<any>(null)
 
 const stages = computed<any[]>(() => data.value?.stages || [])
 const pct = (st: any) => st.total ? Math.round((st.earned / st.total) * 100) : 0
-/* A stage opens up once the one before it is finished — that is how the
-   passport works, you do not start the Χάλκινο before the Αρχάριος. */
-function locked(i: number) {
-  return i > 0 && !stages.value[i - 1]?.complete
-}
 /* Arriving from the notification that announced a sign-off. */
 const route = useRoute()
 const router = useRouter()
@@ -33,8 +29,7 @@ watch(() => route.query.req, (raw) => {
   router.replace({ query: {} })
 }, { immediate: true })
 
-function toggle(i: number, st: any) {
-  if (locked(i)) return
+function toggle(st: any) {
   openStage.value = openStage.value === st.slug ? null : st.slug
 }
 </script>
@@ -47,10 +42,10 @@ function toggle(i: number, st: any) {
       <div class="bar"><i :style="{ width: (data.total ? (data.earned / data.total) * 100 : 0) + '%' }" /></div>
     </div>
 
-    <div v-for="(st, i) in stages" :key="st.slug" class="stage">
-      <button class="tile" :class="{ done: st.complete, locked: locked(i), on: openStage === st.slug }"
-              :style="{ '--tone': st.colour }" @click="toggle(i, st)">
-        <span class="badge">{{ locked(i) ? '🔒' : st.emoji }}</span>
+    <div v-for="st in stages" :key="st.slug" class="stage">
+      <button class="tile" :class="{ done: st.complete, on: openStage === st.slug }"
+              :style="{ '--tone': st.colour }" @click="toggle(st)">
+        <span class="badge">{{ st.emoji }}</span>
         <span class="txt">
           <b>{{ st.titleEl }}</b>
           <span>{{ st.earned }}/{{ st.total }} · {{ pct(st) }}%</span>
@@ -68,6 +63,22 @@ function toggle(i: number, st: any) {
             <em v-if="it.completedOn">✓ {{ fmtDate(it.completedOn, locale) }}</em>
           </span>
         </button>
+      </div>
+    </div>
+
+
+    <div v-if="data?.honours?.length" class="sec-title">{{ t('honours') }}</div>
+    <div v-for="h in data?.honours || []" :key="h.slug" class="honour" :class="{ done: h.complete }"
+         :style="{ '--tone': h.colour }">
+      <div class="hhead">
+        <span class="hem">{{ h.emoji }}</span>
+        <span class="hlbl"><b>{{ h.titleEl }}</b><span>{{ h.have }}/{{ h.need }}</span></span>
+        <span v-if="h.complete" class="pill ok">✓</span>
+      </div>
+      <div class="hparts">
+        <span v-for="(p, i) in h.parts" :key="i" class="hpart" :class="{ met: p.have >= p.need }">
+          {{ p.labelEl }} <b>{{ Math.min(p.have, p.need) }}/{{ p.need }}</b>
+        </span>
       </div>
     </div>
 
@@ -98,6 +109,19 @@ function toggle(i: number, st: any) {
 </template>
 
 <style scoped>
+.honour{background:var(--card); border-radius:16px; padding:12px 14px; box-shadow:var(--shadow);
+  border-left:4px solid var(--tone); display:flex; flex-direction:column; gap:9px}
+.honour.done{background:linear-gradient(180deg,#F2FBF5,#fff)}
+.hhead{display:flex; align-items:center; gap:11px}
+.hem{font-size:22px}
+.hlbl{flex:1; min-width:0; display:flex; flex-direction:column}
+.hlbl b{font-size:14px}
+.hlbl span{font-size:11.5px; color:var(--muted)}
+.hparts{display:flex; flex-wrap:wrap; gap:6px}
+.hpart{font-size:11px; background:#EEF2F6; color:var(--muted); border-radius:999px; padding:3px 9px}
+.hpart b{font-variant-numeric:tabular-nums}
+.hpart.met{background:var(--accent-soft); color:var(--accent-deep)}
+
 .hero-card{
   background:var(--card); border-radius:var(--r-card); box-shadow:var(--shadow);
   padding:16px; text-align:center;

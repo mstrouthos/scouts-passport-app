@@ -68,6 +68,22 @@ async function setDone(done: boolean) {
       </div>
     </div>
 
+
+    <div v-if="data?.honours?.length" class="sec-title">{{ t('honours') }}</div>
+    <div v-for="h in data?.honours || []" :key="h.slug" class="honour" :class="{ done: h.complete }"
+         :style="{ '--tone': h.colour }">
+      <div class="hhead">
+        <span class="hem">{{ h.emoji }}</span>
+        <span class="hlbl"><b>{{ h.titleEl }}</b><span>{{ h.have }}/{{ h.need }}</span></span>
+        <span v-if="h.complete" class="pill ok">✓</span>
+      </div>
+      <div class="hparts">
+        <span v-for="(p, i) in h.parts" :key="i" class="hpart" :class="{ met: p.have >= p.need }">
+          {{ p.labelEl }} <b>{{ Math.min(p.have, p.need) }}/{{ p.need }}</b>
+        </span>
+      </div>
+    </div>
+
     <Teleport to="body">
       <div v-if="detail" class="sheet-backdrop" @click.self="detail = null">
         <div class="sheet" style="display:flex;flex-direction:column;gap:12px;max-height:88dvh;overflow:auto">
@@ -100,6 +116,19 @@ async function setDone(done: boolean) {
 </template>
 
 <style scoped>
+.honour{background:var(--card); border-radius:16px; padding:12px 14px; box-shadow:var(--shadow);
+  border-left:4px solid var(--tone); display:flex; flex-direction:column; gap:9px}
+.honour.done{background:linear-gradient(180deg,#F2FBF5,#fff)}
+.hhead{display:flex; align-items:center; gap:11px}
+.hem{font-size:22px}
+.hlbl{flex:1; min-width:0; display:flex; flex-direction:column}
+.hlbl b{font-size:14px}
+.hlbl span{font-size:11.5px; color:var(--muted)}
+.hparts{display:flex; flex-wrap:wrap; gap:6px}
+.hpart{font-size:11px; background:#EEF2F6; color:var(--muted); border-radius:999px; padding:3px 9px}
+.hpart b{font-variant-numeric:tabular-nums}
+.hpart.met{background:var(--accent-soft); color:var(--accent-deep)}
+
 .stage{display:flex; flex-direction:column; gap:9px}
 .tile{
   display:flex; align-items:center; gap:13px; text-align:left; width:100%;

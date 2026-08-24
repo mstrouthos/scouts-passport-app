@@ -86,12 +86,34 @@ const byPatrol = computed(() => (data.value?.patrols || [])
   .map((p: any) => ({ p, list: (data.value?.scouts || []).filter((r: any) => r.patrolId === p.id) }))
   .filter((g: any) => g.list.length))
 const tally = computed(() => {
-  const c = { present: 0, absent: 0, excused: 0 }
+  const c = { present: 0, excused: 0, absent: 0 }
   for (const r of data.value?.scouts || []) if (r.attendance) (c as any)[r.attendance]++
   return c
 })
 const presentList = computed(() => (data.value?.scouts || []).filter((r: any) => r.attendance === 'present'))
 const fullCount = computed(() => presentList.value.filter((r: any) => r.uniform === 'full').length)
+
+/* Whether the Βαθμοφόροι are coming — their own answer, set before the event
+   and quite separate from the attendance they record for the scouts. */
+const RSVPS = [
+  { v: 'yes', k: '✓', labelKey: 'rsvpYes', cls: 'g' },
+  { v: 'maybe', k: '?', labelKey: 'rsvpMaybe', cls: 'a' },
+  { v: 'no', k: '✕', labelKey: 'rsvpNo', cls: 'r' }
+]
+const rsvpBusy = ref(false)
+async function setRsvp(answer: string) {
+  if (rsvpBusy.value) return
+  rsvpBusy.value = true
+  try {
+    await $fetch(`/api/admin/events/${id}/rsvp`, { method: 'POST', body: { answer } })
+    await refresh()
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+  finally { rsvpBusy.value = false }
+}
+const rsvpGroups = computed(() => RSVPS.map(r => ({
+  ...r, people: (data.value?.rsvps || []).filter((x: any) => x.answer === r.v)
+})).concat([{ v: 'none', k: '·', labelKey: 'rsvpPending', cls: '',
+  people: (data.value?.rsvps || []).filter((x: any) => !x.answer) } as any]))
 
 async function setReview(scoutId: number, patch: any) {
   const r = (data.value?.scouts || []).find((x: any) => x.id === scoutId)
@@ -116,7 +138,7 @@ async function awardGame() {
   await refresh(); show('🏆 +' + game.points)
 }
 const attDefs = [
-  { v: 'present', k: '✓', cls: 'g' }, { v: 'absent', k: '✕', cls: 'r' }, { v: 'excused', k: '~', cls: 'a' }
+  { v: 'present', k: '✓', cls: 'g' }, { v: 'excused', k: '~', cls: 'a' }, { v: 'absent', k: '✕', cls: 'r' }
 ]
 const uniDefs = [
   { v: 'full', k: '●', cls: 'g' }, { v: 'partial', k: '◐', cls: 'a' }, { v: 'none', k: '○', cls: 'r' }
@@ -131,6 +153,26 @@ const uniDefs = [
       <button v-if="meta?.canDelete && me?.can?.events !== false" class="iconbtn" :aria-label="t('deleteEvent')" @click="deleteEvent">
         <NavIcon name="trash" />
       </button>
+    </template>
+
+    <!-- who among the Βαθμοφόροι is coming -->
+    <template v-if="data.rsvps?.length">
+      <div class="sec-title">{{ t('leadersAttending') }}</div>
+      <div class="card" style="display:flex;flex-direction:column;gap:11px">
+        <div v-if="data.canRsvp" style="display:flex;flex-direction:column;gap:7px">
+          <div class="tiny muted">{{ t('willYouAttend') }}</div>
+          <div class="chips">
+            <button v-for="r in RSVPS" :key="r.v" class="chip" :class="{ on: data.myRsvp === r.v }"
+                    :disabled="rsvpBusy" @click="setRsvp(r.v)">{{ r.k }} {{ t(r.labelKey) }}</button>
+          </div>
+        </div>
+        <div v-for="g in rsvpGroups" :key="g.v">
+          <div v-if="g.people.length" class="rgroup">
+            <span class="rlbl" :class="g.cls">{{ t(g.labelKey) }} · {{ g.people.length }}</span>
+            <span class="rnames">{{ g.people.map((p: any) => name(p)).join(', ') }}</span>
+          </div>
+        </div>
+      </div>
     </template>
 
     <div class="seg">
@@ -269,6 +311,16 @@ const uniDefs = [
 </template>
 
 <style scoped>
+.rgroup{display:flex; gap:9px; align-items:flex-start; font-size:12.5px}
+.rlbl{
+  flex:none; font-weight:800; font-size:11px; border-radius:999px; padding:3px 9px;
+  background:#EEF2F6; color:var(--muted);
+}
+.rlbl.g{background:#E4F5EA; color:#1B7A4B}
+.rlbl.a{background:#FBF0D2; color:#8F6C0E}
+.rlbl.r{background:#FDECE7; color:var(--danger)}
+.rnames{color:var(--muted); line-height:1.5}
+
 .st{display:flex;gap:5px;flex:none}
 .st button{
   width:30px;height:30px;border-radius:9px;border:1.5px solid var(--line);background:#fff;

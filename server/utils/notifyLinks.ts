@@ -9,5 +9,7 @@ export function linkForNotification(kind: string, refId: number | null): string 
   // the Κοινότητα's booklet is a separate programme with its own numbering
   if (kind === 'venture') return `/app/venture?req=${refId}`
   if (kind === 'challenge') return '/app/challenges'
+  // asking a Βαθμοφόρος whether they are coming opens the event itself
+  if (kind === 'eventRsvp') return `/admin/events/${refId}`
   return null
 }

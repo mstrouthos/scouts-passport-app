@@ -132,6 +132,15 @@ CREATE TABLE IF NOT EXISTS event_reviews (
   attendance TEXT, uniform TEXT, recorded_by INTEGER, recorded_at TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS event_review_uq ON event_reviews(event_id, scout_id);
+CREATE TABLE IF NOT EXISTS event_rsvps (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER NOT NULL REFERENCES events(id),
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  answer TEXT NOT NULL,
+  note_el TEXT,
+  answered_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS event_rsvp_uq ON event_rsvps(event_id, scout_id);
 CREATE TABLE IF NOT EXISTS point_awards (
   id SERIAL PRIMARY KEY,
   scout_id INTEGER REFERENCES scouts(id),

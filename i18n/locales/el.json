@@ -441,5 +441,13 @@
   "logDates": "Ημερομηνίες",
   "logForm": "Μορφή δράσης",
   "logPlace": "Τόπος διεξαγωγής",
-  "logOe": "Συμμετοχή σε Ο.Ε."
+  "logOe": "Συμμετοχή σε Ο.Ε.",
+  "confirmDeleteLog": "Διαγραφή αυτής της καταχώρησης;",
+  "honours": "Δάφνες & Εξειδίκευση",
+  "leadersAttending": "Βαθμοφόροι",
+  "willYouAttend": "Θα είσαι εκεί;",
+  "rsvpYes": "Θα είμαι",
+  "rsvpMaybe": "Ίσως",
+  "rsvpNo": "Δεν μπορώ",
+  "rsvpPending": "Χωρίς απάντηση"
 }

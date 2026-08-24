@@ -197,6 +197,18 @@ export const eventReviews = pgTable('event_reviews', {
   recordedAt: text('recorded_at')
 }, t => [uniqueIndex('event_review_uq').on(t.eventId, t.scoutId)])
 
+/** Whether a Βαθμοφόρος plans to be at an event. Their own answer, not an
+    attendance record: it is set before the event, by them, and says nothing
+    about whether they turned up. */
+export const eventRsvps = pgTable('event_rsvps', {
+  id: serial('id').primaryKey(),
+  eventId: integer('event_id').notNull().references(() => events.id),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  answer: text('answer', { enum: ['yes', 'no', 'maybe'] }).notNull(),
+  noteEl: text('note_el'),
+  answeredAt: text('answered_at').notNull()
+}, t => [uniqueIndex('event_rsvp_uq').on(t.eventId, t.scoutId)])
+
 export const pointAwards = pgTable('point_awards', {
   id: serial('id').primaryKey(),
   scoutId: integer('scout_id').references(() => scouts.id),

@@ -2,6 +2,8 @@ import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
 import { assertCan } from '../../utils/permissions'
 import { canScheduleForGroup } from '../../utils/groupScope'
+import { leadersForEvent } from '../../utils/rsvp'
+import { sendPushTo } from '../../utils/push'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -54,5 +56,22 @@ export default defineEventHandler(async (event) => {
     isAllDay: !!b.isAllDay, tracksAttendance: b.tracksAttendance !== false,
     remindAt: b.remindAt || null, createdBy: me.id
   }).returning())
-  return { id: row.id }
+
+  // ask the Βαθμοφόροι this concerns whether they are coming — everyone but
+  // whoever just created it, who plainly knows
+  let asked = 0
+  try {
+    const ids = (await leadersForEvent(row)).filter(id => id !== me.id)
+    if (ids.length) {
+      const when = new Date(row.startsAt).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' })
+      asked = ids.length
+      await sendPushTo(ids, {
+        title: 'Πύλη Προσκόπων',
+        body: `📅 Νέα δράση: ${row.titleEl} (${when}). Θα είσαι εκεί;`,
+        kind: 'eventRsvp', refId: row.id
+      })
+    }
+  } catch (err) { console.error('[event] rsvp notification failed', err) }
+
+  return { id: row.id, asked }
 })

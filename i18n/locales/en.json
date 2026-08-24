@@ -441,5 +441,13 @@
   "logDates": "Dates",
   "logForm": "Form of action",
   "logPlace": "Place",
-  "logOe": "Working group"
+  "logOe": "Working group",
+  "confirmDeleteLog": "Delete this entry?",
+  "honours": "Laurels & Specialisation",
+  "leadersAttending": "Leaders",
+  "willYouAttend": "Will you be there?",
+  "rsvpYes": "Coming",
+  "rsvpMaybe": "Maybe",
+  "rsvpNo": "Cannot make it",
+  "rsvpPending": "No answer yet"
 }
