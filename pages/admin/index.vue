@@ -34,9 +34,6 @@ async function saveDetails() {
 
 <template>
   <AppShell :title="t('profile')" :sub="roleLabel">
-    <template #actions>
-      <NuxtLink to="/admin/settings" class="iconbtn" :aria-label="t('settings')"><NavIcon name="gear" /></NuxtLink>
-    </template>
 
     <div class="pcard">
       <div class="name">{{ me?.firstName }} {{ me?.lastName }}</div>

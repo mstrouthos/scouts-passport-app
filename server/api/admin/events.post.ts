@@ -1,19 +1,31 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
 import { assertCan } from '../../utils/permissions'
+import { canScheduleForGroup } from '../../utils/groupScope'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
-  await assertCan(me, 'events.edit')
-  const b = await readBody<any>(event)
+  const b0 = await readBody<any>(event)
+  // whoever runs a group may schedule for it even when they may not create
+  // events generally — that is the whole point of naming them its leader
+  if (b0?.scope !== 'group') await assertCan(me, 'events.edit')
+  const b = b0
   if (!b?.titleEl || !b?.startsAt) throw createError({ statusCode: 400, message: 'Title and start required' })
   const db = (await useDb())
   const secIds = await scopedSectionIds(me)
-  let scope = ['troop', 'section', 'patrol', 'leaders'].includes(b.scope) ? b.scope : 'section'
+  let scope = ['troop', 'section', 'patrol', 'leaders', 'group'].includes(b.scope) ? b.scope : 'section'
   let sectionId: number | null = b.sectionId != null ? Number(b.sectionId) : null
   let patrolId: number | null = b.patrolId != null ? Number(b.patrolId) : null
+  let groupId: number | null = b.groupId != null ? Number(b.groupId) : null
 
-  if (scope === 'leaders') {
+  if (scope === 'group') {
+    if (!Number.isInteger(groupId)) throw createError({ statusCode: 400, message: 'Bad group' })
+    const g = (await db.select().from(s.notifyGroups)).find(x => x.id === groupId)
+    if (!g) throw createError({ statusCode: 400, message: 'Bad group' })
+    if (!(await canScheduleForGroup(me, groupId!)))
+      throw createError({ statusCode: 403, message: 'You do not run that group' })
+    sectionId = g.sectionId; patrolId = null
+  } else if (scope === 'leaders') {
     sectionId = null; patrolId = null
     if (me.role !== 'troop_leader' && secIds !== null)
       throw createError({ statusCode: 403, message: 'Only the Αρχηγός Συστήματος can add a Βαθμοφόροι event' })
@@ -35,7 +47,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const [row] = (await db.insert(s.events).values({
-    scope, sectionId, patrolId,
+    scope, sectionId, patrolId, groupId: scope === 'group' ? groupId : null,
     titleEl: String(b.titleEl), titleEn: b.titleEn || null,
     location: b.location || null,
     startsAt: String(b.startsAt), endsAt: b.endsAt || null,

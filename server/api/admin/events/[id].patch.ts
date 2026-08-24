@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, scopedSectionIds, idParam } from '../../../utils/guard'
+import { canScheduleForGroup } from '../../../utils/groupScope'
 import { eventInScope } from '../../../utils/eventScope'
 import { assertCan } from '../../../utils/permissions'
 
@@ -32,25 +33,35 @@ export default defineEventHandler(async (event) => {
   }
 
   // moving an event between sectors follows the same rules as creating one
-  if (b?.scope !== undefined || b?.sectionId !== undefined || b?.patrolId !== undefined) {
+  if (b?.scope !== undefined || b?.sectionId !== undefined || b?.patrolId !== undefined || b?.groupId !== undefined) {
     const secIds = await scopedSectionIds(me)
-    const scope = ['troop', 'section', 'patrol'].includes(b.scope) ? b.scope : 'section'
-    if (scope === 'troop') {
+    const scope = ['troop', 'section', 'patrol', 'leaders', 'group'].includes(b.scope) ? b.scope : 'section'
+    if (scope === 'group') {
+      const groupId = Number(b.groupId)
+      const g = (await db.select().from(s.notifyGroups)).find(x => x.id === groupId)
+      if (!g) throw createError({ statusCode: 400, message: 'Bad group' })
+      if (!(await canScheduleForGroup(me, groupId)))
+        throw createError({ statusCode: 403, message: 'You do not run that group' })
+      set.scope = 'group'; set.groupId = groupId; set.sectionId = g.sectionId; set.patrolId = null
+    } else if (scope === 'leaders') {
+      if (secIds !== null) throw createError({ statusCode: 403, message: 'Only the Αρχηγός Συστήματος can set a Βαθμοφόροι event' })
+      set.scope = 'leaders'; set.sectionId = null; set.patrolId = null; set.groupId = null
+    } else if (scope === 'troop') {
       if (secIds !== null) throw createError({ statusCode: 403, message: 'Troop events are set by the Troop Leader' })
-      set.scope = 'troop'; set.sectionId = null; set.patrolId = null
+      set.scope = 'troop'; set.sectionId = null; set.patrolId = null; set.groupId = null
     } else if (scope === 'patrol') {
       const p = (await db.select().from(s.patrols)).find(x => x.id === Number(b.patrolId))
       if (!p) throw createError({ statusCode: 400, message: 'Bad patrol' })
       if (secIds !== null && !secIds.includes(p.sectionId))
         throw createError({ statusCode: 403, message: 'Out of your sector' })
-      set.scope = 'patrol'; set.patrolId = p.id; set.sectionId = p.sectionId
+      set.scope = 'patrol'; set.patrolId = p.id; set.sectionId = p.sectionId; set.groupId = null
     } else {
       const sectionId = Number(b.sectionId)
       if (!(await db.select().from(s.sections)).some(x => x.id === sectionId))
         throw createError({ statusCode: 400, message: 'Bad section' })
       if (secIds !== null && !secIds.includes(sectionId))
         throw createError({ statusCode: 403, message: 'Out of your sector' })
-      set.scope = 'section'; set.sectionId = sectionId; set.patrolId = null
+      set.scope = 'section'; set.sectionId = sectionId; set.patrolId = null; set.groupId = null
     }
   }
 

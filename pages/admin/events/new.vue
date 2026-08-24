@@ -5,9 +5,11 @@ const lx = useLx()
 const { show } = useToast()
 const isTroop = computed(() => me.value?.role === 'troop_leader')
 const { data: secs } = await useFetch<any>('/api/admin/contacts')     // sections in my scope
+const { data: groups } = await useFetch<any[]>('/api/admin/groups')  // e.g. η μπάντα
 const form = reactive({
   titleEl: '', titleEn: '', location: '',
   scope: isTroop.value ? 'troop' : 'section',
+  groupId: 0,
   sectionId: 0,
   date: new Date().toISOString().slice(0, 10), start: '17:00', end: '19:00', remind: true,
   tracksAttendance: true
@@ -22,7 +24,10 @@ async function save() {
     await $fetch('/api/admin/events', {
       method: 'POST',
       body: { titleEl: form.titleEl, titleEn: form.titleEn || null, location: form.location || null,
-              scope: form.scope, sectionId: form.scope === 'section' ? form.sectionId : null, startsAt, endsAt, remindAt,
+              scope: form.scope,
+              sectionId: form.scope === 'section' ? form.sectionId : null,
+              groupId: form.scope === 'group' ? form.groupId : null,
+              startsAt, endsAt, remindAt,
               tracksAttendance: form.tracksAttendance }
     })
     show('✅ ' + t('saved'))
@@ -46,6 +51,9 @@ async function save() {
             <button v-for="sec in secs" :key="sec.id" class="chip"
                     :class="{ on: form.scope === 'section' && form.sectionId === sec.id }"
                     @click="form.scope = 'section'; form.sectionId = sec.id">{{ lx(sec, 'name') }}</button>
+            <button v-for="g in groups" :key="'g' + g.id" class="chip"
+                    :class="{ on: form.scope === 'group' && form.groupId === g.id }"
+                    @click="form.scope = 'group'; form.groupId = g.id">{{ g.emoji }} {{ g.nameEl }}</button>
           </div>
         </div>
       </div>

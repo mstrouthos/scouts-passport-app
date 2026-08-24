@@ -30,9 +30,6 @@ function sub(e: any) {
 
 <template>
   <AppShell :title="t('myPassport')" :sub="me?.patrol ? `${me.patrol.emblem} ${lx(me.patrol, 'name')}` : ''">
-    <template #actions>
-      <NuxtLink to="/app/settings" class="iconbtn" :aria-label="t('settings')"><NavIcon name="gear" /></NuxtLink>
-    </template>
 
     <div class="pcard">
       <div class="name">{{ me?.firstName }} {{ me?.lastName }}</div>

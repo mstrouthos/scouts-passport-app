@@ -4,6 +4,7 @@ import { requireLeader, assertScoutInScope, idParam } from '../../../../utils/gu
 import { now } from '../../../../utils/passcode'
 import { getPointRules } from '../../../../utils/settings'
 import { assertCan } from '../../../../utils/permissions'
+import { canScheduleForGroup, groupMemberIds } from '../../../../utils/groupScope'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -11,10 +12,14 @@ export default defineEventHandler(async (event) => {
   const eventId = idParam(event)
   const b = await readBody<{ scoutId?: number, attendance?: string | null, uniform?: string | null }>(event)
   const scoutId = Number(b?.scoutId)
-  await assertScoutInScope(me, scoutId)
   const db = (await useDb())
   const ev = (await db.select().from(s.events).where(eq(s.events.id, eventId)).limit(1))[0]
   if (!ev) throw createError({ statusCode: 404, message: 'Event not found' })
+  // a group's meeting is registered by whoever runs the group, for its members
+  const viaGroup = ev.scope === 'group' && ev.groupId != null
+    && (await groupMemberIds(ev.groupId)).includes(scoutId)
+    && await canScheduleForGroup(me, ev.groupId)
+  if (!viaGroup) await assertScoutInScope(me, scoutId)
   if (!ev.tracksAttendance)
     throw createError({ statusCode: 400, message: 'This event does not track attendance' })
 

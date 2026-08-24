@@ -2,13 +2,18 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, scopedSectionIds, scopedScouts, idParam } from '../../../utils/guard'
 import { assertCan } from '../../../utils/permissions'
+import { groupsILead } from '../../../utils/groupScope'
+import { now } from '../../../utils/passcode'
 
 async function groupInScope(me: any, id: number) {
   const db = (await useDb())
   const g = (await db.select().from(s.notifyGroups).where(eq(s.notifyGroups.id, id)).limit(1))[0]
   if (!g) throw createError({ statusCode: 404, message: 'Not found' })
   const secIds = await scopedSectionIds(me)
-  if (secIds !== null && (g.sectionId == null || !secIds.includes(g.sectionId)))
+  if (secIds === null) return g
+  // running the group counts as much as owning its sector
+  if ((await groupsILead(me)).includes(id)) return g
+  if (g.sectionId == null || !secIds.includes(g.sectionId))
     throw createError({ statusCode: 403, message: 'Out of your sector' })
   return g
 }
@@ -20,7 +25,7 @@ export default defineEventHandler(async (event) => {
   await assertCan(me, 'roster.edit')
   const id = idParam(event)
   await groupInScope(me, id)
-  const b = await readBody<{ nameEl?: string, emoji?: string, memberIds?: number[] }>(event)
+  const b = await readBody<{ nameEl?: string, emoji?: string, memberIds?: number[], leaderIds?: number[] }>(event)
   const db = (await useDb())
 
   const set: any = {}
@@ -43,6 +48,20 @@ export default defineEventHandler(async (event) => {
     await db.delete(s.notifyGroupMembers).where(eq(s.notifyGroupMembers.groupId, id))
     if (ids.length)
       await db.insert(s.notifyGroupMembers).values(ids.map(scoutId => ({ groupId: id, scoutId })))
+  }
+  // who runs the group. Only the Αρχηγός Συστήματος appoints them, the same
+  // rule that governs every other standing responsibility.
+  if (Array.isArray(b?.leaderIds)) {
+    if (me.role !== 'troop_leader')
+      throw createError({ statusCode: 403, message: 'Only the Αρχηγός Συστήματος can appoint group leaders' })
+    const leaders = new Set((await db.select().from(s.scouts)).filter(r => r.role !== 'scout').map(r => r.id))
+    const ids = [...new Set(b.leaderIds.map(Number).filter(n => Number.isInteger(n)))]
+    const bad = ids.find(n => !leaders.has(n))
+    if (bad) throw createError({ statusCode: 400, message: 'Group leaders must be Βαθμοφόροι' })
+    await db.delete(s.notifyGroupLeaders).where(eq(s.notifyGroupLeaders.groupId, id))
+    if (ids.length)
+      await db.insert(s.notifyGroupLeaders).values(
+        ids.map(scoutId => ({ groupId: id, scoutId, assignedBy: me.id, assignedAt: now() })))
   }
   return { ok: true }
 })

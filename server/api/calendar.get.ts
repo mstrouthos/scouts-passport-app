@@ -5,11 +5,15 @@ export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
   const db = (await useDb())
   const mySection = await sectionOf(me)
+  // a band member sees band practice, wherever they otherwise sit
+  const myGroups = (await db.select().from(s.notifyGroupMembers))
+    .filter(m => m.scoutId === me.id).map(m => m.groupId)
   const rows = (await db.select().from(s.events))
     .filter(e => e.scope !== 'leaders')
     .filter(e => e.scope === 'troop'
       || (e.scope === 'section' && e.sectionId === mySection)
-      || (e.scope === 'patrol' && e.patrolId === me.patrolId))
+      || (e.scope === 'patrol' && e.patrolId === me.patrolId)
+      || (e.scope === 'group' && e.groupId != null && myGroups.includes(e.groupId)))
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
   return rows.map(e => ({
     id: e.id, scope: e.scope, titleEl: e.titleEl, titleEn: e.titleEn,

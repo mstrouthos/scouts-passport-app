@@ -33,16 +33,23 @@ watch(() => route.query.open, (raw) => {
   sheet.value = b
   router.replace({ query: {} })
 }, { immediate: true })
-const lockedByCategory = computed(() => {
+/* Every badge stays in its category, earned or not — a category you have
+   finished should show as finished rather than emptying out. Earned ones are
+   listed first and also appear on their own at the top. */
+const byCategory = computed(() => {
   const groups = new Map<string, { slug: string, label: string, emoji: string, items: any[] }>()
   for (const b of (data.value?.badges || [])) {
-    if (b.earned) continue
     const key = b.category || 'other'
     if (!groups.has(key))
       groups.set(key, { slug: key, label: b.categoryEl || t('badges'), emoji: b.categoryEmoji || '🏅', items: [] })
     groups.get(key)!.items.push(b)
   }
-  return [...groups.values()]
+  return [...groups.values()].map(g => ({
+    ...g,
+    items: [...g.items].sort((a, b) => Number(b.earned) - Number(a.earned)),
+    earned: g.items.filter(b => b.earned).length,
+    done: g.items.length > 0 && g.items.every(b => b.earned)
+  }))
 })
 
 /* Alternative routes and their lead-in lines are not steps, and the passport
@@ -68,16 +75,16 @@ const sheetSteps = computed(() => {
     </div>
     <div v-else class="empty">{{ t('noBadgesYet') }}</div>
 
-    <div class="sec-title">{{ t('badgesToEarn') }}</div>
-    <div v-for="c in lockedByCategory" :key="c.slug" class="catgroup">
-      <button class="cathead" @click="openCat = openCat === c.slug ? null : c.slug">
+    <div class="sec-title">{{ t('allBadges') }}</div>
+    <div v-for="c in byCategory" :key="c.slug" class="catgroup">
+      <button class="cathead" :class="{ done: c.done }" @click="openCat = openCat === c.slug ? null : c.slug">
         <span class="cemoji">{{ c.emoji }}</span>
         <span class="clbl">{{ c.label }}</span>
-        <span class="cn">{{ c.items.length }}</span>
+        <span class="cn" :class="{ some: c.earned > 0 }">{{ c.earned }}/{{ c.items.length }}</span>
         <span class="chev">{{ openCat === c.slug ? '⌄' : '›' }}</span>
       </button>
       <div v-if="openCat === c.slug" class="badge-grid" style="margin-top:9px">
-        <button v-for="b in c.items" :key="b.id" class="btile off" @click="sheet = b">
+        <button v-for="b in c.items" :key="b.id" class="btile" :class="{ off: !b.earned }" @click="sheet = b">
           <span class="disc">{{ b.icon }}</span>
           <span class="lbl">{{ lx(b) }}</span>
         </button>
@@ -131,6 +138,10 @@ const sheetSteps = computed(() => {
   font-size:11px; font-weight:800; color:var(--muted);
   background:#EEF2F6; border-radius:999px; padding:2px 8px;
 }
+/* progress reads at a glance: some earned, or the whole category finished */
+.cathead .cn.some{background:var(--accent-soft); color:var(--accent-deep)}
+.cathead.done{background:linear-gradient(180deg,#F2FBF5,#fff)}
+.cathead.done .cn{background:var(--green); color:#fff}
 .cathead .chev{color:var(--muted)}
 .breq{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:7px}
 .breq li{font-size:12.5px; line-height:1.5; color:#44536B; display:flex; gap:7px}

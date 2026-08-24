@@ -107,6 +107,10 @@ function goBack() {
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <slot name="actions" />
+            <NuxtLink v-if="me" :to="isLeader ? '/admin/settings' : '/app/settings'"
+                      class="iconbtn" :aria-label="t('settings')">
+              <NavIcon name="gear" />
+            </NuxtLink>
             <button class="iconbtn" style="position:relative" :aria-label="t('notifications')" @click="notifOpen = true">
               <NavIcon name="bell" />
               <span v-if="unread" class="notif-dot">{{ unread > 9 ? '9+' : unread }}</span>

@@ -1,5 +1,6 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
+import { visibleGroupIds } from '../../utils/groupScope'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -8,11 +9,13 @@ export default defineEventHandler(async (event) => {
   // full-access leaders see every sector; everyone else sees their own
   // sectors plus what is for the whole troop or for Βαθμοφόροι
   const seeAll = secIds === null
+  const myGroups = await visibleGroupIds(me)
   const reviews = (await db.select().from(s.eventReviews))
   const sections = new Map((await db.select().from(s.sections)).map(x => [x.id, x]))
   return (await db.select().from(s.events))
     .filter(e => seeAll || e.scope === 'troop' || e.scope === 'leaders'
-      || (e.sectionId != null && secIds!.includes(e.sectionId)))
+      || (e.scope === 'group' && e.groupId != null && (myGroups ?? []).includes(e.groupId))
+      || (e.scope !== 'group' && e.sectionId != null && secIds!.includes(e.sectionId)))
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
     .map(e => {
       const sec = e.sectionId != null ? sections.get(e.sectionId) : null
@@ -22,7 +25,10 @@ export default defineEventHandler(async (event) => {
         titleEl: e.titleEl, titleEn: e.titleEn, location: e.location,
         startsAt: e.startsAt, endsAt: e.endsAt, isAllDay: e.isAllDay, remindAt: e.remindAt,
         tracksAttendance: e.tracksAttendance,
-        editable: secIds === null || (e.sectionId != null && secIds.includes(e.sectionId)),
+        groupId: e.groupId,
+        editable: secIds === null
+          || (e.scope === 'group' && e.groupId != null && (myGroups ?? []).includes(e.groupId))
+          || (e.scope !== 'group' && e.sectionId != null && secIds.includes(e.sectionId)),
         reviewed: reviews.some(r => r.eventId === e.id)
       }
     })

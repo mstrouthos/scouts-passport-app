@@ -17,6 +17,7 @@ export default defineEventHandler(async (event) => {
   // past announcements keep their history; just unlink them from the group
   await db.update(s.announcements).set({ groupId: null }).where(eq(s.announcements.groupId, id))
   await db.delete(s.notifyGroupMembers).where(eq(s.notifyGroupMembers.groupId, id))
+  await db.delete(s.notifyGroupLeaders).where(eq(s.notifyGroupLeaders.groupId, id))
   await db.delete(s.notifyGroups).where(eq(s.notifyGroups.id, id))
   return { ok: true }
 })

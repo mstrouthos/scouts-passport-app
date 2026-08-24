@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { scopedSectionIds, type SessionScout } from './guard'
+import { canScheduleForGroup } from './groupScope'
 
 /** Load an event and assert the leader may manage it: full access sees all,
     a sector leader only their own section's (troop-wide events stay with the
@@ -10,7 +11,13 @@ export async function eventInScope(me: SessionScout, id: number) {
   const ev = (await db.select().from(s.events).where(eq(s.events.id, id)).limit(1))[0]
   if (!ev) throw createError({ statusCode: 404, message: 'Not found' })
   const secIds = await scopedSectionIds(me)
-  if (secIds !== null && (ev.sectionId == null || !secIds.includes(ev.sectionId)))
+  if (secIds === null) return ev
+  // a group's own meeting belongs to whoever runs the group
+  if (ev.scope === 'group' && ev.groupId != null) {
+    if (await canScheduleForGroup(me, ev.groupId)) return ev
+    throw createError({ statusCode: 403, message: 'You do not run that group' })
+  }
+  if (ev.sectionId == null || !secIds.includes(ev.sectionId))
     throw createError({ statusCode: 403, message: 'Out of your sector' })
   return ev
 }

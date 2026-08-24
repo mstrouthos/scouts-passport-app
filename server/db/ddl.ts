@@ -195,6 +195,14 @@ CREATE TABLE IF NOT EXISTS notify_group_members (
   scout_id INTEGER NOT NULL REFERENCES scouts(id)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS notify_group_member_uq ON notify_group_members(group_id, scout_id);
+CREATE TABLE IF NOT EXISTS notify_group_leaders (
+  id SERIAL PRIMARY KEY,
+  group_id INTEGER NOT NULL REFERENCES notify_groups(id),
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  assigned_by INTEGER,
+  assigned_at TEXT NOT NULL DEFAULT ''
+);
+CREATE UNIQUE INDEX IF NOT EXISTS notify_group_leader_uq ON notify_group_leaders(group_id, scout_id);
 CREATE TABLE IF NOT EXISTS announcements (
   id SERIAL PRIMARY KEY,
   audience TEXT NOT NULL,
@@ -243,6 +251,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS family_contact_uq ON family_contacts(section_i
 
 /* Best-effort column adds for databases created before these fields existed. */
 export const MIGRATIONS = [
+  "ALTER TABLE events ADD COLUMN IF NOT EXISTS group_id INTEGER REFERENCES notify_groups(id)",
   "ALTER TABLE info_pages ADD COLUMN IF NOT EXISTS section_id INTEGER REFERENCES sections(id)",
   "DROP INDEX IF EXISTS info_slug_uq",
   "CREATE UNIQUE INDEX IF NOT EXISTS info_slug_section_uq ON info_pages (slug, COALESCE(section_id, 0))",

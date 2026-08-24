@@ -44,7 +44,8 @@ export const leaderScopes = pgTable('leader_scopes', {
   id: serial('id').primaryKey(),
   scoutId: integer('scout_id').notNull().references(() => scouts.id),
   // 'leaders' = a Βαθμοφόροι meeting: never shown to scouts or parents
-  scope: text('scope', { enum: ['troop', 'section', 'patrol', 'leaders'] }).notNull(),
+  // 'group' = a custom group's own meeting, e.g. band practice
+  scope: text('scope', { enum: ['troop', 'section', 'patrol', 'leaders', 'group'] }).notNull(),
   sectionId: integer('section_id').references(() => sections.id),
   patrolId: integer('patrol_id').references(() => patrols.id),
   rank: text('rank', { enum: ['archigos', 'yparchigos'] }).notNull().default('archigos'),
@@ -111,9 +112,11 @@ export const scoutAchievements = pgTable('scout_achievements', {
 export const events = pgTable('events', {
   id: serial('id').primaryKey(),
   // 'leaders' = a Βαθμοφόροι meeting: never shown to scouts or parents
-  scope: text('scope', { enum: ['troop', 'section', 'patrol', 'leaders'] }).notNull(),
+  // 'group' = a custom group's own meeting, e.g. band practice
+  scope: text('scope', { enum: ['troop', 'section', 'patrol', 'leaders', 'group'] }).notNull(),
   sectionId: integer('section_id').references(() => sections.id),
   patrolId: integer('patrol_id').references(() => patrols.id),
+  groupId: integer('group_id'),
   titleEl: text('title_el').notNull(),
   titleEn: text('title_en'),
   descriptionEl: text('description_el'),
@@ -255,6 +258,16 @@ export const notifyGroupMembers = pgTable('notify_group_members', {
   groupId: integer('group_id').notNull().references(() => notifyGroups.id),
   scoutId: integer('scout_id').notNull().references(() => scouts.id)
 }, t => [uniqueIndex('notify_group_member_uq').on(t.groupId, t.scoutId)])
+
+/** Βαθμοφόροι responsible for a group — the band has its own practices and
+    whoever runs it needs to schedule them, whatever sector they belong to. */
+export const notifyGroupLeaders = pgTable('notify_group_leaders', {
+  id: serial('id').primaryKey(),
+  groupId: integer('group_id').notNull().references(() => notifyGroups.id),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  assignedBy: integer('assigned_by'),
+  assignedAt: text('assigned_at').notNull().default('')
+}, t => [uniqueIndex('notify_group_leader_uq').on(t.groupId, t.scoutId)])
 
 export const announcements = pgTable('announcements', {
   id: serial('id').primaryKey(),

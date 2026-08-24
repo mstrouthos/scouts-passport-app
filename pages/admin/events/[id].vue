@@ -21,13 +21,14 @@ const gameIcon = (a: any) => a.scoutId
 
 // ----- edit / delete -----
 const { data: secs } = await useFetch<any>('/api/admin/contacts')
+const { data: groups } = await useFetch<any[]>('/api/admin/groups')
 const isTroop = computed(() => me.value?.role === 'troop_leader')
 const editing = ref(false)
 const busy = ref(false)
 const meta = ref<any>(null)
 const form = reactive<any>({
   titleEl: '', location: '', startsAt: '', endsAt: '', isAllDay: false,
-  tracksAttendance: true, scope: 'section', sectionId: null as number | null
+  tracksAttendance: true, scope: 'section', sectionId: null as number | null, groupId: null as number | null
 })
 function toLocal(iso: string | null) {
   if (!iso) return ''
@@ -51,6 +52,7 @@ async function openEdit() {
   form.tracksAttendance = !!e.tracksAttendance
   form.scope = e.scope
   form.sectionId = e.sectionId ?? null
+  form.groupId = e.groupId ?? null
   editing.value = true
 }
 async function saveEvent() {
@@ -247,6 +249,9 @@ const uniDefs = [
               <button v-for="sec in secs" :key="sec.id" class="chip"
                       :class="{ on: form.scope === 'section' && form.sectionId === sec.id }"
                       @click="form.scope = 'section'; form.sectionId = sec.id">{{ lx(sec, 'name') }}</button>
+              <button v-for="g in groups" :key="'g' + g.id" class="chip"
+                      :class="{ on: form.scope === 'group' && form.groupId === g.id }"
+                      @click="form.scope = 'group'; form.groupId = g.id">{{ g.emoji }} {{ g.nameEl }}</button>
             </div>
           </div>
 
