@@ -27,6 +27,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Attendance that carried no points still belongs in the history: a scout
+  // looking for "why am I down 4" needs to see the absence, and one whose troop
+  // scores absence at zero should still see they were marked away.
+  const scored = new Set<string>()
+
   const KIND_EL: Record<string, string> = {
     game: 'Παιχνίδι', attendance: 'Παρουσία', uniform: 'Στολή', manual: 'Απονομή'
   }
@@ -35,11 +40,25 @@ export default defineEventHandler(async (event) => {
     const viaPatrol = !w.scoutId && w.patrolId != null && w.patrolId === me.patrolId
     if (!mine && !viaPatrol) continue
     const ev = w.eventId != null ? events.get(w.eventId) : null
+    if (mine && w.kind === 'attendance' && w.eventId != null) scored.add(String(w.eventId))
     items.push({
       source: viaPatrol ? 'patrol' : w.kind, points: w.points, at: w.awardedAt,
       titleEl: w.reasonEl || KIND_EL[w.kind] || 'Πόντοι',
       detailEl: [ev?.titleEl, viaPatrol ? patrols.get(w.patrolId!)?.nameEl : null].filter(Boolean).join(' · ') || null,
       kind: w.kind
+    })
+  }
+
+  const ATT_EL: Record<string, string> = {
+    present: 'Παρουσία', excused: 'Δικαιολογημένη απουσία', absent: 'Απουσία'
+  }
+  for (const r of await db.select().from(s.eventReviews).where(eq(s.eventReviews.scoutId, me.id))) {
+    if (!r.attendance || scored.has(String(r.eventId))) continue
+    const ev = events.get(r.eventId)
+    items.push({
+      source: 'attendance', points: 0, at: r.recordedAt ?? ev?.startsAt ?? null,
+      titleEl: ATT_EL[r.attendance] ?? r.attendance, detailEl: ev?.titleEl ?? null,
+      kind: 'attendance'
     })
   }
 

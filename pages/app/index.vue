@@ -11,7 +11,8 @@ const rankLabel = computed(() => {
   if (!r) return '—'
   return locale.value === 'el' ? `${r}ος` : `${r}${['th', 'st', 'nd', 'rd'][r % 10 < 4 && (r % 100 < 11 || r % 100 > 13) ? r % 10 : 0]}`
 })
-const earned = computed(() => (data.value?.badges || []).filter((b: any) => b.earned).length)
+const earnedBadges = computed<any[]>(() => (data.value?.badges || []).filter((b: any) => b.earned))
+const earned = computed(() => earnedBadges.value.length)
 
 // Badges/achievements are a Scout-Troop concept — every other section sees
 // its upcoming events on the dashboard instead.
@@ -41,7 +42,9 @@ function sub(e: any) {
           <b>{{ data?.points ?? 0 }}</b><span>{{ t('points') }} ›</span>
         </NuxtLink>
         <div class="stat"><b>{{ rankLabel }}</b><span>{{ t('rank') }}</span></div>
-        <div v-if="showBadges" class="stat"><b>{{ earned }}/{{ data?.badges?.length ?? 0 }}</b><span>{{ t('badges') }}</span></div>
+        <NuxtLink v-if="showBadges" to="/app/badges" class="stat tappable">
+          <b>{{ earned }}/{{ data?.badges?.length ?? 0 }}</b><span>{{ t('badges') }} ›</span>
+        </NuxtLink>
         <div v-else class="stat"><b>{{ upcomingEvents.length }}</b><span>{{ t('events') }}</span></div>
       </div>
     </div>
@@ -66,6 +69,18 @@ function sub(e: any) {
         <div><b>{{ t('scoutBadges') }}</b><span>{{ earned }}/{{ data?.badges?.length ?? 0 }}</span></div>
         <div class="go">›</div>
       </NuxtLink>
+
+      <!-- what they have actually earned stays on the dashboard; the full
+           catalogue is a tap away rather than in the way -->
+      <template v-if="earnedBadges.length">
+        <div class="sec-title">{{ t('myBadges') }}</div>
+        <div class="badge-grid">
+          <NuxtLink v-for="b in earnedBadges" :key="b.id" :to="`/app/badges?open=${b.id}`" class="btile">
+            <span class="disc">{{ b.icon }}</span>
+            <span class="lbl">{{ lx(b) }}</span>
+          </NuxtLink>
+        </div>
+      </template>
     </template>
 
     <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">

@@ -9,20 +9,29 @@ const openCat = ref<string | null>(null)
 
 const earnedBadges = computed(() => (data.value?.badges || []).filter((b: any) => b.earned))
 
-/* Arriving from the notification that announced a badge: open it and mark the
-   moment. Watched rather than read once, because tapping the notification
-   while already here only changes the query string. */
+/* Two ways in. ?badge= comes from the notification that announced an award and
+   is worth celebrating; ?open= is an ordinary tap from the dashboard and just
+   opens the badge. Watched rather than read once, because arriving while
+   already here only changes the query string. */
 const route = useRoute()
 const router = useRouter()
 const party = ref<any>(null)
-watch(() => route.query.badge, (raw) => {
+function findBadge(raw: any) {
   const id = Number(raw)
-  if (!Number.isInteger(id)) return
-  const b = (data.value?.badges || []).find((x: any) => x.id === id)
+  return Number.isInteger(id) ? (data.value?.badges || []).find((x: any) => x.id === id) : null
+}
+watch(() => route.query.badge, (raw) => {
+  const b = findBadge(raw)
   if (!b) return
   party.value = b
   sheet.value = b
   router.replace({ query: {} })   // so a refresh does not replay it
+}, { immediate: true })
+watch(() => route.query.open, (raw) => {
+  const b = findBadge(raw)
+  if (!b) return
+  sheet.value = b
+  router.replace({ query: {} })
 }, { immediate: true })
 const lockedByCategory = computed(() => {
   const groups = new Map<string, { slug: string, label: string, emoji: string, items: any[] }>()
