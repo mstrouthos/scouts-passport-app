@@ -10,8 +10,13 @@ const notifOpen = ref(false)
 const expanded = ref<number | null>(null)
 onMounted(() => loadNotifs())
 function toggleNotif(n: any) {
-  expanded.value = expanded.value === n.id ? null : n.id
   if (!n.read) markRead(n.id)
+  // an award opens the thing it is about; anything else just expands in place
+  if (n.link) {
+    notifOpen.value = false
+    return navigateTo(n.link)
+  }
+  expanded.value = expanded.value === n.id ? null : n.id
 }
 function fmtWhen(iso: string) {
   const d = new Date(iso)
@@ -24,10 +29,15 @@ const isLeader = computed(() => me.value && me.value.role !== 'scout')
    a phone, so it asks first. */
 async function logout() {
   if (!confirm(t('confirmLogout'))) return
-  await $fetch('/api/logout', { method: 'POST' })
+  // clear locally even if the call fails, so a dropped connection cannot leave
+  // someone signed in on a shared phone
+  try { await $fetch('/api/logout', { method: 'POST' }) } catch { /* ignore */ }
   useMe().value = null
   useNotifications().reset()
-  navigateTo('/login')
+  // a full page load rather than an in-app route change: it drops every cached
+  // fetch and composable still holding the previous person's data, and it is
+  // what reliably lands the installed app back on the passcode screen
+  window.location.href = '/login'
 }
 const tabs = computed(() => isLeader.value
   ? [
@@ -136,6 +146,7 @@ function goBack() {
                   <b style="font-size:13px">{{ n.title }}</b>
                   <span class="tiny muted" style="flex:none">{{ fmtWhen(n.createdAt) }}</span>
                 </div>
+                <span v-if="n.link" class="tiny" style="color:var(--accent-deep);font-weight:700">{{ t('openIt') }} ›</span>
                 <p style="margin:3px 0 0;font-size:12.5px;color:var(--muted)"
                    :style="expanded === n.id ? 'white-space:normal' : 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis'">
                   {{ n.body }}

@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { requireScout, pointTotals, sectionOf, sectionOfWith } from '../utils/guard'
+import { BADGE_CATEGORIES } from '../db/passportData'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
@@ -32,6 +33,8 @@ export default defineEventHandler(async (event) => {
       id: b.id, icon: b.iconEmoji, titleEl: b.titleEl, titleEn: b.titleEn,
       descriptionEl: b.descriptionEl, descriptionEn: b.descriptionEn,
       category: b.category,
+      categoryEl: BADGE_CATEGORIES.find(c => c.slug === b.category)?.titleEl ?? null,
+      categoryEmoji: BADGE_CATEGORIES.find(c => c.slug === b.category)?.emoji ?? '🏅',
       requirementsEl: reqsBy.get(b.id) || [],
       earned: earnedMap.has(b.id), completedOn: earnedMap.get(b.id)?.completedOn ?? null
     }))

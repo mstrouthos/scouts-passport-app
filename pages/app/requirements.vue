@@ -15,6 +15,24 @@ const pct = (st: any) => st.total ? Math.round((st.earned / st.total) * 100) : 0
 function locked(i: number) {
   return i > 0 && !stages.value[i - 1]?.complete
 }
+/* Arriving from the notification that announced a sign-off. */
+const route = useRoute()
+const router = useRouter()
+const party = ref<any>(null)
+watch(() => route.query.req, (raw) => {
+  const id = Number(raw)
+  if (!Number.isInteger(id)) return
+  for (const st of stages.value) {
+    const it = st.items.find((x: any) => x.id === id)
+    if (!it) continue
+    openStage.value = st.slug
+    detail.value = { ...it, stage: st }
+    party.value = { ...it, stage: st }
+    break
+  }
+  router.replace({ query: {} })
+}, { immediate: true })
+
 function toggle(i: number, st: any) {
   if (locked(i)) return
   openStage.value = openStage.value === st.slug ? null : st.slug
@@ -54,6 +72,8 @@ function toggle(i: number, st: any) {
     </div>
 
     <Teleport to="body">
+      <Celebration v-if="party" :emoji="party.stage.emoji" :title="party.themeEl"
+                   :subtitle="t('requirementDone')" @close="party = null" />
       <div v-if="detail" class="sheet-backdrop" @click.self="detail = null">
         <div class="sheet" style="display:flex;flex-direction:column;gap:12px;max-height:88dvh;overflow:auto">
           <div style="text-align:center;font-size:34px">{{ detail.stage.emoji }}</div>

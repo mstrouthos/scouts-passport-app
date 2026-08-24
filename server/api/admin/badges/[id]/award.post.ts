@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../../../../db'
 import { requireLeader, scopedScouts, idParam } from '../../../../utils/guard'
 import { now } from '../../../../utils/passcode'
 import { assertCan } from '../../../../utils/permissions'
+import { notifyAward } from '../../../../utils/celebrate'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -14,8 +15,8 @@ export default defineEventHandler(async (event) => {
   if (!ids.length) throw createError({ statusCode: 400, message: 'No scouts selected' })
 
   const db = (await useDb())
-  if (!(await db.select().from(s.achievements).where(eq(s.achievements.id, badgeId)).limit(1))[0])
-    throw createError({ statusCode: 404, message: 'Badge not found' })
+  const badge = (await db.select().from(s.achievements).where(eq(s.achievements.id, badgeId)).limit(1))[0]
+  if (!badge) throw createError({ statusCode: 404, message: 'Badge not found' })
   const mine = new Set((await scopedScouts(me)).map(r => r.id))
   let awarded = 0
   for (const scoutId of ids) {
@@ -23,6 +24,8 @@ export default defineEventHandler(async (event) => {
     try {
       await db.insert(s.scoutAchievements).values({ scoutId, achievementId: badgeId, completedOn, awardedBy: me.id })
       awarded++
+      // only a genuinely new badge is worth celebrating
+      await notifyAward(scoutId, 'badge', badgeId, badge.titleEl)
     } catch { /* already has it — skip */ }
   }
   return { awarded }

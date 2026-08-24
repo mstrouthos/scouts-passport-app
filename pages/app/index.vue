@@ -18,6 +18,39 @@ const earned = computed(() => (data.value?.badges || []).filter((b: any) => b.ea
 // its upcoming events on the dashboard instead.
 const showBadges = computed(() => me.value?.section?.slug === 'omada')
 
+/* 51 πτυχία would bury the dashboard, so what the scout has earned is shown
+   openly and the rest are folded away by category, opened one at a time. */
+const earnedBadges = computed(() => (data.value?.badges || []).filter((b: any) => b.earned))
+
+/* Arriving from the notification that announced a badge: open it, and mark the
+   moment before showing the detail. */
+const route = useRoute()
+const router = useRouter()
+const party = ref<any>(null)
+// watched, not just read on mount: tapping the notification while already on
+// this page only changes the query string
+watch(() => route.query.badge, (raw) => {
+  const id = Number(raw)
+  if (!Number.isInteger(id)) return
+  const b = (data.value?.badges || []).find((x: any) => x.id === id)
+  if (!b) return
+  party.value = b
+  sheet.value = b
+  router.replace({ query: {} })   // so a refresh does not replay it
+}, { immediate: true })
+const openCat = ref<string | null>(null)
+const lockedByCategory = computed(() => {
+  const groups = new Map<string, { slug: string, label: string, emoji: string, items: any[] }>()
+  for (const b of (data.value?.badges || [])) {
+    if (b.earned) continue
+    const key = b.category || 'other'
+    if (!groups.has(key))
+      groups.set(key, { slug: key, label: b.categoryEl || t('badges'), emoji: b.categoryEmoji || '🏅', items: [] })
+    groups.get(key)!.items.push(b)
+  }
+  return [...groups.values()]
+})
+
 /* Some πτυχία offer one route "ή" another, and the passport restarts its
    numbering after that word. Number the steps ourselves so the separator is
    not counted as one of them. */
@@ -63,12 +96,35 @@ function sub(e: any) {
     </NuxtLink>
 
     <template v-if="showBadges">
-      <div class="sec-title">{{ t('badges') }}</div>
-      <div class="badge-grid">
-        <button v-for="b in data?.badges" :key="b.id" class="btile" :class="{ off: !b.earned }" @click="sheet = b">
+      <NuxtLink to="/app/requirements" class="banner req">
+        <div class="ico">⚜️</div>
+        <div><b>{{ t('scoutRequirements') }}</b><span>{{ t('scoutRequirementsSub') }}</span></div>
+        <div class="go">›</div>
+      </NuxtLink>
+
+      <div class="sec-title">{{ t('myBadges') }}</div>
+      <div v-if="earnedBadges.length" class="badge-grid">
+        <button v-for="b in earnedBadges" :key="b.id" class="btile" @click="sheet = b">
           <span class="disc">{{ b.icon }}</span>
           <span class="lbl">{{ lx(b) }}</span>
         </button>
+      </div>
+      <div v-else class="empty">{{ t('noBadgesYet') }}</div>
+
+      <div class="sec-title">{{ t('badgesToEarn') }}</div>
+      <div v-for="c in lockedByCategory" :key="c.slug" class="catgroup">
+        <button class="cathead" @click="openCat = openCat === c.slug ? null : c.slug">
+          <span class="cemoji">{{ c.emoji }}</span>
+          <span class="clbl">{{ c.label }}</span>
+          <span class="cn">{{ c.items.length }}</span>
+          <span class="chev">{{ openCat === c.slug ? '⌄' : '›' }}</span>
+        </button>
+        <div v-if="openCat === c.slug" class="badge-grid" style="margin-top:9px">
+          <button v-for="b in c.items" :key="b.id" class="btile off" @click="sheet = b">
+            <span class="disc">{{ b.icon }}</span>
+            <span class="lbl">{{ lx(b) }}</span>
+          </button>
+        </div>
       </div>
     </template>
 
@@ -87,6 +143,8 @@ function sub(e: any) {
     </template>
 
     <Teleport to="body">
+      <Celebration v-if="party" :emoji="party.icon" :title="lx(party)"
+                   :subtitle="t('badgeEarned')" @close="party = null" />
       <div v-if="sheet" class="sheet-backdrop" @click.self="sheet = null">
         <div class="sheet">
           <div style="width:64px;height:64px;border-radius:18px;margin:0 auto 10px;display:grid;place-items:center;font-size:30px"
@@ -122,6 +180,19 @@ function sub(e: any) {
 </template>
 
 <style scoped>
+.banner.req .ico{background:#FBF2D8}
+.catgroup{display:flex; flex-direction:column}
+.cathead{
+  display:flex; align-items:center; gap:11px; width:100%; text-align:left;
+  background:var(--card); border-radius:14px; padding:12px 14px; box-shadow:var(--shadow);
+}
+.cathead .cemoji{font-size:19px}
+.cathead .clbl{flex:1; min-width:0; font-size:13.5px; font-weight:650}
+.cathead .cn{
+  font-size:11px; font-weight:800; color:var(--muted);
+  background:#EEF2F6; border-radius:999px; padding:2px 8px;
+}
+.cathead .chev{color:var(--muted)}
 .breq{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:7px}
 .breq li{font-size:12.5px; line-height:1.5; color:#44536B; display:flex; gap:7px}
 .breq li b{color:var(--accent); font-weight:800; flex:none}

@@ -409,5 +409,12 @@
   "awardScout": "Award the scout",
   "whoFor": "Who it is for",
   "infoSectionNote": "A sector's page overrides the troop-wide one with the same slug — e.g. a different uniform per sector.",
-  "leadersEvent": "Leaders"
+  "leadersEvent": "Leaders",
+  "myBadges": "My badges",
+  "badgesToEarn": "Badges to earn",
+  "noBadgesYet": "No badges yet — start from a category below.",
+  "nice": "Nice!",
+  "openIt": "Open it",
+  "badgeEarned": "New badge!",
+  "requirementDone": "Requirement complete!"
 }

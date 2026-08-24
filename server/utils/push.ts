@@ -2,6 +2,7 @@ import webpush from 'web-push'
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { now } from './passcode'
+import { linkForNotification } from './celebrate'
 
 let configured: boolean | null = null
 function ensureConfigured(): boolean {
@@ -52,7 +53,8 @@ export async function sendPushTo(scoutIds: number[], msg: { title: string, body:
     scoutId: id, kind: msg.kind, refId: msg.refId, title: msg.title, body: msg.body, createdAt: sentAt
   })))
   const subs = (await db.select().from(s.pushSubscriptions)).filter(x => x.scoutId != null && fresh.includes(x.scoutId))
-  return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body }))
+  const url = linkForNotification(msg.kind, msg.refId)
+  return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body, url: url || '/' }))
 }
 
 /** Push to named parents — the ones linked to the scouts a message went to.
