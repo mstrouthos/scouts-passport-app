@@ -10,6 +10,7 @@ export function linkForNotification(kind: string, refId: number | null): string 
   if (kind === 'venture') return `/app/venture?req=${refId}`
   if (kind === 'challenge') return '/app/challenges'
   // asking a Βαθμοφόρος whether they are coming opens the event itself
+  if (kind === 'poll') return '/admin/polls'
   if (kind === 'eventRsvp') return `/admin/events/${refId}`
   return null
 }

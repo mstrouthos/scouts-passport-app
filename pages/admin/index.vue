@@ -44,6 +44,12 @@ async function saveDetails() {
       </div></div>
     </div>
 
+    <NuxtLink to="/admin/polls" class="banner">
+      <div class="ico">🗳️</div>
+      <div><b>{{ t('polls') }}</b><span>{{ t('pollsSub') }}</span></div>
+      <div class="go">›</div>
+    </NuxtLink>
+
     <div class="sec-title">{{ t('contactDetails') }}</div>
     <div v-if="editingDetails" class="card" style="display:flex;flex-direction:column;gap:10px">
       <div><label class="lab">{{ t('firstName') }}</label><input v-model="details.firstName" class="in"></div>

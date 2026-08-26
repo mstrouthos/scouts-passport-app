@@ -245,6 +245,30 @@ CREATE TABLE IF NOT EXISTS notify_group_leaders (
   assigned_at TEXT NOT NULL DEFAULT ''
 );
 CREATE UNIQUE INDEX IF NOT EXISTS notify_group_leader_uq ON notify_group_leaders(group_id, scout_id);
+CREATE TABLE IF NOT EXISTS polls (
+  id SERIAL PRIMARY KEY,
+  question_el TEXT NOT NULL,
+  section_id INTEGER REFERENCES sections(id),
+  is_multi BOOLEAN NOT NULL DEFAULT FALSE,
+  closes_at TEXT,
+  is_closed BOOLEAN NOT NULL DEFAULT FALSE,
+  created_by INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS poll_options (
+  id SERIAL PRIMARY KEY,
+  poll_id INTEGER NOT NULL REFERENCES polls(id),
+  text_el TEXT NOT NULL,
+  idx INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS poll_votes (
+  id SERIAL PRIMARY KEY,
+  poll_id INTEGER NOT NULL REFERENCES polls(id),
+  option_id INTEGER NOT NULL REFERENCES poll_options(id),
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  voted_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS poll_vote_uq ON poll_votes(poll_id, option_id, scout_id);
 CREATE TABLE IF NOT EXISTS announcements (
   id SERIAL PRIMARY KEY,
   audience TEXT NOT NULL,

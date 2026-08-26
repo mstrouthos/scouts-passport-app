@@ -96,9 +96,9 @@ const fullCount = computed(() => presentList.value.filter((r: any) => r.uniform 
 /* Whether the Βαθμοφόροι are coming — their own answer, set before the event
    and quite separate from the attendance they record for the scouts. */
 const RSVPS = [
-  { v: 'yes', k: '✓', labelKey: 'rsvpYes', cls: 'g' },
-  { v: 'maybe', k: '?', labelKey: 'rsvpMaybe', cls: 'a' },
-  { v: 'no', k: '✕', labelKey: 'rsvpNo', cls: 'r' }
+  { v: 'yes', k: '✅', labelKey: 'rsvpYes', cls: 'g' },
+  { v: 'maybe', k: '🤔', labelKey: 'rsvpMaybe', cls: 'a' },
+  { v: 'no', k: '❌', labelKey: 'rsvpNo', cls: 'r' }
 ]
 const rsvpBusy = ref(false)
 async function setRsvp(answer: string) {
@@ -112,7 +112,7 @@ async function setRsvp(answer: string) {
 }
 const rsvpGroups = computed(() => RSVPS.map(r => ({
   ...r, people: (data.value?.rsvps || []).filter((x: any) => x.answer === r.v)
-})).concat([{ v: 'none', k: '·', labelKey: 'rsvpPending', cls: '',
+})).concat([{ v: 'none', k: '⏳', labelKey: 'rsvpPending', cls: '',
   people: (data.value?.rsvps || []).filter((x: any) => !x.answer) } as any]))
 
 async function setReview(scoutId: number, patch: any) {
@@ -163,12 +163,14 @@ const uniDefs = [
           <div class="tiny muted">{{ t('willYouAttend') }}</div>
           <div class="chips">
             <button v-for="r in RSVPS" :key="r.v" class="chip" :class="{ on: data.myRsvp === r.v }"
-                    :disabled="rsvpBusy" @click="setRsvp(r.v)">{{ r.k }} {{ t(r.labelKey) }}</button>
+                    :disabled="rsvpBusy" @click="setRsvp(r.v)">
+              <span class="rk">{{ r.k }}</span> {{ t(r.labelKey) }}
+            </button>
           </div>
         </div>
         <div v-for="g in rsvpGroups" :key="g.v">
           <div v-if="g.people.length" class="rgroup">
-            <span class="rlbl" :class="g.cls">{{ t(g.labelKey) }} · {{ g.people.length }}</span>
+            <span class="rlbl" :class="g.cls"><span class="rk">{{ g.k }}</span> {{ t(g.labelKey) }} · {{ g.people.length }}</span>
             <span class="rnames">{{ g.people.map((p: any) => name(p)).join(', ') }}</span>
           </div>
         </div>
@@ -320,6 +322,8 @@ const uniDefs = [
 .rlbl.a{background:#FBF0D2; color:#8F6C0E}
 .rlbl.r{background:#FDECE7; color:var(--danger)}
 .rnames{color:var(--muted); line-height:1.5}
+/* emoji render taller than the label they sit beside, so pull them into line */
+.rk{font-size:.95em; line-height:1; vertical-align:-.06em; margin-right:5px}
 
 .st{display:flex;gap:5px;flex:none}
 .st button{

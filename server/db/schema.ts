@@ -331,6 +331,35 @@ export const notifyGroupLeaders = pgTable('notify_group_leaders', {
   assignedAt: text('assigned_at').notNull().default('')
 }, t => [uniqueIndex('notify_group_leader_uq').on(t.groupId, t.scoutId)])
 
+/** A question put to the Βαθμοφόροι. Created by an Αρχηγός for their own
+    sector's leaders; the Αρχηγός Συστήματος may put one to the whole troop. */
+export const polls = pgTable('polls', {
+  id: serial('id').primaryKey(),
+  questionEl: text('question_el').notNull(),
+  // null = every sector's Βαθμοφόροι
+  sectionId: integer('section_id').references(() => sections.id),
+  isMulti: boolean('is_multi').notNull().default(false),
+  closesAt: text('closes_at'),
+  isClosed: boolean('is_closed').notNull().default(false),
+  createdBy: integer('created_by').notNull(),
+  createdAt: text('created_at').notNull()
+})
+
+export const pollOptions = pgTable('poll_options', {
+  id: serial('id').primaryKey(),
+  pollId: integer('poll_id').notNull().references(() => polls.id),
+  textEl: text('text_el').notNull(),
+  idx: integer('idx').notNull().default(0)
+})
+
+export const pollVotes = pgTable('poll_votes', {
+  id: serial('id').primaryKey(),
+  pollId: integer('poll_id').notNull().references(() => polls.id),
+  optionId: integer('option_id').notNull().references(() => pollOptions.id),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  votedAt: text('voted_at').notNull()
+}, t => [uniqueIndex('poll_vote_uq').on(t.pollId, t.optionId, t.scoutId)])
+
 export const announcements = pgTable('announcements', {
   id: serial('id').primaryKey(),
   audience: text('audience', { enum: ['troop', 'section', 'leaders', 'group'] }).notNull(),
