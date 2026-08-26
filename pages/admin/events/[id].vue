@@ -137,11 +137,20 @@ async function awardGame() {
   game.patrolId = 0; game.scoutId = 0; game.reason = ''
   await refresh(); show('🏆 +' + game.points)
 }
+/* These toggles fill with colour and show the glyph in white, so an emoji
+   cannot work here. Greek initials read instantly to a leader and keep one
+   weight across the three — the old set mixed ✓ and ✕ with a tilde, which is
+   punctuation rather than an icon. */
 const attDefs = [
-  { v: 'present', k: '✓', cls: 'g' }, { v: 'excused', k: '~', cls: 'a' }, { v: 'absent', k: '✕', cls: 'r' }
+  { v: 'present', k: 'Π', cls: 'g', labelKey: 'attPresent' },
+  { v: 'excused', k: 'Δ', cls: 'a', labelKey: 'attExcused' },
+  { v: 'absent', k: 'Α', cls: 'r', labelKey: 'attAbsent' }
 ]
+// the uniform set stays a filled/half/empty progression, which says "how much"
 const uniDefs = [
-  { v: 'full', k: '●', cls: 'g' }, { v: 'partial', k: '◐', cls: 'a' }, { v: 'none', k: '○', cls: 'r' }
+  { v: 'full', k: '●', cls: 'g', labelKey: 'ptsUniformL' },
+  { v: 'partial', k: '◐', cls: 'a', labelKey: 'ptsUniformPartialL' },
+  { v: 'none', k: '○', cls: 'r', labelKey: 'ptsUniformNoneL' }
 ]
 </script>
 
@@ -198,6 +207,7 @@ const uniDefs = [
             <div style="flex:1"><b>{{ name(r) }}</b></div>
             <div class="st">
               <button v-for="d in attDefs" :key="d.v" :class="[r.attendance === d.v ? 'on ' + d.cls : '']"
+                      :aria-label="t(d.labelKey)" :title="t(d.labelKey)"
                       @click="setReview(r.id, { attendance: d.v })">{{ d.k }}</button>
             </div>
           </div>
@@ -222,6 +232,7 @@ const uniDefs = [
                 <div style="flex:1"><b>{{ name(r) }}</b></div>
                 <div class="st">
                   <button v-for="d in uniDefs" :key="d.v" :class="[r.uniform === d.v ? 'on ' + d.cls : '']"
+                          :aria-label="t(d.labelKey)" :title="t(d.labelKey)"
                           @click="setReview(r.id, { uniform: d.v })">{{ d.k }}</button>
                 </div>
               </div>
@@ -328,7 +339,7 @@ const uniDefs = [
 .st{display:flex;gap:5px;flex:none}
 .st button{
   width:30px;height:30px;border-radius:9px;border:1.5px solid var(--line);background:#fff;
-  font-size:12.5px;font-weight:700;color:#B4BFCC;display:grid;place-items:center;padding:0;transition:.12s;
+  font-size:13.5px;font-weight:800;color:#8FA0B4;display:grid;place-items:center;padding:0;transition:.12s;
 }
 .st button:active{transform:scale(.9)}
 .st button.on.g{background:var(--green);border-color:var(--green);color:#fff}

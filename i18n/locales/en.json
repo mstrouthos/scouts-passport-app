@@ -467,5 +467,8 @@
   "showWhoVoted": "See who voted",
   "hideWhoVoted": "Hide",
   "confirmDeletePoll": "Delete this poll?",
-  "pollAsked": "{n} leaders were asked"
+  "pollAsked": "{n} leaders were asked",
+  "attPresent": "Present",
+  "attExcused": "Excused absence",
+  "attAbsent": "Absent"
 }

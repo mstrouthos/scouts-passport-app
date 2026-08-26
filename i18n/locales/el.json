@@ -467,5 +467,8 @@
   "showWhoVoted": "Δες ποιοι ψήφισαν",
   "hideWhoVoted": "Απόκρυψη",
   "confirmDeletePoll": "Διαγραφή αυτής της ψηφοφορίας;",
-  "pollAsked": "Ρωτήθηκαν {n} βαθμοφόροι"
+  "pollAsked": "Ρωτήθηκαν {n} βαθμοφόροι",
+  "attPresent": "Παρών",
+  "attExcused": "Δικαιολογημένη απουσία",
+  "attAbsent": "Απών"
 }
