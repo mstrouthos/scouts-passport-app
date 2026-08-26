@@ -16,6 +16,19 @@ const awardDate = ref(new Date().toISOString().slice(0, 10))
 const editingContact = ref(false)
 const contact = reactive({ phone: null as string | null, idNumber: '' })
 watch(data, v => { if (v) { contact.phone = v.phone || null; contact.idNumber = v.idNumber || '' } }, { immediate: true })
+/* Heading their own ενωμοτία / όμιλος / εξάδα. It is a title within the unit,
+   held by one of its members — it grants nothing in the app. */
+const unitBusy = ref(false)
+async function setUnitRole(role: string | null) {
+  if (unitBusy.value) return
+  unitBusy.value = true
+  try {
+    await $fetch(`/api/admin/scouts/${id}/unit-role`, { method: 'POST', body: { role } })
+    await refresh(); show('✅ ' + t('saved'))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+  finally { unitBusy.value = false }
+}
+
 const contactPhoneValid = computed(() => !contact.phone || /^\+357\d{8}$/.test(contact.phone))
 
 /* Parents live on the child's profile: that link is what lets a notification
@@ -197,6 +210,24 @@ async function deleteScout() {
           <button v-else class="chip" style="align-self:flex-start" @click="openAddParent">+ {{ t('addParent') }}</button>
         </div>
 
+        </template>
+
+        <template v-if="me?.can?.rosterEdit !== false && data.patrol">
+          <div class="sec-title">{{ data.unit.unitEl }}</div>
+          <div class="card" style="display:flex;flex-direction:column;gap:9px">
+            <div class="tiny muted">{{ data.patrol.emblem }} {{ lx(data.patrol, 'name') }}</div>
+            <div class="chips">
+              <button class="chip" :class="{ on: data.patrolRole === 'head' }" :disabled="unitBusy"
+                      @click="setUnitRole(data.patrolRole === 'head' ? null : 'head')">
+                {{ data.unit.headEl }}
+              </button>
+              <button class="chip" :class="{ on: data.patrolRole === 'deputy' }" :disabled="unitBusy"
+                      @click="setUnitRole(data.patrolRole === 'deputy' ? null : 'deputy')">
+                {{ data.unit.deputyEl }}
+              </button>
+            </div>
+            <div class="tiny muted">{{ t('unitRoleNote') }}</div>
+          </div>
         </template>
 
         <NuxtLink v-if="data.section?.slug === 'koinotita'" :to="`/admin/venture/${id}`" class="srow">

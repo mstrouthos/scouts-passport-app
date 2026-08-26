@@ -21,6 +21,9 @@ export const patrols = pgTable('patrols', {
 export const scouts = pgTable('scouts', {
   id: serial('id').primaryKey(),
   patrolId: integer('patrol_id').references(() => patrols.id),
+  // heading their own ενωμοτία / όμιλος / εξάδα — a title held by a member of
+  // the unit, carrying no rights in the app
+  patrolRole: text('patrol_role', { enum: ['head', 'deputy'] }),
   sectionId: integer('section_id').references(() => sections.id),
   firstName: text('first_name').notNull(),
   phone: text('phone'),

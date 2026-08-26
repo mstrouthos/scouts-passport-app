@@ -1,12 +1,12 @@
 import { useDb, schema as s } from '../../db'
-import { requireLeader, scopedSectionIds, visibleSectionIds, directPatrolIds, pointTotals, sectionOf, sectionOfWith } from '../../utils/guard'
+import { requireLeader, scopedSectionIds, visibleSectionIds, pointTotals, sectionOf, sectionOfWith } from '../../utils/guard'
+import { unitNames } from '../../utils/unitNames'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const db = (await useDb())
   const secIds = await scopedSectionIds(me)     // sections this leader fully administers (null = all)
   const visIds = await visibleSectionIds(me)    // sections that should render at all (null = all)
-  const patOnly = await directPatrolIds(me)     // patrols granted directly (patrol-level leaders)
   const totals = await pointTotals()
   const patrols = (await db.select().from(s.patrols)).sort((a, b) => a.sortOrder - b.sortOrder)
   const all = (await db.select().from(s.scouts))
@@ -25,7 +25,8 @@ export default defineEventHandler(async (event) => {
   const memberRow = (r: any) => ({
     id: r.id, firstName: r.firstName, lastName: r.lastName,
     firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn,
-    isActive: r.isActive, points: totals.get(r.id) || 0, badges: badgeCounts.get(r.id) || 0
+    isActive: r.isActive, points: totals.get(r.id) || 0, badges: badgeCounts.get(r.id) || 0,
+    patrolRole: r.patrolRole ?? null
   })
 
   const sections = (await db.select().from(s.sections))
@@ -35,9 +36,10 @@ export default defineEventHandler(async (event) => {
       const secAdmin = secIds === null || secIds.includes(sec.id)     // full section power here
       const members = all.filter(r => r.role === 'scout' && sectionOfWith(r, patrols) === sec.id)
       const patrolsInSec = patrols.filter(p => p.sectionId === sec.id)
-        .filter(p => secAdmin || patOnly.includes(p.id))
+        .filter(() => secAdmin)
       return {
         id: sec.id, nameEl: sec.nameEl, nameEn: sec.nameEn, slug: sec.slug, canManage: secAdmin,
+        unit: unitNames(sec.slug),
         patrols: patrolsInSec.map(p => ({
           id: p.id, nameEl: p.nameEl, nameEn: p.nameEn, emblem: p.emblem,
           leaders: patrolLeadersOf(p.id),

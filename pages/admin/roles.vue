@@ -90,8 +90,8 @@ async function submitAddScope() {
       method: 'POST',
       body: {
         action: 'addScope', scoutId: editing.value.id, rank: newScope.rank,
-        scope: isTroopLeader.value ? (newScope.sectionId ? 'section' : 'troop') : 'patrol',
-        sectionId: newScope.sectionId || undefined, patrolId: newScope.patrolId || undefined
+        scope: newScope.sectionId ? 'section' : 'troop',
+        sectionId: newScope.sectionId || undefined
       }
     })
     addingScope.value = false
@@ -141,7 +141,6 @@ function scopeChipLabel(sc: any) {
   return sec ? lx(sec, 'name') : t('wholeTroop')
 }
 function scopeRankLabel(sc: any) {
-  if (sc.scope === 'patrol') return sc.rank === 'yparchigos' ? t('yparchigosEnomotias') : t('archigosEnomotias')
   return sc.rank === 'yparchigos' ? t('yparchigos') : t('archigos')
 }
 function avatarTone(l: any) {
@@ -155,30 +154,6 @@ function summaryLabel(l: any) {
 }
 function appoint(r: any) { appointing.value = false; open({ ...r, role: 'leader', scopes: [], phone: null, idNumber: null }) }
 
-// ----- section leader: appoint/edit patrol-level leaders (max 2 per team) -----
-const editingPL = ref<any>(null)   // { patrolId, scoutId?, rank }
-function openPatrolLeader(patrolId: number, existing?: any) {
-  editingPL.value = { patrolId, scoutId: existing?.id ?? null, rank: existing?.rank ?? 'archigos', isNew: !existing }
-}
-async function savePatrolLeader() {
-  try {
-    await $fetch('/api/admin/roles', {
-      method: 'POST',
-      body: { scoutId: editingPL.value.scoutId, role: 'leader', patrolId: editingPL.value.patrolId, rank: editingPL.value.rank }
-    })
-    editingPL.value = null
-    await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
-}
-async function removePatrolLeader(scoutId: number) {
-  await $fetch('/api/admin/roles', { method: 'POST', body: { scoutId, role: 'scout' } })
-  editingPL.value = null
-  await refresh(); show('✅ ' + t('saved'))
-}
-const eligibleForPatrol = computed(() => {
-  if (!editingPL.value) return []
-  return (data.value?.scouts || []).filter((r: any) => r.patrolId === editingPL.value.patrolId)
-})
 </script>
 
 <template>
@@ -200,19 +175,7 @@ const eligibleForPatrol = computed(() => {
     </template>
 
     <template v-else>
-      <div class="note"><b>👥 {{ t('patrolLeadersTitle') }}</b>{{ t('patrolLeadersNote') }}</div>
-      <div v-for="p in data?.patrols" :key="p.id" class="adm">
-        <div class="hdr">{{ p.emblem }} {{ lx(p, 'name') }}</div>
-        <button v-for="l in p.leaders" :key="l.id" class="it" @click="openPatrolLeader(p.id, l)">
-          <Avatar :name="name(l)" :tone="l.rank === 'yparchigos' ? 'blue' : 'green'" />
-          <div style="flex:1"><b>{{ name(l) }}</b><span>{{ l.rank === 'yparchigos' ? t('yparchigosEnomotias') : t('archigosEnomotias') }}</span></div>
-          <span class="chev">›</span>
-        </button>
-        <button v-if="(p.leaders?.length || 0) < 2" class="it" @click="openPatrolLeader(p.id)">
-          <div class="ico" style="font-size:16px;width:26px;text-align:center">➕</div>
-          <div style="flex:1"><b>{{ t('addPatrolLeader') }}</b></div>
-        </button>
-      </div>
+      <div class="note"><b>👥 {{ t('rolesTitle') }}</b>{{ t('unitHeadsMovedNote') }}</div>
     </template>
 
     <Teleport to="body">
@@ -250,7 +213,7 @@ const eligibleForPatrol = computed(() => {
               <button :class="{ on: newScope.rank === 'archigos' }" @click="newScope.rank = 'archigos'">{{ t('archigos') }}</button>
               <button :class="{ on: newScope.rank === 'yparchigos' }" @click="newScope.rank = 'yparchigos'">{{ t('yparchigos') }}</button>
             </div>
-            <button class="btn" :disabled="!isTroopLeader && !newScope.patrolId" @click="submitAddScope">{{ t('save') }}</button>
+            <button class="btn" @click="submitAddScope">{{ t('save') }}</button>
           </template>
           <button v-else class="btn ghost" @click="addingScope = true">➕ {{ t('addRole') }}</button>
 
@@ -314,34 +277,6 @@ const eligibleForPatrol = computed(() => {
       </div>
 
       <!-- section leader: patrol-leader sheet -->
-      <div v-if="editingPL" class="sheet-backdrop" @click.self="editingPL = null">
-        <div class="sheet" style="display:flex;flex-direction:column;gap:12px;max-height:80dvh;overflow:auto">
-          <h3 style="margin:0;font-size:17px;text-align:center">
-            {{ editingPL.isNew ? t('addPatrolLeader') : name(data.patrols.flatMap(p => p.leaders).find(l => l.id === editingPL.scoutId)) }}
-          </h3>
-          <template v-if="editingPL.isNew">
-            <label class="lab">{{ t('pickScouts') }}</label>
-            <div class="adm">
-              <button v-for="r in eligibleForPatrol" :key="r.id" class="it"
-                      :class="{ 'is-active': editingPL.scoutId === r.id }" @click="editingPL.scoutId = r.id">
-                <Avatar :name="name(r)" tone="accent" />
-                <div style="flex:1"><b>{{ name(r) }}</b></div>
-                <span v-if="editingPL.scoutId === r.id" style="color:var(--accent);font-weight:700">✓</span>
-              </button>
-              <div v-if="!eligibleForPatrol.length" class="tiny muted" style="padding:12px">{{ t('noMembersYet') }}</div>
-            </div>
-          </template>
-          <div>
-            <label class="lab">{{ t('rank') }}</label>
-            <div class="seg">
-              <button :class="{ on: editingPL.rank === 'archigos' }" @click="editingPL.rank = 'archigos'">{{ t('archigosEnomotias') }}</button>
-              <button :class="{ on: editingPL.rank === 'yparchigos' }" @click="editingPL.rank = 'yparchigos'">{{ t('yparchigosEnomotias') }}</button>
-            </div>
-          </div>
-          <button class="btn" :disabled="!editingPL.scoutId" @click="savePatrolLeader">{{ t('save') }}</button>
-          <button v-if="!editingPL.isNew" class="btn danger" @click="removePatrolLeader(editingPL.scoutId)">{{ t('demote') }}</button>
-        </div>
-      </div>
     </Teleport>
   </AppShell>
 </template>

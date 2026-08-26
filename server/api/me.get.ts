@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
-import { requireScout, scopeKind, visibleSectionIds, rankOf, sectionOf, directPatrolIds } from '../utils/guard'
+import { requireScout, scopeKind, visibleSectionIds, rankOf, sectionOf } from '../utils/guard'
 import { can } from '../utils/permissions'
 
 export default defineEventHandler(async (event) => {
@@ -17,12 +17,8 @@ export default defineEventHandler(async (event) => {
   const scopeSections = !isLeader ? null
     : (visIds === null ? null : allSections.filter(x => visIds.includes(x.id)))
 
-  let myPatrols: any[] = []
-  if (isLeader && kind === 'patrol') {
-    const pids = await directPatrolIds(me)
-    myPatrols = (await db.select().from(s.patrols)).filter(p => pids.includes(p.id))
-      .map(p => ({ id: p.id, nameEl: p.nameEl, nameEn: p.nameEn, emblem: p.emblem, sectionId: p.sectionId }))
-  }
+  // Βαθμοφόροι are scoped to sectors; nobody is granted a single unit any more
+  const myPatrols: any[] = []
 
   return {
     id: me.id, firstName: me.firstName, lastName: me.lastName,

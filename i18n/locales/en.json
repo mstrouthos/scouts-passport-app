@@ -471,5 +471,9 @@
   "attPresent": "Present",
   "attExcused": "Excused absence",
   "attAbsent": "Absent",
-  "rsvpPrivate": "Who is attending is visible to the Αρχηγός Συστήματος and whoever created the event."
+  "rsvpPrivate": "Who is attending is visible to the Αρχηγός Συστήματος and whoever created the event.",
+  "unitRoleNote": "A title within the unit — it grants nothing in the app.",
+  "unitHead": "Head",
+  "noUnitLeaders": "No head named",
+  "unitHeadsMovedNote": "Unit heads are named from each scout’s own profile."
 }

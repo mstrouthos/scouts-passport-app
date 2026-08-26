@@ -39,21 +39,17 @@ async function myScopes(me: SessionScout) {
   return db.select().from(s.leaderScopes).where(eq(s.leaderScopes.scoutId, me.id))
 }
 
-/** Coarsest grant a leader holds: admin (troop_leader) > troop > section > patrol > none. */
-export async function scopeKind(me: SessionScout): Promise<'admin' | 'troop' | 'section' | 'patrol' | null> {
+/** Coarsest grant a leader holds: admin (troop_leader) > troop > section > none.
+    Βαθμοφόροι are scoped to sectors; a unit's head is a member of the unit, not
+    an adult, and holds a title rather than a grant. */
+export async function scopeKind(me: SessionScout): Promise<'admin' | 'troop' | 'section' | null> {
   if (me.role === 'troop_leader') return 'admin'
   const scopes = await myScopes(me)
   if (scopes.some(x => x.scope === 'troop')) return 'troop'
   if (scopes.some(x => x.scope === 'section')) return 'section'
-  if (scopes.some(x => x.scope === 'patrol')) return 'patrol'
   return null
 }
 
-/** Patrol ids granted directly (patrol-level leaders — e.g. Αρχηγός/Υπαρχηγός Ενωμοτίας). */
-export async function directPatrolIds(me: SessionScout): Promise<number[]> {
-  const scopes = await myScopes(me)
-  return [...new Set(scopes.filter(x => x.scope === 'patrol' && x.patrolId != null).map(x => x.patrolId!))]
-}
 
 /** Sections a leader may ADMINISTER: create events/challenges/announcements, add
     members, manage contacts, appoint patrol leaders. null = everything (admin/troop). */
@@ -64,21 +60,13 @@ export async function scopedSectionIds(me: SessionScout): Promise<number[] | nul
   return [...new Set(scopes.filter(x => x.scope === 'section' && x.sectionId != null).map(x => x.sectionId!))]
 }
 
-/** Sections that should render at all (administered sections, plus the parent
-    section of any directly-granted patrol) — null = everything. */
+/** Sections that should render at all. null = everything. */
 export async function visibleSectionIds(me: SessionScout): Promise<number[] | null> {
-  const secIds = await scopedSectionIds(me)
-  if (secIds === null) return null
-  const patIds = await directPatrolIds(me)
-  if (!patIds.length) return secIds
-  const db = await useDb()
-  const patrols = await db.select().from(s.patrols)
-  const viaPatrol = patrols.filter(p => patIds.includes(p.id)).map(p => p.sectionId)
-  return [...new Set([...secIds, ...viaPatrol])]
+  return scopedSectionIds(me)
 }
 
 /** 'admin' | 'archigos' | 'yparchigos' of the leader's HIGHEST grant — used for the
-    announcement approval gate (section/troop level only; patrol leaders never author). */
+    announcement approval gate. */
 export async function rankOf(me: SessionScout): Promise<'admin' | 'archigos' | 'yparchigos'> {
   if (me.role === 'troop_leader') return 'admin'
   const scopes = (await myScopes(me)).filter(x => x.scope === 'troop' || x.scope === 'section')
@@ -101,18 +89,15 @@ export function sectionOfWith(r: SessionScout, patrols: Patrol[]): number | null
   return patrols.find(p => p.id === r.patrolId)?.sectionId ?? null
 }
 
-/** Patrol ids inside the leader's administered sections, plus any granted directly. null = all. */
+/** Patrol ids inside the leader's administered sections. null = all. */
 export async function scopedPatrolIds(me: SessionScout): Promise<number[] | null> {
   const secs = await scopedSectionIds(me)
-  const patIds = await directPatrolIds(me)
   if (secs === null) return null
   const db = await useDb()
-  const inSections = (await db.select().from(s.patrols)).filter(p => secs.includes(p.sectionId)).map(p => p.id)
-  return [...new Set([...inSections, ...patIds])]
+  return (await db.select().from(s.patrols)).filter(p => secs.includes(p.sectionId)).map(p => p.id)
 }
 
-/** Members (role=scout) this leader manages: everyone in administered sections,
-    plus (for patrol-level leaders) just their own patrol's members. */
+/** Members (role=scout) this leader manages: everyone in their sections. */
 export async function scopedScouts(me: SessionScout): Promise<SessionScout[]> {
   const db = await useDb()
   const allScouts = () => db.select().from(s.scouts).where(eq(s.scouts.role, 'scout'))
@@ -120,15 +105,11 @@ export async function scopedScouts(me: SessionScout): Promise<SessionScout[]> {
   const scopes = await myScopes(me)
   if (scopes.some(x => x.scope === 'troop')) return allScouts()
   const secIds = await scopedSectionIds(me)
-  const patIds = await directPatrolIds(me)
-  if (!secIds!.length && !patIds.length) return []
+  if (!secIds!.length) return []
   const patrols = await db.select().from(s.patrols)
-  const all = await allScouts()
-  return all.filter(r => {
+  return (await allScouts()).filter(r => {
     const sid = sectionOfWith(r, patrols)
-    if (sid != null && secIds!.includes(sid)) return true
-    if (r.patrolId != null && patIds.includes(r.patrolId)) return true
-    return false
+    return sid != null && secIds!.includes(sid)
   })
 }
 

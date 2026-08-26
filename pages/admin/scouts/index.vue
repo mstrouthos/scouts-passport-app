@@ -180,19 +180,30 @@ async function deletePatrol() {
               <button v-if="sec.canManage" class="chip" style="flex:none;font-size:9.5px;padding:5px 9px"
                       @click="editPatrol(p, sec.id)">✎ {{ t('edit') }}</button>
             </div>
-            <div v-if="p.leaders?.length" style="padding:8px 15px 2px;display:flex;flex-wrap:wrap;gap:6px">
+            <div v-if="false" style="padding:8px 15px 2px;display:flex;flex-wrap:wrap;gap:6px">
               <span v-for="l in p.leaders" :key="l.id" class="pill live">
                 {{ l.rank === 'yparchigos' ? t('yparchigosEnomotias') : t('archigosEnomotias') }}: {{ name(l) }}
               </span>
             </div>
             <NuxtLink v-for="r in p.scouts" :key="r.id" :to="`/admin/scouts/${r.id}`" class="it">
               <Avatar :name="name(r)" :tone="r.isActive ? 'accent' : 'blue'" />
-              <div style="flex:1;min-width:0"><b>{{ name(r) }}</b><span>{{ r.points }} {{ t('pts') }} · {{ r.badges }} {{ t('badges').toLowerCase() }}</span></div>
+              <div style="flex:1;min-width:0">
+                <b>{{ name(r) }}</b>
+                <span>
+                  <!-- the unit's own head, named for what this sector calls it -->
+                  <template v-if="r.patrolRole">
+                    {{ r.patrolRole === 'head' ? sec.unit.headEl : sec.unit.deputyEl }} ·
+                  </template>
+                  {{ r.points }} {{ t('pts') }} · {{ r.badges }} {{ t('badges').toLowerCase() }}
+                </span>
+              </div>
               <span class="pill" :class="r.isActive ? 'ok' : 'draft'">{{ r.isActive ? t('active') : t('inactive') }}</span>
             </NuxtLink>
             <div v-if="!p.scouts.length" class="tiny muted" style="padding:10px 15px">{{ t('noMembersYet') }}</div>
           </div>
-          <button v-if="sec.canManage" class="btn ghost" style="padding:9px" @click="newPatrol(sec.id)">+ {{ t('newTeam') }}</button>
+          <button v-if="sec.canManage" class="btn ghost" style="padding:9px" @click="newPatrol(sec.id)">
+            + {{ sec.unit.unitEl }}
+          </button>
           <div v-if="sec.loose.length" class="adm">
             <div class="hdr">{{ t('members') }}</div>
             <NuxtLink v-for="r in sec.loose" :key="r.id" :to="`/admin/scouts/${r.id}`" class="it">

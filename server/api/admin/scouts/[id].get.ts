@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, assertScoutInScope, idParam, pointTotals, sectionOf } from '../../../utils/guard'
 import { can } from '../../../utils/permissions'
+import { unitNames } from '../../../utils/unitNames'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -24,6 +25,8 @@ export default defineEventHandler(async (event) => {
     canSeeDetails,
     patrol: patrol && { id: patrol.id, nameEl: patrol.nameEl, nameEn: patrol.nameEn, emblem: patrol.emblem },
     section: section && { id: section.id, nameEl: section.nameEl, nameEn: section.nameEn, slug: section.slug },
+    unit: unitNames(section?.slug),
+    patrolRole: r.patrolRole ?? null,
     points: (await pointTotals()).get(id) || 0,
     badges: badges.filter(b => !b.isArchived).sort((a, b) => a.sortOrder - b.sortOrder).map(b => ({
       id: b.id, icon: b.iconEmoji, titleEl: b.titleEl, titleEn: b.titleEn, earned: earnedIds.has(b.id)
