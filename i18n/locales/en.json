@@ -470,5 +470,6 @@
   "pollAsked": "{n} leaders were asked",
   "attPresent": "Present",
   "attExcused": "Excused absence",
-  "attAbsent": "Absent"
+  "attAbsent": "Absent",
+  "rsvpPrivate": "Who is attending is visible to the Αρχηγός Συστήματος and whoever created the event."
 }

@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
-import { requireLeader, scopedScouts, idParam } from '../../../../utils/guard'
+import { requireLeader, scopedScouts, idParam, rankOf } from '../../../../utils/guard'
 import { groupMemberIds, canScheduleForGroup } from '../../../../utils/groupScope'
 import { leadersForEvent } from '../../../../utils/rsvp'
 
@@ -24,8 +24,11 @@ export default defineEventHandler(async (event) => {
   const roster = runsGroup
     ? (await db.select().from(s.scouts)).filter(r => r.role === 'scout' && onlyGroup!.has(r.id))
     : (await scopedScouts(me)).filter(r => !onlyGroup || onlyGroup.has(r.id))
-  // who among the Βαθμοφόροι this concerns, and what each of them said
+  // who among the Βαθμοφόροι this concerns, and what each of them said.
+  // Who is coming is the Αρχηγός Συστήματος's business and the organiser's —
+  // everyone else answers for themselves without seeing the roll.
   const asked = await leadersForEvent(e)
+  const seesRoll = (await rankOf(me)) === 'admin' || e.createdBy === me.id
   const rsvps = await db.select().from(s.eventRsvps).where(eq(s.eventRsvps.eventId, eventId))
   const people = await db.select().from(s.scouts)
   const rsvpRows = asked.map(id => {
@@ -39,7 +42,8 @@ export default defineEventHandler(async (event) => {
   }).sort((a, b) => a.firstName.localeCompare(b.firstName, 'el'))
 
   return {
-    rsvps: rsvpRows,
+    rsvps: seesRoll ? rsvpRows : [],
+    seesRoll,
     myRsvp: rsvps.find(x => x.scoutId === me.id)?.answer ?? null,
     canRsvp: asked.includes(me.id),
     event: { id: e.id, titleEl: e.titleEl, titleEn: e.titleEn, startsAt: e.startsAt, scope: e.scope, groupId: e.groupId },

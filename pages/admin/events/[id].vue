@@ -165,7 +165,7 @@ const uniDefs = [
     </template>
 
     <!-- who among the Βαθμοφόροι is coming -->
-    <template v-if="data.rsvps?.length">
+    <template v-if="data.canRsvp || data.rsvps?.length">
       <div class="sec-title">{{ t('leadersAttending') }}</div>
       <div class="card" style="display:flex;flex-direction:column;gap:11px">
         <div v-if="data.canRsvp" style="display:flex;flex-direction:column;gap:7px">
@@ -177,6 +177,7 @@ const uniDefs = [
             </button>
           </div>
         </div>
+        <div v-if="!data.seesRoll && data.canRsvp" class="tiny muted">{{ t('rsvpPrivate') }}</div>
         <div v-for="g in rsvpGroups" :key="g.v">
           <div v-if="g.people.length" class="rgroup">
             <span class="rlbl" :class="g.cls"><span class="rk">{{ g.k }}</span> {{ t(g.labelKey) }} · {{ g.people.length }}</span>
