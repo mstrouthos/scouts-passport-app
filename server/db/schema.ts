@@ -46,11 +46,10 @@ export const scouts = pgTable('scouts', {
 export const leaderScopes = pgTable('leader_scopes', {
   id: serial('id').primaryKey(),
   scoutId: integer('scout_id').notNull().references(() => scouts.id),
-  // 'leaders' = a Βαθμοφόροι meeting: never shown to scouts or parents
-  // 'group' = a custom group's own meeting, e.g. band practice
-  scope: text('scope', { enum: ['troop', 'section', 'patrol', 'leaders', 'group'] }).notNull(),
+  // A Βαθμοφόρος holds one sector or the whole troop. Units are headed by their
+  // own members, so there is no finer grant than a sector.
+  scope: text('scope', { enum: ['troop', 'section'] }).notNull(),
   sectionId: integer('section_id').references(() => sections.id),
-  patrolId: integer('patrol_id').references(() => patrols.id),
   rank: text('rank', { enum: ['archigos', 'yparchigos'] }).notNull().default('archigos'),
   assignedBy: integer('assigned_by'),
   assignedAt: text('assigned_at')
