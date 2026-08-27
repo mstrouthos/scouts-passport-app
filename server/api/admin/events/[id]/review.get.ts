@@ -2,7 +2,8 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 import { requireLeader, scopedScouts, idParam, rankOf } from '../../../../utils/guard'
 import { groupMemberIds, canScheduleForGroup } from '../../../../utils/groupScope'
-import { leadersForEvent } from '../../../../utils/rsvp'
+import { leadersForEvent, sectionsOfLeader } from '../../../../utils/rsvp'
+import { scopedSectionIds } from '../../../../utils/guard'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -25,13 +26,27 @@ export default defineEventHandler(async (event) => {
     ? (await db.select().from(s.scouts)).filter(r => r.role === 'scout' && onlyGroup!.has(r.id))
     : (await scopedScouts(me)).filter(r => !onlyGroup || onlyGroup.has(r.id))
   // who among the Βαθμοφόροι this concerns, and what each of them said.
-  // Who is coming is the Αρχηγός Συστήματος's business and the organiser's —
-  // everyone else answers for themselves without seeing the roll.
+  // Who is coming: the Αρχηγός Συστήματος reads the whole roll, a sector's
+  // Αρχηγός only the Βαθμοφόροι of their own sectors, and a Υπαρχηγός none of
+  // it — they still answer for themselves.
   const asked = await leadersForEvent(e)
-  const seesRoll = (await rankOf(me)) === 'admin' || e.createdBy === me.id
+  const myRank = await rankOf(me)
+  const mySections = await scopedSectionIds(me)
   const rsvps = await db.select().from(s.eventRsvps).where(eq(s.eventRsvps.eventId, eventId))
   const people = await db.select().from(s.scouts)
-  const rsvpRows = asked.map(id => {
+  const visibleToMe = async (leaderId: number) => {
+    if (myRank === 'admin' || mySections === null) return true
+    if (myRank === 'yparchigos') return false
+    const theirs = await sectionsOfLeader(leaderId)
+    // a troop-wide Βαθμοφόρος is nobody's sector to inspect
+    if (theirs === null) return false
+    return theirs.some(sec => mySections.includes(sec))
+  }
+  const allowed = new Set<number>()
+  for (const id of asked) if (await visibleToMe(id)) allowed.add(id)
+  const seesRoll = myRank !== 'yparchigos' && allowed.size > 0
+
+  const rsvpRows = asked.filter(id => allowed.has(id)).map(id => {
     const r = people.find(x => x.id === id)!
     const a = rsvps.find(x => x.scoutId === id)
     return {

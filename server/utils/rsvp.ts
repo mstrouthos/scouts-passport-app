@@ -39,3 +39,14 @@ export async function leadersForEvent(ev: typeof s.events.$inferSelect): Promise
 export async function mayRsvp(me: SessionScout, ev: typeof s.events.$inferSelect): Promise<boolean> {
   return (await leadersForEvent(ev)).includes(me.id)
 }
+
+/** The sectors a Βαθμοφόρος belongs to — used to decide whose answers an
+    Αρχηγός may read. A troop-wide leader belongs to all of them. */
+export async function sectionsOfLeader(scoutId: number): Promise<number[] | null> {
+  const db = await useDb()
+  const person = (await db.select().from(s.scouts)).find(r => r.id === scoutId)
+  if (person?.role === 'troop_leader') return null
+  const scopes = (await db.select().from(s.leaderScopes)).filter(x => x.scoutId === scoutId)
+  if (scopes.some(x => x.scope === 'troop')) return null
+  return scopes.filter(x => x.scope === 'section' && x.sectionId != null).map(x => x.sectionId!)
+}
