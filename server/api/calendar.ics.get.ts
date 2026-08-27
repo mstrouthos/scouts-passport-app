@@ -12,7 +12,8 @@ export default defineEventHandler(async (event) => {
   const myGroups = (await db.select().from(s.notifyGroupMembers))
     .filter(m => m.scoutId === me.id).map(m => m.groupId)
   const rows = (await db.select().from(s.events))
-    .filter(e => (e.scope === 'section' && e.sectionId === mySection)
+    .filter(e => e.scope === 'troop'
+      || (e.scope === 'section' && e.sectionId === mySection)
       || (e.scope === 'patrol' && e.patrolId === me.patrolId)
       || (e.scope === 'group' && e.groupId != null && myGroups.includes(e.groupId)))
     .filter(e => new Date(e.endsAt || e.startsAt).getTime() > Date.now() - 86400_000)

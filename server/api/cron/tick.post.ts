@@ -35,10 +35,10 @@ export default defineEventHandler(async (event) => {
   const famSections = (await db.select().from(s.sections)).filter(x => !x.hasApp).map(x => x.id)
   for (const e of await db.select().from(s.events)) {
     if (!e.remindAt || isAfter(e.remindAt, t) || isAtOrBefore(e.startsAt, t)) continue
-    // reminders follow what a member may actually see: their own sector's
-    // programme and their unit's, never troop-wide or Βαθμοφόροι events
+    // reminders follow what a member may actually see
     const targets = scouts.filter(r => r.role === 'scout').filter(r =>
-      (e.scope === 'patrol' && r.patrolId === e.patrolId)
+      e.scope === 'troop'
+      || (e.scope === 'patrol' && r.patrolId === e.patrolId)
       || (e.scope === 'section' && sectionOfWith(r as any, patrols) === e.sectionId))
     const msg = {
       title: 'Υπενθύμιση 📅',
