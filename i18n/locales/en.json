@@ -528,5 +528,13 @@
   "thisWeek2": "This week",
   "noWeekChallenges": "No challenge set this week.",
   "noChantYet": "No chant yet",
-  "confirmDeleteChallenge": "Delete this challenge?"
+  "confirmDeleteChallenge": "Delete this challenge?",
+  "usefulInfo": "Useful information",
+  "birthday": "Date of birth",
+  "group": "Group",
+  "memberDetails": "Member details",
+  "noUnitsInSector": "This sector has no {unit} yet.",
+  "activatedOf": "{n} of {total} signed in",
+  "activationNote": "Only people with a code of their own are listed. Αγέλη and Μικρή Αγέλη children never sign in — their parents do.",
+  "nobodyHereFromGroup": "Nobody in that group holds a code of their own."
 }

@@ -235,6 +235,7 @@ input,textarea,select{font-family:inherit}
   -webkit-appearance:none; appearance:none; min-width:0; max-width:100%;
 }
 .sheet > *, .sheet > * > *{min-width:0}
+.sheet > *{flex-shrink:0}
 .in:focus{outline:0;border-color:var(--accent)}
 .in.ro{background:#F4F7FA; color:var(--muted); display:flex; align-items:center}
 textarea.in{resize:none;line-height:1.45}
@@ -291,6 +292,8 @@ textarea.in{resize:none;line-height:1.45}
 .dot.troop{background:var(--blue-deep)}
 .dot.section{background:var(--blue)}
 .dot.patrol{background:var(--gold)}
+.dot.leaders{background:var(--green)}
+.dot.group{background:#8B5CF6}
 
 .ev{display:flex;gap:11px;align-items:flex-start}
 .ev .date{flex:none;width:46px;text-align:center;background:var(--bg2);border-radius:12px;padding:6px 0}
@@ -334,9 +337,12 @@ textarea.in{resize:none;line-height:1.45}
 }
 @keyframes pop-t{from{opacity:0;transform:translate(-50%,10px)}}
 
-.sheet-backdrop{position:fixed;inset:0;background:rgba(18,32,55,.42);z-index:70;display:flex;align-items:flex-end;animation:fade-b .18s}
+.sheet-backdrop{position:fixed;inset:0;background:rgba(18,32,55,.42);z-index:70;display:flex;align-items:flex-end;animation:fade-b .18s;overscroll-behavior:contain}
+/* the document is pinned while a sheet is open — see plugins/sheet-lock.client.ts */
+html.sheet-open, html.sheet-open body{overflow:hidden}
 @keyframes fade-b{from{opacity:0}}
 .sheet{
+  overscroll-behavior:contain;
   background:rgba(248,251,254,.9);-webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
   width:100%;max-width:640px;margin:0 auto;border-radius:28px 28px 0 0;padding:10px 20px calc(env(safe-area-inset-bottom) + 26px);
   animation:up-s .16s cubic-bezier(.2,.8,.3,1);
