@@ -9,7 +9,8 @@ export default defineEventHandler(async (event) => {
   const past = new Date(ev.endsAt || ev.startsAt).getTime() < Date.now()
   return {
     id: ev.id, scope: ev.scope, sectionId: ev.sectionId, patrolId: ev.patrolId,
-    titleEl: ev.titleEl, titleEn: ev.titleEn, location: ev.location,
+    titleEl: ev.titleEl, titleEn: ev.titleEn, location: ev.location, themeEl: ev.themeEl,
+    groupId: ev.groupId,
     startsAt: ev.startsAt, endsAt: ev.endsAt, isAllDay: ev.isAllDay,
     tracksAttendance: ev.tracksAttendance, remindAt: ev.remindAt,
     past, recorded: data,

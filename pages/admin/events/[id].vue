@@ -27,7 +27,7 @@ const editing = ref(false)
 const busy = ref(false)
 const meta = ref<any>(null)
 const form = reactive<any>({
-  titleEl: '', location: '', startsAt: '', endsAt: '', isAllDay: false,
+  titleEl: '', location: '', themeEl: '', startsAt: '', endsAt: '', isAllDay: false,
   tracksAttendance: true, scope: 'section', sectionId: null as number | null, groupId: null as number | null
 })
 function toLocal(iso: string | null) {
@@ -46,6 +46,7 @@ async function openEdit() {
   const e = await loadMeta()
   form.titleEl = e.titleEl || ''
   form.location = e.location || ''
+  form.themeEl = e.themeEl || ''
   form.startsAt = toLocal(e.startsAt)
   form.endsAt = toLocal(e.endsAt)
   form.isAllDay = !!e.isAllDay
@@ -61,7 +62,7 @@ async function saveEvent() {
     await $fetch(`/api/admin/events/${id}`, {
       method: 'PATCH',
       body: {
-        titleEl: form.titleEl, location: form.location,
+        titleEl: form.titleEl, location: form.location, themeEl: form.themeEl || null,
         startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : null,
         endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
         isAllDay: form.isAllDay, tracksAttendance: form.tracksAttendance,
@@ -286,6 +287,11 @@ const uniDefs = [
 
           <div><label class="lab">{{ t('titleEl') }}</label><input v-model="form.titleEl" class="in"></div>
           <div><label class="lab">{{ t('location') }}</label><input v-model="form.location" class="in"></div>
+          <div>
+            <label class="lab">{{ t('meetingTheme') }} <span class="tiny muted">({{ t('optional') }})</span></label>
+            <input v-model="form.themeEl" class="in" :placeholder="t('meetingThemePh')">
+            <div class="tiny muted" style="margin-top:4px">{{ t('meetingThemeNote') }}</div>
+          </div>
           <div style="display:flex;gap:8px">
             <div style="flex:1"><label class="lab">{{ t('starts') }}</label><input v-model="form.startsAt" type="datetime-local" class="in"></div>
             <div style="flex:1"><label class="lab">{{ t('ends') }}</label><input v-model="form.endsAt" type="datetime-local" class="in"></div>
