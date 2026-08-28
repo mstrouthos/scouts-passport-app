@@ -12,6 +12,7 @@ export default defineEventHandler(async (event) => {
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
     .map(e => ({
       id: e.id, scope: e.scope, titleEl: e.titleEl, titleEn: e.titleEn,
-      location: e.location, startsAt: e.startsAt, endsAt: e.endsAt, isAllDay: e.isAllDay
+      location: e.location, descriptionEl: e.descriptionEl,
+      startsAt: e.startsAt, endsAt: e.endsAt, isAllDay: e.isAllDay
     }))
 })

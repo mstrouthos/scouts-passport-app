@@ -7,7 +7,7 @@ const isTroop = computed(() => me.value?.role === 'troop_leader')
 const { data: secs } = await useFetch<any>('/api/admin/contacts')     // sections in my scope
 const { data: groups } = await useFetch<any[]>('/api/admin/groups')  // e.g. η μπάντα
 const form = reactive({
-  titleEl: '', titleEn: '', location: '', themeEl: '',
+  titleEl: '', titleEn: '', location: '', themeEl: '', descriptionEl: '',
   scope: isTroop.value ? 'troop' : 'section',
   groupId: 0,
   sectionId: 0,
@@ -24,7 +24,7 @@ async function save() {
     await $fetch('/api/admin/events', {
       method: 'POST',
       body: { titleEl: form.titleEl, titleEn: form.titleEn || null, location: form.location || null,
-              themeEl: form.themeEl || null,
+              themeEl: form.themeEl || null, descriptionEl: form.descriptionEl || null,
               scope: form.scope,
               sectionId: form.scope === 'section' ? form.sectionId : null,
               groupId: form.scope === 'group' ? form.groupId : null,
@@ -44,6 +44,10 @@ async function save() {
         <div><label class="lab">{{ t('titleEl') }}</label><input v-model="form.titleEl" class="in"></div>
         <div><label class="lab">{{ t('titleEn') }}</label><input v-model="form.titleEn" class="in" :placeholder="t('enOptional')"></div>
         <div><label class="lab">{{ t('location') }}</label><input v-model="form.location" class="in"></div>
+        <div>
+          <label class="lab">{{ t('eventDetails') }} <span class="tiny muted">({{ t('optional') }})</span></label>
+          <textarea v-model="form.descriptionEl" class="in" rows="4" :placeholder="t('eventDetailsPh')" />
+        </div>
         <div>
           <label class="lab">{{ t('meetingTheme') }} <span class="tiny muted">({{ t('optional') }})</span></label>
           <input v-model="form.themeEl" class="in" :placeholder="t('meetingThemePh')">

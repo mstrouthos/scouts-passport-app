@@ -38,7 +38,11 @@ function sub(e: any) {
         <div class="card" style="display:flex;flex-direction:column;gap:13px">
           <div v-for="e in list" :key="e.id" class="ev">
             <div class="date"><b>{{ fmtDay(e.startsAt, locale).d }}</b><span>{{ fmtDay(e.startsAt, locale).m }}</span></div>
-            <div class="info"><b><span class="dot" :class="e.scope" />{{ lx(e) }}</b><span>{{ sub(e) }}</span></div>
+            <div class="info">
+              <b><span class="dot" :class="e.scope" />{{ lx(e) }}</b>
+              <span>{{ sub(e) }}</span>
+              <p v-if="e.descriptionEl" class="desc">{{ e.descriptionEl }}</p>
+            </div>
           </div>
         </div>
       </template>

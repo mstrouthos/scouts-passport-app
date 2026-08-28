@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
   }
   // what the meeting is about, shown to the Αγέλη's families
   if (b?.themeEl !== undefined) set.themeEl = b.themeEl ? String(b.themeEl).slice(0, 200) : null
+  if (b?.descriptionEl !== undefined) set.descriptionEl = b.descriptionEl ? String(b.descriptionEl).slice(0, 2000) : null
   if (b?.titleEn !== undefined) set.titleEn = String(b.titleEn || '').trim() || null
   if (b?.location !== undefined) set.location = String(b.location || '').trim() || null
   if (b?.isAllDay !== undefined) set.isAllDay = !!b.isAllDay

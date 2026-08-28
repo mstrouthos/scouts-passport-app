@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
-import { scopedSectionIds, type SessionScout } from './guard'
+import { scopedSectionIds, rankOf, type SessionScout } from './guard'
 import { canScheduleForGroup } from './groupScope'
 
 /** Load an event and assert the leader may manage it: full access sees all,
@@ -20,6 +20,30 @@ export async function eventInScope(me: SessionScout, id: number) {
   if (ev.sectionId == null || !secIds.includes(ev.sectionId))
     throw createError({ statusCode: 403, message: 'Out of your sector' })
   return ev
+}
+
+/** May this leader edit the event? Same rule as eventInScope, without throwing. */
+export async function canEditEvent(me: SessionScout, ev: typeof s.events.$inferSelect) {
+  const secIds = await scopedSectionIds(me)
+  if (secIds === null) return true
+  if (ev.scope === 'group' && ev.groupId != null) return canScheduleForGroup(me, ev.groupId)
+  return ev.sectionId != null && secIds.includes(ev.sectionId)
+}
+
+/** Load an event this leader may READ. An Αρχηγός sees every sector's diary so
+    the sectors can coordinate; a Υπαρχηγός stays with their own, the troop's
+    and the Βαθμοφόροι's. Reading is not editing — see canEditEvent. */
+export async function eventVisible(me: SessionScout, id: number) {
+  const db = (await useDb())
+  const ev = (await db.select().from(s.events).where(eq(s.events.id, id)).limit(1))[0]
+  if (!ev) throw createError({ statusCode: 404, message: 'Not found' })
+  const secIds = await scopedSectionIds(me)
+  if (secIds === null) return ev
+  if ((await rankOf(me)) === 'archigos') return ev
+  if (ev.scope === 'troop' || ev.scope === 'leaders') return ev
+  if (ev.scope === 'group' && ev.groupId != null && await canScheduleForGroup(me, ev.groupId)) return ev
+  if (ev.sectionId != null && secIds.includes(ev.sectionId)) return ev
+  throw createError({ statusCode: 403, message: 'Out of your sector' })
 }
 
 /** Has anything been recorded against this event that would be lost? */

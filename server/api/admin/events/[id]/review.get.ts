@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
-import { requireLeader, scopedScouts, idParam, rankOf } from '../../../../utils/guard'
+import { requireLeader, scopedScouts, idParam, rankOf, sectionOfWith } from '../../../../utils/guard'
 import { groupMemberIds, canScheduleForGroup } from '../../../../utils/groupScope'
 import { leadersForEvent, sectionsOfLeader } from '../../../../utils/rsvp'
 import { scopedSectionIds } from '../../../../utils/guard'
@@ -22,9 +22,18 @@ export default defineEventHandler(async (event) => {
   // whoever runs the group registers the whole group, even the members who sit
   // in a sector they do not otherwise manage
   const runsGroup = isGroupEvent && await canScheduleForGroup(me, e.groupId!)
-  const roster = runsGroup
+  // The roll is the event's own people, not everyone the leader happens to
+  // manage: opening another sector's συγκέντρωση must not offer your own
+  // members to mark present at it.
+  const ofEvent = (r: typeof s.scouts.$inferSelect) => {
+    if (e.scope === 'troop' || e.scope === 'leaders') return true
+    if (e.sectionId == null) return true
+    return sectionOfWith(r as any, patrols) === e.sectionId
+  }
+  const roster = (runsGroup
     ? (await db.select().from(s.scouts)).filter(r => r.role === 'scout' && onlyGroup!.has(r.id))
-    : (await scopedScouts(me)).filter(r => !onlyGroup || onlyGroup.has(r.id))
+    : (await scopedScouts(me)).filter(r => !onlyGroup || onlyGroup.has(r.id)))
+    .filter(r => onlyGroup ? true : ofEvent(r))
   // who among the Βαθμοφόροι this concerns, and what each of them said.
   // Who is coming: the Αρχηγός Συστήματος reads the whole roll, a sector's
   // Αρχηγός only the Βαθμοφόροι of their own sectors, and a Υπαρχηγός none of

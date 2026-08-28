@@ -53,6 +53,7 @@ export default defineEventHandler(async (event) => {
     titleEl: String(b.titleEl), titleEn: b.titleEn || null,
     themeEl: b.themeEl ? String(b.themeEl).slice(0, 200) : null,
     location: b.location || null,
+    descriptionEl: b.descriptionEl ? String(b.descriptionEl).slice(0, 2000) : null,
     startsAt: String(b.startsAt), endsAt: b.endsAt || null,
     isAllDay: !!b.isAllDay, tracksAttendance: b.tracksAttendance !== false,
     remindAt: b.remindAt || null, createdBy: me.id

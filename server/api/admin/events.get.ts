@@ -1,5 +1,5 @@
 import { useDb, schema as s } from '../../db'
-import { requireLeader, scopedSectionIds } from '../../utils/guard'
+import { requireLeader, scopedSectionIds, rankOf } from '../../utils/guard'
 import { visibleGroupIds } from '../../utils/groupScope'
 
 export default defineEventHandler(async (event) => {
@@ -8,7 +8,10 @@ export default defineEventHandler(async (event) => {
   const secIds = await scopedSectionIds(me)
   // full-access leaders see every sector; everyone else sees their own
   // sectors plus what is for the whole troop or for Βαθμοφόροι
-  const seeAll = secIds === null
+  // An Αρχηγός reads every sector's diary so the sectors can coordinate; a
+  // Υπαρχηγός stays with their own, the troop's and the Βαθμοφόροι's. What
+  // they may EDIT is unchanged either way.
+  const seeAll = secIds === null || (await rankOf(me)) === 'archigos'
   const myGroups = await visibleGroupIds(me)
   const reviews = (await db.select().from(s.eventReviews))
   const sections = new Map((await db.select().from(s.sections)).map(x => [x.id, x]))

@@ -5,6 +5,7 @@ import { now } from '../../../../utils/passcode'
 import { getPointRules } from '../../../../utils/settings'
 import { assertCan } from '../../../../utils/permissions'
 import { canScheduleForGroup, groupMemberIds } from '../../../../utils/groupScope'
+import { canEditEvent } from '../../../../utils/eventScope'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -19,7 +20,12 @@ export default defineEventHandler(async (event) => {
   const viaGroup = ev.scope === 'group' && ev.groupId != null
     && (await groupMemberIds(ev.groupId)).includes(scoutId)
     && await canScheduleForGroup(me, ev.groupId)
-  if (!viaGroup) await assertScoutInScope(me, scoutId)
+  if (!viaGroup) {
+    await assertScoutInScope(me, scoutId)
+    // reading another sector's diary is allowed; registering its συγκέντρωση is not
+    if (!(await canEditEvent(me, ev)))
+      throw createError({ statusCode: 403, message: 'Out of your sector' })
+  }
   if (!ev.tracksAttendance)
     throw createError({ statusCode: 400, message: 'This event does not track attendance' })
 

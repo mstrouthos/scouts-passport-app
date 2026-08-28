@@ -538,5 +538,7 @@
   "activationNote": "Only people with a code of their own are listed. Αγέλη and Μικρή Αγέλη children never sign in — their parents do.",
   "nobodyHereFromGroup": "Nobody in that group holds a code of their own.",
   "meetingThemePh": "e.g. Knots and ropes",
-  "meetingThemeNote": "Shown to families as the next meeting's theme."
+  "meetingThemeNote": "Shown to families as the next meeting's theme.",
+  "eventDetails": "Details",
+  "eventDetailsPh": "What to bring, what will happen, notes for parents…"
 }

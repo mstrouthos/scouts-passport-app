@@ -27,7 +27,7 @@ const editing = ref(false)
 const busy = ref(false)
 const meta = ref<any>(null)
 const form = reactive<any>({
-  titleEl: '', location: '', themeEl: '', startsAt: '', endsAt: '', isAllDay: false,
+  titleEl: '', location: '', themeEl: '', descriptionEl: '', startsAt: '', endsAt: '', isAllDay: false,
   tracksAttendance: true, scope: 'section', sectionId: null as number | null, groupId: null as number | null
 })
 function toLocal(iso: string | null) {
@@ -47,6 +47,7 @@ async function openEdit() {
   form.titleEl = e.titleEl || ''
   form.location = e.location || ''
   form.themeEl = e.themeEl || ''
+  form.descriptionEl = e.descriptionEl || ''
   form.startsAt = toLocal(e.startsAt)
   form.endsAt = toLocal(e.endsAt)
   form.isAllDay = !!e.isAllDay
@@ -63,6 +64,7 @@ async function saveEvent() {
       method: 'PATCH',
       body: {
         titleEl: form.titleEl, location: form.location, themeEl: form.themeEl || null,
+        descriptionEl: form.descriptionEl || null,
         startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : null,
         endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
         isAllDay: form.isAllDay, tracksAttendance: form.tracksAttendance,
@@ -83,9 +85,18 @@ async function deleteEvent() {
   } catch (e: any) { show(e?.data?.message || t('error')) }
 }
 
-const byPatrol = computed(() => (data.value?.patrols || [])
-  .map((p: any) => ({ p, list: (data.value?.scouts || []).filter((r: any) => r.patrolId === p.id) }))
-  .filter((g: any) => g.list.length))
+/* Grouped by unit, then everyone who has none — the Αγέλες often run without
+   εξάδες, and a newly enrolled scout has no ενωμοτία yet. Leaving them out of
+   the roll meant they could never be marked present. */
+const byPatrol = computed(() => {
+  const scouts = data.value?.scouts || []
+  const groups = (data.value?.patrols || [])
+    .map((p: any) => ({ p, list: scouts.filter((r: any) => r.patrolId === p.id) }))
+    .filter((g: any) => g.list.length)
+  const loose = scouts.filter((r: any) => r.patrolId == null)
+  if (loose.length) groups.push({ p: null, list: loose })
+  return groups
+})
 const tally = computed(() => {
   const c = { present: 0, excused: 0, absent: 0 }
   for (const r of data.value?.scouts || []) if (r.attendance) (c as any)[r.attendance]++
@@ -159,11 +170,17 @@ const uniDefs = [
   <AppShell v-if="data" :title="lx(data.event)"
             :sub="`${fmtDate(data.event.startsAt, locale)} · ${t('review')}`" back="/admin/events">
     <template #actions>
-      <button v-if="me?.can?.events !== false" class="iconbtn" :aria-label="t('editEvent')" @click="openEdit">✎</button>
+      <button v-if="me?.can?.events !== false && meta?.editable !== false" class="iconbtn" :aria-label="t('editEvent')" @click="openEdit">✎</button>
       <button v-if="meta?.canDelete && me?.can?.events !== false" class="iconbtn" :aria-label="t('deleteEvent')" @click="deleteEvent">
         <NavIcon name="trash" />
       </button>
     </template>
+
+    <div v-if="meta?.descriptionEl || meta?.themeEl || meta?.location" class="card" style="display:flex;flex-direction:column;gap:6px">
+      <div v-if="meta.themeEl" style="font-size:13px"><b>{{ t('meetingTheme') }}:</b> {{ meta.themeEl }}</div>
+      <div v-if="meta.location" class="tiny muted">📍 {{ meta.location }}</div>
+      <p v-if="meta.descriptionEl" style="margin:0;font-size:13px;line-height:1.55;white-space:pre-wrap">{{ meta.descriptionEl }}</p>
+    </div>
 
     <!-- who among the Βαθμοφόροι is coming -->
     <template v-if="data.canRsvp || data.rsvps?.length">
@@ -203,8 +220,8 @@ const uniDefs = [
       </div>
       <button class="btn ghost" @click="allPresent">{{ t('allPresent') }}</button>
       <div class="adm">
-        <template v-for="g in byPatrol" :key="g.p.id">
-          <div class="hdr">{{ g.p.emblem }} {{ lx(g.p, 'name') }}</div>
+        <template v-for="g in byPatrol" :key="g.p?.id ?? 0">
+          <div class="hdr">{{ g.p ? `${g.p.emblem} ${lx(g.p, 'name')}` : t('noUnitYet') }}</div>
           <div v-for="r in g.list" :key="r.id" class="it">
             <div style="flex:1"><b>{{ name(r) }}</b></div>
             <div class="st">
@@ -227,9 +244,9 @@ const uniDefs = [
         </div>
         <div class="tiny muted" style="text-align:center">{{ t('uniLegend') }}</div>
         <div class="adm">
-          <template v-for="g in byPatrol" :key="g.p.id">
+          <template v-for="g in byPatrol" :key="g.p?.id ?? 0">
             <template v-if="g.list.some(r => r.attendance === 'present')">
-              <div class="hdr">{{ g.p.emblem }} {{ lx(g.p, 'name') }}</div>
+              <div class="hdr">{{ g.p ? `${g.p.emblem} ${lx(g.p, 'name')}` : t('noUnitYet') }}</div>
               <div v-for="r in g.list.filter(x => x.attendance === 'present')" :key="r.id" class="it">
                 <div style="flex:1"><b>{{ name(r) }}</b></div>
                 <div class="st">
@@ -287,6 +304,10 @@ const uniDefs = [
 
           <div><label class="lab">{{ t('titleEl') }}</label><input v-model="form.titleEl" class="in"></div>
           <div><label class="lab">{{ t('location') }}</label><input v-model="form.location" class="in"></div>
+          <div>
+            <label class="lab">{{ t('eventDetails') }} <span class="tiny muted">({{ t('optional') }})</span></label>
+            <textarea v-model="form.descriptionEl" class="in" rows="4" :placeholder="t('eventDetailsPh')" />
+          </div>
           <div>
             <label class="lab">{{ t('meetingTheme') }} <span class="tiny muted">({{ t('optional') }})</span></label>
             <input v-model="form.themeEl" class="in" :placeholder="t('meetingThemePh')">
