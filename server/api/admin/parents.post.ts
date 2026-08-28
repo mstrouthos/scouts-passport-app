@@ -37,8 +37,19 @@ export default defineEventHandler(async (event) => {
   if (secIds !== null && !secIds.includes(sectionId))
     throw createError({ statusCode: 403, message: 'Out of your sector' })
 
+  // an existing parent gains a child rather than becoming a second entry, so a
+  // family with kids in two sectors keeps one code and sees both
+  const existing = (await db.select().from(s.parents)).find(p =>
+    p.isActive && ((email && p.email === email) || (phone && p.phone === phone)))
+  if (existing) {
+    await db.insert(s.parentChildren).values({ parentId: existing.id, scoutId })
+      .onConflictDoNothing()
+    return { id: existing.id, linked: true }
+  }
+
   const [row] = (await db.insert(s.parents).values({
     scoutId, sectionId, name, email, phone, addedBy: me.id, createdAt: now()
   }).returning())
+  await db.insert(s.parentChildren).values({ parentId: row.id, scoutId }).onConflictDoNothing()
   return { id: row.id }
 })

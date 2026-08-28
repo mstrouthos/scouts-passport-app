@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
   await parentInScope(me, id)
   const db = (await useDb())
   await db.transaction(async tx => {
+    await tx.delete(s.parentChildren).where(eq(s.parentChildren.parentId, id))
     await tx.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.parentId, id))
     await tx.delete(s.parents).where(eq(s.parents.id, id))
   })

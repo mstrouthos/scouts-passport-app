@@ -9,8 +9,10 @@ import { PACK_SLUG, weekStartOf, nextMeetingFor } from '../../utils/pack'
 export default defineEventHandler(async (event) => {
   const p = await requireParent(event)
   const db = await useDb()
-  const section = (await db.select().from(s.sections)).find(x => x.id === p.sectionId)
-  if (section?.slug !== PACK_SLUG) return { isPack: false }
+  // a parent with children in two sectors sees this only for the Αγέλη one
+  const section = (await db.select().from(s.sections))
+    .find(x => x.slug === PACK_SLUG && p.sectionIds.includes(x.id))
+  if (!section) return { isPack: false }
 
   const week = weekStartOf()
   const challenges = (await db.select().from(s.packChallenges))

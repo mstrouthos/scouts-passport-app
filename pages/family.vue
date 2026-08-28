@@ -15,11 +15,17 @@ const subState = ref<'idle' | 'ok' | 'no'>('idle')
 const openPost = ref<any>(null)
 
 const pack = ref<any>(null)
+const info = ref<any[]>([])
+const openInfo = ref<any>(null)
+async function readInfo(page: any) {
+  openInfo.value = await $fetch<any>(`/api/family/info/${page.slug}`, { query: { section: page.sectionId ?? undefined } })
+}
 async function load() {
   try {
     me.value = await $fetch('/api/family/me')
     // the Αγέλη's own corner — empty for every other sector
     pack.value = await $fetch('/api/family/pack').catch(() => null)
+    info.value = await $fetch<any[]>('/api/family/info').catch(() => [])
     ;[posts.value, events.value] = await Promise.all([
       $fetch<any[]>('/api/family/posts'),
       $fetch<any[]>('/api/family/calendar')
@@ -149,6 +155,22 @@ async function enableNotifs() {
         </div>
         <div v-else class="empty">{{ t('noParentPosts') }}</div>
 
+        <template v-if="info.length">
+          <div class="sec-title">{{ t('usefulInfo') }}</div>
+          <div class="adm">
+            <button v-for="p in info" :key="`${p.slug}-${p.sectionId ?? 0}`" class="it" @click="readInfo(p)">
+              <div style="font-size:19px;width:26px;text-align:center">{{ p.icon }}</div>
+              <div style="flex:1;min-width:0">
+                <b>{{ lx(p) }}</b>
+                <span>
+                  <template v-if="p.sectionEl">{{ p.sectionEl }} · </template>{{ lx(p, 'summary') }}
+                </span>
+              </div>
+              <span class="chev">›</span>
+            </button>
+          </div>
+        </template>
+
         <div class="sec-title">{{ t('calendar') }}</div>
         <div v-if="events.length" class="card" style="display:flex;flex-direction:column;gap:13px">
           <div v-for="e in events" :key="e.id" class="ev">
@@ -163,6 +185,15 @@ async function enableNotifs() {
     </main>
 
     <Teleport to="body">
+      <div v-if="openInfo" class="sheet-backdrop" @click.self="openInfo = null">
+        <div class="sheet" style="max-height:86dvh;overflow:auto;display:flex;flex-direction:column;gap:13px">
+          <div style="text-align:center;font-size:32px">{{ openInfo.icon }}</div>
+          <h3 style="margin:0;font-size:17px;text-align:center">{{ lx(openInfo) }}</h3>
+          <p style="font-size:13.5px;line-height:1.6;white-space:pre-wrap;margin:0">{{ lx(openInfo, 'body') }}</p>
+          <button class="btn ghost" @click="openInfo = null">{{ t('close') }}</button>
+        </div>
+      </div>
+
       <div v-if="openPost" class="sheet-backdrop" @click.self="openPost = null">
         <div class="sheet" style="max-height:86dvh;overflow:auto;display:flex;flex-direction:column;gap:13px">
           <h3 style="margin:0;font-size:17px;text-align:center">{{ openPost.titleEl }}</h3>

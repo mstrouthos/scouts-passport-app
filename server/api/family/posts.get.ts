@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const db = (await useDb())
   const files = new Map((await db.select().from(s.files)).map(f => [f.id, f]))
   return (await db.select().from(s.parentPosts))
-    .filter(x => x.isPublished && (x.sectionId == null || x.sectionId === p.sectionId))
+    .filter(x => x.isPublished && (x.sectionId == null || p.sectionIds.includes(x.sectionId)))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .map(x => {
       const f = x.fileId != null ? files.get(x.fileId) : null
