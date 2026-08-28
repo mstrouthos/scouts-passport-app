@@ -65,7 +65,7 @@ async function saveEvent() {
         startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : null,
         endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
         isAllDay: form.isAllDay, tracksAttendance: form.tracksAttendance,
-        scope: form.scope, sectionId: form.sectionId
+        scope: form.scope, sectionId: form.sectionId, groupId: form.groupId
       }
     })
     editing.value = false
@@ -305,6 +305,8 @@ const uniDefs = [
               <button v-for="sec in secs" :key="sec.id" class="chip"
                       :class="{ on: form.scope === 'section' && form.sectionId === sec.id }"
                       @click="form.scope = 'section'; form.sectionId = sec.id">{{ lx(sec, 'name') }}</button>
+              <button v-if="isTroop" class="chip" :class="{ on: form.scope === 'leaders' }"
+                      @click="form.scope = 'leaders'; form.sectionId = null">🎖️ {{ t('vathmoforoi') }}</button>
               <button v-for="g in groups" :key="'g' + g.id" class="chip"
                       :class="{ on: form.scope === 'group' && form.groupId === g.id }"
                       @click="form.scope = 'group'; form.groupId = g.id">{{ g.emoji }} {{ g.nameEl }}</button>

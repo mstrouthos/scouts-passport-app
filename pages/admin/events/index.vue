@@ -3,7 +3,15 @@ const { t, locale } = useI18n()
 const me = useMe()
 const lx = useLx()
 const { data } = await useFetch<any[]>('/api/admin/events')
+const { data: groups } = await useFetch<any[]>('/api/admin/groups')
 const isTroop = computed(() => me.value?.role === 'troop_leader')
+
+/* e.g. 🎺 Μπάντα — only groups that actually have something in the diary */
+const groupOf = (id: number | null) => (groups.value || []).find(g => g.id === id) || null
+function groupLabel(e: any) {
+  const g = groupOf(e.groupId)
+  return g ? [g.emoji, g.nameEl].filter(Boolean).join(' ') : t('group')
+}
 
 /* Whole troop, then each sector this leader covers — an Αρχηγός of the Ομάδα
    filters between the troop's programme and their own, and nothing else. */
@@ -14,13 +22,18 @@ const filters = computed(() => {
     out.push({ key: 's' + sec.id, label: lx(sec, 'name') })
   if ((data.value || []).some(e => e.scope === 'leaders'))
     out.push({ key: 'leaders', label: t('vathmoforoi') })
+  for (const id of new Set((data.value || []).filter(e => e.scope === 'group' && e.groupId != null).map(e => e.groupId))) {
+    const g = groupOf(id as number)
+    out.push({ key: 'g' + id, label: g ? [g.emoji, g.nameEl].filter(Boolean).join(' ') : t('group') })
+  }
   return out
 })
 const shown = computed(() => (data.value || []).filter(e => {
   if (filter.value === 'all') return true
   if (filter.value === 'troop') return e.scope === 'troop'
   if (filter.value === 'leaders') return e.scope === 'leaders'
-  return e.sectionId === Number(filter.value.slice(1))
+  if (filter.value.startsWith('g')) return e.scope === 'group' && e.groupId === Number(filter.value.slice(1))
+  return e.scope !== 'group' && e.sectionId === Number(filter.value.slice(1))
 }))
 </script>
 
@@ -38,7 +51,7 @@ const shown = computed(() => (data.value || []).filter(e => {
           <span style="font-size:8.5px;text-transform:uppercase;color:var(--muted)">{{ fmtDay(e.startsAt, locale).m }}</span>
         </div>
         <div style="flex:1"><b><span class="dot" :class="e.scope" />{{ lx(e) }}</b>
-          <span>{{ [e.scope === 'troop' ? t('wholeTroop') : e.scope === 'leaders' ? t('vathmoforoi') : lx(e, 'section'), e.location].filter(Boolean).join(' · ') }}</span>
+          <span>{{ [e.scope === 'troop' ? t('wholeTroop') : e.scope === 'leaders' ? t('vathmoforoi') : e.scope === 'group' ? groupLabel(e) : lx(e, 'section'), e.location].filter(Boolean).join(' · ') }}</span>
         </div>
         <span class="pill" :class="!e.editable ? 'draft' : e.reviewed ? 'ok' : 'draft'">
           {{ !e.editable ? '🔒 ' + t('readOnly') : e.reviewed ? t('reviewed') : t('pending') }}
