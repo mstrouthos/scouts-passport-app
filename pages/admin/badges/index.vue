@@ -1,5 +1,15 @@
 <script setup lang="ts">
 const { t } = useI18n()
+const me = useMe()
+/* Πτυχία are the Ομάδα's programme; a λυκόπουλο has none, so their
+   Βαθμοφόροι have nothing to award here. */
+const runsBadges = computed(() => {
+  if (!me.value) return true
+  if (me.value.role === 'troop_leader') return true
+  const scopes = me.value.scopeSections
+  return scopes == null || scopes.some((x: any) => x.slug === 'omada')
+})
+watchEffect(() => { if (me.value && !runsBadges.value) navigateTo('/admin/more') })
 const lx = useLx()
 const { data } = await useFetch('/api/admin/badges')
 </script>
