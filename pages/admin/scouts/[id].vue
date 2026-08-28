@@ -19,6 +19,38 @@ watch(data, v => { if (v) { contact.phone = v.phone || null; contact.idNumber = 
 /* Heading their own ενωμοτία / όμιλος / εξάδα. It is a title within the unit,
    held by one of its members — it grants nothing in the app. */
 const unitBusy = ref(false)
+/* Enrolment may leave the ενωμοτία / εξάδα / όμιλος blank, so it has to be
+   assignable — and changeable — from the member's own page afterwards. */
+async function setUnit(patrolId: number | null) {
+  if (unitBusy.value || patrolId === (data.value?.patrol?.id ?? null)) return
+  unitBusy.value = true
+  try {
+    await $fetch(`/api/admin/scouts/${id}`, { method: 'PATCH', body: { patrolId } })
+    await refresh(); show('✅ ' + t('saved'))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+  finally { unitBusy.value = false }
+}
+
+const editingName = ref(false)
+const nameForm = reactive({ firstName: '', lastName: '', firstNameEn: '', lastNameEn: '' })
+const nameBusy = ref(false)
+function openName() {
+  nameForm.firstName = data.value?.firstName || ''
+  nameForm.lastName = data.value?.lastName || ''
+  nameForm.firstNameEn = data.value?.firstNameEn || ''
+  nameForm.lastNameEn = data.value?.lastNameEn || ''
+  editingName.value = true
+}
+async function saveName() {
+  if (nameBusy.value || !nameForm.firstName.trim() || !nameForm.lastName.trim()) return
+  nameBusy.value = true
+  try {
+    await $fetch(`/api/admin/scouts/${id}`, { method: 'PATCH', body: { ...nameForm } })
+    editingName.value = false
+    await refresh(); show('✅ ' + t('saved'))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+  finally { nameBusy.value = false }
+}
 async function setUnitRole(role: string | null) {
   if (unitBusy.value) return
   unitBusy.value = true
@@ -124,6 +156,27 @@ async function deleteScout() {
         </div>
 
         <template v-if="me?.can?.rosterEdit !== false">
+        <div class="sec-title">{{ t('memberDetails') }}</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <template v-if="editingName">
+            <div><label class="lab">{{ t('firstName') }}</label><input v-model="nameForm.firstName" class="in"></div>
+            <div><label class="lab">{{ t('lastName') }}</label><input v-model="nameForm.lastName" class="in"></div>
+            <div><label class="lab">{{ t('firstName') }} (EN) <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="nameForm.firstNameEn" class="in"></div>
+            <div><label class="lab">{{ t('lastName') }} (EN) <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="nameForm.lastNameEn" class="in"></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn" :disabled="!nameForm.firstName.trim() || !nameForm.lastName.trim() || nameBusy" @click="saveName">{{ t('save') }}</button>
+              <button class="btn ghost" @click="editingName = false">{{ t('cancel') }}</button>
+            </div>
+          </template>
+          <template v-else>
+            <div>
+              <b style="font-size:14px">{{ data.firstName }} {{ data.lastName }}</b>
+              <div v-if="data.firstNameEn || data.lastNameEn" class="tiny muted">{{ [data.firstNameEn, data.lastNameEn].filter(Boolean).join(' ') }}</div>
+            </div>
+            <button class="chip" style="align-self:flex-start" @click="openName">✎ {{ t('edit') }}</button>
+          </template>
+        </div>
+
         <div class="sec-title">{{ t('loginCard') }}</div>
         <div class="card" style="display:flex;flex-direction:column;gap:10px">
           <div style="display:flex;align-items:center;gap:12px">
@@ -214,8 +267,21 @@ async function deleteScout() {
 
         </template>
 
-        <template v-if="me?.can?.rosterEdit !== false && data.patrol">
+        <template v-if="me?.can?.rosterEdit !== false">
           <div class="sec-title">{{ data.unit.unitEl }}</div>
+          <div class="card" style="display:flex;flex-direction:column;gap:9px">
+            <div class="chips">
+              <button class="chip" :class="{ on: !data.patrol }" :disabled="unitBusy" @click="setUnit(null)">
+                — {{ t('noUnitYet') }}
+              </button>
+              <button v-for="u in data.units" :key="u.id" class="chip"
+                      :class="{ on: data.patrol?.id === u.id }" :disabled="unitBusy"
+                      @click="setUnit(u.id)">{{ u.emblem }} {{ lx(u, 'name') }}</button>
+            </div>
+            <div v-if="!data.units.length" class="tiny muted">{{ t('noUnitsInSector', { unit: data.unit.unitsEl }) }}</div>
+          </div>
+
+          <template v-if="data.patrol">
           <div class="card" style="display:flex;flex-direction:column;gap:9px">
             <div class="tiny muted">{{ data.patrol.emblem }} {{ lx(data.patrol, 'name') }}</div>
             <div class="chips">
@@ -230,6 +296,7 @@ async function deleteScout() {
             </div>
             <div class="tiny muted">{{ t('unitRoleNote') }}</div>
           </div>
+          </template>
         </template>
 
         <NuxtLink v-if="data.hasVenture" :to="`/admin/venture/${id}`" class="srow">
