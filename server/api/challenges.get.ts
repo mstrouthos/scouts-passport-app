@@ -3,11 +3,15 @@ import { useDb, schema as s } from '../db'
 import { requireScout, sectionOf } from '../utils/guard'
 import { now, isAtOrBefore } from '../utils/passcode'
 import { localDay, currentStreak, bonusEarned, weekDays, weekdayOf } from '../utils/streak'
+import { isScoutTroop } from '../utils/programme'
 
 /** The scout's question path, in order, with their streak. Bonus questions are
     hidden unless this week's streak earned them. */
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
+  // The quiz belongs to the Ομάδα Προσκόπων. The Αγέλη's weekly challenges are
+  // a different thing entirely and live on the family page.
+  if (!(await isScoutTroop(me.id))) return { items: [], streak: 0, week: [], earnedBonus: false }
   const db = (await useDb())
   const t = now()
   const mySection = await sectionOf(me)

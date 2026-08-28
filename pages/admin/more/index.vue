@@ -2,8 +2,11 @@
 const { t } = useI18n()
 const me = useMe()
 // the Αγέλη's screen belongs to its own Βαθμοφόροι, and to the Αρχηγός Συστήματος
+/* Both Αγέλες: their children never sign in, so their programme is run from
+   here and read by the families. */
+const PACK_SLUGS = ['ageli', 'mikri-ageli']
 const isPackLeader = computed(() => me.value?.role === 'troop_leader'
-  || (me.value?.scopeSections || []).some((x: any) => x.slug === 'ageli'))
+  || (me.value?.scopeSections || []).some((x: any) => PACK_SLUGS.includes(x.slug)))
 const canSeeRoles = computed(() => me.value?.role === 'troop_leader' || me.value?.scopeKind === 'section' || me.value?.scopeKind === 'troop')
 </script>
 

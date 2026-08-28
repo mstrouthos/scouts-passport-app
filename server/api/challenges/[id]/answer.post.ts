@@ -4,9 +4,12 @@ import { requireScout, idParam } from '../../../utils/guard'
 import { now, isAfter, isAtOrBefore } from '../../../utils/passcode'
 import { localDay, bonusEarned } from '../../../utils/streak'
 import { pointsAfter, MAX_POINTS } from '../../../utils/scoring'
+import { isScoutTroop } from '../../../utils/programme'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
+  if (!(await isScoutTroop(me.id)))
+    throw createError({ statusCode: 403, message: 'Not your programme' })
   const id = idParam(event)
   const body = await readBody<{ optionId?: number }>(event)
   const db = (await useDb())

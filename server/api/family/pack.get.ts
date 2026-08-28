@@ -1,34 +1,34 @@
-import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { requireParent } from '../../utils/parentGuard'
-import { PACK_SLUG, weekStartOf, nextMeetingFor } from '../../utils/pack'
+import { packSections, weekStartOf, nextMeetingFor } from '../../utils/pack'
 
-/** What a family in the Αγέλη sees on their own page: the next συγκέντρωση and
-    what it is about, the εξάδες' κραυγές, and this week's challenges. Empty
-    for every other sector, which runs a different programme. */
+/** What a family in the Αγέλη or the Μικρή Αγέλη sees on their own page: the
+    next συγκέντρωση and what it is about, and this week's challenges. Those
+    children never sign in, so this is the only place their programme appears.
+    A parent with children in both sectors gets a block for each; the other two
+    sectors run a different programme and get none. */
 export default defineEventHandler(async (event) => {
   const p = await requireParent(event)
   const db = await useDb()
-  // a parent with children in two sectors sees this only for the Αγέλη one
-  const section = (await db.select().from(s.sections))
-    .find(x => x.slug === PACK_SLUG && p.sectionIds.includes(x.id))
-  if (!section) return { isPack: false }
+  const mine = (await packSections()).filter(x => p.sectionIds.includes(x.id))
+  if (!mine.length) return { isPack: false, packs: [] }
 
   const week = weekStartOf()
-  const challenges = (await db.select().from(s.packChallenges))
-    .filter(c => c.sectionId === section.id && c.weekStart === week)
-    .sort((a, b) => a.id - b.id)
-
-  const chants = (await db.select().from(s.patrols))
-    .filter(x => x.sectionId === section.id && x.chantEl)
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map(x => ({ id: x.id, nameEl: x.nameEl, emblem: x.emblem, chantEl: x.chantEl }))
-
-  return {
-    isPack: true,
-    weekStart: week,
-    nextMeeting: await nextMeetingFor(section.id),
-    chants,
-    challenges: challenges.map(c => ({ id: c.id, textEl: c.textEl, emoji: c.emoji }))
+  const all = await db.select().from(s.packChallenges)
+  const packs = []
+  for (const section of mine) {
+    packs.push({
+      sectionId: section.id,
+      sectionEl: section.nameEl,
+      sectionEn: section.nameEn,
+      weekStart: week,
+      nextMeeting: await nextMeetingFor(section.id),
+      challenges: all
+        .filter(c => c.sectionId === section.id && c.weekStart === week)
+        .sort((a, b) => a.id - b.id)
+        .map(c => ({ id: c.id, textEl: c.textEl, emoji: c.emoji }))
+    })
   }
+  // labelled only when the family straddles both sectors
+  return { isPack: true, multi: packs.length > 1, weekStart: week, packs }
 })

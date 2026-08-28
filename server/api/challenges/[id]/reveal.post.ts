@@ -3,11 +3,14 @@ import { useDb, schema as s } from '../../../db'
 import { requireScout, idParam } from '../../../utils/guard'
 import { now, isAfter, isAtOrBefore } from '../../../utils/passcode'
 import { DECAY_EVERY_MS, MIN_POINTS, MAX_POINTS } from '../../../utils/scoring'
+import { isScoutTroop } from '../../../utils/programme'
 
 /** Start the answer clock. Recording the moment here — and only the first time —
     means the countdown survives a reload and cannot be restarted by the client. */
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
+  if (!(await isScoutTroop(me.id)))
+    throw createError({ statusCode: 403, message: 'Not your programme' })
   const id = idParam(event)
   const db = await useDb()
   const t = now()

@@ -1,8 +1,13 @@
 <script setup lang="ts">
 const { t, locale } = useI18n()
+const me = useMe()
 const lx = useLx()
 const { show } = useToast()
 const { data, refresh } = await useFetch<any>('/api/challenges')
+/* The quiz is the Ομάδα's. The Αγέλη's weekly challenges are a separate thing
+   and live on the family page — a typed URL should not cross the two. */
+const sectionGuard = computed(() => me.value?.section?.slug === 'omada')
+watchEffect(() => { if (me.value && !sectionGuard.value) navigateTo('/app') })
 
 const open = ref<any>(null)      // the question sheet
 const picked = ref<number | null>(null)

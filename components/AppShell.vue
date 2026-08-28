@@ -50,7 +50,10 @@ const tabs = computed(() => isLeader.value
   : [
       { to: '/app', icon: 'passport', label: t('nav.passport') },
       { to: '/app/calendar', icon: 'calendar', label: t('nav.calendar') },
-      { to: '/app/challenges', icon: 'target', label: t('nav.challenges') },
+      // the quiz belongs to the Ομάδα Προσκόπων, so nobody else gets the tab
+      ...(me.value?.section?.slug === 'omada'
+        ? [{ to: '/app/challenges', icon: 'target', label: t('nav.challenges') }]
+        : []),
       { to: '/app/board', icon: 'trophy', label: t('nav.board') },
       { to: '/app/info', icon: 'infoI', label: t('nav.info') }
     ])

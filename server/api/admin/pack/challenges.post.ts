@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, scopedSectionIds } from '../../../utils/guard'
 import { assertCan } from '../../../utils/permissions'
-import { PACK_SLUG, weekStartOf } from '../../../utils/pack'
+import { packSections, weekStartOf } from '../../../utils/pack'
 import { now } from '../../../utils/passcode'
 
 /** Set a week's challenges, tick one off for a λυκόπουλο, or remove one.
@@ -11,13 +11,12 @@ export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   await assertCan(me, 'attendance.record')
   const db = await useDb()
-  const section = (await db.select().from(s.sections)).find(x => x.slug === PACK_SLUG)
-  if (!section) throw createError({ statusCode: 404, message: 'Not found' })
-  const secIds = await scopedSectionIds(me)
-  if (secIds !== null && !secIds.includes(section.id))
-    throw createError({ statusCode: 403, message: 'Out of your sector' })
-
   const b = await readBody<any>(event)
+  const secIds = await scopedSectionIds(me)
+  const mine = (await packSections()).filter(x => secIds === null || secIds.includes(x.id))
+  if (!mine.length) throw createError({ statusCode: 403, message: 'Out of your sector' })
+  const asked = Number(b?.sectionId)
+  const section = mine.find(x => x.id === asked) || mine[0]
 
   if (b?.action === 'mark') {
     const challengeId = Number(b.challengeId), scoutId = Number(b.scoutId)

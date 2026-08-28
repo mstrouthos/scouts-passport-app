@@ -2,9 +2,13 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { isAfter } from './passcode'
 
-/** The Αγέλη's own corner of the app. Kept to that sector deliberately: the
-    other sectors run different programmes and asked for none of this. */
-export const PACK_SLUG = 'ageli'
+/** The Αγέλη's and Μικρή Αγέλη's own corner of the app. Those children never
+    sign in — everything meant for them is read by their families — so both
+    sectors get this and the other two, which run different programmes, do not.
+    Each sector keeps its own week: they are not one pack. */
+export const PACK_SLUGS = ['ageli', 'mikri-ageli'] as const
+export const isPackSlug = (slug: string | null | undefined) =>
+  !!slug && (PACK_SLUGS as readonly string[]).includes(slug)
 
 /** The Monday of the week a date falls in, in Cyprus local terms. */
 export function weekStartOf(d = new Date()): string {
@@ -14,9 +18,12 @@ export function weekStartOf(d = new Date()): string {
   return `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, '0')}-${String(local.getDate()).padStart(2, '0')}`
 }
 
-export async function packSectionId(): Promise<number | null> {
+/** Both pack sectors, in programme order. */
+export async function packSections() {
   const db = await useDb()
-  return (await db.select().from(s.sections)).find(x => x.slug === PACK_SLUG)?.id ?? null
+  return (await db.select().from(s.sections))
+    .filter(x => isPackSlug(x.slug))
+    .sort((a, b) => a.sortOrder - b.sortOrder)
 }
 
 /** The next meeting on the books for a section, with whatever theme it carries. */
