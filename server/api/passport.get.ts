@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { requireScout, pointTotals, sectionOf, sectionOfWith } from '../utils/guard'
 import { BADGE_CATEGORIES } from '../db/passportData'
+import { isScoutTroop } from '../utils/programme'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
@@ -15,7 +16,9 @@ export default defineEventHandler(async (event) => {
     .filter(r => r.isActive && sectionOfWith(r, allPatrols) === mySection)
   const rank = 1 + actives.filter(r => r.id !== me.id && (totals.get(r.id) || 0) > myPoints).length
 
-  const badges = (await db.select().from(s.achievements))
+  // Πτυχία belong to the Ομάδα Προσκόπων — no other sector has them
+  const troopMember = await isScoutTroop(me.id)
+  const badges = !troopMember ? [] : (await db.select().from(s.achievements))
     .filter(b => !b.isArchived).sort((a, b) => a.sortOrder - b.sortOrder)
   const earned = (await db.select().from(s.scoutAchievements).where(eq(s.scoutAchievements.scoutId, me.id)))
   const earnedMap = new Map(earned.map(e => [e.achievementId, e]))

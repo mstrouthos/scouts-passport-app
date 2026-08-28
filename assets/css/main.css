@@ -72,20 +72,24 @@ input,textarea,select{font-family:inherit}
   --btn-shadow:rgba(29,89,64,.32);
   --grad-lead:linear-gradient(160deg,#5FAE87 0%,#2E7D5B 55%,#1B3B2E 100%);
 }
-.lead.theme-koinotita{ /* Κοινότητα Ανιχνευτών — purple */
-  --accent:#7B4FA0; --accent-deep:#5A3878; --accent-soft:#EBE0F5; --note-border:#C9AEE0;
-  --btn-shadow:rgba(90,56,120,.32);
-  --grad-lead:linear-gradient(160deg,#A97FCB 0%,#7B4FA0 55%,#4E2E6B 100%);
+.lead.theme-koinotita{ /* Κοινότητα Ανιχνευτών — #7B1B38 */
+  /* a dark base, so the soft tint is mixed toward white rather than lightened,
+     and the gradient stops well short of black */
+  --accent:#7B1B38; --accent-deep:#5A1329; --accent-soft:#F7E4EA; --note-border:#E0AEBE;
+  --btn-shadow:rgba(90,19,41,.32);
+  --grad-lead:linear-gradient(160deg,#A82A4E 0%,#7B1B38 55%,#4A0F22 100%);
 }
-.lead.theme-ageli{ /* Αγέλη — amber/yellow */
-  --accent:#C99A18; --accent-deep:#8F6C0E; --accent-soft:#FBF0D2; --note-border:#E7CE86;
-  --btn-shadow:rgba(143,108,14,.32);
-  --grad-lead:linear-gradient(160deg,#E8BB3E 0%,#C99A18 55%,#8F6C0E 100%);
+.lead.theme-ageli{ /* Αγέλη — #FFCC13 */
+  /* accent-deep is what body text and links use, so it is darkened until it
+     clears 4.5:1 on white — the brand yellow itself never carries text */
+  --accent:#FFCC13; --accent-deep:#8D6F00; --accent-soft:#FDF7E1; --note-border:#F9E189;
+  --btn-shadow:rgba(141,111,0,.32);
+  --grad-lead:linear-gradient(160deg,#FFD950 0%,#FFCC13 55%,#654F00 100%);
 }
-.lead.theme-mikri-ageli{ /* Μικρή Αγέλη — baby blue */
-  --accent:#2E86AC; --accent-deep:#1F6280; --accent-soft:#DFF3FA; --note-border:#9FD8EC;
-  --btn-shadow:rgba(31,98,128,.32);
-  --grad-lead:linear-gradient(160deg,#7FD1EE 0%,#4FB4DA 55%,#2E86AC 100%);
+.lead.theme-mikri-ageli{ /* Μικρή Αγέλη — #22DEF0 */
+  --accent:#22DEF0; --accent-deep:#0A828E; --accent-soft:#E3F9FB; --note-border:#91E9F1;
+  --btn-shadow:rgba(10,130,142,.32);
+  --grad-lead:linear-gradient(160deg,#5BE7F4 0%,#22DEF0 55%,#06575E 100%);
 }
 .lead .hero{background:var(--grad-lead)}
 .hero .row{display:flex;align-items:center;justify-content:space-between;gap:10px}

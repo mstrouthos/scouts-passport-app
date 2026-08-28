@@ -2,8 +2,13 @@
 /* Πτυχία Προσκόπου: what the scout has earned, then everything else folded
    away by category so 51 badges do not become a wall. */
 const { t, locale } = useI18n()
+const me = useMe()
 const lx = useLx()
 const { data } = await useFetch<any>('/api/passport')
+/* This programme is the Ομάδα's; nobody else has a way in, but a typed URL
+   should not show it either. */
+const sectionGuard = computed(() => me.value?.section?.slug === 'omada')
+watchEffect(() => { if (me.value && !sectionGuard.value) navigateTo('/app') })
 const sheet = ref<any>(null)
 const openCat = ref<string | null>(null)
 

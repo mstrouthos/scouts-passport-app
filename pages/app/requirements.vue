@@ -4,8 +4,13 @@
    a colour per stage. Every stage is open: the paper passport lets a scout
    read ahead, and requirements are often signed off out of order. */
 const { t, locale } = useI18n()
+const me = useMe()
 const { data } = await useFetch<any>('/api/requirements')
 
+/* This programme is the Ομάδα's; nobody else has a way in, but a typed URL
+   should not show it either. */
+const sectionGuard = computed(() => me.value?.section?.slug === 'omada')
+watchEffect(() => { if (me.value && !sectionGuard.value) navigateTo('/app') })
 const openStage = ref<string | null>(null)
 const detail = ref<any>(null)
 

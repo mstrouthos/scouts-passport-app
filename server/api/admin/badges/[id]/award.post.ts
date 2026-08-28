@@ -4,6 +4,7 @@ import { requireLeader, scopedScouts, idParam } from '../../../../utils/guard'
 import { now } from '../../../../utils/passcode'
 import { assertCan } from '../../../../utils/permissions'
 import { notifyAward } from '../../../../utils/celebrate'
+import { isScoutTroop } from '../../../../utils/programme'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -22,6 +23,8 @@ export default defineEventHandler(async (event) => {
   let pushed = 0
   for (const scoutId of ids) {
     if (!mine.has(scoutId)) throw createError({ statusCode: 403, message: 'Out of your sector' })
+    if (!(await isScoutTroop(scoutId)))
+      throw createError({ statusCode: 400, message: 'Τα Πτυχία αφορούν μόνο την Ομάδα Προσκόπων' })
     try {
       await db.insert(s.scoutAchievements).values({ scoutId, achievementId: badgeId, completedOn, awardedBy: me.id })
       awarded++

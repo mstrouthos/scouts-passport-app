@@ -26,6 +26,9 @@ export default defineEventHandler(async (event) => {
     patrol: patrol && { id: patrol.id, nameEl: patrol.nameEl, nameEn: patrol.nameEn, emblem: patrol.emblem },
     section: section && { id: section.id, nameEl: section.nameEl, nameEn: section.nameEn, slug: section.slug },
     unit: unitNames(section?.slug),
+    // which programme this member follows, so the page shows only that one
+    hasBadges: section?.slug === 'omada',
+    hasVenture: section?.slug === 'koinotita',
     patrolRole: r.patrolRole ?? null,
     points: (await pointTotals()).get(id) || 0,
     badges: badges.filter(b => !b.isArchived).sort((a, b) => a.sortOrder - b.sortOrder).map(b => ({

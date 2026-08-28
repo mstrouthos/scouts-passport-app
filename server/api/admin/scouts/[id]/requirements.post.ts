@@ -3,12 +3,15 @@ import { assertCanAward, assertScoutVisible, awardRequirement, revokeRequirement
 import { notifyAward } from '../../../../utils/celebrate'
 import { useDb, schema as s } from '../../../../db'
 import { eq } from 'drizzle-orm'
+import { isScoutTroop } from '../../../../utils/programme'
 
 /** Sign a requirement off, or take it back. Body: { requirementId, completedOn?, done } */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const id = idParam(event)
   await assertScoutVisible(me, id)
+  if (!(await isScoutTroop(id)))
+    throw createError({ statusCode: 400, message: 'Οι Προσκοπικές Απαιτήσεις αφορούν μόνο την Ομάδα Προσκόπων' })
   await assertCanAward(me)
 
   const b = await readBody<{ requirementId?: number, completedOn?: string, done?: boolean }>(event)

@@ -204,7 +204,7 @@ async function deletePatrol() {
                   <template v-if="r.patrolRole">
                     {{ r.patrolRole === 'head' ? sec.unit.headEl : sec.unit.deputyEl }} ·
                   </template>
-                  {{ r.points }} {{ t('pts') }} · {{ r.badges }} {{ t('badges').toLowerCase() }}
+                  {{ r.points }} {{ t('pts') }}<template v-if="sec.slug === 'omada'"> · {{ r.badges }} {{ t('badges').toLowerCase() }}</template>
                 </span>
               </div>
               <span class="pill" :class="r.isActive ? 'ok' : 'draft'">{{ r.isActive ? t('active') : t('inactive') }}</span>

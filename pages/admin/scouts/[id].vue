@@ -118,7 +118,7 @@ async function deleteScout() {
           <div class="meta">{{ data.patrol ? lx(data.patrol, 'name') : lx(data.section, 'name') }}</div>
           <div class="stats">
             <div class="stat"><b>{{ data.points }}</b><span>{{ t('points') }}</span></div>
-            <div class="stat"><b>{{ data.badges.filter(b => b.earned).length }}/{{ data.badges.length }}</b><span>{{ t('badges') }}</span></div>
+            <div v-if="data.hasBadges" class="stat"><b>{{ data.badges.filter(b => b.earned).length }}/{{ data.badges.length }}</b><span>{{ t('badges') }}</span></div>
             <div class="stat"><b>{{ data.isActive ? '✓' : '—' }}</b><span>{{ t('active') }}</span></div>
           </div>
         </div>
@@ -232,13 +232,13 @@ async function deleteScout() {
           </div>
         </template>
 
-        <NuxtLink v-if="data.section?.slug === 'koinotita'" :to="`/admin/venture/${id}`" class="srow">
+        <NuxtLink v-if="data.hasVenture" :to="`/admin/venture/${id}`" class="srow">
           <div class="ico">🏵️</div>
           <div class="txt"><b>{{ t('ventureBook') }}</b><span>{{ t('ventureBookSub') }}</span></div>
           <span class="chev">›</span>
         </NuxtLink>
 
-        <NuxtLink v-if="data.section?.slug === 'omada'" :to="`/admin/requirements/${id}`" class="srow">
+        <NuxtLink v-if="data.hasBadges" :to="`/admin/requirements/${id}`" class="srow">
           <div class="ico">⚜️</div>
           <div class="txt"><b>{{ t('scoutRequirements') }}</b><span>{{ t('scoutRequirementsSub') }}</span></div>
           <span class="chev">›</span>
@@ -252,17 +252,20 @@ async function deleteScout() {
       </div>
 
       <div style="display:flex;flex-direction:column;gap:15px">
+        <template v-if="data.hasBadges">
         <div class="sec-title">{{ t('earnedBadges') }}</div>
         <div class="badge-grid">
           <div v-for="b in data.badges" :key="b.id" class="btile" :class="{ off: !b.earned }" style="cursor:default">
             <span class="disc">{{ b.icon }}</span><span class="lbl">{{ lx(b) }}</span>
           </div>
         </div>
-        <button v-if="me?.can?.badges !== false" class="srow" @click="awarding = true">
+        <button v-if="data.hasBadges && me?.can?.badges !== false" class="srow" @click="awarding = true">
           <div class="ico">🏅</div>
           <div class="txt"><b>{{ t('awardBadge') }}</b><span>{{ t('pickFromList') }}</span></div>
           <span class="chev">›</span>
         </button>
+        </template>
+
         <template v-if="me?.can?.rosterEdit !== false">
           <button class="btn" :class="data.isActive ? 'danger' : 'ghost'" @click="toggleActive">
             {{ data.isActive ? t('deactivate') : t('reactivate') }}

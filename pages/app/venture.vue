@@ -3,8 +3,13 @@
    what each award asks, what they chose, what they wrote, and when the
    Α.Κ.Α. signed it off. */
 const { t, locale } = useI18n()
+const me = useMe()
 const { data, refresh } = await useFetch<any>('/api/venture')
 const { show } = useToast()
+/* The Η.Κ.Α.Δ.Ε. is the Κοινότητα's; a typed URL should not show it to anyone
+   else, even though the API refuses them too. */
+const sectionGuard = computed(() => me.value?.section?.slug === 'koinotita')
+watchEffect(() => { if (me.value && !sectionGuard.value) navigateTo('/app') })
 const openAward = ref<string | null>(null)
 const detail = ref<any>(null)
 const openLog = ref<string | null>(null)
