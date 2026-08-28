@@ -47,7 +47,11 @@ html,body{margin:0;padding:0}
    packed rows and leaves the app zoomed. Pinch zoom is left alone — taking it
    away would lock out anyone who needs to magnify the text. */
 html{-webkit-text-size-adjust:100%; text-size-adjust:100%}
-body{touch-action:manipulation}
+/* touch-action is NOT inherited, so setting it on body left every button and
+   row you actually tap at the default and the double-tap zoom survived. It has
+   to be on the elements themselves. "manipulation" keeps panning and pinch —
+   it only drops the double-tap gesture and the 300ms click delay with it. */
+html, body, *{touch-action:manipulation}
 body{
   font-family:var(--font);font-size:15px;line-height:1.5;color:var(--ink);
   background:linear-gradient(180deg,#E1EEFB 0%,#D2E3F6 60%,#C7DCF2 100%) fixed, var(--bg);
