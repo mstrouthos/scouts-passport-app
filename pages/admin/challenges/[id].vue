@@ -10,6 +10,15 @@ const { data, refresh } = await useFetch<any>(`/api/admin/challenges/${id}/stats
 const { data: secs } = await useFetch<any>('/api/admin/quiz-sections')   // only sections that run quizzes
 const me = useMe()
 const isTroop = computed(() => me.value?.role === 'troop_leader')
+/* The quiz is the Ομάδα Προσκόπων's. A leader of another sector has no tab for
+   it, and a typed URL should not let them in either. */
+const runsQuiz = computed(() => {
+  if (!me.value) return true
+  if (me.value.role === 'troop_leader') return true
+  const scopes = me.value.scopeSections
+  return scopes == null || scopes.some((x: any) => x.slug === 'omada')
+})
+watchEffect(() => { if (me.value && !runsQuiz.value) navigateTo('/admin') })
 const K = ['Α', 'Β', 'Γ', 'Δ', 'Ε', 'Ζ']
 
 // ----- edit -----

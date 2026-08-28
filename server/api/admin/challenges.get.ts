@@ -1,9 +1,12 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
 import { now, isAfter, isAtOrBefore } from '../../utils/passcode'
+import { canRunQuiz } from '../../utils/quizSector'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  // the quiz is the Ομάδα's; a leader of another sector has no business here
+  if (!(await canRunQuiz(me))) return []
   const db = (await useDb())
   const secIds = await scopedSectionIds(me)
   const t = now()

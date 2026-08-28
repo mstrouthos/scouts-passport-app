@@ -1,6 +1,15 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const me = useMe()
+/* The quiz is the Ομάδα Προσκόπων's. A leader of another sector has no tab for
+   it, and a typed URL should not let them in either. */
+const runsQuiz = computed(() => {
+  if (!me.value) return true
+  if (me.value.role === 'troop_leader') return true
+  const scopes = me.value.scopeSections
+  return scopes == null || scopes.some((x: any) => x.slug === 'omada')
+})
+watchEffect(() => { if (me.value && !runsQuiz.value) navigateTo('/admin') })
 const lx = useLx()
 const { show } = useToast()
 const isTroop = computed(() => me.value?.role === 'troop_leader')

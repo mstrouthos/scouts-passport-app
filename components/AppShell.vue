@@ -39,21 +39,31 @@ async function logout() {
   // what reliably lands the installed app back on the passcode screen
   window.location.href = '/login'
 }
+/* The quiz is the Ομάδα Προσκόπων's programme. A leader who covers no part of
+   it has no tab for it; the Αρχηγός Συστήματος and troop-scoped leaders do. */
+const runsQuiz = computed(() => {
+  if (!me.value) return false
+  if (isLeader.value) {
+    if (me.value.role === 'troop_leader') return true
+    const scopes = me.value.scopeSections
+    if (scopes == null) return true                       // troop scope
+    return scopes.some((x: any) => x.slug === 'omada')
+  }
+  return me.value.section?.slug === 'omada'
+})
+
 const tabs = computed(() => isLeader.value
   ? [
       { to: '/admin', icon: 'shield', label: t('nav.profile') },
       { to: '/admin/scouts', icon: 'people', label: t('nav.scouts') },
       { to: '/admin/events', icon: 'calendar', label: t('nav.events') },
-      { to: '/admin/challenges', icon: 'target', label: t('nav.challenges') },
+      ...(runsQuiz.value ? [{ to: '/admin/challenges', icon: 'target', label: t('nav.challenges') }] : []),
       { to: '/admin/more', icon: 'more', label: t('nav.more') }
     ]
   : [
       { to: '/app', icon: 'passport', label: t('nav.passport') },
       { to: '/app/calendar', icon: 'calendar', label: t('nav.calendar') },
-      // the quiz belongs to the Ομάδα Προσκόπων, so nobody else gets the tab
-      ...(me.value?.section?.slug === 'omada'
-        ? [{ to: '/app/challenges', icon: 'target', label: t('nav.challenges') }]
-        : []),
+      ...(runsQuiz.value ? [{ to: '/app/challenges', icon: 'target', label: t('nav.challenges') }] : []),
       { to: '/app/board', icon: 'trophy', label: t('nav.board') },
       { to: '/app/info', icon: 'infoI', label: t('nav.info') }
     ])

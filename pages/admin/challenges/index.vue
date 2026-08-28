@@ -6,6 +6,15 @@ const lx = useLx()
 const { data, refresh } = await useFetch('/api/admin/challenges')
 const { data: secs } = await useFetch<any>('/api/admin/quiz-sections')   // only sections that run quizzes
 const { show } = useToast()
+/* The quiz is the Ομάδα Προσκόπων's. A leader of another sector has no tab for
+   it, and a typed URL should not let them in either. */
+const runsQuiz = computed(() => {
+  if (!me.value) return true
+  if (me.value.role === 'troop_leader') return true
+  const scopes = me.value.scopeSections
+  return scopes == null || scopes.some((x: any) => x.slug === 'omada')
+})
+watchEffect(() => { if (me.value && !runsQuiz.value) navigateTo('/admin') })
 
 // ----- multi-select + bulk delete -----
 const selecting = ref(false)
