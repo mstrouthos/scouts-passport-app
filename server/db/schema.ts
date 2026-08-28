@@ -15,6 +15,8 @@ export const patrols = pgTable('patrols', {
   nameEl: text('name_el').notNull(),
   nameEn: text('name_en'),
   emblem: text('emblem').notNull().default('⚜️'),
+  // the unit's own κραυγή, shown to the families of the Αγέλη
+  chantEl: text('chant_el'),
   sortOrder: integer('sort_order').notNull().default(0)
 })
 
@@ -172,6 +174,8 @@ export const events = pgTable('events', {
   sectionId: integer('section_id').references(() => sections.id),
   patrolId: integer('patrol_id').references(() => patrols.id),
   groupId: integer('group_id'),
+  // what the meeting is about, so families know before they come
+  themeEl: text('theme_el'),
   titleEl: text('title_el').notNull(),
   titleEn: text('title_en'),
   descriptionEl: text('description_el'),
@@ -338,6 +342,26 @@ export const notifyGroupLeaders = pgTable('notify_group_leaders', {
 
 /** A question put to the Βαθμοφόροι. Created by an Αρχηγός for their own
     sector's leaders; the Αρχηγός Συστήματος may put one to the whole troop. */
+/** A week's challenge for the Αγέλη — something a λυκόπουλο does at home, that
+    a Βαθμοφόρος ticks off at the next συγκέντρωση. Weekly, not daily. */
+export const packChallenges = pgTable('pack_challenges', {
+  id: serial('id').primaryKey(),
+  sectionId: integer('section_id').notNull().references(() => sections.id),
+  textEl: text('text_el').notNull(),
+  emoji: text('emoji').notNull().default('🌟'),
+  weekStart: text('week_start').notNull(),      // the Monday it belongs to
+  createdBy: integer('created_by'),
+  createdAt: text('created_at').notNull()
+})
+
+export const packChallengeDone = pgTable('pack_challenge_done', {
+  id: serial('id').primaryKey(),
+  challengeId: integer('challenge_id').notNull().references(() => packChallenges.id),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  markedBy: integer('marked_by'),
+  markedAt: text('marked_at').notNull()
+}, t => [uniqueIndex('pack_done_uq').on(t.challengeId, t.scoutId)])
+
 export const polls = pgTable('polls', {
   id: serial('id').primaryKey(),
   questionEl: text('question_el').notNull(),

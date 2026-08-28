@@ -1,6 +1,9 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const me = useMe()
+// the Αγέλη's screen belongs to its own Βαθμοφόροι, and to the Αρχηγός Συστήματος
+const isPackLeader = computed(() => me.value?.role === 'troop_leader'
+  || (me.value?.scopeSections || []).some((x: any) => x.slug === 'ageli'))
 const canSeeRoles = computed(() => me.value?.role === 'troop_leader' || me.value?.scopeKind === 'section' || me.value?.scopeKind === 'troop')
 </script>
 
@@ -11,6 +14,9 @@ const canSeeRoles = computed(() => me.value?.role === 'troop_leader' || me.value
     </NuxtLink>
     <NuxtLink v-if="me?.role === 'troop_leader'" to="/admin/launch" class="srow">
       <div class="ico">🚀</div><div class="txt"><b>{{ t('launch') }}</b><span>{{ t('launchSub') }}</span></div><span class="chev">›</span>
+    </NuxtLink>
+    <NuxtLink v-if="isPackLeader" to="/admin/pack" class="srow">
+      <div class="ico">🐺</div><div class="txt"><b>{{ t('packScreen') }}</b><span>{{ t('packScreenSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>
     <NuxtLink to="/admin/polls" class="srow">
       <div class="ico">🗳️</div><div class="txt"><b>{{ t('polls') }}</b><span>{{ t('pollsSub') }}</span></div><span class="chev">›</span>

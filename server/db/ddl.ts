@@ -245,6 +245,23 @@ CREATE TABLE IF NOT EXISTS notify_group_leaders (
   assigned_at TEXT NOT NULL DEFAULT ''
 );
 CREATE UNIQUE INDEX IF NOT EXISTS notify_group_leader_uq ON notify_group_leaders(group_id, scout_id);
+CREATE TABLE IF NOT EXISTS pack_challenges (
+  id SERIAL PRIMARY KEY,
+  section_id INTEGER NOT NULL REFERENCES sections(id),
+  text_el TEXT NOT NULL,
+  emoji TEXT NOT NULL DEFAULT '🌟',
+  week_start TEXT NOT NULL,
+  created_by INTEGER,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS pack_challenge_done (
+  id SERIAL PRIMARY KEY,
+  challenge_id INTEGER NOT NULL REFERENCES pack_challenges(id),
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  marked_by INTEGER,
+  marked_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS pack_done_uq ON pack_challenge_done(challenge_id, scout_id);
 CREATE TABLE IF NOT EXISTS polls (
   id SERIAL PRIMARY KEY,
   question_el TEXT NOT NULL,
@@ -317,6 +334,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS family_contact_uq ON family_contacts(section_i
 
 /* Best-effort column adds for databases created before these fields existed. */
 export const MIGRATIONS = [
+  "ALTER TABLE events ADD COLUMN IF NOT EXISTS theme_el TEXT",
+  "ALTER TABLE patrols ADD COLUMN IF NOT EXISTS chant_el TEXT",
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS last_login_at TEXT",
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS first_login_at TEXT",
   "DELETE FROM leader_scopes WHERE scope = 'patrol'",

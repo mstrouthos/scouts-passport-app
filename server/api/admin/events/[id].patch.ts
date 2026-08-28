@@ -19,6 +19,8 @@ export default defineEventHandler(async (event) => {
     if (!v) throw createError({ statusCode: 400, message: 'Title required' })
     set.titleEl = v
   }
+  // what the meeting is about, shown to the Αγέλη's families
+  if (b?.themeEl !== undefined) set.themeEl = b.themeEl ? String(b.themeEl).slice(0, 200) : null
   if (b?.titleEn !== undefined) set.titleEn = String(b.titleEn || '').trim() || null
   if (b?.location !== undefined) set.location = String(b.location || '').trim() || null
   if (b?.isAllDay !== undefined) set.isAllDay = !!b.isAllDay

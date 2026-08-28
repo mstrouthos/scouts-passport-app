@@ -14,9 +14,12 @@ const busy = ref(false)
 const subState = ref<'idle' | 'ok' | 'no'>('idle')
 const openPost = ref<any>(null)
 
+const pack = ref<any>(null)
 async function load() {
   try {
     me.value = await $fetch('/api/family/me')
+    // the Αγέλη's own corner — empty for every other sector
+    pack.value = await $fetch('/api/family/pack').catch(() => null)
     ;[posts.value, events.value] = await Promise.all([
       $fetch<any[]>('/api/family/posts'),
       $fetch<any[]>('/api/family/calendar')
@@ -99,6 +102,41 @@ async function enableNotifs() {
           </div>
         </button>
 
+        <!-- Αγέλη: what the next meeting is about, the κραυγές, this week's tasks -->
+        <template v-if="pack?.isPack">
+          <NuxtLink v-if="pack.nextMeeting" to="#" class="banner" style="pointer-events:none">
+            <div class="ico">📅</div>
+            <div>
+              <b>{{ pack.nextMeeting.themeEl || pack.nextMeeting.titleEl }}</b>
+              <span>
+                {{ t('nextMeeting') }} · {{ fmtDate(pack.nextMeeting.startsAt, locale) }}
+                <template v-if="pack.nextMeeting.location"> · {{ pack.nextMeeting.location }}</template>
+              </span>
+            </div>
+          </NuxtLink>
+
+          <template v-if="pack.challenges.length">
+            <div class="sec-title">{{ t('weekChallenges') }}</div>
+            <div class="card" style="display:flex;flex-direction:column;gap:11px">
+              <div v-for="c in pack.challenges" :key="c.id" class="wch">
+                <span class="em">{{ c.emoji }}</span>
+                <span>{{ c.textEl }}</span>
+              </div>
+              <div class="tiny muted">{{ t('weekChallengesNote') }}</div>
+            </div>
+          </template>
+
+          <template v-if="pack.chants.length">
+            <div class="sec-title">{{ t('sixChants') }}</div>
+            <div class="card" style="display:flex;flex-direction:column;gap:13px">
+              <div v-for="c in pack.chants" :key="c.id">
+                <b style="font-size:13.5px">{{ c.emblem }} {{ c.nameEl }}</b>
+                <p style="margin:3px 0 0;font-size:13px;line-height:1.55;white-space:pre-wrap;color:#44536B">{{ c.chantEl }}</p>
+              </div>
+            </div>
+          </template>
+        </template>
+
         <div class="sec-title">{{ t('announce') }}</div>
         <div v-if="posts.length" class="adm">
           <button v-for="p in posts" :key="p.id" class="it" style="align-items:flex-start" @click="openPost = p">
@@ -138,3 +176,8 @@ async function enableNotifs() {
     </Teleport>
   </div>
 </template>
+
+<style scoped>
+.wch{display:flex; gap:11px; align-items:flex-start; font-size:13.5px; line-height:1.5}
+.wch .em{font-size:18px; flex:none}
+</style>
