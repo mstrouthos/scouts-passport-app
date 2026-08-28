@@ -1,8 +1,9 @@
 <script setup lang="ts">
-/* The pack screen for its Βαθμοφόροι: set the week's challenges and tick them
-   off at the συγκέντρωση, and read the standings — which stay here and are
-   never shown to families. Serves the Αγέλη and the Μικρή Αγέλη; whoever leads
-   both switches between them, and each keeps its own week. */
+/* The pack's weekly challenges: set them, and tick them off at the
+   συγκέντρωση. This is the Αγέλη's and Μικρή Αγέλη's own tab, the way the quiz
+   is the Ομάδα's — the two are not the same thing. Whoever leads both sectors
+   switches between them, and each keeps its own week. The standings live on
+   the leader's dashboard. */
 const { t, locale } = useI18n()
 const lx = useLx()
 const name = useName()
@@ -12,6 +13,12 @@ const { data, refresh } = await useFetch<any>('/api/admin/pack', {
   query: computed(() => (sectionId.value ? { section: sectionId.value } : {}))
 })
 watchEffect(() => { if (sectionId.value == null && data.value?.sectionId) sectionId.value = data.value.sectionId })
+/* Name the screen after the sector being shown, not the generic word — a
+   Μικρή Αγέλη leader should not read "Αγέλη". */
+const packTitle = computed(() => {
+  const cur = (data.value?.sections || []).find((x: any) => x.id === data.value?.sectionId)
+  return cur ? lx(cur, 'name') : t('packScreen')
+})
 const busy = ref(false)
 const openChallenge = ref<number | null>(null)
 const draft = reactive({ textEl: '', emoji: '🌟' })
@@ -41,7 +48,7 @@ const patrolName = (id: number) => (data.value?.patrols || []).find((p: any) => 
 </script>
 
 <template>
-  <AppShell v-if="data" :title="t('packScreen')" :sub="t('packScreenSub')" back="/admin/more">
+  <AppShell v-if="data" :title="packTitle" :sub="t('packScreenSub')">
     <div v-if="(data.sections || []).length > 1" class="chips">
       <button v-for="sec in data.sections" :key="sec.id" class="chip"
               :class="{ on: data.sectionId === sec.id }" @click="sectionId = sec.id">{{ lx(sec, 'name') }}</button>
@@ -95,29 +102,6 @@ const patrolName = (id: number) => (data.value?.patrols || []).find((p: any) => 
       </button>
     </div>
 
-    <div class="sec-title">{{ t('packStandings') }}</div>
-    <div class="tiny muted">{{ t('packStandingsNote') }}</div>
-
-    <div class="sec-title" style="font-size:11px">{{ t('sixesTable') }}</div>
-    <div class="adm">
-      <div v-for="(p, i) in data.patrols" :key="p.id" class="it" style="cursor:default">
-        <div class="rank">{{ i + 1 }}</div>
-        <div style="flex:1;min-width:0"><b>{{ p.emblem }} {{ p.nameEl }}</b><span>{{ p.size }} {{ t('members') }}</span></div>
-        <span class="amt">{{ p.points }}</span>
-      </div>
-    </div>
-
-    <div class="sec-title" style="font-size:11px">{{ t('cubsTable') }}</div>
-    <div class="adm">
-      <div v-for="(m, i) in data.members" :key="m.id" class="it" style="cursor:default">
-        <div class="rank">{{ i + 1 }}</div>
-        <div style="flex:1;min-width:0">
-          <b>{{ name(m) }}</b>
-          <span>{{ patrolName(m.patrolId)?.nameEl || '—' }}</span>
-        </div>
-        <span class="amt">{{ m.points }}</span>
-      </div>
-    </div>
 
   </AppShell>
 </template>
@@ -131,9 +115,4 @@ const patrolName = (id: number) => (data.value?.patrols || []).find((p: any) => 
 .chal .chev{color:var(--muted)}
 .who{display:flex; flex-direction:column; gap:9px; padding:0 14px 13px}
 .grp{display:flex; flex-direction:column; gap:5px}
-.rank{
-  flex:none; width:24px; height:24px; border-radius:8px; background:#EEF2F6;
-  display:grid; place-items:center; font-size:11px; font-weight:800; color:var(--muted);
-}
-.amt{flex:none; font-weight:800; font-size:14px; color:var(--accent-deep)}
 </style>

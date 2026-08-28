@@ -52,12 +52,27 @@ const runsQuiz = computed(() => {
   return me.value.section?.slug === 'omada'
 })
 
+/* The Αγέλες run weekly challenges instead — a different thing from the quiz,
+   and their sector's tab sits in the same place. */
+const PACK_SLUGS = ['ageli', 'mikri-ageli']
+const runsPack = computed(() => {
+  if (!me.value || !isLeader.value) return false
+  if (me.value.role === 'troop_leader') return true
+  const scopes = me.value.scopeSections
+  if (scopes == null) return true
+  return scopes.some((x: any) => PACK_SLUGS.includes(x.slug))
+})
+
 const tabs = computed(() => isLeader.value
   ? [
       { to: '/admin', icon: 'shield', label: t('nav.profile') },
       { to: '/admin/scouts', icon: 'people', label: t('nav.scouts') },
       { to: '/admin/events', icon: 'calendar', label: t('nav.events') },
-      ...(runsQuiz.value ? [{ to: '/admin/challenges', icon: 'target', label: t('nav.challenges') }] : []),
+      ...(runsQuiz.value
+        ? [{ to: '/admin/challenges', icon: 'target', label: t('nav.challenges') }]
+        : runsPack.value
+          ? [{ to: '/admin/pack', icon: 'target', label: t('nav.challenges') }]
+          : []),
       { to: '/admin/more', icon: 'more', label: t('nav.more') }
     ]
   : [
