@@ -29,6 +29,8 @@ export const scouts = pgTable('scouts', {
   sectionId: integer('section_id').references(() => sections.id),
   firstName: text('first_name').notNull(),
   phone: text('phone'),
+  email: text('email'),
+  birthday: text('birthday'),      // YYYY-MM-DD
   idNumber: text('id_number'),
   lastName: text('last_name').notNull(),
   firstNameEn: text('first_name_en'),
@@ -439,8 +441,20 @@ export const parents = pgTable('parents', {
   passcodeHmac: text('passcode_hmac'),
   isActive: boolean('is_active').notNull().default(true),
   addedBy: integer('added_by'),
-  createdAt: text('created_at').notNull()
+  createdAt: text('created_at').notNull(),
+  firstLoginAt: text('first_login_at'),
+  lastLoginAt: text('last_login_at')
 }, t => [uniqueIndex('parent_passcode_uq').on(t.passcodeHmac)])
+
+/** A parent's children. A family often has kids in two sectors at once, and
+    one parent should hold one code and see both — so the link is a list, not a
+    column. parents.scoutId stays as the first child, for the rows that predate
+    this and for showing "whose parent" at a glance. */
+export const parentChildren = pgTable('parent_children', {
+  id: serial('id').primaryKey(),
+  parentId: integer('parent_id').notNull().references(() => parents.id),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id)
+}, t => [uniqueIndex('parent_child_uq').on(t.parentId, t.scoutId)])
 
 /** A note or PDF announcement for parents of one section (or the whole troop). */
 export const parentPosts = pgTable('parent_posts', {

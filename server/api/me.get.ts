@@ -24,6 +24,7 @@ export default defineEventHandler(async (event) => {
     id: me.id, firstName: me.firstName, lastName: me.lastName,
     firstNameEn: me.firstNameEn, lastNameEn: me.lastNameEn,
     role: me.role, locale: me.locale,
+    phone: me.phone, email: me.email, birthday: me.birthday,
     rank: isLeader ? await rankOf(me) : null,
     isChief: !!me.isChief,
     scopeKind: kind,

@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
       leaders: allLeaders.map(r => ({
         id: r.id, firstName: r.firstName, lastName: r.lastName,
         firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, role: r.role, isChief: !!r.isChief,
-        isActive: r.isActive, phone: r.phone, idNumber: r.idNumber,
+        isActive: r.isActive, phone: r.phone, email: r.email, birthday: r.birthday, idNumber: r.idNumber,
         scopes: scopes.filter(x => x.scoutId === r.id).map(x => ({ id: x.id, scope: x.scope, sectionId: x.sectionId, patrolId: x.patrolId, rank: x.rank }))
       })),
       scouts: (await db.select().from(s.scouts)).filter(r => r.role === 'scout' && r.isActive).map(r => ({

@@ -315,6 +315,12 @@ CREATE TABLE IF NOT EXISTS parents (
   added_by INTEGER, created_at TEXT NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS parent_passcode_uq ON parents(passcode_hmac);
+CREATE TABLE IF NOT EXISTS parent_children (
+  id SERIAL PRIMARY KEY,
+  parent_id INTEGER NOT NULL REFERENCES parents(id),
+  scout_id INTEGER NOT NULL REFERENCES scouts(id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS parent_child_uq ON parent_children(parent_id, scout_id);
 CREATE TABLE IF NOT EXISTS parent_posts (
   id SERIAL PRIMARY KEY,
   section_id INTEGER REFERENCES sections(id),
@@ -334,10 +340,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS family_contact_uq ON family_contacts(section_i
 
 /* Best-effort column adds for databases created before these fields existed. */
 export const MIGRATIONS = [
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS birthday TEXT",
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS email TEXT",
+  "INSERT INTO parent_children (parent_id, scout_id) SELECT id, scout_id FROM parents WHERE scout_id IS NOT NULL ON CONFLICT DO NOTHING",
   "ALTER TABLE events ADD COLUMN IF NOT EXISTS theme_el TEXT",
   "ALTER TABLE patrols ADD COLUMN IF NOT EXISTS chant_el TEXT",
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS last_login_at TEXT",
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS first_login_at TEXT",
+  "ALTER TABLE parents ADD COLUMN IF NOT EXISTS last_login_at TEXT",
+  "ALTER TABLE parents ADD COLUMN IF NOT EXISTS first_login_at TEXT",
   "DELETE FROM leader_scopes WHERE scope = 'patrol'",
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS patrol_role TEXT",
   "ALTER TABLE events ADD COLUMN IF NOT EXISTS group_id INTEGER REFERENCES notify_groups(id)",

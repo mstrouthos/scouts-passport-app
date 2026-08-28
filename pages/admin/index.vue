@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const me = useMe()
 const lx = useLx()
 const roleLabel = computed(() => me.value?.role === 'troop_leader'
@@ -12,10 +12,15 @@ const scopeLabel = computed(() => {
 
 const { show } = useToast()
 const editingDetails = ref(false)
-const details = reactive({ firstName: '', lastName: '', firstNameEn: '', lastNameEn: '' })
+const phoneValid = computed(() => !details.phone || /^\+357\d{8}$/.test(details.phone))
+const details = reactive({ firstName: '', lastName: '', firstNameEn: '', lastNameEn: '',
+  phone: null as string | null, email: '', birthday: '' })
 function openDetails() {
   details.firstName = me.value?.firstName || ''; details.lastName = me.value?.lastName || ''
   details.firstNameEn = me.value?.firstNameEn || ''; details.lastNameEn = me.value?.lastNameEn || ''
+  details.phone = me.value?.phone || null
+  details.email = me.value?.email || ''
+  details.birthday = me.value?.birthday || ''
   editingDetails.value = true
 }
 async function saveDetails() {
@@ -24,7 +29,8 @@ async function saveDetails() {
       method: 'PATCH',
       body: {
         firstName: details.firstName, lastName: details.lastName,
-        firstNameEn: details.firstNameEn, lastNameEn: details.lastNameEn
+        firstNameEn: details.firstNameEn, lastNameEn: details.lastNameEn,
+        phone: details.phone, email: details.email, birthday: details.birthday
       }
     })
     await loadMe(); editingDetails.value = false; show('✅ ' + t('saved'))
@@ -56,11 +62,17 @@ async function saveDetails() {
       <div><label class="lab">{{ t('lastName') }}</label><input v-model="details.lastName" class="in"></div>
       <div><label class="lab">{{ t('firstName') }} (EN) <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="details.firstNameEn" class="in"></div>
       <div><label class="lab">{{ t('lastName') }} (EN) <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="details.lastNameEn" class="in"></div>
-      <button class="btn" :disabled="!details.firstName || !details.lastName" @click="saveDetails">{{ t('save') }}</button>
+      <div><label class="lab">{{ t('phone') }}</label><PhoneInput v-model="details.phone" /></div>
+      <div><label class="lab">{{ t('email') }}</label><input v-model="details.email" class="in" type="email" inputmode="email"></div>
+      <div><label class="lab">{{ t('birthday') }}</label><input v-model="details.birthday" type="date" class="in"></div>
+      <button class="btn" :disabled="!details.firstName || !details.lastName || !phoneValid" @click="saveDetails">{{ t('save') }}</button>
     </div>
     <button v-else class="srow" @click="openDetails">
       <div class="ico">✎</div>
-      <div class="txt"><b>{{ me?.firstName }} {{ me?.lastName }}</b><span>{{ t('edit') }}</span></div>
+      <div class="txt">
+        <b>{{ me?.firstName }} {{ me?.lastName }}</b>
+        <span>{{ [me?.phone, me?.email, me?.birthday ? fmtDate(me.birthday, locale) : null].filter(Boolean).join(' · ') || t('edit') }}</span>
+      </div>
       <span class="chev">›</span>
     </button>
 

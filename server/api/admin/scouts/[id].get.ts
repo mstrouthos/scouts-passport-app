@@ -22,10 +22,17 @@ export default defineEventHandler(async (event) => {
     id: r.id, firstName: r.firstName, lastName: r.lastName,
     firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, isActive: r.isActive,
     phone: canSeeDetails ? r.phone : null, idNumber: canSeeDetails ? r.idNumber : null,
+    email: canSeeDetails ? r.email : null, birthday: canSeeDetails ? r.birthday : null,
     canSeeDetails,
     patrol: patrol && { id: patrol.id, nameEl: patrol.nameEl, nameEn: patrol.nameEn, emblem: patrol.emblem },
     section: section && { id: section.id, nameEl: section.nameEl, nameEn: section.nameEn, slug: section.slug },
     unit: unitNames(section?.slug),
+    // every unit of their own sector, so a member enrolled without one can be
+    // given one later — and moved between them
+    units: sid == null ? [] : (await db.select().from(s.patrols))
+      .filter(x => x.sectionId === sid)
+      .sort((a, b) => a.nameEl.localeCompare(b.nameEl, 'el'))
+      .map(x => ({ id: x.id, nameEl: x.nameEl, nameEn: x.nameEn, emblem: x.emblem })),
     // which programme this member follows, so the page shows only that one
     hasBadges: section?.slug === 'omada',
     hasVenture: section?.slug === 'koinotita',
