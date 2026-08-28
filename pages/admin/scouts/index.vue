@@ -39,6 +39,15 @@ const smsAsked = ref(false)
 const smsOutcome = ref<'sent' | 'failed' | null>(null)
 const patrolsOf = computed(() =>
   (data.value?.sections || []).find((sec: any) => sec.id === form.sectionId)?.patrols || [])
+// what this sector calls its units, so the picker uses the right word
+const unitOf = computed(() =>
+  (data.value?.sections || []).find((sec: any) => sec.id === form.sectionId)?.unit)
+
+/* Adding a member belongs to whoever runs a sector — both ranks. Someone with
+   no sector of their own is not offered it at all. */
+const canEnrol = computed(() =>
+  me.value?.can?.rosterAdd !== false &&
+  ((data.value?.sections || []).some((sec: any) => sec.canManage) || me.value?.role === 'troop_leader'))
 
 function openAdd(sectionId: number | 'leaders' = 0) {
   created.value = null
@@ -169,7 +178,7 @@ async function deletePatrol() {
              @click="toggleSector(sec.id)" @keydown.enter="toggleSector(sec.id)">
           <div class="ico">{{ SECTOR_ICON[sec.slug] || '👥' }}</div>
           <div class="txt"><b>{{ lx(sec, 'name') }}</b><span>{{ sectorCount(sec) }} {{ t('members') }}</span></div>
-          <button v-if="sec.canManage" class="chip" style="flex:none" @click.stop="openAdd(sec.id)">+ {{ t('newScout') }}</button>
+          <button v-if="sec.canManage && canEnrol" class="chip" style="flex:none" @click.stop="openAdd(sec.id)">+ {{ t('newScout') }}</button>
           <span class="chev" :class="{ open: openSectors.has(sec.id) }">›</span>
         </div>
 
@@ -242,7 +251,7 @@ async function deletePatrol() {
       <NuxtLink to="/admin/cards" class="btn ghost">{{ t('printCards') }}</NuxtLink>
     </div>
 
-    <button class="fab" :aria-label="t('newScout')" @click="openAdd()">+</button>
+    <button v-if="canEnrol" class="fab" :aria-label="t('newScout')" @click="openAdd()">+</button>
 
     <Teleport to="body">
       <div v-if="adding" class="sheet-backdrop" @click.self="adding = false; created = null">
@@ -297,11 +306,15 @@ async function deletePatrol() {
               </div>
             </template>
             <div v-else-if="patrolsOf.length">
-              <label class="lab">{{ t('patrol') }}</label>
+              <label class="lab">{{ unitOf?.unitEl || t('patrol') }}</label>
               <div class="chips">
+                <button class="chip" :class="{ on: !form.patrolId }" @click="form.patrolId = 0">
+                  {{ t('noUnitYet') }}
+                </button>
                 <button v-for="p in patrolsOf" :key="p.id" class="chip" :class="{ on: form.patrolId === p.id }"
                         @click="form.patrolId = form.patrolId === p.id ? 0 : p.id">{{ p.emblem }} {{ lx(p, 'name') }}</button>
               </div>
+              <div class="tiny muted" style="margin-top:5px">{{ t('unitLaterNote') }}</div>
             </div>
 
             <button class="btn" :disabled="!canCreate" @click="createScout">{{ t('create') }}</button>

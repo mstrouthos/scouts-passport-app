@@ -475,5 +475,7 @@
   "unitRoleNote": "A title within the unit — it grants nothing in the app.",
   "unitHead": "Head",
   "noUnitLeaders": "No head named",
-  "unitHeadsMovedNote": "Unit heads are named from each scout’s own profile."
+  "unitHeadsMovedNote": "Unit heads are named from each scout’s own profile.",
+  "noUnitYet": "None yet",
+  "unitLaterNote": "You can set this later."
 }

@@ -6,7 +6,9 @@ import { assertCan } from '../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
-  await assertCan(me, 'roster.edit')
+  // enrolling is open to both ranks of a sector's Βαθμοφόροι; the leader
+  // branch below is still the Αρχηγός Συστήματος's alone
+  await assertCan(me, 'roster.addMember')
   const body = await readBody<{
     firstName?: string, lastName?: string, phone?: string,
     kind?: string, sectionId?: number, patrolId?: number, scope?: string, rank?: string

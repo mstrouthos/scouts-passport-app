@@ -1,4 +1,4 @@
-import { requireLeader, idParam } from '../../../utils/guard'
+import { requireLeader, idParam, rankOf } from '../../../utils/guard'
 import { eventInScope, eventHasData } from '../../../utils/eventScope'
 
 export default defineEventHandler(async (event) => {
@@ -14,6 +14,7 @@ export default defineEventHandler(async (event) => {
     tracksAttendance: ev.tracksAttendance, remindAt: ev.remindAt,
     past, recorded: data,
     // a finished event that already has attendance/points is history — keep it
-    canDelete: !(past && data.any)
+    // the Αρχηγός Συστήματος can clear up after a mistake regardless
+    canDelete: (await rankOf(me)) === 'admin' || !(past && data.any)
   }
 })

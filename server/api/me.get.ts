@@ -36,6 +36,7 @@ export default defineEventHandler(async (event) => {
     // buttons that only produce a 403
     can: !isLeader ? null : {
       rosterEdit: await can(me, 'roster.edit'),
+      rosterAdd: await can(me, 'roster.addMember'),
       rosterDetails: await can(me, 'roster.viewDetails'),
       parents: await can(me, 'parents.view'),
       events: await can(me, 'events.edit'),

@@ -10,17 +10,21 @@ import { rankOf, type SessionScout } from './guard'
    - drafting announcements, which the Αρχηγός must approve before they send
    - recording attendance and uniform, and the points that follow from them
    - writing challenge questions for their own sector
+   - enrolling a new member into their own sector (but not renaming, moving or
+     removing one afterwards, which stays with the Αρχηγός)
 
    Reading is governed separately, by sector scope. */
 const YPARCHIGOS_MAY = new Set([
   'announcement.draft',
   'attendance.record',
   'points.award',
-  'challenge.write'
+  'challenge.write',
+  'roster.addMember'
 ])
 
 export type Capability =
   | 'announcement.draft' | 'attendance.record' | 'points.award' | 'challenge.write'
+  | 'roster.addMember'
   | 'roster.edit' | 'roster.viewDetails' | 'parents.view' | 'events.edit'
   | 'settings.edit' | 'requirements.award' | 'info.edit' | 'badges.award'
 
