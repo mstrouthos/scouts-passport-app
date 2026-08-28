@@ -108,37 +108,31 @@ async function enableNotifs() {
           </div>
         </button>
 
-        <!-- Αγέλη: what the next meeting is about, the κραυγές, this week's tasks -->
-        <template v-if="pack?.isPack">
-          <NuxtLink v-if="pack.nextMeeting" to="#" class="banner" style="pointer-events:none">
+        <!-- Αγέλη and Μικρή Αγέλη: those children never sign in, so their next
+             meeting and this week's tasks are read here. A family with kids in
+             both sectors gets a block for each, labelled. -->
+        <template v-for="pk in (pack?.packs || [])" :key="pk.sectionId">
+          <div v-if="pack.multi" class="sec-title">{{ lx(pk, 'section') }}</div>
+
+          <NuxtLink v-if="pk.nextMeeting" to="#" class="banner" style="pointer-events:none">
             <div class="ico">📅</div>
             <div>
-              <b>{{ pack.nextMeeting.themeEl || pack.nextMeeting.titleEl }}</b>
+              <b>{{ pk.nextMeeting.themeEl || pk.nextMeeting.titleEl }}</b>
               <span>
-                {{ t('nextMeeting') }} · {{ fmtDate(pack.nextMeeting.startsAt, locale) }}
-                <template v-if="pack.nextMeeting.location"> · {{ pack.nextMeeting.location }}</template>
+                {{ t('nextMeeting') }} · {{ fmtDate(pk.nextMeeting.startsAt, locale) }}
+                <template v-if="pk.nextMeeting.location"> · {{ pk.nextMeeting.location }}</template>
               </span>
             </div>
           </NuxtLink>
 
-          <template v-if="pack.challenges.length">
+          <template v-if="pk.challenges.length">
             <div class="sec-title">{{ t('weekChallenges') }}</div>
             <div class="card" style="display:flex;flex-direction:column;gap:11px">
-              <div v-for="c in pack.challenges" :key="c.id" class="wch">
+              <div v-for="c in pk.challenges" :key="c.id" class="wch">
                 <span class="em">{{ c.emoji }}</span>
                 <span>{{ c.textEl }}</span>
               </div>
               <div class="tiny muted">{{ t('weekChallengesNote') }}</div>
-            </div>
-          </template>
-
-          <template v-if="pack.chants.length">
-            <div class="sec-title">{{ t('sixChants') }}</div>
-            <div class="card" style="display:flex;flex-direction:column;gap:13px">
-              <div v-for="c in pack.chants" :key="c.id">
-                <b style="font-size:13.5px">{{ c.emblem }} {{ c.nameEl }}</b>
-                <p style="margin:3px 0 0;font-size:13px;line-height:1.55;white-space:pre-wrap;color:#44536B">{{ c.chantEl }}</p>
-              </div>
             </div>
           </template>
         </template>

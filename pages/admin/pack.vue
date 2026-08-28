@@ -1,21 +1,26 @@
 <script setup lang="ts">
-/* The Αγέλη's screen for its Βαθμοφόροι: set the week's challenges and tick
-   them off at the συγκέντρωση, keep the εξάδες' κραυγές, and read the
-   standings — which stay here and are never shown to families. */
+/* The pack screen for its Βαθμοφόροι: set the week's challenges and tick them
+   off at the συγκέντρωση, and read the standings — which stay here and are
+   never shown to families. Serves the Αγέλη and the Μικρή Αγέλη; whoever leads
+   both switches between them, and each keeps its own week. */
 const { t, locale } = useI18n()
+const lx = useLx()
 const name = useName()
 const { show } = useToast()
-const { data, refresh } = await useFetch<any>('/api/admin/pack')
+const sectionId = ref<number | null>(null)
+const { data, refresh } = await useFetch<any>('/api/admin/pack', {
+  query: computed(() => (sectionId.value ? { section: sectionId.value } : {}))
+})
+watchEffect(() => { if (sectionId.value == null && data.value?.sectionId) sectionId.value = data.value.sectionId })
 const busy = ref(false)
 const openChallenge = ref<number | null>(null)
 const draft = reactive({ textEl: '', emoji: '🌟' })
-const editingChant = ref<any>(null)
 
 async function post(body: any) {
   if (busy.value) return
   busy.value = true
   try {
-    await $fetch('/api/admin/pack/challenges', { method: 'POST', body })
+    await $fetch('/api/admin/pack/challenges', { method: 'POST', body: { sectionId: data.value?.sectionId, ...body } })
     await refresh()
   } catch (e: any) { show(e?.data?.message || t('error')) }
   finally { busy.value = false }
@@ -31,23 +36,17 @@ async function removeChallenge(id: number) {
 }
 const toggleDone = (challengeId: number, scoutId: number) => post({ action: 'mark', challengeId, scoutId })
 
-async function saveChant() {
-  const p = editingChant.value
-  busy.value = true
-  try {
-    await $fetch(`/api/admin/patrols/${p.id}`, { method: 'PATCH', body: { chantEl: p.chantEl } })
-    editingChant.value = null
-    await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
-  finally { busy.value = false }
-}
-
 const membersOf = (patrolId: number) => (data.value?.members || []).filter((m: any) => m.patrolId === patrolId)
 const patrolName = (id: number) => (data.value?.patrols || []).find((p: any) => p.id === id)
 </script>
 
 <template>
   <AppShell v-if="data" :title="t('packScreen')" :sub="t('packScreenSub')" back="/admin/more">
+    <div v-if="(data.sections || []).length > 1" class="chips">
+      <button v-for="sec in data.sections" :key="sec.id" class="chip"
+              :class="{ on: data.sectionId === sec.id }" @click="sectionId = sec.id">{{ lx(sec, 'name') }}</button>
+    </div>
+
     <NuxtLink v-if="data.nextMeeting" :to="`/admin/events/${data.nextMeeting.id}`" class="banner">
       <div class="ico">📅</div>
       <div>
@@ -96,18 +95,6 @@ const patrolName = (id: number) => (data.value?.patrols || []).find((p: any) => 
       </button>
     </div>
 
-    <div class="sec-title">{{ t('sixChants') }}</div>
-    <div class="adm">
-      <button v-for="p in data.patrols" :key="p.id" class="it" @click="editingChant = { ...p }">
-        <div style="font-size:18px;width:26px;text-align:center">{{ p.emblem }}</div>
-        <div style="flex:1;min-width:0">
-          <b>{{ p.nameEl }}</b>
-          <span>{{ p.chantEl || t('noChantYet') }}</span>
-        </div>
-        <span class="chev">›</span>
-      </button>
-    </div>
-
     <div class="sec-title">{{ t('packStandings') }}</div>
     <div class="tiny muted">{{ t('packStandingsNote') }}</div>
 
@@ -132,19 +119,6 @@ const patrolName = (id: number) => (data.value?.patrols || []).find((p: any) => 
       </div>
     </div>
 
-    <Teleport to="body">
-      <div v-if="editingChant" class="sheet-backdrop" @click.self="editingChant = null">
-        <div class="sheet" style="display:flex;flex-direction:column;gap:12px">
-          <h3 style="margin:0;font-size:17px;text-align:center">
-            {{ editingChant.emblem }} {{ editingChant.nameEl }}
-          </h3>
-          <div><label class="lab">{{ t('sixChant') }}</label>
-            <textarea v-model="editingChant.chantEl" class="in" rows="5" /></div>
-          <button class="btn" :disabled="busy" @click="saveChant">{{ t('save') }}</button>
-          <button class="btn ghost" @click="editingChant = null">{{ t('close') }}</button>
-        </div>
-      </div>
-    </Teleport>
   </AppShell>
 </template>
 

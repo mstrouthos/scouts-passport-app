@@ -1,19 +1,20 @@
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, scopedSectionIds, pointTotals, sectionOfWith } from '../../../utils/guard'
-import { PACK_SLUG, weekStartOf, nextMeetingFor } from '../../../utils/pack'
+import { packSections, weekStartOf, nextMeetingFor } from '../../../utils/pack'
 
-/** The Αγέλη's screen for its Βαθμοφόροι: this week's challenges and who has
-    done them, the εξάδες' κραυγές, and the standings — which are theirs alone
-    to see, not the families'. */
+/** A pack sector's screen for its Βαθμοφόροι: this week's challenges and who
+    has done them, and the standings — which are theirs alone to see, not the
+    families'. Serves the Αγέλη and the Μικρή Αγέλη; ?section= picks which,
+    defaulting to the first one this leader covers. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const db = await useDb()
-  const section = (await db.select().from(s.sections)).find(x => x.slug === PACK_SLUG)
-  if (!section) throw createError({ statusCode: 404, message: 'Not found' })
-
   const secIds = await scopedSectionIds(me)
-  if (secIds !== null && !secIds.includes(section.id))
-    throw createError({ statusCode: 403, message: 'Out of your sector' })
+  const all = await packSections()
+  const mine = all.filter(x => secIds === null || secIds.includes(x.id))
+  if (!mine.length) throw createError({ statusCode: 403, message: 'Out of your sector' })
+  const asked = Number(getQuery(event).section)
+  const section = mine.find(x => x.id === asked) || mine[0]
 
   const week = String(getQuery(event).week || weekStartOf())
   const allPatrols = await db.select().from(s.patrols)
@@ -39,7 +40,7 @@ export default defineEventHandler(async (event) => {
   const byPatrol = patrols.map(p => {
     const mine = members.filter(r => r.patrolId === p.id)
     return {
-      id: p.id, nameEl: p.nameEl, emblem: p.emblem, chantEl: p.chantEl,
+      id: p.id, nameEl: p.nameEl, emblem: p.emblem,
       size: mine.length,
       points: mine.reduce((n, r) => n + (totals.get(r.id) || 0), 0)
     }
@@ -47,6 +48,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     sectionId: section.id, weekStart: week,
+    sections: mine.map(x => ({ id: x.id, nameEl: x.nameEl, nameEn: x.nameEn, slug: x.slug })),
     nextMeeting: await nextMeetingFor(section.id),
     patrols: byPatrol,
     members: members.map(member).sort((a, b) => b.points - a.points),

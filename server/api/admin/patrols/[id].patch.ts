@@ -13,13 +13,12 @@ export default defineEventHandler(async (event) => {
   const secIds = await scopedSectionIds(me)
   if (secIds !== null && !secIds.includes(patrol.sectionId))
     throw createError({ statusCode: 403, message: 'Out of your sector' })
-  const b = await readBody<{ nameEl?: string, nameEn?: string, emblem?: string, chantEl?: string }>(event)
+  const b = await readBody<{ nameEl?: string, nameEn?: string, emblem?: string }>(event)
   const set: any = {}
   if (b?.nameEl) set.nameEl = String(b.nameEl).trim()
   if (b?.nameEn !== undefined) set.nameEn = b.nameEn || null
   if (b?.emblem) set.emblem = String(b.emblem).trim()
   // the unit's κραυγή, which the Αγέλη's families see
-  if (b?.chantEl !== undefined) set.chantEl = b.chantEl ? String(b.chantEl).slice(0, 400) : null
   if (Object.keys(set).length) await db.update(s.patrols).set(set).where(eq(s.patrols.id, id))
   return { ok: true }
 })
