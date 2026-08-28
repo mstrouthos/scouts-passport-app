@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { hmacPasscode } from '../../utils/passcode'
+import { markSeenParent } from '../../utils/seen'
 
 /* naive in-memory rate limit, same shape as the member login */
 const tries = new Map<string, { n: number, t: number }>()
@@ -25,6 +26,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Unknown passcode' })
   }
   tries.delete(ip)
+  await markSeenParent(row)
   await setUserSession(event, { parent: { id: row.id, sectionId: row.sectionId } })
   return { ok: true, name: row.name }
 })

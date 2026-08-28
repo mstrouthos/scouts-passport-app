@@ -2,6 +2,7 @@ import type { H3Event } from 'h3'
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { passcodeVersion } from './passcode'
+import { markSeenScout } from './seen'
 
 export type SessionScout = typeof s.scouts.$inferSelect
 type Patrol = typeof s.patrols.$inferSelect
@@ -17,6 +18,7 @@ export async function requireScout(event: H3Event): Promise<SessionScout> {
   const pv = (session.user as any)?.pv
   if (pv && pv !== passcodeVersion(row.passcodeHmac))
     throw createError({ statusCode: 401, message: 'Passcode changed — sign in again' })
+  await markSeenScout(row)
   return row
 }
 
