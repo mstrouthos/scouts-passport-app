@@ -9,6 +9,9 @@ const canSeeRoles = computed(() => me.value?.role === 'troop_leader' || me.value
     <NuxtLink v-if="me?.can?.badges !== false" to="/admin/badges" class="srow">
       <div class="ico">🏅</div><div class="txt"><b>{{ t('badges') }}</b><span>{{ t('pickFromList') }}</span></div><span class="chev">›</span>
     </NuxtLink>
+    <NuxtLink v-if="me?.role === 'troop_leader'" to="/admin/launch" class="srow">
+      <div class="ico">🚀</div><div class="txt"><b>{{ t('launch') }}</b><span>{{ t('launchSub') }}</span></div><span class="chev">›</span>
+    </NuxtLink>
     <NuxtLink to="/admin/polls" class="srow">
       <div class="ico">🗳️</div><div class="txt"><b>{{ t('polls') }}</b><span>{{ t('pollsSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>

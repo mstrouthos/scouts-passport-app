@@ -82,6 +82,8 @@ async function regen() {
   }
 }
 async function toggleActive() {
+  // deactivating stops them signing in, so it asks; reactivating does not
+  if (data.value.isActive && !confirm(t('confirmDeactivate'))) return
   await $fetch(`/api/admin/scouts/${id}`, { method: 'PATCH', body: { isActive: !data.value.isActive } })
   await refresh(); show(t('saved'))
 }

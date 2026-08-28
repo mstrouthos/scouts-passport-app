@@ -317,6 +317,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS family_contact_uq ON family_contacts(section_i
 
 /* Best-effort column adds for databases created before these fields existed. */
 export const MIGRATIONS = [
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS last_login_at TEXT",
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS first_login_at TEXT",
   "DELETE FROM leader_scopes WHERE scope = 'patrol'",
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS patrol_role TEXT",
   "ALTER TABLE events ADD COLUMN IF NOT EXISTS group_id INTEGER REFERENCES notify_groups(id)",

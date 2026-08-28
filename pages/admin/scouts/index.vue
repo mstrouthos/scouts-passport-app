@@ -162,6 +162,7 @@ async function savePatrol() {
 }
 async function deletePatrol() {
   try {
+    if (!confirm(t('confirmDeletePatrol'))) return
     await $fetch(`/api/admin/patrols/${editingPatrol.value.id}`, { method: 'DELETE' })
     editingPatrol.value = null
     await refresh(); show('✅ ' + t('saved'))

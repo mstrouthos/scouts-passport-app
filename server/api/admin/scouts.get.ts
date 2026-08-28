@@ -26,7 +26,9 @@ export default defineEventHandler(async (event) => {
     id: r.id, firstName: r.firstName, lastName: r.lastName,
     firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn,
     isActive: r.isActive, points: totals.get(r.id) || 0, badges: badgeCounts.get(r.id) || 0,
-    patrolRole: r.patrolRole ?? null
+    patrolRole: r.patrolRole ?? null,
+    activated: !!r.firstLoginAt, lastLoginAt: r.lastLoginAt ?? null,
+    hasPhone: !!r.phone
   })
 
   const sections = (await db.select().from(s.sections))

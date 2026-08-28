@@ -100,7 +100,7 @@ async function setDone(done: boolean) {
             <button class="btn" :disabled="busy" @click="setDone(true)">
               ✅ {{ detail.completedOn ? t('save') : t('markDone') }}
             </button>
-            <button v-if="detail.completedOn" class="btn ghost" :disabled="busy" @click="setDone(false)">
+            <button v-if="detail.completedOn" class="btn ghost" :disabled="busy" @click="confirm(t('confirmUndoAward')) && setDone(false)">
               ↩️ {{ t('undoAward') }}
             </button>
           </template>

@@ -47,7 +47,10 @@ async function addLog() {
     Object.assign(logForm, { datesEl: '', formEl: '', placeEl: '', oeEl: '' })
   })
 }
-const removeLog = (logId: number) => post({ action: 'log', remove: true, logId })
+async function removeLog(logId: number) {
+  if (!confirm(t('confirmDeleteLog'))) return
+  await post({ action: 'log', remove: true, logId })
+}
 </script>
 
 <template>
@@ -159,7 +162,7 @@ const removeLog = (logId: number) => post({ action: 'log', remove: true, logId }
             <button class="btn" :disabled="busy" @click="sign(true)">
               ✅ {{ detail.completedOn ? t('save') : t('markDone') }}
             </button>
-            <button v-if="detail.completedOn" class="btn ghost" :disabled="busy" @click="sign(false)">
+            <button v-if="detail.completedOn" class="btn ghost" :disabled="busy" @click="confirm(t('confirmUndoAward')) && sign(false)">
               ↩️ {{ t('undoAward') }}
             </button>
           </template>

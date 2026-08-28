@@ -37,6 +37,9 @@ export const scouts = pgTable('scouts', {
   // of them actually holds the office of Αρχηγός Συστήματος — the rest are
   // administrators. This flag is what tells the two apart in the UI.
   isChief: boolean('is_chief').notNull().default(false),
+  // when they first got in — the answer to "who has actually activated the app?"
+  firstLoginAt: text('first_login_at'),
+  lastLoginAt: text('last_login_at'),
   locale: text('locale').notNull().default('el'),
   isActive: boolean('is_active').notNull().default(true),
   joinedOn: text('joined_on'),

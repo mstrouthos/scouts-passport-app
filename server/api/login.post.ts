@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
-import { hmacPasscode, passcodeVersion } from '../utils/passcode'
+import { hmacPasscode, passcodeVersion, now } from '../utils/passcode'
 
 /* naive in-memory rate limit: 8 tries / 10 min per IP, plus a global brake */
 const tries = new Map<string, { n: number, t: number }>()
@@ -28,6 +28,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Unknown passcode' })
   }
   tries.delete(ip)
+  // stamp the first successful sign-in once, and the latest every time
+  const t = now()
+  await db.update(s.scouts)
+    .set({ lastLoginAt: t, ...(row.firstLoginAt ? {} : { firstLoginAt: t }) })
+    .where(eq(s.scouts.id, row.id))
   // `pv` pins the session to the passcode it was created with, so rotating a
   // passcode signs out any device still holding the old one.
   await setUserSession(event, { user: { id: row.id, role: row.role, pv: passcodeVersion(row.passcodeHmac) } })
