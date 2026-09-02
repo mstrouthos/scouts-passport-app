@@ -6,12 +6,15 @@ const { show } = useToast()
 const route = useRoute()
 const router = useRouter()
 const me = useMe()
-const { wordsFor } = useSectorWords()
-/* the event's own sector decides the words: an Αγέλη game is won by an εξάδα */
-const evWords = computed(() => {
-  const sid = meta.value?.sectionId ?? data.value?.event?.sectionId ?? null
-  const sec = (me.value?.calendarSections || me.value?.scopeSections || []).find((x: any) => x.id === sid)
-  return wordsFor(sec?.slug ?? null)
+const { wordsFor, mySlug } = useSectorWords()
+/* The event's own sector decides the words: an Αγέλη game is won by an εξάδα.
+   A troop-wide event has no sector, so it speaks the leader's own. */
+const evWords = computed(() => wordsFor(data.value?.event?.sectionSlug ?? mySlug.value))
+/* Units offered for a game award: the event's sector's, or on a troop-wide
+   event every unit this leader manages. */
+const eventPatrols = computed(() => {
+  const sid = data.value?.event?.sectionId
+  return (data.value?.patrols || []).filter((p: any) => sid == null || p.sectionId === sid)
 })
 const id = route.params.id
 const { data, refresh } = await useFetch<any>(`/api/admin/events/${id}/review`)
@@ -276,7 +279,7 @@ const uniDefs = [
       </div>
       <div v-if="gameTarget === 'patrol'"><label class="lab">{{ evWords.winner }}</label>
         <div class="chips">
-          <button v-for="p in data.patrols" :key="p.id" class="chip" :class="{ on: game.patrolId === p.id }"
+          <button v-for="p in eventPatrols" :key="p.id" class="chip" :class="{ on: game.patrolId === p.id }"
                   @click="game.patrolId = p.id">{{ p.emblem }} {{ lx(p, 'name') }}</button>
         </div>
       </div>

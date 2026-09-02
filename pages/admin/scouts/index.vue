@@ -101,7 +101,6 @@ const canCreate = computed(() => {
 // leader can hold several. Show the first, and the sector it applies to.
 function scopeRank(sc: any) {
   if (!sc) return t('archigos')
-  if (sc.scope === 'patrol') return sc.rank === 'yparchigos' ? t('yparchigosEnomotias') : t('archigosEnomotias')
   return sc.rank === 'yparchigos' ? t('yparchigos') : t('archigos')
 }
 function rankLabel(l: any) {
@@ -164,7 +163,7 @@ async function savePatrol() {
 }
 async function deletePatrol() {
   try {
-    if (!confirm(t('confirmDeletePatrol'))) return
+    if (!confirm(t('confirmDeleteUnit', { unit: wordsFor(slugOf(editingPatrol.value?.sectionId)).unitGen }))) return
     await $fetch(`/api/admin/patrols/${editingPatrol.value.id}`, { method: 'DELETE' })
     editingPatrol.value = null
     await refresh(); show('✅ ' + t('saved'))
@@ -191,11 +190,6 @@ async function deletePatrol() {
               <span style="flex:1">{{ p.emblem }} {{ lx(p, 'name') }} · {{ p.scouts.length }}</span>
               <button v-if="sec.canManage" class="chip" style="flex:none;font-size:9.5px;padding:5px 9px"
                       @click="editPatrol(p, sec.id)">✎ {{ t('edit') }}</button>
-            </div>
-            <div v-if="false" style="padding:8px 15px 2px;display:flex;flex-wrap:wrap;gap:6px">
-              <span v-for="l in p.leaders" :key="l.id" class="pill live">
-                {{ l.rank === 'yparchigos' ? t('yparchigosEnomotias') : t('archigosEnomotias') }}: {{ name(l) }}
-              </span>
             </div>
             <NuxtLink v-for="r in p.scouts" :key="r.id" :to="`/admin/scouts/${r.id}`" class="it">
               <Avatar :name="name(r)" :tone="r.isActive ? 'accent' : 'blue'" />

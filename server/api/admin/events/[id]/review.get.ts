@@ -70,7 +70,12 @@ export default defineEventHandler(async (event) => {
     seesRoll,
     myRsvp: rsvps.find(x => x.scoutId === me.id)?.answer ?? null,
     canRsvp: asked.includes(me.id),
-    event: { id: e.id, titleEl: e.titleEl, titleEn: e.titleEn, startsAt: e.startsAt, scope: e.scope, groupId: e.groupId },
+    event: {
+      id: e.id, titleEl: e.titleEl, titleEn: e.titleEn, startsAt: e.startsAt, scope: e.scope, groupId: e.groupId,
+      // the sector decides the words on this screen: an Αγέλη game is won by an εξάδα
+      sectionId: e.sectionId,
+      sectionSlug: e.sectionId != null ? (await db.select().from(s.sections)).find(x => x.id === e.sectionId)?.slug ?? null : null
+    },
     scouts: roster.filter(r => r.isActive).map(r => {
       const rev = reviews.find(x => x.scoutId === r.id)
       return {
@@ -79,7 +84,7 @@ export default defineEventHandler(async (event) => {
         attendance: rev?.attendance ?? null, uniform: rev?.uniform ?? null
       }
     }),
-    patrols: patrols.map(p => ({ id: p.id, nameEl: p.nameEl, nameEn: p.nameEn, emblem: p.emblem })),
+    patrols: patrols.map(p => ({ id: p.id, nameEl: p.nameEl, nameEn: p.nameEn, emblem: p.emblem, sectionId: p.sectionId })),
     gameAwards: awards.map(a => ({
       patrolId: a.patrolId, scoutId: a.scoutId, points: a.points, reasonEl: a.reasonEl, reasonEn: a.reasonEn
     }))

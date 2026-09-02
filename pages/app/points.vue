@@ -2,6 +2,7 @@
 /* Where the points came from. Same cartoon language as the rest of the app:
    a headline number, a row of source tiles, then the entries themselves. */
 const { t, locale } = useI18n()
+const { words: sectorWords } = useSectorWords()
 const { data } = await useFetch<any>('/api/points')
 
 const SOURCES: Record<string, { emoji: string, key: string, tone: string }> = {
@@ -13,6 +14,8 @@ const SOURCES: Record<string, { emoji: string, key: string, tone: string }> = {
   manual:     { emoji: '⭐', key: 'ptsFromManual',     tone: '#E7643C' }
 }
 const meta = (s: string) => SOURCES[s] || SOURCES.manual
+/* the unit is named in the member's own sector's words */
+const label = (s: string) => s === 'patrol' ? sectorWords.value.unit : label(s)
 const filter = ref<string | null>(null)
 const shown = computed<any[]>(() => (data.value?.items || [])
   .filter((i: any) => !filter.value || (i.source === 'patrol' ? 'patrol' : i.source) === filter.value))
@@ -31,11 +34,11 @@ const shown = computed<any[]>(() => (data.value?.items || [])
               @click="filter = filter === b.key ? null : b.key">
         <span class="em">{{ meta(b.key).emoji }}</span>
         <span class="pts">{{ b.points > 0 ? '+' : '' }}{{ b.points }}</span>
-        <span class="nm">{{ t(meta(b.key).key) }}</span>
+        <span class="nm">{{ label(b.key) }}</span>
       </button>
     </div>
 
-    <div class="sec-title">{{ filter ? t(meta(filter).key) : t('allPoints') }}</div>
+    <div class="sec-title">{{ filter ? label(filter) : t('allPoints') }}</div>
     <div v-if="shown.length" class="adm">
       <div v-for="(i, n) in shown" :key="n" class="it">
         <div class="em" :style="{ background: meta(i.source).tone + '22' }">{{ meta(i.source).emoji }}</div>

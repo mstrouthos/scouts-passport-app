@@ -11,6 +11,7 @@ const scopeLabel = computed(() => {
 })
 
 const name = useName()
+const { wordsFor } = useSectorWords()
 /* The Αγέλη's and Μικρή Αγέλη's standings sit here, on their own Βαθμοφόροι's
    dashboard: the families read the weekly challenges, never who is ahead.
    Empty for every leader who runs neither sector. */
@@ -67,7 +68,7 @@ async function saveDetails() {
       <div class="tiny muted">{{ t('packStandingsNote') }}</div>
 
       <template v-if="st.patrols.length">
-        <div class="sec-title" style="font-size:11px">{{ t('sixesTable') }}</div>
+        <div class="sec-title" style="font-size:11px">{{ wordsFor(st.slug).units }}</div>
         <div class="adm">
           <div v-for="(p, i) in st.patrols" :key="p.id" class="it" style="cursor:default">
             <div class="rank">{{ i + 1 }}</div>
@@ -77,7 +78,7 @@ async function saveDetails() {
         </div>
       </template>
 
-      <div class="sec-title" style="font-size:11px">{{ t('cubsTable') }}</div>
+      <div class="sec-title" style="font-size:11px">{{ wordsFor(st.slug).members }}</div>
       <div v-if="st.members.length" class="adm">
         <div v-for="(m, i) in st.members" :key="m.id" class="it" style="cursor:default">
           <div class="rank">{{ i + 1 }}</div>

@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
       })
       .sort((a, b) => b.points - a.points)
     return {
-      sectionId: section.id, nameEl: section.nameEl, nameEn: section.nameEn,
+      sectionId: section.id, nameEl: section.nameEl, nameEn: section.nameEn, slug: section.slug,
       patrols,
       members: members
         .map(r => ({
