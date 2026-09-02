@@ -1,5 +1,5 @@
 import { useDb, schema as s } from '../../db'
-import { requireLeader, visibleSectionIds } from '../../utils/guard'
+import { requireLeader, visibleSectionIds, sectionOfWith } from '../../utils/guard'
 import { sectionsOfParent, childIdsOfParent } from '../../utils/parents'
 import { assertCan } from '../../utils/permissions'
 
@@ -34,6 +34,11 @@ export default defineEventHandler(async (event) => {
         name: p.name, email: p.email, phone: p.phone,
         isActive: p.isActive, hasCode: !!p.passcodeHmac,
         scoutId: p.scoutId,
+        // each child with their sector, so a row under the Αγέλη names only the
+        // λυκόπουλο, not the sibling in the Ομάδα
+        children: kids.map(k => ({
+          id: k.id, name: `${k.firstName} ${k.lastName}`, sectionId: sectionOfWith(k, patrols)
+        })),
         scoutName: kids.map(k => `${k.firstName} ${k.lastName}`).join(', ') || null
       }
     })

@@ -41,6 +41,9 @@ async function sendCode(via: 'sms' | 'email' | 'none') {
   } catch (e: any) { show(e?.data?.message || t('error')) }
 }
 const sectionName = (id: number) => (data.value?.sections || []).find((x: any) => x.id === id)?.nameEl ?? ''
+/* Under a sector's heading, a parent's row names only the children in that sector. */
+const kidsIn = (p: any, sectionId: number) =>
+  (p.children || []).filter((k: any) => k.sectionId === sectionId).map((k: any) => k.name).join(', ')
 
 // ----- announcements for parents -----
 const composing = ref(false)
@@ -105,7 +108,7 @@ async function deletePost(id: number) {
                   class="it" @click="openEdit(p)">
             <div style="flex:1;min-width:0">
               <b>{{ p.name }}</b>
-              <span>{{ p.scoutName ? `👦 ${p.scoutName}` : t('parentNoChild') }} · {{ p.email || p.phone }}</span>
+              <span>{{ kidsIn(p, sec.id) ? `👦 ${kidsIn(p, sec.id)}` : t('parentNoChild') }} · {{ p.email || p.phone }}</span>
             </div>
             <span class="pill" :class="p.hasCode ? 'ok' : 'draft'">{{ p.hasCode ? t('hasCode') : t('noCode') }}</span>
             <span class="chev">›</span>
