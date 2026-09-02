@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
     .map(x => {
       const f = x.fileId != null ? files.get(x.fileId) : null
       return {
-        id: x.id, titleEl: x.titleEl, bodyEl: x.bodyEl, createdAt: x.createdAt,
+        id: x.id, sectionId: x.sectionId, titleEl: x.titleEl, bodyEl: x.bodyEl, createdAt: x.createdAt,
         file: f ? { id: f.id, name: f.name, size: f.size } : null
       }
     })

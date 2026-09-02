@@ -6,6 +6,13 @@ const { show } = useToast()
 const route = useRoute()
 const router = useRouter()
 const me = useMe()
+const { wordsFor } = useSectorWords()
+/* the event's own sector decides the words: an Αγέλη game is won by an εξάδα */
+const evWords = computed(() => {
+  const sid = meta.value?.sectionId ?? data.value?.event?.sectionId ?? null
+  const sec = (me.value?.calendarSections || me.value?.scopeSections || []).find((x: any) => x.id === sid)
+  return wordsFor(sec?.slug ?? null)
+})
 const id = route.params.id
 const { data, refresh } = await useFetch<any>(`/api/admin/events/${id}/review`)
 const tab = ref<'att' | 'uni' | 'pts'>('att')
@@ -264,16 +271,16 @@ const uniDefs = [
 
     <template v-else>
       <div class="seg">
-        <button :class="{ on: gameTarget === 'patrol' }" @click="gameTarget = 'patrol'">{{ t('toPatrol') }}</button>
-        <button :class="{ on: gameTarget === 'scout' }" @click="gameTarget = 'scout'">{{ t('toScout') }}</button>
+        <button :class="{ on: gameTarget === 'patrol' }" @click="gameTarget = 'patrol'">{{ t('toUnit', { unit: evWords.unitAcc }) }}</button>
+        <button :class="{ on: gameTarget === 'scout' }" @click="gameTarget = 'scout'">{{ t('toMember', { member: evWords.memberAcc }) }}</button>
       </div>
-      <div v-if="gameTarget === 'patrol'"><label class="lab">{{ t('winner') }}</label>
+      <div v-if="gameTarget === 'patrol'"><label class="lab">{{ evWords.winner }}</label>
         <div class="chips">
           <button v-for="p in data.patrols" :key="p.id" class="chip" :class="{ on: game.patrolId === p.id }"
                   @click="game.patrolId = p.id">{{ p.emblem }} {{ lx(p, 'name') }}</button>
         </div>
       </div>
-      <div v-else><label class="lab">{{ t('whichScout') }}</label>
+      <div v-else><label class="lab">{{ t('whichMember', { member: evWords.member.toLowerCase() }) }}</label>
         <div class="chips">
           <button v-for="r in data.scouts" :key="r.id" class="chip" :class="{ on: game.scoutId === r.id }"
                   @click="game.scoutId = r.id">{{ name(r) }}</button>
@@ -284,7 +291,7 @@ const uniDefs = [
         <div style="flex:2"><label class="lab">{{ t('reason') }}</label><input v-model="game.reason" class="in" :placeholder="t('reasonPh')"></div>
       </div>
       <button class="btn" :disabled="gameTarget === 'scout' ? !game.scoutId : !game.patrolId" @click="awardGame">
-        {{ gameTarget === 'scout' ? t('awardScout') : t('awardPatrol') }}
+        {{ gameTarget === 'scout' ? t('awardToMember', { member: evWords.memberAcc }) : t('awardToUnit', { unit: evWords.unitAcc }) }}
       </button>
       <div class="sec-title">{{ t('awardsMade') }}</div>
       <div v-if="data.gameAwards.length" class="adm">

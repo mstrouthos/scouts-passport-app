@@ -63,10 +63,12 @@ const runsPack = computed(() => {
   return scopes.some((x: any) => PACK_SLUGS.includes(x.slug))
 })
 
+const { words: sectorWords } = useSectorWords()
+
 const tabs = computed(() => isLeader.value
   ? [
       { to: '/admin', icon: 'shield', label: t('nav.profile') },
-      { to: '/admin/scouts', icon: 'people', label: t('nav.scouts') },
+      { to: '/admin/scouts', icon: 'people', label: sectorWords.value.members },
       { to: '/admin/events', icon: 'calendar', label: t('nav.events') },
       ...(runsQuiz.value
         ? [{ to: '/admin/challenges', icon: 'target', label: t('nav.challenges') }]

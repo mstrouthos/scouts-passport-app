@@ -33,6 +33,14 @@ export default defineEventHandler(async (event) => {
     myPatrols,
     // null = all sectors (admin / troop scope); otherwise the leader's visible sections
     scopeSections: scopeSections?.map(x => ({ id: x.id, nameEl: x.nameEl, nameEn: x.nameEn, slug: x.slug, hasApp: x.hasApp })) ?? null,
+    /* Sectors whose diary this leader may READ — every one of them for an
+       Αρχηγός, so the sectors can coordinate; their own for a Υπαρχηγός.
+       Not the same as scopeSections, which is what they may administer. */
+    calendarSections: !isLeader ? null
+      : (kind === 'admin' || kind === 'troop' || (await rankOf(me)) === 'archigos'
+          ? allSections
+          : (scopeSections ?? allSections)
+        ).map(x => ({ id: x.id, nameEl: x.nameEl, nameEn: x.nameEn, slug: x.slug })),
     // the UI hides what the API would refuse, so a Υπαρχηγός is not shown
     // buttons that only produce a 403
     can: !isLeader ? null : {

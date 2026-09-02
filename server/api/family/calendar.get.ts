@@ -11,8 +11,8 @@ export default defineEventHandler(async (event) => {
     .filter(e => new Date(e.endsAt || e.startsAt).getTime() > Date.now() - 86400_000)
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
     .map(e => ({
-      id: e.id, scope: e.scope, titleEl: e.titleEl, titleEn: e.titleEn,
-      location: e.location, descriptionEl: e.descriptionEl,
+      id: e.id, scope: e.scope, sectionId: e.sectionId, titleEl: e.titleEl, titleEn: e.titleEn,
+      location: e.location, descriptionEl: e.descriptionEl, themeEl: e.themeEl,
       startsAt: e.startsAt, endsAt: e.endsAt, isAllDay: e.isAllDay
     }))
 })

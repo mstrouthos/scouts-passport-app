@@ -2,6 +2,8 @@ import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
 import { now } from '../../utils/passcode'
 import { assertCan } from '../../utils/permissions'
+import { parentsOfSections } from '../../utils/parents'
+import { sendPushToParentIds, sendPushToParents } from '../../utils/push'
 
 const MAX_PDF = 8 * 1024 * 1024   // 8 MB — plenty for a scanned announcement
 
@@ -46,5 +48,18 @@ export default defineEventHandler(async (event) => {
     sectionId, titleEl, bodyEl, fileId, isPublished: b?.isPublished !== false,
     createdBy: me.id, createdAt: now()
   }).returning())
-  return { id: row.id }
+
+  // A notice nobody is told about is a notice nobody reads. Families who have
+  // signed in are reached by name; a browser that only ever subscribed to the
+  // sector, before codes existed, still hears through the sector.
+  let pushed = 0
+  if (row.isPublished) {
+    try {
+      const secs = sectionId == null ? null : [sectionId]
+      const msg = { title: 'Πύλη Προσκόπων', body: `📣 ${titleEl}`, kind: 'parentPost', refId: row.id }
+      pushed = await sendPushToParentIds((await parentsOfSections(secs)).map(p => p.id), msg)
+        + await sendPushToParents(secs, msg)
+    } catch (err) { console.error('[parent-post] push failed', err) }
+  }
+  return { id: row.id, pushed }
 })

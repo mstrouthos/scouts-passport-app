@@ -14,7 +14,10 @@
     "profile": "Profile",
     "scouts": "Scouts",
     "events": "Events",
-    "more": "More"
+    "more": "More",
+    "cubs": "Cubs",
+    "venturers": "Venturers",
+    "members": "Members"
   },
   "myPassport": "My Passport",
   "points": "Points",
@@ -540,5 +543,16 @@
   "meetingThemePh": "e.g. Knots and ropes",
   "meetingThemeNote": "Shown to families as the next meeting's theme.",
   "eventDetails": "Details",
-  "eventDetailsPh": "What to bring, what will happen, notes for parents…"
+  "eventDetailsPh": "What to bring, what will happen, notes for parents…",
+  "newLeader": "New leader",
+  "newUnit": "New {unit}",
+  "editUnit": "Edit {unit}",
+  "deleteUnit": "Delete {unit}",
+  "toUnit": "To a {unit}",
+  "toMember": "To a {member}",
+  "whichMember": "Which {member}?",
+  "awardToMember": "Award to {member}",
+  "awardToUnit": "Award to {unit}",
+  "editParentPost": "Edit notice",
+  "removePdf": "Remove PDF"
 }

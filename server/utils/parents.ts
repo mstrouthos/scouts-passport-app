@@ -56,3 +56,18 @@ export async function parentsOfScouts(scoutIds: number[]): Promise<Parent[]> {
   return (await db.select().from(s.parents))
     .filter(p => p.isActive && childIdsOfParent(p, links).some(cid => ids.has(cid)))
 }
+
+/** Parents with a child in any of the given sections (null = every parent).
+    Resolved through the children, so a family straddling two sectors hears
+    from both and a parent filed under a sector with no linked child still
+    counts there. */
+export async function parentsOfSections(sectionIds: number[] | null): Promise<Parent[]> {
+  const db = await useDb()
+  const [parents, links, scouts, patrols] = await Promise.all([
+    db.select().from(s.parents), db.select().from(s.parentChildren),
+    db.select().from(s.scouts), db.select().from(s.patrols)
+  ])
+  return parents.filter(p => p.isActive && (
+    sectionIds === null || sectionsOfParent(p, links, scouts, patrols).some(id => sectionIds.includes(id))
+  ))
+}

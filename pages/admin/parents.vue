@@ -44,11 +44,18 @@ const sectionName = (id: number) => (data.value?.sections || []).find((x: any) =
 
 // ----- announcements for parents -----
 const composing = ref(false)
-const post = reactive<any>({ sectionId: null, titleEl: '', bodyEl: '', file: null as any, fileName: '' })
+/* One composer for new and existing notices: `id` set means editing. `file`
+   is undefined to keep the PDF as is, null to drop it, an object to replace. */
+const post = reactive<any>({ id: null, sectionId: null, titleEl: '', bodyEl: '', file: undefined as any, fileName: '' })
 function openPost() {
-  Object.assign(post, { sectionId: data.value?.sections?.[0]?.id ?? null, titleEl: '', bodyEl: '', file: null, fileName: '' })
+  Object.assign(post, { id: null, sectionId: data.value?.sections?.[0]?.id ?? null, titleEl: '', bodyEl: '', file: undefined, fileName: '' })
   composing.value = true
 }
+function openEditPost(p: any) {
+  Object.assign(post, { id: p.id, sectionId: p.sectionId ?? null, titleEl: p.titleEl, bodyEl: p.bodyEl || '', file: undefined, fileName: p.file?.name || '' })
+  composing.value = true
+}
+function dropPdf() { post.file = null; post.fileName = '' }
 async function pickFile(e: Event) {
   const f = (e.target as HTMLInputElement).files?.[0]
   if (!f) return
@@ -60,12 +67,17 @@ async function pickFile(e: Event) {
 async function savePost() {
   busy.value = true
   try {
-    await $fetch('/api/admin/parent-posts', {
-      method: 'POST',
-      body: { sectionId: post.sectionId, titleEl: post.titleEl, bodyEl: post.bodyEl, file: post.file }
-    })
+    const body: any = { sectionId: post.sectionId, titleEl: post.titleEl, bodyEl: post.bodyEl }
+    if (post.file !== undefined) body.file = post.file
+    if (post.id) {
+      await $fetch(`/api/admin/parent-posts/${post.id}`, { method: 'PATCH', body })
+      show('✅ ' + t('saved'))
+    } else {
+      const res = await $fetch<any>('/api/admin/parent-posts', { method: 'POST', body })
+      show(res.pushed ? `✅ ${t('saved')} · 🔔 ${res.pushed}` : '✅ ' + t('saved'))
+    }
     composing.value = false
-    await refreshPosts(); show('✅ ' + t('saved'))
+    await refreshPosts()
   } catch (e: any) { show(e?.data?.message || t('error')) }
   finally { busy.value = false }
 }
@@ -89,7 +101,7 @@ async function deletePost(id: number) {
       <template v-for="sec in data?.sections" :key="sec.id">
         <div class="sec-title">{{ lx(sec, 'name') }}</div>
         <div class="adm">
-          <button v-for="p in data.parents.filter((x: any) => x.sectionId === sec.id)" :key="p.id"
+          <button v-for="p in data.parents.filter((x: any) => (x.sectionIds || [x.sectionId]).includes(sec.id))" :key="p.id"
                   class="it" @click="openEdit(p)">
             <div style="flex:1;min-width:0">
               <b>{{ p.name }}</b>
@@ -98,7 +110,7 @@ async function deletePost(id: number) {
             <span class="pill" :class="p.hasCode ? 'ok' : 'draft'">{{ p.hasCode ? t('hasCode') : t('noCode') }}</span>
             <span class="chev">›</span>
           </button>
-          <div v-if="!data.parents.some((x: any) => x.sectionId === sec.id)" class="tiny muted" style="padding:12px 15px">
+          <div v-if="!data.parents.some((x: any) => (x.sectionIds || [x.sectionId]).includes(sec.id))" class="tiny muted" style="padding:12px 15px">
             {{ t('noParentsYet') }}
           </div>
         </div>
@@ -108,15 +120,15 @@ async function deletePost(id: number) {
 
     <template v-else>
       <div v-if="posts?.length" class="adm">
-        <div v-for="p in posts" :key="p.id" class="it" style="align-items:flex-start">
+        <button v-for="p in posts" :key="p.id" class="it" style="align-items:flex-start" @click="openEditPost(p)">
           <div style="flex:1;min-width:0">
             <b>{{ p.titleEl }}</b>
             <span>{{ p.sectionEl || t('wholeTroop') }} · {{ fmtDate(p.createdAt, locale) }}
               <template v-if="p.file"> · 📎 {{ p.file.name }}</template>
             </span>
           </div>
-          <button class="chip" style="flex:none;color:var(--danger)" @click="deletePost(p.id)">✕</button>
-        </div>
+          <span class="chip" style="flex:none;color:var(--danger)" @click.stop="deletePost(p.id)">✕</span>
+        </button>
       </div>
       <div v-else class="empty">{{ t('noParentPosts') }}</div>
       <button class="fab" :aria-label="t('newParentPost')" @click="openPost">+</button>
@@ -156,7 +168,7 @@ async function deletePost(id: number) {
       <!-- parents' announcement -->
       <div v-if="composing" class="sheet-backdrop" @click.self="composing = false">
         <div class="sheet" style="display:flex;flex-direction:column;gap:12px;max-height:88dvh;overflow:auto">
-          <h3 style="margin:0;font-size:17px;text-align:center">{{ t('newParentPost') }}</h3>
+          <h3 style="margin:0;font-size:17px;text-align:center">{{ post.id ? t('editParentPost') : t('newParentPost') }}</h3>
           <div>
             <label class="lab">{{ t('sectionWord') }}</label>
             <div class="chips">
@@ -170,9 +182,12 @@ async function deletePost(id: number) {
           <div>
             <label class="lab">{{ t('attachPdf') }}</label>
             <input type="file" accept="application/pdf" class="in" @change="pickFile">
-            <div v-if="post.fileName" class="tiny muted" style="margin-top:5px">📎 {{ post.fileName }}</div>
+            <div v-if="post.fileName" class="tiny muted" style="margin-top:5px;display:flex;align-items:center;gap:8px">
+              📎 {{ post.fileName }}
+              <button class="chip" style="color:var(--danger)" @click="dropPdf">{{ t('removePdf') }}</button>
+            </div>
           </div>
-          <button class="btn" :disabled="!post.titleEl || (!post.bodyEl && !post.file) || busy" @click="savePost">
+          <button class="btn" :disabled="!post.titleEl || (!post.bodyEl && !post.file && !post.fileName) || busy" @click="savePost">
             {{ busy ? t('loading') : t('save') }}
           </button>
           <button class="btn ghost" @click="composing = false">{{ t('close') }}</button>

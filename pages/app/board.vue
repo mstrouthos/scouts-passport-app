@@ -2,6 +2,7 @@
 const { t } = useI18n()
 const lx = useLx()
 const name = useName()
+const { words: sectorWords } = useSectorWords()
 const { data } = await useFetch('/api/board')
 const tab = ref<'ind' | 'pat'>('ind')
 const maxAvg = computed(() => Math.max(1, ...(data.value?.patrols || []).map((p: any) => p.avg)))
@@ -15,7 +16,7 @@ function rankOf(i: number) {
   <AppShell :title="t('board')">
     <div class="seg">
       <button :class="{ on: tab === 'ind' }" @click="tab = 'ind'">{{ t('individual') }}</button>
-      <button :class="{ on: tab === 'pat' }" @click="tab = 'pat'">{{ t('patrols') }}</button>
+      <button :class="{ on: tab === 'pat' }" @click="tab = 'pat'">{{ sectorWords.units }}</button>
     </div>
 
     <div v-if="tab === 'ind'" class="card" style="padding:0">

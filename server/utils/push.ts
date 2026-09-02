@@ -78,7 +78,8 @@ export async function sendPushToParentIds(parentIds: number[], msg: { title: str
     } catch { /* already sent to this parent */ }
   }
   if (!fresh.length) return 0
-  return deliver(subs.filter(x => fresh.includes(x.parentId!)), JSON.stringify({ title: msg.title, body: msg.body }))
+  const url = linkForNotification(msg.kind, msg.refId) || '/family'
+  return deliver(subs.filter(x => fresh.includes(x.parentId!)), JSON.stringify({ title: msg.title, body: msg.body, url }))
 }
 
 /** Push to anonymous parent subscriptions. sectionIds null = every parent sub.
@@ -99,5 +100,6 @@ export async function sendPushToParents(sectionIds: number[] | null, msg: { titl
     } catch { /* already sent to this section */ }
   }
   if (!fresh.length) return 0
-  return deliver(subs.filter(x => fresh.includes(x.sectionId!)), JSON.stringify({ title: msg.title, body: msg.body }))
+  const url = linkForNotification(msg.kind, msg.refId) || '/family'
+  return deliver(subs.filter(x => fresh.includes(x.sectionId!)), JSON.stringify({ title: msg.title, body: msg.body, url }))
 }

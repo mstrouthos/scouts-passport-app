@@ -13,15 +13,18 @@ function groupLabel(e: any) {
   return g ? [g.emoji, g.nameEl].filter(Boolean).join(' ') : t('group')
 }
 
-/* Whole troop, then each sector this leader covers — an Αρχηγός of the Ομάδα
-   filters between the troop's programme and their own, and nothing else. */
+/* Whole troop, the Βαθμοφόροι, then every sector whose diary this leader may
+   read — an Αρχηγός sees them all, so the sectors can plan around each other;
+   a Υπαρχηγός only their own. */
 const filter = ref<string>('all')
 const filters = computed(() => {
-  const out = [{ key: 'all', label: t('all') }, { key: 'troop', label: t('wholeTroop') }]
-  for (const sec of (me.value?.scopeSections || []))
+  const out = [
+    { key: 'all', label: t('all') },
+    { key: 'troop', label: t('wholeTroop') },
+    { key: 'leaders', label: t('vathmoforoi') }
+  ]
+  for (const sec of (me.value?.calendarSections || me.value?.scopeSections || []))
     out.push({ key: 's' + sec.id, label: lx(sec, 'name') })
-  if ((data.value || []).some(e => e.scope === 'leaders'))
-    out.push({ key: 'leaders', label: t('vathmoforoi') })
   for (const id of new Set((data.value || []).filter(e => e.scope === 'group' && e.groupId != null).map(e => e.groupId))) {
     const g = groupOf(id as number)
     out.push({ key: 'g' + id, label: g ? [g.emoji, g.nameEl].filter(Boolean).join(' ') : t('group') })

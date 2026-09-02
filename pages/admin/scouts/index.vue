@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const me = useMe()
+const { words: sectorWords, wordsFor } = useSectorWords()
+const slugOf = (sectionId: any) => (data.value?.sections || []).find((sec: any) => sec.id === sectionId)?.slug ?? null
 const lx = useLx()
 const name = useName()
 const { show } = useToast()
@@ -171,7 +173,7 @@ async function deletePatrol() {
 </script>
 
 <template>
-  <AppShell :title="me?.role === 'troop_leader' ? t('scouts') : t('myScouts')"
+  <AppShell :title="sectorWords.members"
             :sub="`${activeCount} ${t('activeN')}`">
     <div style="display:flex;flex-direction:column;gap:10px">
       <template v-for="sec in data?.sections" :key="sec.id">
@@ -179,7 +181,7 @@ async function deletePatrol() {
              @click="toggleSector(sec.id)" @keydown.enter="toggleSector(sec.id)">
           <div class="ico">{{ SECTOR_ICON[sec.slug] || '👥' }}</div>
           <div class="txt"><b>{{ lx(sec, 'name') }}</b><span>{{ sectorCount(sec) }} {{ t('members') }}</span></div>
-          <button v-if="sec.canManage && canEnrol" class="chip" style="flex:none" @click.stop="openAdd(sec.id)">+ {{ t('newScout') }}</button>
+          <button v-if="sec.canManage && canEnrol" class="chip" style="flex:none" @click.stop="openAdd(sec.id)">+ {{ wordsFor(sec.slug).newMember }}</button>
           <span class="chev" :class="{ open: openSectors.has(sec.id) }">›</span>
         </div>
 
@@ -231,7 +233,7 @@ async function deletePatrol() {
              @click="toggleSector('leaders')" @keydown.enter="toggleSector('leaders')">
           <div class="ico">🎖️</div>
           <div class="txt"><b>{{ t('vathmoforoi') }}</b><span>{{ data.leaders.length }} {{ t('members') }}</span></div>
-          <button class="chip" style="flex:none" @click.stop="openAdd('leaders')">+ {{ t('newScout') }}</button>
+          <button class="chip" style="flex:none" @click.stop="openAdd('leaders')">+ {{ t('newLeader') }}</button>
           <span class="chev" :class="{ open: openSectors.has('leaders') }">›</span>
         </div>
         <div v-if="openSectors.has('leaders')" style="display:flex;flex-direction:column;gap:11px">
@@ -252,12 +254,12 @@ async function deletePatrol() {
       <NuxtLink to="/admin/cards" class="btn ghost">{{ t('printCards') }}</NuxtLink>
     </div>
 
-    <button v-if="canEnrol" class="fab" :aria-label="t('newScout')" @click="openAdd()">+</button>
+    <button v-if="canEnrol" class="fab" :aria-label="sectorWords.newMember" @click="openAdd()">+</button>
 
     <Teleport to="body">
       <div v-if="adding" class="sheet-backdrop" @click.self="adding = false; created = null">
         <div class="sheet" style="display:flex;flex-direction:column;gap:12px;max-height:86dvh;overflow:auto">
-          <h3 style="margin:0;font-size:17px;text-align:center">{{ t('newScout') }}</h3>
+          <h3 style="margin:0;font-size:17px;text-align:center">{{ form.sectionId === 'leaders' ? t('newLeader') : wordsFor(slugOf(form.sectionId)).newMember }}</h3>
           <template v-if="created">
             <div class="note" style="text-align:center">
               <b>{{ t('passcodeIs') }} <span style="font-variant-numeric:tabular-nums">{{ created.passcode }}</span></b>
@@ -325,12 +327,12 @@ async function deletePatrol() {
 
       <div v-if="editingPatrol" class="sheet-backdrop" @click.self="editingPatrol = null">
         <div class="sheet" style="display:flex;flex-direction:column;gap:12px">
-          <h3 style="margin:0;font-size:17px;text-align:center">{{ editingPatrol.id ? t('editTeam') : t('newTeam') }}</h3>
+          <h3 style="margin:0;font-size:17px;text-align:center">{{ editingPatrol.id ? t('editUnit', { unit: wordsFor(slugOf(editingPatrol.sectionId)).unitGen }) : t('newUnit', { unit: wordsFor(slugOf(editingPatrol.sectionId)).unitAcc }) }}</h3>
           <div><label class="lab">{{ t('titleEl') }}</label><input v-model="editingPatrol.nameEl" class="in"></div>
           <div><label class="lab">{{ t('titleEn') }}</label><input v-model="editingPatrol.nameEn" class="in" :placeholder="t('enOptional')"></div>
           <div v-if="editingPatrol.id"><label class="lab">{{ t('icon') }}</label><input v-model="editingPatrol.emblem" class="in"></div>
           <button class="btn" :disabled="!editingPatrol.nameEl" @click="savePatrol">{{ t('save') }}</button>
-          <button v-if="editingPatrol.id" class="btn danger" @click="deletePatrol">{{ t('deleteTeam') }}</button>
+          <button v-if="editingPatrol.id" class="btn danger" @click="deletePatrol">{{ t('deleteUnit', { unit: wordsFor(slugOf(editingPatrol.sectionId)).unitGen }) }}</button>
         </div>
       </div>
     </Teleport>
