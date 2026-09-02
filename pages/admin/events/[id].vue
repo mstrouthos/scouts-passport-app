@@ -10,11 +10,14 @@ const { wordsFor, mySlug } = useSectorWords()
 /* The event's own sector decides the words: an Αγέλη game is won by an εξάδα.
    A troop-wide event has no sector, so it speaks the leader's own. */
 const evWords = computed(() => wordsFor(data.value?.event?.sectionSlug ?? mySlug.value))
-/* Units offered for a game award: the event's sector's, or on a troop-wide
-   event every unit this leader manages. */
+/* Units offered for a game award: the event's sector's — and on a troop-wide
+   event only the units of the sectors this leader runs. An Αγέλη leader must
+   never be offered the Ομάδα's ενωμοτίες, whatever the event. */
 const eventPatrols = computed(() => {
   const sid = data.value?.event?.sectionId
-  return (data.value?.patrols || []).filter((p: any) => sid == null || p.sectionId === sid)
+  const mine = me.value?.scopeSections == null ? null : new Set((me.value.scopeSections as any[]).map(x => x.id))
+  return (data.value?.patrols || []).filter((p: any) =>
+    sid != null ? p.sectionId === sid : (mine === null || mine.has(p.sectionId)))
 })
 const id = route.params.id
 const { data, refresh } = await useFetch<any>(`/api/admin/events/${id}/review`)

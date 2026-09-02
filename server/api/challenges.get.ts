@@ -39,6 +39,9 @@ export default defineEventHandler(async (event) => {
     list.push(o); optsBy.set(o.challengeId, list)
   }
 
+  // a clock already started must not be offered a second head start
+  const revealMap = new Map((await db.select().from(s.challengeReveals))
+    .filter(r => r.scoutId === me.id).map(r => [r.challengeId, r.revealedAt]))
   const items = mine.map(c => {
     const mine_ = ansMap.get(c.id)
     const closed = isAtOrBefore(c.closesAt, t)
@@ -48,6 +51,7 @@ export default defineEventHandler(async (event) => {
       questionEl: c.questionEl, questionEn: c.questionEn,
       imageEmoji: c.imageEmoji, points: c.points,
       unlocksAt: c.unlocksAt, closesAt: c.closesAt, closed, isBonus: c.isBonus,
+      revealedAt: revealMap.get(c.id) ?? null,
       // path state drives the colour of the node
       state: mine_ ? (mine_.isCorrect ? 'correct' : 'wrong') : closed ? 'missed' : 'open',
       explanationEl: revealed ? c.explanationEl : null,

@@ -17,8 +17,23 @@ const busy = ref(false)
    scout asks to see the options, and the server owns the start time. */
 const reveal = ref<any>(null)       // { revealedAt, points, minPoints, decayEveryMs }
 const elapsed = ref(0)
-let startedAt = 0                   // performance clock at reveal, minus time already spent
+/* Wall-clock anchor of the server's revealedAt, in this device's time. The
+   countdown is Date.now() minus this, so it keeps running while the scout is
+   off in another app — googling, say — and is exact again the moment they
+   come back. performance.now() would not do: it can pause in the background. */
+let revealedAtLocal = 0
 let ticker: any = null
+/* Five seconds to read the question, then the options appear on their own
+   and the clock starts. There is no button to hold off on. */
+const READ_MS = 5000
+const readLeft = ref(0)
+let readTimer: any = null
+let readTick: any = null
+function stopRead() {
+  if (readTimer) { clearTimeout(readTimer); readTimer = null }
+  if (readTick) { clearInterval(readTick); readTick = null }
+  readLeft.value = 0
+}
 
 const live = computed(() => {
   const r = reveal.value
@@ -27,7 +42,19 @@ const live = computed(() => {
 })
 
 function stopTicker() { if (ticker) { clearInterval(ticker); ticker = null } }
-onBeforeUnmount(stopTicker)
+const tick = () => { elapsed.value = Math.max(0, Date.now() - revealedAtLocal) }
+/* Back from another app: the server still holds the true start, so ask it
+   again rather than trust a clock that may have drifted while we were away. */
+async function resync() {
+  if (document.visibilityState !== 'visible' || !open.value || !reveal.value || open.value.answer) return
+  try {
+    const r = await $fetch<any>(`/api/challenges/${open.value.id}/reveal`, { method: 'POST' })
+    revealedAtLocal = Date.now() - r.elapsedMs
+    tick()
+  } catch { tick() }
+}
+onMounted(() => document.addEventListener('visibilitychange', resync))
+onBeforeUnmount(() => { stopTicker(); stopRead(); document.removeEventListener('visibilitychange', resync) })
 
 async function revealOptions() {
   if (!open.value || busy.value) return
@@ -35,12 +62,23 @@ async function revealOptions() {
   try {
     const r = await $fetch<any>(`/api/challenges/${open.value.id}/reveal`, { method: 'POST' })
     reveal.value = r
-    startedAt = performance.now() - r.elapsedMs
-    elapsed.value = r.elapsedMs
+    revealedAtLocal = Date.now() - r.elapsedMs
+    tick()
     stopTicker()
-    ticker = setInterval(() => { elapsed.value = performance.now() - startedAt }, 250)
+    ticker = setInterval(tick, 250)
   } catch (e: any) { show(e?.data?.message || t('error')) }
   finally { busy.value = false }
+}
+/* Opening a question: a short head start to read it, then the options come
+   by themselves. A question whose clock already started (reopened, or a
+   reload) skips the head start — the clock has not been waiting. */
+function startReading() {
+  stopRead()
+  if (open.value.revealedAt) { revealOptions(); return }
+  readLeft.value = READ_MS / 1000
+  const until = Date.now() + READ_MS
+  readTick = setInterval(() => { readLeft.value = Math.max(0, Math.ceil((until - Date.now()) / 1000)) }, 200)
+  readTimer = setTimeout(() => { stopRead(); if (open.value) revealOptions() }, READ_MS)
 }
 const K = ['Α', 'Β', 'Γ', 'Δ', 'Ε', 'Ζ']
 const DAYS = ['Δ', 'Τ', 'Τ', 'Π', 'Π', 'Σ', 'Κ']
@@ -68,9 +106,11 @@ function tap(c: any) {
   picked.value = null
   reveal.value = null
   elapsed.value = 0
-  stopTicker()
+  stopTicker(); stopRead()
   open.value = c
+  if (!c.answer && !c.closed) startReading()
 }
+watch(open, v => { if (!v) { stopTicker(); stopRead() } })
 async function submit() {
   if (picked.value == null || !open.value || busy.value) return
   busy.value = true
@@ -132,10 +172,11 @@ function optClass(c: any, o: any) {
           <div v-if="open.isBonus" class="pill sched" style="align-self:center">🎁 {{ t('bonusQuestion') }}</div>
           <div style="font-size:15px;font-weight:650;line-height:1.4">{{ lx(open, 'question') }}</div>
 
-          <!-- read first, then start the clock -->
+          <!-- a few seconds to read, then the options appear on their own -->
           <template v-if="!open.answer && !open.closed && !reveal">
-            <div class="tiny muted" style="text-align:center">{{ t('readFirst') }}</div>
-            <button class="btn" :disabled="busy" @click="revealOptions">{{ t('showOptions') }}</button>
+            <div class="timer" style="justify-content:center">
+              <span>👀</span><b>{{ readLeft }}</b><span class="tiny">{{ t('readCountdown') }}</span>
+            </div>
           </template>
 
           <template v-else>

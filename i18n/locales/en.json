@@ -553,7 +553,7 @@
   "whichMember": "Which {member}?",
   "awardToMember": "Award to {member}",
   "awardToUnit": "Award to {unit}",
-  "editParentPost": "Edit notice",
+  "editParentPost": "Edit announcement",
   "removePdf": "Remove PDF",
   "parentLookupPh": "Type the name — if they already exist, they will appear",
   "existingParents": "Already exists",
@@ -565,5 +565,12 @@
   "installFamilyTitle": "For parents",
   "installFamilyNote": "Open the parents' page first (the button at the bottom) and add THAT to your home screen. The icon opens whichever page you added it from.",
   "installGoFamily": "Parent sign-in with my code",
-  "confirmDeleteUnit": "Delete this {unit}? Its members stay in the sector, unassigned."
+  "confirmDeleteUnit": "Delete this {unit}? Its members stay in the sector, unassigned.",
+  "nextActivity": "Next activity",
+  "notifPromptTitle": "Want to hear first?",
+  "notifPromptBody": "With notifications on you get announcements, event reminders and sector news, even when the app is closed.",
+  "notifPromptIos": "On iPhone, notifications only work once the app is added to the home screen. You can turn them on later from Settings.",
+  "notifPromptEnable": "Turn on notifications",
+  "notifPromptLater": "Later",
+  "readCountdown": "read the question — options coming"
 }

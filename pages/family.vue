@@ -22,6 +22,26 @@ const info = ref<any[]>([])
 const openInfo = ref<any>(null)
 const settingsOpen = ref(false)
 
+/* The bell, as the members have it: recent notifications, unread count,
+   tap to mark read and expand. */
+const notifs = ref<any[]>([])
+const notifOpen = ref(false)
+const expanded = ref<number | null>(null)
+const unread = computed(() => notifs.value.filter(n => !n.read).length)
+async function loadNotifs() {
+  try { notifs.value = await $fetch<any[]>('/api/family/notifications') } catch { notifs.value = [] }
+}
+async function toggleNotif(n: any) {
+  if (!n.read) { n.read = true; $fetch(`/api/family/notifications/${n.id}`, { method: 'POST' }).catch(() => {}) }
+  expanded.value = expanded.value === n.id ? null : n.id
+}
+function fmtWhen(iso: string) {
+  const d = new Date(iso), diff = (Date.now() - d.getTime()) / 60000
+  if (diff < 60) return `${Math.max(1, Math.round(diff))}′`
+  if (diff < 60 * 24) return `${Math.round(diff / 60)}h`
+  return fmtDate(iso, locale.value)
+}
+
 /* Which child the page is about. Everything below filters on their sector;
    troop-wide items (sectionId null) show for every child. */
 const childId = ref<number | null>(null)
@@ -46,6 +66,7 @@ async function load() {
     // the Αγέλη's own corner — empty for every other sector
     pack.value = await $fetch('/api/family/pack').catch(() => null)
     info.value = await $fetch<any[]>('/api/family/info').catch(() => [])
+    loadNotifs()
     ;[posts.value, events.value] = await Promise.all([
       $fetch<any[]>('/api/family/posts'),
       $fetch<any[]>('/api/family/calendar')
@@ -103,6 +124,9 @@ async function enableNotifs() {
           <button class="lang" :aria-label="t('language')" @click="setLocale(locale === 'el' ? 'en' : 'el')">
             <b :class="{ on: locale === 'el' }">ΕΛ</b><b :class="{ on: locale === 'en' }">EN</b>
           </button>
+          <button v-if="me" class="iconbtn" style="position:relative" :aria-label="t('notifications')" @click="notifOpen = true; loadNotifs()">
+            🔔<span v-if="unread" class="notif-dot">{{ unread > 9 ? '9+' : unread }}</span>
+          </button>
           <button v-if="me" class="iconbtn" :aria-label="t('settings')" @click="settingsOpen = true">⚙️</button>
         </div>
       </div>
@@ -134,15 +158,16 @@ async function enableNotifs() {
         </div>
 
         <!-- what is next for this child, whichever sector they are in -->
-        <div v-if="nextEvent" class="banner" style="pointer-events:none">
-          <div class="ico">📅</div>
-          <div>
-            <b>{{ nextEvent.themeEl || lx(nextEvent) }}</b>
-            <span>
-              {{ t('nextMeeting') }} · {{ fmtDate(nextEvent.startsAt, locale) }} · {{ sub(nextEvent) }}
-            </span>
+        <template v-if="nextEvent">
+          <div class="sec-title">{{ t('nextActivity') }}</div>
+          <div class="banner" style="pointer-events:none">
+            <div class="ico">📅</div>
+            <div>
+              <b>{{ nextEvent.themeEl || lx(nextEvent) }}</b>
+              <span>{{ fmtDate(nextEvent.startsAt, locale) }} · {{ sub(nextEvent) }}</span>
+            </div>
           </div>
-        </div>
+        </template>
 
         <!-- Αγέλη and Μικρή Αγέλη: those children never sign in, so this
              week's tasks are read here -->
@@ -159,7 +184,7 @@ async function enableNotifs() {
           </template>
         </template>
 
-        <div class="sec-title">{{ t('announce') }}</div>
+        <div class="sec-title">{{ t('parentPosts') }}</div>
         <div v-if="shownPosts.length" class="adm">
           <button v-for="p in shownPosts" :key="p.id" class="it" style="align-items:flex-start" @click="openPost = p">
             <div style="flex:1;min-width:0">
@@ -208,7 +233,33 @@ async function enableNotifs() {
       </template>
     </main>
 
+    <!-- once per device: how to turn notifications on -->
+    <NotifPrompt v-if="me" kind="family" :section="childSection?.slug" />
+
     <Teleport to="body">
+      <div v-if="notifOpen" class="sheet-backdrop" @click.self="notifOpen = false">
+        <div class="sheet" style="max-height:80dvh;overflow:auto;display:flex;flex-direction:column;gap:10px">
+          <h3 style="margin:0;font-size:17px;text-align:center">{{ t('notifications') }}</h3>
+          <template v-if="notifs.length">
+            <button v-for="n in notifs" :key="n.id" class="notif-row" :class="{ unread: !n.read }" @click="toggleNotif(n)">
+              <div class="notif-dotmark" :class="{ on: !n.read }" />
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;justify-content:space-between;gap:8px">
+                  <b style="font-size:13px">{{ n.title }}</b>
+                  <span class="tiny muted" style="flex:none">{{ fmtWhen(n.createdAt) }}</span>
+                </div>
+                <p style="margin:3px 0 0;font-size:12.5px;color:var(--muted)"
+                   :style="expanded === n.id ? 'white-space:normal' : 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis'">
+                  {{ n.body }}
+                </p>
+              </div>
+            </button>
+          </template>
+          <div v-else class="empty">{{ t('noNotifs') }}</div>
+          <button class="btn ghost" @click="notifOpen = false">{{ t('close') }}</button>
+        </div>
+      </div>
+
       <div v-if="settingsOpen" class="sheet-backdrop" @click.self="settingsOpen = false">
         <div class="sheet" style="display:flex;flex-direction:column;gap:12px">
           <h3 style="margin:0;font-size:17px;text-align:center">{{ t('settings') }}</h3>
@@ -261,4 +312,15 @@ async function enableNotifs() {
   width:38px; height:38px; border-radius:12px; border:1px solid rgba(255,255,255,.35);
   background:rgba(255,255,255,.14); color:#fff; font-size:17px; display:grid; place-items:center;
 }
+.notif-dot{
+  position:absolute; top:-4px; right:-4px; min-width:16px; height:16px; padding:0 3px; border-radius:999px;
+  background:var(--danger); color:#fff; font-size:9px; font-weight:700; display:grid; place-items:center; line-height:1;
+}
+.notif-row{
+  background:var(--card); border:0; border-radius:16px; padding:11px 13px; display:flex; gap:10px; align-items:flex-start;
+  width:100%; text-align:left; box-shadow:var(--shadow-sm);
+}
+.notif-row.unread{background:var(--accent-soft)}
+.notif-dotmark{flex:none; width:8px; height:8px; border-radius:50%; margin-top:5px; background:transparent}
+.notif-dotmark.on{background:var(--accent)}
 </style>

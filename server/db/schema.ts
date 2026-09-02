@@ -476,6 +476,20 @@ export const familyContacts = pgTable('family_contacts', {
   createdAt: text('created_at')
 }, t => [uniqueIndex('family_contact_uq').on(t.sectionId, t.email)])
 
+/** A parent's in-app inbox — the same bell the members have. Rows are written
+    whenever a named parent is pushed, so the message survives a push that
+    never arrived or was never allowed. */
+export const parentNotifications = pgTable('parent_notifications', {
+  id: serial('id').primaryKey(),
+  parentId: integer('parent_id').notNull().references(() => parents.id),
+  kind: text('kind').notNull(),
+  refId: integer('ref_id'),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  createdAt: text('created_at').notNull(),
+  readAt: text('read_at')
+})
+
 export const notifications = pgTable('notifications', {
   id: serial('id').primaryKey(),
   scoutId: integer('scout_id').notNull().references(() => scouts.id),

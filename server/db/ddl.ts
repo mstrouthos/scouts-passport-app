@@ -224,6 +224,14 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TEXT NOT NULL, read_at TEXT
 );
 CREATE INDEX IF NOT EXISTS notifications_scout_idx ON notifications(scout_id, created_at);
+CREATE TABLE IF NOT EXISTS parent_notifications (
+  id SERIAL PRIMARY KEY,
+  parent_id INTEGER NOT NULL REFERENCES parents(id),
+  kind TEXT NOT NULL, ref_id INTEGER,
+  title TEXT NOT NULL, body TEXT NOT NULL,
+  created_at TEXT NOT NULL, read_at TEXT
+);
+CREATE INDEX IF NOT EXISTS parent_notifications_parent_idx ON parent_notifications(parent_id, created_at);
 CREATE TABLE IF NOT EXISTS notify_groups (
   id SERIAL PRIMARY KEY,
   name_el TEXT NOT NULL, name_en TEXT,

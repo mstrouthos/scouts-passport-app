@@ -66,20 +66,26 @@ export async function sendPushTo(scoutIds: number[], msg: { title: string, body:
 export async function sendPushToParentIds(parentIds: number[], msg: { title: string, body: string, kind: string, refId: number }): Promise<number> {
   if (!parentIds.length) return 0
   const db = (await useDb())
-  const ids = new Set(parentIds)
-  const subs = (await db.select().from(s.pushSubscriptions)).filter(x => x.parentId != null && ids.has(x.parentId))
-  if (!subs.length) return 0
-  // negative keys keep parent rows from colliding with scout ids in the log
+  // negative keys keep parent rows from colliding with scout ids in the log;
+  // the dedupe runs over every named parent, subscribed or not, because the
+  // inbox row below must be written exactly once as well
   const fresh: number[] = []
-  for (const pid of [...new Set(subs.map(x => x.parentId!))]) {
+  for (const pid of [...new Set(parentIds)]) {
     try {
       await db.insert(s.notificationLog).values({ scoutId: -1_000_000 - pid, kind: msg.kind, refId: msg.refId, sentAt: now() })
       fresh.push(pid)
     } catch { /* already sent to this parent */ }
   }
   if (!fresh.length) return 0
+  // the bell: the message is there to read whether or not a push got through
+  const sentAt = now()
+  await db.insert(s.parentNotifications).values(fresh.map(pid => ({
+    parentId: pid, kind: msg.kind, refId: msg.refId, title: msg.title, body: msg.body, createdAt: sentAt
+  })))
+  const subs = (await db.select().from(s.pushSubscriptions)).filter(x => x.parentId != null && fresh.includes(x.parentId))
+  if (!subs.length) return 0
   const url = linkForNotification(msg.kind, msg.refId) || '/family'
-  return deliver(subs.filter(x => fresh.includes(x.parentId!)), JSON.stringify({ title: msg.title, body: msg.body, url }))
+  return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body, url }))
 }
 
 /** Push to anonymous parent subscriptions. sectionIds null = every parent sub.

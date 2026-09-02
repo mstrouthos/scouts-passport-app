@@ -168,6 +168,9 @@ function goBack() {
 
     <div v-if="msg" class="toast">{{ msg }}</div>
 
+    <!-- once per device: how to turn notifications on -->
+    <NotifPrompt v-if="me" kind="member" />
+
     <Teleport to="body">
       <div v-if="notifOpen" class="sheet-backdrop" @click.self="notifOpen = false">
         <div class="sheet" style="max-height:80dvh;overflow:auto;display:flex;flex-direction:column;gap:10px">
