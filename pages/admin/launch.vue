@@ -14,7 +14,6 @@ type Row = { kind: 'scout' | 'parent', id: number, name: string, where: string |
   activated: boolean, hasPhone: boolean, lastLoginAt: string | null }
 
 const picked = ref<Set<string>>(new Set())
-const includeInstall = ref(true)
 const busy = ref(false)
 const report = ref<any>(null)
 const onlyPending = ref(false)
@@ -70,7 +69,7 @@ async function send(reallySend: boolean) {
       body: {
         scoutIds: ids.filter(k => k.startsWith('scout:')).map(k => Number(k.slice(6))),
         parentIds: ids.filter(k => k.startsWith('parent:')).map(k => Number(k.slice(7))),
-        includeInstall: includeInstall.value, send: reallySend
+        send: reallySend
       }
     })
     picked.value = new Set()
@@ -129,10 +128,7 @@ async function send(reallySend: boolean) {
     </div>
 
     <div class="sticky">
-      <label class="tiny" style="display:flex;align-items:center;gap:7px;cursor:pointer">
-        <input v-model="includeInstall" type="checkbox">
-        {{ t('includeInstallLink') }}
-      </label>
+      <div class="tiny muted">📲 {{ t('installAlwaysIncluded') }}</div>
       <div class="tiny muted">{{ t('reissueWarning') }}</div>
       <div style="display:flex;gap:8px">
         <button class="btn" style="flex:1" :disabled="!picked.size || busy" @click="send(true)">

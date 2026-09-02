@@ -32,11 +32,13 @@ export default defineEventHandler(async (event) => {
       await setUserSession(event, { user: { id: me.id, role: me.role, pv: passcodeVersion(hmac) } })
   }
 
-  // Kept short on purpose: Greek text is sent as UCS-2, which fits only ~70
-  // characters per SMS part, so a longer message costs (and can fail) double.
+  // Every code travels with the install instructions: a code alone leaves the
+  // person at a browser tab, not at an app on their home screen. Kept as tight
+  // as it goes — Greek is UCS-2, ~70 characters per SMS part.
+  const origin = getRequestURL(event).origin
   const message = row.locale === 'en'
-    ? `Scout Passport: your login code is ${passcode}`
-    : `Πύλη Προσκόπων: ο κωδικός εισόδου σου είναι ${passcode}`
+    ? `Scout Passport: code ${passcode}. Install: ${origin}/install`
+    : `Πύλη Προσκόπων: κωδικός ${passcode}. Οδηγίες: ${origin}/install`
   const sent = (await sendSms([row.phone], message)) > 0
 
   return { passcode, sent }

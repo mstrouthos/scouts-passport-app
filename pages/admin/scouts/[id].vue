@@ -73,8 +73,33 @@ const parentCode = ref<{ id: number, passcode: string, sent: boolean, via: strin
 const pPhoneValid = computed(() => !pForm.phone || /^\+357\d{8}$/.test(pForm.phone))
 const pCanSave = computed(() => !!pForm.name.trim() && (!!pForm.email.trim() || !!pForm.phone) && pPhoneValid.value)
 
+/* Before creating a parent, look them up: a family is one row linked to every
+   child, and the second child's leader should find the parent the first
+   child's leader already entered. The lookup runs on the name as it is typed. */
+const matches = ref<any[]>([])
+let lookupTimer: any = null
+watch(() => pForm.name, (v) => {
+  clearTimeout(lookupTimer)
+  const q = (v || '').trim()
+  if (q.length < 2) { matches.value = []; return }
+  lookupTimer = setTimeout(async () => {
+    try { matches.value = await $fetch<any[]>('/api/admin/parents/search', { query: { q } }) }
+    catch { matches.value = [] }
+  }, 250)
+})
+const linkable = computed(() => matches.value.filter(m => !m.childIds.includes(Number(id))))
+async function linkParent(m: any) {
+  if (pBusy.value) return
+  pBusy.value = true
+  try {
+    await $fetch(`/api/admin/parents/${m.id}/link`, { method: 'POST', body: { scoutId: Number(id) } })
+    addingParent.value = false; matches.value = []
+    await refreshParents(); show('✅ ' + t('parentLinked', { name: m.name }))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+  finally { pBusy.value = false }
+}
 function openAddParent() {
-  pForm.name = ''; pForm.email = ''; pForm.phone = null
+  pForm.name = ''; pForm.email = ''; pForm.phone = null; matches.value = []
   addingParent.value = true
 }
 async function saveParent() {
@@ -87,11 +112,14 @@ async function saveParent() {
   } catch (e: any) { show(e?.data?.message || t('error')) }
   finally { pBusy.value = false }
 }
+/* Taking a parent off this child. When the family has another child the row
+   stays, linked to them; only a parent with no other child is deleted. */
 async function removeParent(p: any) {
-  if (!confirm(t('confirmDeleteParent'))) return
+  const others = (p.children || 1) - 1
+  if (!confirm(others > 0 ? t('confirmUnlinkParent', { name: p.name, n: others }) : t('confirmDeleteParent'))) return
   try {
-    await $fetch(`/api/admin/parents/${p.id}`, { method: 'DELETE' })
-    await refreshParents(); show('🗑️ ' + t('deleted'))
+    await $fetch(`/api/admin/scouts/${id}/parents/${p.id}`, { method: 'DELETE' })
+    await refreshParents(); show(others > 0 ? '✅ ' + t('parentUnlinked') : '🗑️ ' + t('deleted'))
   } catch (e: any) { show(e?.data?.message || t('error')) }
 }
 async function issueParentCode(p: any, via: 'sms' | 'email' | 'none') {
@@ -253,7 +281,18 @@ async function deleteScout() {
           <div v-else class="tiny muted">{{ t('noParentsYet') }}</div>
 
           <template v-if="addingParent">
-            <div><label class="lab">{{ t('name') }}</label><input v-model="pForm.name" class="in"></div>
+            <div><label class="lab">{{ t('name') }}</label><input v-model="pForm.name" class="in" :placeholder="t('parentLookupPh')"></div>
+            <!-- someone by that name already exists: link, don't duplicate -->
+            <div v-if="linkable.length" class="adm" style="box-shadow:none;border:1px solid var(--line)">
+              <div class="hdr">{{ t('existingParents') }}</div>
+              <button v-for="m in linkable" :key="m.id" class="it" :disabled="pBusy" @click="linkParent(m)">
+                <div style="flex:1;min-width:0">
+                  <b>{{ m.name }}</b>
+                  <span>{{ [m.phone, m.email].filter(Boolean).join(' · ') || '—' }}<template v-if="m.children.length"> · 👦 {{ m.children.join(', ') }}</template></span>
+                </div>
+                <span class="chip" style="flex:none">{{ t('linkParent') }}</span>
+              </button>
+            </div>
             <div><label class="lab">{{ t('email') }}</label><input v-model="pForm.email" class="in" type="email" inputmode="email"></div>
             <div><label class="lab">{{ t('phone') }}</label><PhoneInput v-model="pForm.phone" /></div>
             <div class="tiny muted">{{ t('parentContactHint') }}</div>

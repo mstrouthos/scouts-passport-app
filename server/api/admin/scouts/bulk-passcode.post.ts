@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   await assertCan(me, 'roster.edit')
 
-  const b = await readBody<{ scoutIds?: number[], parentIds?: number[], includeInstall?: boolean, send?: boolean }>(event)
+  const b = await readBody<{ scoutIds?: number[], parentIds?: number[], send?: boolean }>(event)
   const ids = [...new Set((b?.scoutIds || []).map(Number).filter(Number.isInteger))]
   const parentIds = [...new Set((b?.parentIds || []).map(Number).filter(Number.isInteger))]
   if (!ids.length && !parentIds.length) throw createError({ statusCode: 400, message: 'Nobody selected' })
@@ -33,10 +33,10 @@ export default defineEventHandler(async (event) => {
   const rows = (await db.select().from(s.scouts)).filter(r => ids.includes(r.id) && r.isActive)
 
   const results: Array<{ id: number, kind: 'scout' | 'parent', name: string, passcode: string, sent: boolean, reason?: string }> = []
-  const text = (passcode: string) => b?.includeInstall
-    // Greek is UCS-2, ~70 characters per SMS part — keep it to one where we can
-    ? `Πύλη Προσκόπων: κωδικός ${passcode}. Οδηγίες: ${origin}/install`
-    : `Πύλη Προσκόπων: ο κωδικός σου είναι ${passcode}`
+  // Every code travels with the install instructions — a code without a way
+  // to get the app onto the phone is half a message. Greek is UCS-2, ~70
+  // characters per SMS part, so this is kept as tight as it will go.
+  const text = (passcode: string) => `Πύλη Προσκόπων: κωδικός ${passcode}. Οδηγίες: ${origin}/install`
 
   for (const r of rows) {
     const passcode = generatePasscode()

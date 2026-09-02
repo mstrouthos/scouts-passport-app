@@ -554,5 +554,12 @@
   "awardToMember": "Απονομή σε {member}",
   "awardToUnit": "Απονομή σε {unit}",
   "editParentPost": "Επεξεργασία ειδοποίησης",
-  "removePdf": "Αφαίρεση PDF"
+  "removePdf": "Αφαίρεση PDF",
+  "parentLookupPh": "Γράψε το όνομα — αν υπάρχει ήδη, θα εμφανιστεί",
+  "existingParents": "Υπάρχει ήδη",
+  "linkParent": "Σύνδεση",
+  "parentLinked": "Συνδέθηκε: {name}",
+  "confirmUnlinkParent": "Να αφαιρεθεί ο/η {name} από αυτό το παιδί; Παραμένει γονέας των άλλων {n} παιδιών.",
+  "parentUnlinked": "Αφαιρέθηκε από αυτό το παιδί",
+  "installAlwaysIncluded": "Κάθε κωδικός στέλνεται μαζί με τις οδηγίες εγκατάστασης."
 }

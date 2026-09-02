@@ -554,5 +554,12 @@
   "awardToMember": "Award to {member}",
   "awardToUnit": "Award to {unit}",
   "editParentPost": "Edit notice",
-  "removePdf": "Remove PDF"
+  "removePdf": "Remove PDF",
+  "parentLookupPh": "Type the name — if they already exist, they will appear",
+  "existingParents": "Already exists",
+  "linkParent": "Link",
+  "parentLinked": "Linked: {name}",
+  "confirmUnlinkParent": "Remove {name} from this child? They stay a parent of their other {n} child(ren).",
+  "parentUnlinked": "Removed from this child",
+  "installAlwaysIncluded": "Every code goes out with the install instructions."
 }
