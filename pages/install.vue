@@ -3,6 +3,11 @@
    from the SMS that carries someone's access code, before they can sign in. */
 const { t, locale, setLocale } = useI18n()
 const tab = ref<'ios' | 'android'>('ios')
+/* Parents and members sign in at different doors. The link in a parent's code
+   carries ?for=family, so this page sends them to theirs — and tells them to
+   pin THAT page, since the icon opens wherever it was added from. */
+const forFamily = computed(() => useRoute().query.for === 'family')
+const signInPath = computed(() => forFamily.value ? '/family' : '/login')
 onMounted(() => {
   // open on whichever platform the reader is holding
   if (/android/i.test(navigator.userAgent)) tab.value = 'android'
@@ -30,6 +35,7 @@ const ANDROID = ['installAnd1', 'installAnd2', 'installAnd3', 'installAnd4']
 
     <main class="content" style="padding-bottom:40px">
       <div class="note">{{ t('installWhy') }}</div>
+      <div v-if="forFamily" class="note"><b>👨‍👩‍👧 {{ t('installFamilyTitle') }}</b>{{ t('installFamilyNote') }}</div>
 
       <div class="seg">
         <button :class="{ on: tab === 'ios' }" @click="tab = 'ios'">🍎 iPhone</button>
@@ -45,7 +51,7 @@ const ANDROID = ['installAnd1', 'installAnd2', 'installAnd3', 'installAnd4']
 
       <div class="note"><b>💡 {{ t('installTip') }}</b>{{ tab === 'ios' ? t('installIosTip') : t('installAndTip') }}</div>
 
-      <NuxtLink to="/login" class="btn">{{ t('installGoSignIn') }}</NuxtLink>
+      <NuxtLink :to="signInPath" class="btn">{{ forFamily ? t('installGoFamily') : t('installGoSignIn') }}</NuxtLink>
     </main>
   </div>
 </template>

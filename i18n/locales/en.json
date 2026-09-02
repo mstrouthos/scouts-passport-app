@@ -561,5 +561,8 @@
   "parentLinked": "Linked: {name}",
   "confirmUnlinkParent": "Remove {name} from this child? They stay a parent of their other {n} child(ren).",
   "parentUnlinked": "Removed from this child",
-  "installAlwaysIncluded": "Every code goes out with the install instructions."
+  "installAlwaysIncluded": "Every code goes out with the install instructions.",
+  "installFamilyTitle": "For parents",
+  "installFamilyNote": "Open the parents' page first (the button at the bottom) and add THAT to your home screen. The icon opens whichever page you added it from.",
+  "installGoFamily": "Parent sign-in with my code"
 }

@@ -36,7 +36,8 @@ export default defineEventHandler(async (event) => {
   // Every code travels with the install instructions — a code without a way
   // to get the app onto the phone is half a message. Greek is UCS-2, ~70
   // characters per SMS part, so this is kept as tight as it will go.
-  const text = (passcode: string) => `Πύλη Προσκόπων: κωδικός ${passcode}. Οδηγίες: ${origin}/install`
+  const text = (passcode: string, who: 'scout' | 'parent' = 'scout') =>
+    `Πύλη Προσκόπων: κωδικός ${passcode}. Οδηγίες: ${origin}/install${who === 'parent' ? '?for=family' : ''}`
 
   for (const r of rows) {
     const passcode = generatePasscode()
@@ -81,7 +82,7 @@ export default defineEventHandler(async (event) => {
       if (b?.send === false) reason = 'notSent'
       else if (!r.phone) reason = 'noPhone'
       else {
-        sent = (await sendSms([r.phone], text(passcode))) > 0
+        sent = (await sendSms([r.phone], text(passcode, 'parent'))) > 0
         if (!sent) reason = 'smsFailed'
       }
       results.push({ id: r.id, kind: 'parent', name: r.name, passcode, sent, reason })

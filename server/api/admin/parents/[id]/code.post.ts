@@ -29,11 +29,11 @@ export default defineEventHandler(async (event) => {
   let sent = false
   if (via === 'sms') {
     // kept short: Greek is UCS-2, ~70 chars per SMS part
-    sent = (await sendSms([p.phone!], `Πύλη Προσκόπων: κωδικός γονέα ${passcode}. Οδηγίες: ${origin}/install`)) > 0
+    sent = (await sendSms([p.phone!], `Πύλη Προσκόπων: κωδικός γονέα ${passcode}. Οδηγίες: ${origin}/install?for=family`)) > 0
   } else if (via === 'email') {
     const body = `Καλησπέρα ${p.name},\n\n` +
       `Ο κωδικός σας για την ενημέρωση γονέων (${section?.nameEl ?? ''}) είναι: ${passcode}\n\n` +
-      `Οδηγίες για να βάλετε την εφαρμογή στο κινητό σας: ${origin}/install\n` +
+      `Οδηγίες για να βάλετε την εφαρμογή στο κινητό σας: ${origin}/install?for=family\n` +
       `Συνδεθείτε εδώ: ${origin}/family\n\n` +
       `Θα βλέπετε το πρόγραμμα και τις ειδοποιήσεις του τμήματος του παιδιού σας.`
     sent = (await sendEmails([p.email!], 'Κωδικός γονέα — Πύλη Προσκόπων', body)) > 0
