@@ -190,7 +190,7 @@ async function enableNotifs() {
         <div class="sec-title" style="display:flex;justify-content:space-between;align-items:center">
           <span>{{ t('calendar') }}</span>
           <!-- the whole diary into the phone's calendar app, one child at a time -->
-          <a v-if="shownEvents.length" class="chip" style="text-decoration:none"
+          <a v-if="shownEvents.length" class="chip" target="_blank" rel="noopener" style="text-decoration:none"
              :href="`/api/family/calendar.ics${childSection ? '?section=' + childSection.id : ''}`">{{ t('addToCalendar') }}</a>
         </div>
         <div v-if="shownEvents.length" class="card" style="display:flex;flex-direction:column;gap:13px">
@@ -201,7 +201,7 @@ async function enableNotifs() {
               <span>{{ sub(e) }}</span>
               <p v-if="e.descriptionEl" class="desc">{{ e.descriptionEl }}</p>
             </div>
-            <a class="dl" :href="`/api/family/calendar.ics?event=${e.id}`" :aria-label="t('addToCalendar')">⬇</a>
+            <a class="dl" :href="`/api/family/calendar.ics?event=${e.id}`" target="_blank" rel="noopener" :aria-label="t('addToCalendar')">⬇</a>
           </div>
         </div>
         <div v-else class="empty">{{ t('noEvents') }}</div>
