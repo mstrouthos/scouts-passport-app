@@ -55,7 +55,7 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
     ...(toParents ? parents.map(p => p.email).filter(Boolean) as string[] : []),
     ...(toParents ? contacts.map(c => c.email) : [])
   ])]
-  const emailed = await sendEmails(addresses, 'Ανακοίνωση — Πύλη Προσκόπων', a.textEl)
+  const emailed = await sendEmails(addresses, 'Ειδοποίηση — Πύλη Προσκόπων', a.textEl)
 
   let smsSent = 0
   if (a.viaSms) {

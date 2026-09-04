@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
       `Ο κωδικός σας για την ενημέρωση γονέων (${section?.nameEl ?? ''}) είναι: ${passcode}\n\n` +
       `Οδηγίες για να βάλετε την εφαρμογή στο κινητό σας: ${origin}/install?for=family\n` +
       `Συνδεθείτε εδώ: ${origin}/family\n\n` +
-      `Θα βλέπετε το πρόγραμμα και τις ειδοποιήσεις του τμήματος του παιδιού σας.`
+      `Θα βλέπετε το πρόγραμμα και τις ανακοινώσεις του τμήματος του παιδιού σας.`
     sent = (await sendEmails([p.email!], 'Κωδικός γονέα — Πύλη Προσκόπων', body)) > 0
   }
   return { passcode, via, sent }
