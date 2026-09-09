@@ -16,6 +16,7 @@ const err = ref('')
 const busy = ref(false)
 const subState = ref<'idle' | 'ok' | 'no'>('idle')
 const openPost = ref<any>(null)
+const openEvent = ref<any>(null)
 
 const pack = ref<any>(null)
 const info = ref<any[]>([])
@@ -50,7 +51,11 @@ const child = computed(() => children.value.find((c: any) => c.id === childId.va
 const childSection = computed(() => child.value?.section ?? me.value?.section ?? null)
 const forChild = (sectionId: number | null | undefined) => sectionId == null || sectionId === childSection.value?.id
 const shownPosts = computed(() => posts.value.filter(p => forChild(p.sectionId)))
-const shownEvents = computed(() => events.value.filter(e => forChild(e.sectionId)))
+const isPast = (e: any) => new Date(e.endsAt || e.startsAt).getTime() <= Date.now() - 86400_000
+const shownEvents = computed(() => events.value.filter(e => forChild(e.sectionId) && !isPast(e)))
+/* What already happened stays reachable — newest first, folded away until asked for. */
+const pastEvents = computed(() => events.value.filter(e => forChild(e.sectionId) && isPast(e)).reverse())
+const archiveOpen = ref(false)
 const shownInfo = computed(() => info.value.filter(p => forChild(p.sectionId)))
 const shownPacks = computed(() => (pack.value?.packs || []).filter((pk: any) => pk.sectionId === childSection.value?.id))
 /* What is coming up next for this child — the first thing in their diary. */
@@ -124,10 +129,11 @@ async function enableNotifs() {
           <button class="lang" :aria-label="t('language')" @click="setLocale(locale === 'el' ? 'en' : 'el')">
             <b :class="{ on: locale === 'el' }">ΕΛ</b><b :class="{ on: locale === 'en' }">EN</b>
           </button>
+          <!-- the same icons the members' header uses -->
           <button v-if="me" class="iconbtn" style="position:relative" :aria-label="t('notifications')" @click="notifOpen = true; loadNotifs()">
-            🔔<span v-if="unread" class="notif-dot">{{ unread > 9 ? '9+' : unread }}</span>
+            <NavIcon name="bell" /><span v-if="unread" class="notif-dot">{{ unread > 9 ? '9+' : unread }}</span>
           </button>
-          <button v-if="me" class="iconbtn" :aria-label="t('settings')" @click="settingsOpen = true">⚙️</button>
+          <button v-if="me" class="iconbtn" :aria-label="t('settings')" @click="settingsOpen = true"><NavIcon name="gear" /></button>
         </div>
       </div>
     </header>
@@ -160,13 +166,13 @@ async function enableNotifs() {
         <!-- what is next for this child, whichever sector they are in -->
         <template v-if="nextEvent">
           <div class="sec-title">{{ t('nextActivity') }}</div>
-          <div class="banner" style="pointer-events:none">
+          <button class="banner" style="width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer" @click="openEvent = nextEvent">
             <div class="ico">📅</div>
             <div>
               <b>{{ nextEvent.themeEl || lx(nextEvent) }}</b>
               <span>{{ fmtDate(nextEvent.startsAt, locale) }} · {{ sub(nextEvent) }}</span>
             </div>
-          </div>
+          </button>
         </template>
 
         <!-- Αγέλη and Μικρή Αγέλη: those children never sign in, so this
@@ -219,17 +225,30 @@ async function enableNotifs() {
              :href="`/api/family/calendar.ics${childSection ? '?section=' + childSection.id : ''}`">{{ t('addToCalendar') }}</a>
         </div>
         <div v-if="shownEvents.length" class="card" style="display:flex;flex-direction:column;gap:13px">
-          <div v-for="e in shownEvents" :key="e.id" class="ev">
+          <!-- tap for the details; the calendar button lives in there -->
+          <button v-for="e in shownEvents" :key="e.id" class="ev" @click="openEvent = e">
             <div class="date"><b>{{ fmtDay(e.startsAt, locale).d }}</b><span>{{ fmtDay(e.startsAt, locale).m }}</span></div>
             <div class="info">
               <b>{{ lx(e) }}</b>
               <span>{{ sub(e) }}</span>
-              <p v-if="e.descriptionEl" class="desc">{{ e.descriptionEl }}</p>
             </div>
-            <a class="dl" :href="`/api/family/calendar.ics?event=${e.id}`" target="_blank" rel="noopener" :aria-label="t('addToCalendar')">⬇</a>
-          </div>
+            <span class="chev">›</span>
+          </button>
         </div>
         <div v-else class="empty">{{ t('noEvents') }}</div>
+
+        <template v-if="pastEvents.length">
+          <button class="sec-title" style="display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer" @click="archiveOpen = !archiveOpen">
+            <span>🗄️ {{ t('archive') }} · {{ pastEvents.length }}</span><span class="chev" :style="archiveOpen ? 'transform:rotate(90deg)' : ''">›</span>
+          </button>
+          <div v-if="archiveOpen" class="card" style="display:flex;flex-direction:column;gap:13px;opacity:.85">
+            <button v-for="e in pastEvents" :key="e.id" class="ev" @click="openEvent = e">
+              <div class="date"><b>{{ fmtDay(e.startsAt, locale).d }}</b><span>{{ fmtDay(e.startsAt, locale).m }}</span></div>
+              <div class="info"><b>{{ lx(e) }}</b><span>{{ fmtDate(e.startsAt, locale) }} · {{ sub(e) }}</span></div>
+              <span class="chev">›</span>
+            </button>
+          </div>
+        </template>
       </template>
     </main>
 
@@ -285,6 +304,20 @@ async function enableNotifs() {
         </div>
       </div>
 
+      <div v-if="openEvent" class="sheet-backdrop" @click.self="openEvent = null">
+        <div class="sheet" style="max-height:86dvh;overflow:auto;display:flex;flex-direction:column;gap:12px">
+          <div style="text-align:center;font-size:32px">📅</div>
+          <h3 style="margin:0;font-size:17px;text-align:center">{{ openEvent.themeEl || lx(openEvent) }}</h3>
+          <div class="tiny muted" style="text-align:center">{{ fmtDate(openEvent.startsAt, locale) }} · {{ sub(openEvent) }}</div>
+          <div v-if="openEvent.themeEl" style="font-size:13.5px"><b>{{ t('meetingTheme') }}:</b> {{ openEvent.themeEl }}</div>
+          <p v-if="openEvent.descriptionEl" style="margin:0;font-size:13.5px;line-height:1.6;white-space:pre-wrap">{{ openEvent.descriptionEl }}</p>
+          <a class="btn" :href="`/api/family/calendar.ics?event=${openEvent.id}`" target="_blank" rel="noopener" style="text-decoration:none">
+            {{ t('addToCalendar') }}
+          </a>
+          <button class="btn ghost" @click="openEvent = null">{{ t('close') }}</button>
+        </div>
+      </div>
+
       <div v-if="openPost" class="sheet-backdrop" @click.self="openPost = null">
         <div class="sheet" style="max-height:86dvh;overflow:auto;display:flex;flex-direction:column;gap:13px">
           <h3 style="margin:0;font-size:17px;text-align:center">{{ openPost.titleEl }}</h3>
@@ -308,10 +341,6 @@ async function enableNotifs() {
   flex:none; align-self:center; width:30px; height:30px; border-radius:9px; display:grid; place-items:center;
   color:var(--accent-deep); background:var(--bg2); text-decoration:none; font-size:14px;
 }
-.iconbtn{
-  width:38px; height:38px; border-radius:12px; border:1px solid rgba(255,255,255,.35);
-  background:rgba(255,255,255,.14); color:#fff; font-size:17px; display:grid; place-items:center;
-}
 .notif-dot{
   position:absolute; top:-4px; right:-4px; min-width:16px; height:16px; padding:0 3px; border-radius:999px;
   background:var(--danger); color:#fff; font-size:9px; font-weight:700; display:grid; place-items:center; line-height:1;
@@ -323,4 +352,6 @@ async function enableNotifs() {
 .notif-row.unread{background:var(--accent-soft)}
 .notif-dotmark{flex:none; width:8px; height:8px; border-radius:50%; margin-top:5px; background:transparent}
 .notif-dotmark.on{background:var(--accent)}
+.ev{background:none;border:0;padding:0;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.ev .chev{flex:none;align-self:center;color:var(--muted);font-size:18px}
 </style>

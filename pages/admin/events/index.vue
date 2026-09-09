@@ -31,13 +31,19 @@ const filters = computed(() => {
   }
   return out
 })
-const shown = computed(() => (data.value || []).filter(e => {
+const inFilter = computed(() => (data.value || []).filter(e => {
   if (filter.value === 'all') return true
   if (filter.value === 'troop') return e.scope === 'troop'
   if (filter.value === 'leaders') return e.scope === 'leaders'
   if (filter.value.startsWith('g')) return e.scope === 'group' && e.groupId === Number(filter.value.slice(1))
   return e.scope !== 'group' && e.sectionId === Number(filter.value.slice(1))
 }))
+const isPast = (e: any) => new Date(e.endsAt || e.startsAt).getTime() <= Date.now() - 86400_000
+const shown = computed(() => inFilter.value.filter(e => !isPast(e)))
+/* What already happened stays reachable — attendance, points and all — newest
+   first, folded away so the working list is what is still to come. */
+const past = computed(() => inFilter.value.filter(isPast).slice().reverse())
+const archiveOpen = ref(false)
 </script>
 
 <template>
@@ -60,6 +66,24 @@ const shown = computed(() => (data.value || []).filter(e => {
           {{ !e.editable ? '🔒 ' + t('readOnly') : e.reviewed ? t('reviewed') : t('pending') }}
         </span>
       </NuxtLink>
+    </div>
+    <div v-if="past.length" class="adm">
+      <button class="it" style="background:var(--bg2)" @click="archiveOpen = !archiveOpen">
+        <span class="chev" :style="archiveOpen ? 'transform:rotate(90deg)' : ''">›</span>
+        <div style="flex:1"><b>🗄️ {{ t('archive') }}</b><span>{{ t('pastEvents') }} · {{ past.length }}</span></div>
+      </button>
+      <template v-if="archiveOpen">
+        <NuxtLink v-for="e in past" :key="e.id" :to="`/admin/events/${e.id}`" class="it" style="opacity:.85">
+          <div class="date" style="flex:none;width:44px;text-align:center;background:var(--bg2);border-radius:12px;padding:5px 0">
+            <b style="display:block;font-size:16px;line-height:1">{{ fmtDay(e.startsAt, locale).d }}</b>
+            <span style="font-size:8.5px;text-transform:uppercase;color:var(--muted)">{{ fmtDay(e.startsAt, locale).m }}</span>
+          </div>
+          <div style="flex:1"><b><span class="dot" :class="e.scope" />{{ lx(e) }}</b>
+            <span>{{ fmtDate(e.startsAt, locale) }} · {{ e.scope === 'troop' ? t('wholeTroop') : e.scope === 'leaders' ? t('vathmoforoi') : e.scope === 'group' ? groupLabel(e) : lx(e, 'section') }}</span>
+          </div>
+          <span class="pill" :class="e.reviewed ? 'ok' : 'draft'">{{ e.reviewed ? t('reviewed') : t('pending') }}</span>
+        </NuxtLink>
+      </template>
     </div>
     <div v-if="!isTroop" class="tiny muted" style="text-align:center">{{ t('lockedEvents') }}</div>
     <NuxtLink v-if="me?.can?.events !== false" to="/admin/events/new" class="fab" aria-label="new">+</NuxtLink>

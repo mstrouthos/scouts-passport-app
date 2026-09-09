@@ -572,5 +572,7 @@
   "notifPromptIos": "On iPhone, notifications only work once the app is added to the home screen. You can turn them on later from Settings.",
   "notifPromptEnable": "Turn on notifications",
   "notifPromptLater": "Later",
-  "readCountdown": "read the question — options coming"
+  "readCountdown": "read the question — options coming",
+  "archive": "Archive",
+  "pastEvents": "Past events"
 }
