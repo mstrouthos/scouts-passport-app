@@ -575,5 +575,12 @@
   "readCountdown": "διάβασε την ερώτηση — οι απαντήσεις έρχονται",
   "archive": "Αρχείο",
   "pastEvents": "Παλαιότερες δράσεις",
-  "otherSectorMarks": "το σημειώνει ο Αρχηγός του τμήματός του"
+  "otherSectorMarks": "το σημειώνει ο Αρχηγός του τμήματός του",
+  "repeatQ": "Επανάληψη",
+  "repeat_none": "Μία φορά",
+  "repeat_daily": "Κάθε μέρα",
+  "repeat_weekly": "Κάθε εβδομάδα",
+  "repeat_monthly": "Κάθε μήνα",
+  "repeat_yearly": "Κάθε χρόνο, ίδια ημερομηνία",
+  "downloadPdf": "Λήψη"
 }

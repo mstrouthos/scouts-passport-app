@@ -405,6 +405,8 @@ export const announcements = pgTable('announcements', {
   // whether the parents of the recipients hear about it too
   toParents: boolean('to_parents').notNull().default(true),
   scheduledAt: text('scheduled_at'),
+  // a scheduled one may come round again: every day, week, month, or year
+  repeat: text('repeat', { enum: ['daily', 'weekly', 'monthly', 'yearly'] }),
   createdBy: integer('created_by').notNull(),
   createdAt: text('created_at').notNull(),
   approvedBy: integer('approved_by'),

@@ -74,6 +74,8 @@ export default defineNuxtConfig({
     smsToApiKey: '',
     smsSenderId: '',
     databaseUrl: '',
+    // attachments: set these and PDFs go to the bucket instead of the database
+    s3Bucket: '', s3Region: '', s3Endpoint: '', s3AccessKeyId: '', s3SecretAccessKey: '',
     public: {
       vapidPublicKey: ''
     }

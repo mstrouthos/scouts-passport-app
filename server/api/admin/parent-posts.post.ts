@@ -1,5 +1,6 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
+import { storeFile, deleteStored } from '../../utils/storage'
 import { now } from '../../utils/passcode'
 import { assertCan } from '../../utils/permissions'
 import { parentsOfSections } from '../../utils/parents'
@@ -32,12 +33,11 @@ export default defineEventHandler(async (event) => {
     const mime = String(b.file.mime || '')
     if (mime !== 'application/pdf')
       throw createError({ statusCode: 400, message: 'Only PDF files are accepted' })
-    const data = String(b.file.dataBase64)
-    const size = Math.floor(data.length * 3 / 4)
-    if (size > MAX_PDF) throw createError({ statusCode: 400, message: 'PDF is larger than 8 MB' })
+    const buf = Buffer.from(String(b.file.dataBase64), 'base64')
+    if (buf.length > MAX_PDF) throw createError({ statusCode: 400, message: 'PDF is larger than 8 MB' })
+    const name = String(b.file.name || 'announcement.pdf').slice(0, 120)
     const [f] = (await db.insert(s.files).values({
-      name: String(b.file.name || 'announcement.pdf').slice(0, 120),
-      mime, size, data, uploadedBy: me.id, createdAt: now()
+      name, mime, size: buf.length, data: await storeFile(buf, mime, name), uploadedBy: me.id, createdAt: now()
     }).returning())
     fileId = f.id
   }

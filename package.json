@@ -10,6 +10,8 @@
     "secrets": "node scripts/gen-secrets.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1128.0",
+    "@aws-sdk/s3-request-presigner": "^3.1128.0",
     "@nuxtjs/i18n": "^9.5.4",
     "@types/pg": "^8.23.1",
     "@vite-pwa/nuxt": "^1.0.4",

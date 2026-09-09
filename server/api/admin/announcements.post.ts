@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const b = await readBody<{
     audience?: string, sectionId?: number, groupId?: number,
     textEl?: string, textEn?: string,
-    viaSms?: boolean, toParents?: boolean, scheduledAt?: string
+    viaSms?: boolean, toParents?: boolean, scheduledAt?: string, repeat?: string
   }>(event)
   const text = String(b?.textEl || '').trim()
   if (!text) throw createError({ statusCode: 400, message: 'Message required' })
@@ -44,13 +44,17 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, message: 'scheduledAt is not a valid date' })
     if (when.getTime() > Date.now() + 60_000) scheduledAt = when.toISOString()
   }
+  // a repeat only means something with a schedule to repeat from
+  const repeat = scheduledAt && ['daily', 'weekly', 'monthly', 'yearly'].includes(String(b?.repeat)) ? String(b!.repeat) as any : null
+  {
+  }
   const viaSms = !!b?.viaSms
   // opt-in: an announcement reaches parents only when the sender asked
   const toParents = b?.toParents === true
 
   const canSendWithoutApproval = rank === 'admin' || rank === 'archigos'
   const [row] = (await db.insert(s.announcements).values({
-    audience, sectionId, groupId, textEl: text, textEn: b?.textEn || null,
+    audience, sectionId, groupId, textEl: text, textEn: b?.textEn || null, repeat,
     viaPush: true, viaSms, toParents, scheduledAt,
     // scheduled only counts once it is allowed to go out unattended
     status: canSendWithoutApproval && scheduledAt ? 'scheduled' : 'pending',

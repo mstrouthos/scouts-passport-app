@@ -575,5 +575,12 @@
   "readCountdown": "read the question — options coming",
   "archive": "Archive",
   "pastEvents": "Past events",
-  "otherSectorMarks": "marked by their own sector's leader"
+  "otherSectorMarks": "marked by their own sector's leader",
+  "repeatQ": "Repeat",
+  "repeat_none": "Once",
+  "repeat_daily": "Every day",
+  "repeat_weekly": "Every week",
+  "repeat_monthly": "Every month",
+  "repeat_yearly": "Every year, same date",
+  "downloadPdf": "Download"
 }

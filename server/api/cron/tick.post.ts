@@ -4,6 +4,7 @@ import { sendPushTo, sendPushToParents } from '../../utils/push'
 import { dispatchAnnouncement } from '../../utils/announce'
 import { sectionOf, sectionOfWith } from '../../utils/guard'
 import { now, isAfter, isAtOrBefore } from '../../utils/passcode'
+import { nextOccurrence } from '../../utils/recur'
 
 /** Hit by host cron every few minutes with the token:
     curl -X POST -H "x-cron-token: $TOKEN" https://.../api/cron/tick */
@@ -56,6 +57,17 @@ export default defineEventHandler(async (event) => {
     const res = await dispatchAnnouncement(a, a.createdBy)
     announced++
     notified += res.pushed
+    // a repeating one is queued again for its next time; the sent row stays
+    // as history, so the list shows what went out and what is still to come
+    if (a.repeat) {
+      await db.insert(s.announcements).values({
+        audience: a.audience, sectionId: a.sectionId, groupId: a.groupId,
+        textEl: a.textEl, textEn: a.textEn, status: 'scheduled',
+        viaPush: a.viaPush, viaSms: a.viaSms, toParents: a.toParents,
+        scheduledAt: nextOccurrence(a.scheduledAt, a.repeat as any), repeat: a.repeat,
+        createdBy: a.createdBy, createdAt: t, approvedBy: a.approvedBy
+      })
+    }
   }
 
   return { ok: true, notified, announced, at: t }

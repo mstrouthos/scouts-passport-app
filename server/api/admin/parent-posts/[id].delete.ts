@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, scopedSectionIds, idParam } from '../../../utils/guard'
+import { deleteStored } from '../../../utils/storage'
 import { assertCan } from '../../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
@@ -15,6 +16,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Out of your sector' })
 
   await db.delete(s.parentPosts).where(eq(s.parentPosts.id, id))
-  if (post.fileId != null) await db.delete(s.files).where(eq(s.files.id, post.fileId))
+  if (post.fileId != null) {
+    const old = (await db.select().from(s.files).where(eq(s.files.id, post.fileId)).limit(1))[0]
+    await db.delete(s.files).where(eq(s.files.id, post.fileId))
+    if (old) await deleteStored(old.data)
+  }
   return { ok: true }
 })

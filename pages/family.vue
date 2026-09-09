@@ -322,9 +322,15 @@ async function enableNotifs() {
         <div class="sheet" style="max-height:86dvh;overflow:auto;display:flex;flex-direction:column;gap:13px">
           <h3 style="margin:0;font-size:17px;text-align:center">{{ openPost.titleEl }}</h3>
           <p v-if="openPost.bodyEl" style="font-size:13.5px;line-height:1.6;white-space:pre-wrap;margin:0">{{ openPost.bodyEl }}</p>
-          <a v-if="openPost.file" :href="`/api/files/${openPost.file.id}`" target="_blank" rel="noopener" class="btn">
-            📎 {{ t('openPdf') }}
-          </a>
+          <template v-if="openPost.file">
+            <!-- the PDF right here; iOS Safari draws it in the frame, Android's
+                 Chrome may need the download instead — both buttons stay -->
+            <iframe :src="`/api/files/${openPost.file.id}`" :title="openPost.file.name" class="pdf" />
+            <div style="display:flex;gap:8px">
+              <a :href="`/api/files/${openPost.file.id}`" target="_blank" rel="noopener" class="btn" style="flex:1;text-decoration:none">📎 {{ t('openPdf') }}</a>
+              <a :href="`/api/files/${openPost.file.id}?download=1`" class="btn ghost" style="flex:1;text-decoration:none">⬇ {{ t('downloadPdf') }}</a>
+            </div>
+          </template>
           <button class="btn ghost" @click="openPost = null">{{ t('close') }}</button>
         </div>
       </div>
@@ -354,4 +360,5 @@ async function enableNotifs() {
 .notif-dotmark.on{background:var(--accent)}
 .ev{background:none;border:0;padding:0;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
 .ev .chev{flex:none;align-self:center;color:var(--muted);font-size:18px}
+.pdf{width:100%; height:52dvh; border:1px solid var(--line); border-radius:12px; background:#fff}
 </style>

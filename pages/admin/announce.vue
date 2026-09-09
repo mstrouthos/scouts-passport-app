@@ -20,6 +20,7 @@ const viaSms = ref(false)
 const toParents = ref(false)
 const whenMode = ref<'now' | 'later'>('now')
 const scheduledAt = ref('')
+const repeat = ref<'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('none')
 
 /** How many people this will actually reach, and how many can get an SMS. */
 const target = computed(() => {
@@ -47,8 +48,10 @@ async function send() {
   try {
     const a = audience.value
     const base: any = { textEl: text.value, viaSms: viaSms.value, toParents: toParents.value }
-    if (whenMode.value === 'later' && scheduledAt.value)
+    if (whenMode.value === 'later' && scheduledAt.value) {
       base.scheduledAt = new Date(scheduledAt.value).toISOString()
+      if (repeat.value !== 'none') base.repeat = repeat.value
+    }
     const body = typeof a === 'number' ? { ...base, audience: 'section', sectionId: a }
       : typeof a === 'string' && a.startsWith('g:') ? { ...base, audience: 'group', groupId: Number(a.slice(2)) }
       : { ...base, audience: a }
@@ -122,6 +125,13 @@ function channels(a: any) {
         <button :class="{ on: whenMode === 'later' }" @click="whenMode = 'later'">{{ t('sendLaterOpt') }}</button>
       </div>
       <input v-if="whenMode === 'later'" v-model="scheduledAt" type="datetime-local" class="in" style="margin-top:8px">
+      <template v-if="whenMode === 'later'">
+        <label class="lab" style="margin-top:8px">{{ t('repeatQ') }}</label>
+        <div class="chips">
+          <button v-for="r in ['none', 'daily', 'weekly', 'monthly', 'yearly']" :key="r" class="chip"
+                  :class="{ on: repeat === r }" @click="repeat = r as any">{{ t('repeat_' + r) }}</button>
+        </div>
+      </template>
       <div v-if="whenMode === 'later' && isYparch" class="tiny muted" style="margin-top:5px">{{ t('scheduleNeedsApproval') }}</div>
     </div>
 
@@ -136,7 +146,7 @@ function channels(a: any) {
           <div style="flex:1">
             <b>{{ a.textEl }}</b>
             <span>{{ channels(a) }} {{ audLabel(a) }} · {{ a.byFirst }} {{ a.byLast }} ·
-              <template v-if="a.status === 'scheduled' && a.scheduledAt">{{ t('scheduledFor') }} {{ fmtDate(a.scheduledAt, locale) }}</template>
+              <template v-if="a.status === 'scheduled' && a.scheduledAt">{{ t('scheduledFor') }} {{ fmtDate(a.scheduledAt, locale) }}<template v-if="a.repeat"> · 🔁 {{ t('repeat_' + a.repeat) }}</template></template>
               <template v-else>{{ fmtDate(a.createdAt, locale) }}</template>
             </span>
           </div>
