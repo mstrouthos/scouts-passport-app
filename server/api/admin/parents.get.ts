@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const db = (await useDb())
   const visIds = await visibleSectionIds(me)
   const sections = (await db.select().from(s.sections)).sort((a, b) => a.sortOrder - b.sortOrder)
-  const scouts = await db.select().from(s.scouts)
+  const scouts = (await db.select().from(s.scouts)).filter(r => !r.deletedAt)
   const patrols = await db.select().from(s.patrols)
   const links = await db.select().from(s.parentChildren)
   const kidOf = new Map(scouts.map(x => [x.id, x]))

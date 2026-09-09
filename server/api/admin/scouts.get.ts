@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const visIds = await visibleSectionIds(me)    // sections that should render at all (null = all)
   const totals = await pointTotals()
   const patrols = (await db.select().from(s.patrols)).sort((a, b) => a.sortOrder - b.sortOrder)
-  const all = (await db.select().from(s.scouts))
+  const all = (await db.select().from(s.scouts)).filter(r => !r.deletedAt)
   const badgeCounts = new Map<number, number>()
   for (const a of await db.select().from(s.scoutAchievements))
     badgeCounts.set(a.scoutId, (badgeCounts.get(a.scoutId) || 0) + 1)

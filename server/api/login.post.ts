@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
 
   const db = (await useDb())
   const row = (await db.select().from(s.scouts).where(eq(s.scouts.passcodeHmac, hmacPasscode(digits))).limit(1))[0]
-  if (!row || !row.isActive) {
+  if (!row || !row.isActive || row.deletedAt) {
     tries.set(ip, { n: (rec && nowT - rec.t < 600_000 ? rec.n : 0) + 1, t: rec && nowT - rec.t < 600_000 ? rec.t : nowT })
     globalFails.n++
     throw createError({ statusCode: 401, message: 'Unknown passcode' })

@@ -582,5 +582,17 @@
   "repeat_weekly": "Every week",
   "repeat_monthly": "Every month",
   "repeat_yearly": "Every year, same date",
-  "downloadPdf": "Download"
+  "downloadPdf": "Download",
+  "trashMember": "Delete member",
+  "confirmTrash": "Delete {name}? They stay in Deleted for 30 days and can be restored. Access is removed at once.",
+  "trashed": "Moved to Deleted",
+  "trash": "Deleted",
+  "trashSub": "Restore within 30 days",
+  "trashedBy": "deleted by {who} · {when}",
+  "purgesOn": "Removed for good on {when}",
+  "restore": "Restore",
+  "restored": "Restored — hand over the new code",
+  "deleteNow": "Delete now",
+  "confirmPurge": "Delete {name} for good now, with all their history? This cannot be undone.",
+  "trashEmpty": "No deleted members."
 }

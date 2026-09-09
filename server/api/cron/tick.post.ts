@@ -5,6 +5,7 @@ import { dispatchAnnouncement } from '../../utils/announce'
 import { sectionOf, sectionOfWith } from '../../utils/guard'
 import { now, isAfter, isAtOrBefore } from '../../utils/passcode'
 import { nextOccurrence } from '../../utils/recur'
+import { purgeTrashedScouts } from '../../utils/deleteScout'
 
 /** Hit by host cron every few minutes with the token:
     curl -X POST -H "x-cron-token: $TOKEN" https://.../api/cron/tick */
@@ -70,5 +71,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  return { ok: true, notified, announced, at: t }
+  // members trashed 30 days ago go for good, with everything that referenced them
+  const purged = await purgeTrashedScouts(t)
+
+  return { ok: true, notified, announced, purged, at: t }
 })

@@ -44,6 +44,10 @@ export const scouts = pgTable('scouts', {
   // when they first got in — the answer to "who has actually activated the app?"
   firstLoginAt: text('first_login_at'),
   lastLoginAt: text('last_login_at'),
+  // Trashed, not gone: the row stays for 30 days so a mistake can be undone,
+  // then the cron removes it and everything that referenced it.
+  deletedAt: text('deleted_at'),
+  deletedBy: integer('deleted_by'),
   locale: text('locale').notNull().default('el'),
   isActive: boolean('is_active').notNull().default(true),
   joinedOn: text('joined_on'),

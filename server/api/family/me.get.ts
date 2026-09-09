@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const p = await requireParent(event)
   const db = await useDb()
   const [sections, scouts, patrols] = await Promise.all([
-    db.select().from(s.sections), db.select().from(s.scouts), db.select().from(s.patrols)
+    db.select().from(s.sections), (await db.select().from(s.scouts)).filter(r => !r.deletedAt), db.select().from(s.patrols)
   ])
   const secOf = (id: number) => sections.find(x => x.id === id)
   const pick = (sec: any) => sec ? { id: sec.id, nameEl: sec.nameEl, nameEn: sec.nameEn, slug: sec.slug } : null

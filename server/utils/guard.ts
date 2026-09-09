@@ -102,7 +102,8 @@ export async function scopedPatrolIds(me: SessionScout): Promise<number[] | null
 /** Members (role=scout) this leader manages: everyone in their sections. */
 export async function scopedScouts(me: SessionScout): Promise<SessionScout[]> {
   const db = await useDb()
-  const allScouts = () => db.select().from(s.scouts).where(eq(s.scouts.role, 'scout'))
+  // the trash is not the roster: a trashed member is nobody's to edit or mark
+  const allScouts = async () => (await db.select().from(s.scouts).where(eq(s.scouts.role, 'scout'))).filter(r => !r.deletedAt)
   if (me.role === 'troop_leader') return allScouts()
   const scopes = await myScopes(me)
   if (scopes.some(x => x.scope === 'troop')) return allScouts()

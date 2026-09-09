@@ -358,6 +358,8 @@ export const MIGRATIONS = [
   "ALTER TABLE parents ADD COLUMN IF NOT EXISTS last_login_at TEXT",
   "ALTER TABLE parents ADD COLUMN IF NOT EXISTS first_login_at TEXT",
   "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS repeat TEXT",
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS deleted_at TEXT",
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS deleted_by INTEGER",
   "DELETE FROM leader_scopes WHERE scope = 'patrol'",
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS patrol_role TEXT",
   "ALTER TABLE events ADD COLUMN IF NOT EXISTS group_id INTEGER REFERENCES notify_groups(id)",

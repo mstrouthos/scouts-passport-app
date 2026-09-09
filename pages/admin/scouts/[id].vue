@@ -161,11 +161,15 @@ async function saveContact() {
     await refresh(); show('✅ ' + t('saved'))
   } catch (e: any) { show(e?.data?.message || t('error')) }
 }
+/* Trash, not delete: the member goes to Διαγραμμένα for 30 days, restorable,
+   and is locked out at once. */
 async function deleteScout() {
-  if (!confirm(t('confirmDelete'))) return
-  await $fetch(`/api/admin/scouts/${id}`, { method: 'DELETE' })
-  show('🗑️ ' + t('deleted'))
-  router.push('/admin/scouts')
+  if (!confirm(t('confirmTrash', { name: name(data.value) }))) return
+  try {
+    await $fetch(`/api/admin/scouts/${id}`, { method: 'DELETE' })
+    show('🗑️ ' + t('trashed'))
+    router.push('/admin/scouts')
+  } catch (e: any) { show(e?.data?.message || t('error')) }
 }
 </script>
 
@@ -376,7 +380,7 @@ async function deleteScout() {
           <button class="btn" :class="data.isActive ? 'danger' : 'ghost'" @click="toggleActive">
             {{ data.isActive ? t('deactivate') : t('reactivate') }}
           </button>
-          <button class="btn danger" @click="deleteScout">🗑️ {{ t('deletePermanently') }}</button>
+          <button v-if="me?.id !== Number(id)" class="btn danger" @click="deleteScout">🗑️ {{ t('trashMember') }}</button>
         </template>
       </div>
     </div>

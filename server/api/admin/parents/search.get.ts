@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   const db = await useDb()
   const [parents, links, scouts, patrols] = await Promise.all([
     db.select().from(s.parents), db.select().from(s.parentChildren),
-    db.select().from(s.scouts), db.select().from(s.patrols)
+    (await db.select().from(s.scouts)).filter(r => !r.deletedAt), db.select().from(s.patrols)
   ])
   const secIds = await scopedSectionIds(me)
   const mask = (v: string | null, keep: number) => v ? '…' + v.slice(-keep) : null
