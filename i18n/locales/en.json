@@ -87,7 +87,7 @@
   "cardsNote": "Printing generates fresh passcodes and voids the old ones.",
   "cardsFor": "New cards for",
   "printNow": "Print",
-  "selectAll": "Select all",
+  "selectAll": "All",
   "loginCard": "Login card",
   "newPasscode": "New passcode",
   "newPasscodeSub": "Voids the old one",
@@ -594,5 +594,6 @@
   "restored": "Restored — hand over the new code",
   "deleteNow": "Delete now",
   "confirmPurge": "Delete {name} for good now, with all their history? This cannot be undone.",
-  "trashEmpty": "No deleted members."
+  "trashEmpty": "No deleted members.",
+  "deletingAnswers": "Note: this includes {n} scout answers, which go with them along with their points."
 }

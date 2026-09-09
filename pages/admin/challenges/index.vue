@@ -28,10 +28,26 @@ function togglePick(id: number) {
   next.has(id) ? next.delete(id) : next.add(id)
   picked.value = next
 }
+/* Deleting a term's worth of questions one tap at a time is nobody's idea of
+   a bulk action: a whole group goes at once, or everything on the screen. */
+const allIds = computed<number[]>(() => (data.value || []).map((c: any) => c.id))
+const allPicked = computed(() => allIds.value.length > 0 && allIds.value.every(id => picked.value.has(id)))
+function toggleAll() {
+  picked.value = allPicked.value ? new Set() : new Set(allIds.value)
+}
+const groupPicked = (list: any[]) => list.length > 0 && list.every(c => picked.value.has(c.id))
+function toggleGroup(list: any[]) {
+  const next = new Set(picked.value)
+  const on = groupPicked(list)
+  for (const c of list) on ? next.delete(c.id) : next.add(c.id)
+  picked.value = next
+}
 async function deletePicked() {
   const ids = [...picked.value]
   if (!ids.length) return
-  if (!confirm(t('confirmDeleteSelected', { n: ids.length }))) return
+  const answered = (data.value || []).filter((c: any) => ids.includes(c.id)).reduce((n: number, c: any) => n + (c.answered || 0), 0)
+  const warn = answered ? '\n\n' + t('deletingAnswers', { n: answered }) : ''
+  if (!confirm(t('confirmDeleteSelected', { n: ids.length }) + warn)) return
   try {
     const res = await $fetch<any>('/api/admin/challenges/bulk-delete', { method: 'POST', body: { ids } })
     selecting.value = false; picked.value = new Set()
@@ -106,19 +122,27 @@ function sub(c: any) {
 
 <template>
   <AppShell :title="isTroop ? t('challenges') : t('myChallenges')">
-    <div v-if="(data?.length || 0) > 1" style="display:flex;justify-content:flex-end;gap:8px;align-items:center">
-      <template v-if="selecting">
-        <span class="tiny muted" style="flex:1">{{ picked.size }} {{ t('selectedN') }}</span>
-        <button class="chip" :disabled="!picked.size" style="color:var(--danger)" @click="deletePicked">
-          🗑️ {{ t('deleteSelected') }}
-        </button>
-        <button class="chip" @click="toggleSelect">{{ t('cancelSelect') }}</button>
-      </template>
-      <button v-else class="chip" @click="toggleSelect">☑︎ {{ t('selectMode') }}</button>
+    <div v-if="data?.length" style="display:flex;justify-content:flex-end;gap:8px;align-items:center">
+      <button v-if="!selecting" class="chip" @click="toggleSelect">☑︎ {{ t('selectMode') }}</button>
+    </div>
+
+    <!-- while selecting, the bar follows you down a long list -->
+    <div v-if="selecting" class="selbar">
+      <button class="chip" @click="toggleAll">
+        <span class="tick" :class="{ on: allPicked }">{{ allPicked ? '✓' : '' }}</span> {{ t('selectAll') }}
+      </button>
+      <span class="tiny muted" style="flex:1;text-align:center">{{ picked.size }} {{ t('selectedN') }}</span>
+      <button class="chip" @click="toggleSelect">{{ t('cancelSelect') }}</button>
+      <button class="chip danger" :disabled="!picked.size" @click="deletePicked">🗑️ {{ picked.size || '' }}</button>
     </div>
 
     <div v-for="g in groups" :key="g.label" class="adm">
-      <div class="hdr">{{ g.label }}</div>
+      <div class="hdr" style="display:flex;justify-content:space-between;align-items:center">
+        <span>{{ g.label }}</span>
+        <button v-if="selecting" class="chip gsel" @click="toggleGroup(g.list)">
+          <span class="tick" :class="{ on: groupPicked(g.list) }">{{ groupPicked(g.list) ? '✓' : '' }}</span> {{ t('selectAll') }}
+        </button>
+      </div>
       <template v-for="c in g.list" :key="c.id">
         <button v-if="selecting" class="it" @click="togglePick(c.id)">
           <span class="tick" :class="{ on: picked.has(c.id) }">{{ picked.has(c.id) ? '✓' : '' }}</span>
@@ -192,6 +216,15 @@ function sub(c: any) {
 </template>
 
 <style scoped>
+.selbar{
+  position:sticky; top:8px; z-index:5; display:flex; gap:8px; align-items:center;
+  background:var(--card); border-radius:999px; padding:8px 10px; box-shadow:0 6px 20px rgba(31,58,84,.16);
+}
+.selbar .chip{display:flex; align-items:center; gap:6px}
+.gsel{display:inline-flex; align-items:center; gap:6px; white-space:nowrap; text-transform:none; letter-spacing:0}
+.selbar .chip.danger{background:var(--danger); border-color:var(--danger); color:#fff}
+.selbar .chip.danger:disabled{opacity:.45}
+
 .tick{
   width:22px;height:22px;flex:none;border-radius:7px;border:1.5px solid var(--line);
   display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;background:var(--card);
