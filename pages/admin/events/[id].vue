@@ -147,7 +147,7 @@ async function setReview(scoutId: number, patch: any) {
   await $fetch(`/api/admin/events/${id}/review`, { method: 'POST', body })
 }
 async function allPresent() {
-  for (const r of data.value?.scouts || []) if (!r.attendance) await setReview(r.id, { attendance: 'present' })
+  for (const r of data.value?.scouts || []) if (!r.attendance && r.canMark !== false) await setReview(r.id, { attendance: 'present' })
   await refresh()
 }
 async function awardGame() {
@@ -235,12 +235,12 @@ const uniDefs = [
       <button class="btn ghost" @click="allPresent">{{ t('allPresent') }}</button>
       <div class="adm">
         <template v-for="g in byPatrol" :key="g.p?.id ?? 0">
-          <div class="hdr">{{ g.p ? `${g.p.emblem} ${lx(g.p, 'name')}` : t('noUnitYet') }}</div>
-          <div v-for="r in g.list" :key="r.id" class="it">
-            <div style="flex:1"><b>{{ name(r) }}</b></div>
+          <div class="hdr">{{ g.p ? `${g.p.emblem} ${lx(g.p, 'name')}` : data.event.scope === 'leaders' ? t('vathmoforoi') : t('noUnitYet') }}</div>
+          <div v-for="r in g.list" :key="r.id" class="it" :style="r.canMark === false ? 'opacity:.55' : ''">
+            <div style="flex:1"><b>{{ name(r) }}</b><span v-if="r.canMark === false" class="tiny muted"> · {{ t('otherSectorMarks') }}</span></div>
             <div class="st">
               <button v-for="d in attDefs" :key="d.v" :class="[r.attendance === d.v ? 'on ' + d.cls : '']"
-                      :aria-label="t(d.labelKey)" :title="t(d.labelKey)"
+                      :aria-label="t(d.labelKey)" :title="t(d.labelKey)" :disabled="r.canMark === false"
                       @click="setReview(r.id, { attendance: d.v })">{{ d.k }}</button>
             </div>
           </div>
@@ -260,12 +260,12 @@ const uniDefs = [
         <div class="adm">
           <template v-for="g in byPatrol" :key="g.p?.id ?? 0">
             <template v-if="g.list.some(r => r.attendance === 'present')">
-              <div class="hdr">{{ g.p ? `${g.p.emblem} ${lx(g.p, 'name')}` : t('noUnitYet') }}</div>
+              <div class="hdr">{{ g.p ? `${g.p.emblem} ${lx(g.p, 'name')}` : data.event.scope === 'leaders' ? t('vathmoforoi') : t('noUnitYet') }}</div>
               <div v-for="r in g.list.filter(x => x.attendance === 'present')" :key="r.id" class="it">
                 <div style="flex:1"><b>{{ name(r) }}</b></div>
                 <div class="st">
                   <button v-for="d in uniDefs" :key="d.v" :class="[r.uniform === d.v ? 'on ' + d.cls : '']"
-                          :aria-label="t(d.labelKey)" :title="t(d.labelKey)"
+                          :aria-label="t(d.labelKey)" :title="t(d.labelKey)" :disabled="r.canMark === false"
                           @click="setReview(r.id, { uniform: d.v })">{{ d.k }}</button>
                 </div>
               </div>

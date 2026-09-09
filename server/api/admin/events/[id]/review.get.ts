@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 import { requireLeader, scopedScouts, idParam, rankOf, sectionOfWith } from '../../../../utils/guard'
 import { groupMemberIds, canScheduleForGroup } from '../../../../utils/groupScope'
+import { canEditEvent } from '../../../../utils/eventScope'
 import { leadersForEvent, sectionsOfLeader } from '../../../../utils/rsvp'
 import { scopedSectionIds } from '../../../../utils/guard'
 
@@ -30,15 +31,32 @@ export default defineEventHandler(async (event) => {
     if (e.sectionId == null) return true
     return sectionOfWith(r as any, patrols) === e.sectionId
   }
-  const roster = (runsGroup
-    ? (await db.select().from(s.scouts)).filter(r => r.role === 'scout' && onlyGroup!.has(r.id))
-    : (await scopedScouts(me)).filter(r => !onlyGroup || onlyGroup.has(r.id)))
-    .filter(r => onlyGroup ? true : ofEvent(r))
+  // Whose attendance this event records, and who may record it:
+  //  · a Βαθμοφόροι event lists the Βαθμοφόροι it concerns, marked by whoever
+  //    may edit the event;
+  //  · a troop-wide event lists everyone, but each Αρχηγός marks only their
+  //    own sector's members — the rest are shown, greyed;
+  //  · a sector's event lists that sector's members, as before.
+  const asked = await leadersForEvent(e)
+  const everyone = await db.select().from(s.scouts)
+  const mine = new Set((await scopedScouts(me)).map(r => r.id))
+  const editable = await canEditEvent(me, e)
+  let roster: Array<typeof s.scouts.$inferSelect & { canMark: boolean }>
+  if (e.scope === 'leaders') {
+    const ids = new Set(asked)
+    roster = everyone.filter(r => ids.has(r.id)).map(r => ({ ...r, canMark: editable }))
+  } else if (runsGroup) {
+    roster = everyone.filter(r => r.role === 'scout' && onlyGroup!.has(r.id)).map(r => ({ ...r, canMark: true }))
+  } else if (e.scope === 'troop') {
+    roster = everyone.filter(r => r.role === 'scout').map(r => ({ ...r, canMark: mine.has(r.id) }))
+  } else {
+    roster = everyone.filter(r => r.role === 'scout' && mine.has(r.id) && (!onlyGroup || onlyGroup.has(r.id)) && ofEvent(r))
+      .map(r => ({ ...r, canMark: true }))
+  }
   // who among the Βαθμοφόροι this concerns, and what each of them said.
   // Who is coming: the Αρχηγός Συστήματος reads the whole roll, a sector's
   // Αρχηγός only the Βαθμοφόροι of their own sectors, and a Υπαρχηγός none of
   // it — they still answer for themselves.
-  const asked = await leadersForEvent(e)
   const myRank = await rankOf(me)
   const mySections = await scopedSectionIds(me)
   const rsvps = await db.select().from(s.eventRsvps).where(eq(s.eventRsvps.eventId, eventId))
@@ -76,11 +94,12 @@ export default defineEventHandler(async (event) => {
       sectionId: e.sectionId,
       sectionSlug: e.sectionId != null ? (await db.select().from(s.sections)).find(x => x.id === e.sectionId)?.slug ?? null : null
     },
-    scouts: roster.filter(r => r.isActive).map(r => {
+    scouts: roster.filter(r => r.isActive).sort((a, b) => (a.sectionId ?? 0) - (b.sectionId ?? 0)).map(r => {
       const rev = reviews.find(x => x.scoutId === r.id)
       return {
         id: r.id, firstName: r.firstName, lastName: r.lastName,
         firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, patrolId: r.patrolId,
+        canMark: r.canMark,
         attendance: rev?.attendance ?? null, uniform: rev?.uniform ?? null
       }
     }),

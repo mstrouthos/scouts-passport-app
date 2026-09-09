@@ -24,9 +24,6 @@ const runsBadges = computed(() => me.value?.role === 'troop_leader'
     <NuxtLink to="/admin/announce" class="srow">
       <div class="ico">📣</div><div class="txt"><b>{{ t('announce') }}</b><span>{{ t('announceSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>
-    <NuxtLink v-if="me?.can?.parents !== false" to="/admin/contacts" class="srow">
-      <div class="ico">👨‍👩‍👧</div><div class="txt"><b>{{ t('contacts') }}</b><span>{{ t('contactsSub') }}</span></div><span class="chev">›</span>
-    </NuxtLink>
     <NuxtLink v-if="me?.can?.rosterEdit !== false" to="/admin/infopages" class="srow">
       <div class="ico">ℹ️</div><div class="txt"><b>{{ t('infoAdmin') }}</b><span>{{ t('infoAdminSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>

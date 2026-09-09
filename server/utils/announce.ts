@@ -49,12 +49,8 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
       + (parentSections === null || parentSections.length ? await sendPushToParents(parentSections, msg) : 0)
     : 0
 
-  const contacts = (await db.select().from(s.familyContacts))
-    .filter(c => a.audience === 'troop' || (a.audience === 'section' && c.sectionId === a.sectionId))
-  const addresses = [...new Set([
-    ...(toParents ? parents.map(p => p.email).filter(Boolean) as string[] : []),
-    ...(toParents ? contacts.map(c => c.email) : [])
-  ])]
+  // parents are reached through their children — there is no second list
+  const addresses = [...new Set(toParents ? parents.map(p => p.email).filter(Boolean) as string[] : [])]
   const emailed = await sendEmails(addresses, 'Ειδοποίηση — Πύλη Προσκόπων', a.textEl)
 
   let smsSent = 0

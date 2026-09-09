@@ -6,6 +6,7 @@ import { getPointRules } from '../../../../utils/settings'
 import { assertCan } from '../../../../utils/permissions'
 import { canScheduleForGroup, groupMemberIds } from '../../../../utils/groupScope'
 import { canEditEvent } from '../../../../utils/eventScope'
+import { leadersForEvent } from '../../../../utils/rsvp'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -21,10 +22,17 @@ export default defineEventHandler(async (event) => {
     && (await groupMemberIds(ev.groupId)).includes(scoutId)
     && await canScheduleForGroup(me, ev.groupId)
   if (!viaGroup) {
-    await assertScoutInScope(me, scoutId)
-    // reading another sector's diary is allowed; registering its συγκέντρωση is not
-    if (!(await canEditEvent(me, ev)))
-      throw createError({ statusCode: 403, message: 'Out of your sector' })
+    if (ev.scope === 'leaders') {
+      // a Βαθμοφόροι event: whoever may edit it marks the Βαθμοφόροι it concerns
+      if (!(await canEditEvent(me, ev)) || !(await leadersForEvent(ev)).includes(scoutId))
+        throw createError({ statusCode: 403, message: 'Out of your sector' })
+    } else {
+      await assertScoutInScope(me, scoutId)
+      // a troop-wide event is marked sector by sector, each Αρχηγός their own;
+      // another sector's own συγκέντρωση is theirs alone to register
+      if (ev.scope !== 'troop' && !(await canEditEvent(me, ev)))
+        throw createError({ statusCode: 403, message: 'Out of your sector' })
+    }
   }
   if (!ev.tracksAttendance)
     throw createError({ statusCode: 400, message: 'This event does not track attendance' })
