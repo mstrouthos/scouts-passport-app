@@ -3,15 +3,19 @@ import { useDb, schema as s } from '../db'
 import { requireScout } from '../utils/guard'
 import { normalizePhone } from '../utils/phone'
 
-/** A member correcting their own name and phone number.
+/** Anyone correcting their own details — a λυκόπουλο, a πρόσκοπος, a
+    Βαθμοφόρος, the Αρχηγός Συστήματος. One path and one switch, so
+    "may correct their own details" means the same thing for everybody.
 
-    Everyone may, until a leader turns it off for them — the flag is checked
+    Everyone may, until a leader turns it off for them; the flag is checked
     here rather than only hidden in the UI, so revoking it actually revokes it.
     Nothing else about them is editable this way: not their sector, their unit,
-    their role or their passcode. */
+    their role, their rank or their passcode. */
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
-  if (!me.canEditSelf)
+  // the Αρχηγός Συστήματος is never locked out of their own details: there is
+  // nobody above them to hand the permission back
+  if (!me.canEditSelf && me.role !== 'troop_leader')
     throw createError({ statusCode: 403, message: 'Ο αρχηγός σου έχει κλειδώσει τα στοιχεία σου' })
 
   const b = await readBody<any>(event)
@@ -32,6 +36,17 @@ export default defineEventHandler(async (event) => {
     const v = normalizePhone(b.phone)
     if (b.phone && !v) throw createError({ statusCode: 400, message: 'Bad phone' })
     set.phone = v
+  }
+  // a Βαθμοφόρος's profile carries these two as well; same rules as the roster
+  if (b?.email !== undefined) {
+    const v = String(b.email || '').trim() || null
+    if (v && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) throw createError({ statusCode: 400, message: 'Bad email' })
+    set.email = v
+  }
+  if (b?.birthday !== undefined) {
+    const v = String(b.birthday || '').slice(0, 10) || null
+    if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) throw createError({ statusCode: 400, message: 'Bad date' })
+    set.birthday = v
   }
   if (Object.keys(set).length)
     await (await useDb()).update(s.scouts).set(set).where(eq(s.scouts.id, me.id))

@@ -32,7 +32,8 @@ function openDetails() {
 }
 async function saveDetails() {
   try {
-    await $fetch(`/api/admin/scouts/${me.value!.id}`, {
+    // the same door every member uses, so one switch governs the lot
+    await $fetch('/api/me', {
       method: 'PATCH',
       body: {
         firstName: details.firstName, lastName: details.lastName,
@@ -102,6 +103,11 @@ async function saveDetails() {
       <div><label class="lab">{{ t('email') }}</label><input v-model="details.email" class="in" type="email" inputmode="email"></div>
       <div><label class="lab">{{ t('birthday') }}</label><input v-model="details.birthday" type="date" class="in"></div>
       <button class="btn" :disabled="!details.firstName || !details.lastName || !phoneValid" @click="saveDetails">{{ t('save') }}</button>
+    </div>
+    <div v-else-if="me?.canEditSelf === false && me?.role !== 'troop_leader'" class="card">
+      <b style="font-size:14px">{{ me?.firstName }} {{ me?.lastName }}</b>
+      <div class="tiny muted" style="margin-top:4px">{{ [me?.phone, me?.email].filter(Boolean).join(' · ') || '—' }}</div>
+      <div class="tiny muted" style="margin-top:6px">{{ t('selfEditLocked') }}</div>
     </div>
     <button v-else class="srow" @click="openDetails">
       <div class="ico">✎</div>

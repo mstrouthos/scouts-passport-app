@@ -231,7 +231,7 @@ async function deleteScout() {
           </template>
         </div>
 
-        <button class="srow" @click="setCanEditSelf(data.canEditSelf === false)">
+        <button v-if="me?.id !== Number(id)" class="srow" @click="setCanEditSelf(data.canEditSelf === false)">
           <div class="ico">✍️</div>
           <div class="txt"><b>{{ t('selfEdit') }}</b><span>{{ t('selfEditSub') }}</span></div>
           <span class="sw" :class="{ off: data.canEditSelf === false }" />
