@@ -311,7 +311,7 @@ async function enableNotifs() {
           <div class="tiny muted" style="text-align:center">{{ fmtDate(openEvent.startsAt, locale) }} · {{ sub(openEvent) }}</div>
           <div v-if="openEvent.themeEl" style="font-size:13.5px"><b>{{ t('meetingTheme') }}:</b> {{ openEvent.themeEl }}</div>
           <p v-if="openEvent.descriptionEl" style="margin:0;font-size:13.5px;line-height:1.6;white-space:pre-wrap">{{ openEvent.descriptionEl }}</p>
-          <a class="btn" :href="`/api/family/calendar.ics?event=${openEvent.id}`" target="_blank" rel="noopener" style="text-decoration:none">
+          <a class="btn" :href="`/api/family/calendar.ics?event=${openEvent.id}`" style="text-decoration:none">
             {{ t('addToCalendar') }}
           </a>
           <button class="btn ghost" @click="openEvent = null">{{ t('close') }}</button>

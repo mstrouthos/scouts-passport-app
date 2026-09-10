@@ -35,7 +35,7 @@ function sub(e: any) {
       <button v-for="f in filters" :key="f.key" class="chip" :class="{ on: filter === f.key }"
               @click="filter = f.key">{{ f.label }}</button>
     </div>
-    <a v-if="upcoming.length" class="chip" href="/api/calendar.ics" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none">{{ t('addToCalendar') }}</a>
+    <a v-if="upcoming.length" class="chip" href="/api/calendar.ics" style="display:inline-block;text-decoration:none">{{ t('addToCalendar') }}</a>
     <template v-for="[label, list] in [[t('thisWeek'), soon], [t('upcoming'), later]]" :key="label">
       <template v-if="list.length">
         <div class="sec-title">{{ label }}</div>
@@ -81,7 +81,10 @@ function sub(e: any) {
           <div v-if="openEvent.themeEl" style="font-size:13.5px"><b>{{ t('meetingTheme') }}:</b> {{ openEvent.themeEl }}</div>
           <p v-if="openEvent.descriptionEl" style="margin:0;font-size:13.5px;line-height:1.6;white-space:pre-wrap">{{ openEvent.descriptionEl }}</p>
           <!-- opens the phone's own "add to calendar" — iOS and Android both take .ics -->
-          <a class="btn" :href="`/api/calendar.ics?event=${openEvent.id}`" target="_blank" rel="noopener" style="text-decoration:none">
+          <!-- a plain same-tab link: the browser hands the .ics straight to the
+               calendar app. Opening it in a new tab leaves that tab blank on iOS,
+               because a download has no document to render. -->
+          <a class="btn" :href="`/api/calendar.ics?event=${openEvent.id}`" style="text-decoration:none">
             {{ t('addToCalendar') }}
           </a>
           <button class="btn ghost" @click="openEvent = null">{{ t('close') }}</button>
