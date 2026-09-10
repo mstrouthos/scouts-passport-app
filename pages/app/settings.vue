@@ -15,18 +15,20 @@ onMounted(() => {
    off; the server checks that too, so this is a courtesy, not the lock. */
 const editing = ref(false)
 const busy = ref(false)
-const form = reactive({ firstName: '', lastName: '', firstNameEn: '', lastNameEn: '', phone: null as string | null })
+const form = reactive({ firstName: '', lastName: '', firstNameEn: '', lastNameEn: '', phone: null as string | null, email: '' })
 const phoneOk = computed(() => !form.phone || /^\+357\d{8}$/.test(form.phone))
+const emailOk = computed(() => !form.email.trim() || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim()))
 function openEdit() {
   form.firstName = me.value?.firstName || ''
   form.lastName = me.value?.lastName || ''
   form.firstNameEn = me.value?.firstNameEn || ''
   form.lastNameEn = me.value?.lastNameEn || ''
   form.phone = me.value?.phone || null
+  form.email = me.value?.email || ''
   editing.value = true
 }
 async function saveMe() {
-  if (!form.firstName.trim() || !form.lastName.trim() || !phoneOk.value || busy.value) return
+  if (!form.firstName.trim() || !form.lastName.trim() || !phoneOk.value || !emailOk.value || busy.value) return
   busy.value = true
   try {
     await $fetch('/api/me', { method: 'PATCH', body: { ...form } })
@@ -71,15 +73,23 @@ async function enableNotifs() {
         <div><label class="lab">{{ t('firstName') }} (EN) <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="form.firstNameEn" class="in"></div>
         <div><label class="lab">{{ t('lastName') }} (EN) <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="form.lastNameEn" class="in"></div>
         <div><label class="lab">{{ t('phone') }}</label><PhoneInput v-model="form.phone" /></div>
+        <div><label class="lab">{{ t('email') }}</label><input v-model="form.email" class="in" type="email" inputmode="email"></div>
+        <!-- shown so they can check it, greyed because only a Βαθμοφόρος corrects it -->
+        <div>
+          <label class="lab">{{ t('birthday') }} 🔒</label>
+          <input :value="me?.birthday ? fmtDate(me.birthday, locale) : '—'" class="in" disabled>
+          <div class="tiny muted" style="margin-top:4px">{{ t('birthdayLocked') }}</div>
+        </div>
         <div style="display:flex;gap:8px">
-          <button class="btn" :disabled="!form.firstName.trim() || !form.lastName.trim() || !phoneOk || busy" @click="saveMe">{{ t('save') }}</button>
+          <button class="btn" :disabled="!form.firstName.trim() || !form.lastName.trim() || !phoneOk || !emailOk || busy" @click="saveMe">{{ t('save') }}</button>
           <button class="btn ghost" @click="editing = false">{{ t('cancel') }}</button>
         </div>
       </template>
       <template v-else>
         <div>
           <b style="font-size:14px">{{ me?.firstName }} {{ me?.lastName }}</b>
-          <div class="tiny muted">{{ me?.phone || t('noPhoneOnFile') }}</div>
+          <div class="tiny muted">{{ [me?.phone, me?.email].filter(Boolean).join(' · ') || t('noPhoneOnFile') }}</div>
+          <div v-if="me?.birthday" class="tiny muted">🎂 {{ fmtDate(me.birthday, locale) }}</div>
         </div>
         <button v-if="me?.canEditSelf !== false" class="chip" style="align-self:flex-start" @click="openEdit">✎ {{ t('edit') }}</button>
         <div v-else class="tiny muted">{{ t('selfEditLocked') }}</div>

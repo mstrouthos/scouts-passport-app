@@ -10,7 +10,8 @@ import { normalizePhone } from '../utils/phone'
     Everyone may, until a leader turns it off for them; the flag is checked
     here rather than only hidden in the UI, so revoking it actually revokes it.
     Nothing else about them is editable this way: not their sector, their unit,
-    their role, their rank or their passcode. */
+    their role, their rank or their passcode — and for a member, not their date
+    of birth either, which they can read but only a Βαθμοφόρος may correct. */
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
   // the Αρχηγός Συστήματος is never locked out of their own details: there is
@@ -44,6 +45,10 @@ export default defineEventHandler(async (event) => {
     set.email = v
   }
   if (b?.birthday !== undefined) {
+    // a member reads their date of birth but does not set it: it is register
+    // data, and a wrong one is for a Βαθμοφόρος to correct
+    if (me.role === 'scout')
+      throw createError({ statusCode: 403, message: 'Την ημερομηνία γέννησης τη διορθώνει ο αρχηγός σου' })
     const v = String(b.birthday || '').slice(0, 10) || null
     if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) throw createError({ statusCode: 400, message: 'Bad date' })
     set.birthday = v

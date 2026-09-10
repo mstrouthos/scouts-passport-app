@@ -633,5 +633,6 @@
   "myDetails": "My details",
   "selfEdit": "May correct their own details",
   "selfEditSub": "Name and phone, from their own Settings",
-  "selfEditLocked": "Your leader has locked your details. Ask them if something needs correcting."
+  "selfEditLocked": "Your leader has locked your details. Ask them if something needs correcting.",
+  "birthdayLocked": "If it is wrong, tell your leader."
 }
