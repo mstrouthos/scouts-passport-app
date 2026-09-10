@@ -595,5 +595,22 @@
   "deleteNow": "Delete now",
   "confirmPurge": "Delete {name} for good now, with all their history? This cannot be undone.",
   "trashEmpty": "No deleted members.",
-  "deletingAnswers": "Note: this includes {n} scout answers, which go with them along with their points."
+  "deletingAnswers": "Note: this includes {n} scout answers, which go with them along with their points.",
+  "emptyTrash": "Empty trash",
+  "confirmEmptyTrash": "Delete all {n} members in the trash for good, with all their history? This cannot be undone.",
+  "deletedN2": "deleted for good",
+  "resetTitle": "Clean up before launch",
+  "resetNote": "Choose what to clear from the trial run. This cannot be undone.",
+  "reset_points": "Points",
+  "reset_attendance": "Attendance",
+  "reset_notifications": "Notifications",
+  "reset_announcements": "Announcements",
+  "reset_events": "Events",
+  "reset_progress": "Badges & requirements",
+  "resetConfirmLabel": "Type ΚΑΘΑΡΙΣΜΟΣ to confirm",
+  "resetRun": "🧹 Clean up now",
+  "confirmReset": "Delete {n} categories of data for good? This cannot be undone.",
+  "resetOk": "Cleared",
+  "resetCleared": "Cleared",
+  "resetKeeps": "Untouched: members, leaders, parents, sectors, units, questions, badges and information pages."
 }

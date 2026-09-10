@@ -121,6 +121,21 @@ export async function assertScoutInScope(me: SessionScout, scoutId: number) {
   if (!ok) throw createError({ statusCode: 403, message: 'Out of your sector' })
 }
 
+/** May this leader act on this member — whether or not they are in the trash?
+
+   The roster lists deliberately hide trashed members, so they cannot answer
+   this question: a member in the trash is precisely the one someone needs
+   permission to restore or to remove for good. This asks the row itself. */
+export async function assertMemberInScope(me: SessionScout, row: SessionScout) {
+  if (me.role === 'troop_leader') return
+  if (row.role !== 'scout') return assertLeaderInScope(me, row.id)
+  const secIds = await scopedSectionIds(me)
+  if (secIds === null) return
+  const sid = sectionOfWith(row, await (await useDb()).select().from(s.patrols))
+  if (sid == null || !secIds.includes(sid))
+    throw createError({ statusCode: 403, message: 'Out of your sector' })
+}
+
 /** Βαθμοφόροι this leader may view/edit. Troop leader: everyone but themself.
     Section-scope leader: only patrol-level leaders within their own section's
     patrols (mirrors the appoint rule in roles.post.ts). Patrol-only leaders

@@ -19,6 +19,14 @@ async function restore(r: any) {
   } catch (e: any) { show(e?.data?.message || t('error')) }
   finally { busy.value = false }
 }
+async function emptyTrash() {
+  if (!data.value?.length) return
+  if (!confirm(t('confirmEmptyTrash', { n: data.value.length }))) return
+  try {
+    const res = await $fetch<any>('/api/admin/trash', { method: 'DELETE' })
+    await refresh(); show(`🗑️ ${res.deleted} ${t('deletedN2')}`)
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+}
 async function purgeNow(r: any) {
   if (!confirm(t('confirmPurge', { name: name(r) }))) return
   try {
@@ -34,6 +42,9 @@ async function purgeNow(r: any) {
       <b>{{ t('passcodeIs') }} <span style="font-variant-numeric:tabular-nums">{{ restored.passcode }}</span></b>
       {{ t('writeItDown') }}
     </div>
+    <button v-if="data?.length && me?.role === 'troop_leader'" class="btn danger" @click="emptyTrash">
+      🗑️ {{ t('emptyTrash') }} · {{ data.length }}
+    </button>
     <div v-if="data?.length" class="adm">
       <div v-for="r in data" :key="r.id" class="it" style="align-items:flex-start">
         <div style="flex:1;min-width:0">

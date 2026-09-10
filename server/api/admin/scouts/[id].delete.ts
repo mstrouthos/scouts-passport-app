@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
-import { requireLeader, assertScoutInScope, assertLeaderInScope, idParam } from '../../../utils/guard'
+import { requireLeader, assertMemberInScope, idParam } from '../../../utils/guard'
 import { cascadeDeleteScout } from '../../../utils/deleteScout'
 import { assertCan } from '../../../utils/permissions'
 import { hmacPasscode, generatePasscode, now } from '../../../utils/passcode'
@@ -19,8 +19,8 @@ export default defineEventHandler(async (event) => {
   const db = (await useDb())
   const target = (await db.select().from(s.scouts).where(eq(s.scouts.id, id)).limit(1))[0]
   if (!target) throw createError({ statusCode: 404, message: 'Not found' })
-  if (target.role === 'scout') await assertScoutInScope(me, id)
-  else await assertLeaderInScope(me, id)
+  // asks the row, not the roster — the roster hides what is already trashed
+  await assertMemberInScope(me, target)
 
   if (String(getQuery(event).permanent || '') === '1') {
     if (me.role !== 'troop_leader') throw createError({ statusCode: 403, message: 'Only the Αρχηγός Συστήματος can delete permanently' })

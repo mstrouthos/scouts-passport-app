@@ -6,6 +6,7 @@
    shows exactly what was sent. */
 const { t, locale } = useI18n()
 const lx = useLx()
+const me = useMe()
 const { show } = useToast()
 const { data, refresh } = await useFetch<any>('/api/admin/activation')
 const { data: groups } = await useFetch<any[]>('/api/admin/groups')
@@ -56,6 +57,34 @@ function pickGroup(g: any) {
   const allIn = keys.every((k: string) => next.has(k))
   for (const k of keys) allIn ? next.delete(k) : next.add(k)
   picked.value = next
+}
+
+/* Clearing the practice data before going live. Folded away, troop leader
+   only, and it will not move without the confirmation word typed out. */
+const RESET_PARTS = ['points', 'attendance', 'notifications', 'announcements', 'events', 'progress'] as const
+const resetOpen = ref(false)
+const resetPick = ref<Set<string>>(new Set())
+const resetWord = ref('')
+const resetBusy = ref(false)
+const resetDone = ref<Record<string, number> | null>(null)
+function toggleReset(k: string) {
+  const next = new Set(resetPick.value)
+  next.has(k) ? next.delete(k) : next.add(k)
+  resetPick.value = next
+}
+async function runReset() {
+  if (!resetPick.value.size || resetBusy.value) return
+  if (!confirm(t('confirmReset', { n: resetPick.value.size }))) return
+  resetBusy.value = true
+  try {
+    const res = await $fetch<any>('/api/admin/reset', {
+      method: 'POST', body: { confirm: resetWord.value, what: [...resetPick.value] }
+    })
+    resetDone.value = res.cleared
+    resetPick.value = new Set(); resetWord.value = ''
+    show('🧹 ' + t('resetOk'))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+  finally { resetBusy.value = false }
 }
 
 async function send(reallySend: boolean) {
@@ -126,6 +155,31 @@ async function send(reallySend: boolean) {
         <div v-if="!shown(b.people).length" class="tiny muted" style="padding:11px 15px">{{ t('allActivatedHere') }}</div>
       </template>
     </div>
+
+    <template v-if="me?.role === 'troop_leader'">
+      <button class="sec-title" style="display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer" @click="resetOpen = !resetOpen">
+        <span>🧹 {{ t('resetTitle') }}</span><span class="chev" :style="resetOpen ? 'transform:rotate(90deg)' : ''">›</span>
+      </button>
+      <div v-if="resetOpen" class="card" style="display:flex;flex-direction:column;gap:11px">
+        <div class="tiny muted">{{ t('resetNote') }}</div>
+        <div class="chips">
+          <button v-for="k in RESET_PARTS" :key="k" class="chip" :class="{ on: resetPick.has(k) }" @click="toggleReset(k)">
+            {{ resetPick.has(k) ? '✓ ' : '' }}{{ t('reset_' + k) }}
+          </button>
+        </div>
+        <div v-if="resetDone" class="note tiny">
+          {{ t('resetCleared') }}: {{ Object.entries(resetDone).map(([k, n]) => `${t('reset_' + k)} ${n}`).join(' · ') }}
+        </div>
+        <div>
+          <label class="lab">{{ t('resetConfirmLabel') }}</label>
+          <input v-model="resetWord" class="in" placeholder="ΚΑΘΑΡΙΣΜΟΣ">
+        </div>
+        <button class="btn danger" :disabled="!resetPick.size || !resetWord.trim() || resetBusy" @click="runReset">
+          {{ resetBusy ? t('loading') : t('resetRun') }}
+        </button>
+        <div class="tiny muted">{{ t('resetKeeps') }}</div>
+      </div>
+    </template>
 
     <div class="sticky">
       <div class="tiny muted">📲 {{ t('installAlwaysIncluded') }}</div>
