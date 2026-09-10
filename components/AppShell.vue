@@ -130,12 +130,11 @@ function goBack() {
     <div style="min-width:0;display:flex;flex-direction:column;flex:1">
       <header class="hero">
         <div class="row">
-          <div>
+          <!-- the icons share the back row, so a long title has the full width
+               to itself instead of running into them -->
+          <div class="topbar">
             <button v-if="back" class="back" @click="goBack">‹ {{ t('back') }}</button>
-            <h1>{{ title }}</h1>
-            <div v-if="sub" class="sub">{{ sub }}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
+            <div class="acts">
             <slot name="actions" />
             <NuxtLink v-if="me" :to="isLeader ? '/admin/settings' : '/app/settings'"
                       class="iconbtn" :aria-label="t('settings')">
@@ -151,7 +150,10 @@ function goBack() {
             <button v-if="me" class="iconbtn" :aria-label="t('logout')" @click="logout">
               <NavIcon name="logout" />
             </button>
+            </div>
           </div>
+          <h1>{{ title }}</h1>
+          <div v-if="sub" class="sub">{{ sub }}</div>
         </div>
       </header>
 
