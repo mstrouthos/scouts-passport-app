@@ -56,15 +56,19 @@ export default defineEventHandler(async (event) => {
     roster = everyone.filter(r => r.role === 'scout' && mine.has(r.id) && (!onlyGroup || onlyGroup.has(r.id)) && ofEvent(r))
       .map(r => ({ ...r, canMark: true }))
   }
-  // who among the Βαθμοφόροι this concerns, and what each of them said.
-  // Who is coming: the Αρχηγός Συστήματος reads the whole roll, a sector's
-  // Αρχηγός only the Βαθμοφόροι of their own sectors, and a Υπαρχηγός none of
-  // it — they still answer for themselves.
+  // Who is coming. A ΒΑΘΜΟΦΟΡΟΙ meeting is read by the Αρχηγός Συστήματος and
+  // by whoever called it, and by nobody else — a sector's Βαθμοφόρος answers
+  // for themselves without seeing who else did. On any other event the
+  // Αρχηγός Συστήματος reads the whole roll, a sector's Αρχηγός the
+  // Βαθμοφόροι of their own sectors, and a Υπαρχηγός none of it.
   const myRank = await rankOf(me)
   const mySections = await scopedSectionIds(me)
   const rsvps = await db.select().from(s.eventRsvps).where(eq(s.eventRsvps.eventId, eventId))
   const people = await db.select().from(s.scouts)
+  const leadersMeeting = e.scope === 'leaders'
+  const ownsLeadersMeeting = myRank === 'admin' || e.createdBy === me.id
   const visibleToMe = async (leaderId: number) => {
+    if (leadersMeeting) return ownsLeadersMeeting
     if (myRank === 'admin' || mySections === null) return true
     if (myRank === 'yparchigos') return false
     const theirs = await sectionsOfLeader(leaderId)
@@ -101,7 +105,10 @@ export default defineEventHandler(async (event) => {
       attendanceOpensAt: attendanceOpensAt(e.startsAt),
       sectionSlug: e.sectionId != null ? (await db.select().from(s.sections)).find(x => x.id === e.sectionId)?.slug ?? null : null
     },
-    scouts: roster.filter(r => r.isActive).sort((a, b) => (a.sectionId ?? 0) - (b.sectionId ?? 0)).map(r => {
+    // Names nobody here may mark are not theirs to read either: withholding
+    // them is the point, not greying the buttons that would follow.
+    scouts: (roster.some(r => r.canMark) ? roster.filter(r => r.isActive) : [])
+      .sort((a, b) => (a.sectionId ?? 0) - (b.sectionId ?? 0)).map(r => {
       const rev = reviews.find(x => x.scoutId === r.id)
       return {
         id: r.id, firstName: r.firstName, lastName: r.lastName,

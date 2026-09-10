@@ -226,11 +226,10 @@ const uniDefs = [
       </div>
     </template>
 
-    <div v-if="!registerOpen" class="note">
+    <!-- someone who will never mark this event sees nothing here at all;
+         someone who will, once the day comes, is told when that is -->
+    <div v-if="canMarkAnyone && !registerOpen" class="note">
       <b>🗓️ {{ t('registerNotYet') }}</b>{{ t('registerOpensOn', { when: fmtDate(data.event.attendanceOpensAt, locale) }) }}
-    </div>
-    <div v-else-if="!canMarkAnyone" class="note">
-      <b>👀 {{ t('registerReadOnly') }}</b>{{ t('registerNotYours') }}
     </div>
 
     <template v-if="showRegister">

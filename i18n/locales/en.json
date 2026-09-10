@@ -643,7 +643,5 @@
   "errGenericBody": "Please try again.",
   "errRetry": "Try again",
   "registerNotYet": "Attendance is not open yet",
-  "registerOpensOn": "It opens on the day of the event, {when}.",
-  "registerReadOnly": "For information only",
-  "registerNotYours": "This event's attendance is recorded by the Αρχηγός Συστήματος."
+  "registerOpensOn": "It opens on the day of the event, {when}."
 }
