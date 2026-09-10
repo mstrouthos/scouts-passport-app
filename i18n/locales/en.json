@@ -634,5 +634,12 @@
   "selfEdit": "May correct their own details",
   "selfEditSub": "Name and phone, from their own Settings",
   "selfEditLocked": "Your leader has locked your details. Ask them if something needs correcting.",
-  "birthdayLocked": "If it is wrong, tell your leader."
+  "birthdayLocked": "If it is wrong, tell your leader.",
+  "errUpdatingTitle": "The app is being updated",
+  "errUpdatingBody": "It takes a few seconds. Try again in a moment — your data is fine.",
+  "errNotFoundTitle": "Page not found",
+  "errNotFoundBody": "That link may be out of date.",
+  "errGenericTitle": "Something went wrong",
+  "errGenericBody": "Please try again.",
+  "errRetry": "Try again"
 }
