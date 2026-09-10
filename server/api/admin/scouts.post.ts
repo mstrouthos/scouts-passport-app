@@ -11,8 +11,11 @@ export default defineEventHandler(async (event) => {
   await assertCan(me, 'roster.addMember')
   const body = await readBody<{
     firstName?: string, lastName?: string, phone?: string,
-    kind?: string, sectionId?: number, patrolId?: number, scope?: string, rank?: string
+    kind?: string, sectionId?: number, patrolId?: number, scope?: string, rank?: string,
+    isHidden?: boolean
   }>(event)
+  // a hidden test account is the Αρχηγός Συστήματος's to make, nobody else's
+  const isHidden = body?.isHidden === true && me.role === 'troop_leader'
   const firstName = String(body?.firstName || '').trim()
   const lastName = String(body?.lastName || '').trim()
   const phone = normalizePhone(body?.phone)
@@ -34,7 +37,7 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, message: 'Bad section' })
     }
     const [row] = (await db.insert(s.scouts).values({
-      firstName, lastName, phone, role: 'leader',
+      firstName, lastName, phone, role: 'leader', isHidden,
       passcodeHmac: hmacPasscode(passcode), createdAt: now(), joinedOn: now().slice(0, 10)
     }).returning())
     await db.insert(s.leaderScopes).values({ scoutId: row.id, scope, sectionId, rank, assignedBy: me.id, assignedAt: now() })
@@ -55,7 +58,7 @@ export default defineEventHandler(async (event) => {
     if (!p || p.sectionId !== sectionId) patrolId = null
   }
   const [row] = (await db.insert(s.scouts).values({
-    firstName, lastName, sectionId, patrolId, phone,
+    firstName, lastName, sectionId, patrolId, phone, isHidden,
     passcodeHmac: hmacPasscode(passcode), createdAt: now(), joinedOn: now().slice(0, 10)
   }).returning())
   return { id: row.id, passcode }

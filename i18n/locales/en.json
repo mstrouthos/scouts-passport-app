@@ -623,5 +623,11 @@
   "resetWhat_announcements": "What was sent, and the notices to families with their PDFs",
   "resetWhat_events": "The diary, with its attendance and points",
   "resetWhat_progress": "Badges, scout requirements and venture logbooks",
-  "resetWhat_logins": "The \"who has signed in\" list goes back to nobody. Passcodes are unchanged."
+  "resetWhat_logins": "The \"who has signed in\" list goes back to nobody. Passcodes are unchanged.",
+  "hiddenMember": "Hidden member (testing)",
+  "hiddenMemberSub": "Appears nowhere and counts towards no standings",
+  "hiddenMemberNote": "This account appears in no list, ranking or attendance roll, not even to its own sector leaders, and counts towards no standings. It signs in and uses the app normally.",
+  "unhideMember": "Make an ordinary member",
+  "confirmHide": "Make this a hidden test account?",
+  "confirmUnhide": "Make this an ordinary member? They will appear in lists and standings."
 }

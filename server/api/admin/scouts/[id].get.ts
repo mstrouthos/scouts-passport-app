@@ -24,6 +24,7 @@ export default defineEventHandler(async (event) => {
     phone: canSeeDetails ? r.phone : null, idNumber: canSeeDetails ? r.idNumber : null,
     email: canSeeDetails ? r.email : null, birthday: canSeeDetails ? r.birthday : null,
     canSeeDetails,
+    isHidden: r.isHidden,
     patrol: patrol && { id: patrol.id, nameEl: patrol.nameEl, nameEn: patrol.nameEn, emblem: patrol.emblem },
     section: section && { id: section.id, nameEl: section.nameEl, nameEn: section.nameEn, slug: section.slug },
     unit: unitNames(section?.slug),

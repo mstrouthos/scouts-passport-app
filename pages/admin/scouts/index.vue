@@ -33,7 +33,7 @@ watch(data, (v) => {
 const adding = ref(false)
 const form = reactive({
   firstName: '', lastName: '', phone: null as string | null,
-  sectionId: 0 as number | 'leaders', patrolId: 0,
+  sectionId: 0 as number | 'leaders', patrolId: 0, isHidden: false,
   leaderScope: 'troop', leaderSectionId: 0, rank: 'archigos'
 })
 const created = ref<{ id: number, passcode: string, phone: string | null } | null>(null)
@@ -57,6 +57,7 @@ function openAdd(sectionId: number | 'leaders' = 0) {
   form.firstName = ''; form.lastName = ''; form.phone = null; form.patrolId = 0
   form.leaderScope = 'troop'; form.leaderSectionId = 0; form.rank = 'archigos'
   form.sectionId = sectionId || data.value?.sections?.find((sec: any) => sec.canManage)?.id || 0
+  form.isHidden = false
   adding.value = true
 }
 
@@ -65,12 +66,12 @@ async function createScout() {
     const body = form.sectionId === 'leaders'
       ? {
           firstName: form.firstName, lastName: form.lastName, phone: form.phone,
-          kind: 'leader', scope: form.leaderScope, rank: form.rank,
+          kind: 'leader', scope: form.leaderScope, rank: form.rank, isHidden: form.isHidden,
           sectionId: form.leaderScope === 'section' ? form.leaderSectionId : null
         }
       : {
           firstName: form.firstName, lastName: form.lastName, phone: form.phone,
-          sectionId: form.sectionId, patrolId: form.patrolId || null
+          sectionId: form.sectionId, patrolId: form.patrolId || null, isHidden: form.isHidden
         }
     const res = await $fetch<any>('/api/admin/scouts', { method: 'POST', body })
     created.value = { ...res, phone: form.phone }
@@ -314,6 +315,12 @@ async function deletePatrol() {
               <div class="tiny muted" style="margin-top:5px">{{ t('unitLaterNote') }}</div>
             </div>
 
+            <!-- a test account for the live app: the Αρχηγός Συστήματος's alone -->
+            <button v-if="me?.role === 'troop_leader'" class="srow" @click="form.isHidden = !form.isHidden">
+              <div class="ico">🕵️</div>
+              <div class="txt"><b>{{ t('hiddenMember') }}</b><span>{{ t('hiddenMemberSub') }}</span></div>
+              <span class="sw" :class="{ off: !form.isHidden }" />
+            </button>
             <button class="btn" :disabled="!canCreate" @click="createScout">{{ t('create') }}</button>
           </template>
         </div>

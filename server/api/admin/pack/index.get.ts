@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   const patrols = allPatrols.filter(x => x.sectionId === section.id)
     .sort((a, b) => a.sortOrder - b.sortOrder)
   const members = (await db.select().from(s.scouts))
-    .filter(r => r.role === 'scout' && r.isActive)
+    .filter(r => r.role === 'scout' && r.isActive && !r.isHidden)
     .filter(r => sectionOfWith(r as any, allPatrols) === section.id)
 
   const challenges = (await db.select().from(s.packChallenges))

@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
-import { requireLeader, scopedScouts, idParam, rankOf, sectionOfWith } from '../../../../utils/guard'
+import { requireLeader, scopedScouts, idParam, rankOf, sectionOfWith, canSeeHidden } from '../../../../utils/guard'
 import { groupMemberIds, canScheduleForGroup } from '../../../../utils/groupScope'
 import { canEditEvent } from '../../../../utils/eventScope'
 import { leadersForEvent, sectionsOfLeader } from '../../../../utils/rsvp'
@@ -38,7 +38,9 @@ export default defineEventHandler(async (event) => {
   //    own sector's members — the rest are shown, greyed;
   //  · a sector's event lists that sector's members, as before.
   const asked = await leadersForEvent(e)
-  const everyone = await db.select().from(s.scouts)
+  // a hidden test account is on nobody's roll but the Αρχηγός Συστήματος's —
+  // a troop-wide event lists everyone, which would otherwise name it aloud
+  const everyone = (await db.select().from(s.scouts)).filter(r => !r.isHidden || canSeeHidden(me))
   const mine = new Set((await scopedScouts(me)).map(r => r.id))
   const editable = await canEditEvent(me, e)
   let roster: Array<typeof s.scouts.$inferSelect & { canMark: boolean }>

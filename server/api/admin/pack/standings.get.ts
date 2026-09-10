@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   if (!mine.length) return []
 
   const allPatrols = await db.select().from(s.patrols)
-  const scouts = (await db.select().from(s.scouts)).filter(r => r.role === 'scout' && r.isActive)
+  const scouts = (await db.select().from(s.scouts)).filter(r => r.role === 'scout' && r.isActive && !r.isHidden)
   const totals = await pointTotals()
 
   return mine.map(section => {

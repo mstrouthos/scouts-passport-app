@@ -105,12 +105,14 @@ export async function scopedScouts(me: SessionScout): Promise<SessionScout[]> {
   // the trash is not the roster: a trashed member is nobody's to edit or mark
   const allScouts = async () => (await db.select().from(s.scouts).where(eq(s.scouts.role, 'scout'))).filter(r => !r.deletedAt)
   if (me.role === 'troop_leader') return allScouts()
+  // a hidden test account is nobody's to see or act on but the Αρχηγός Συστήματος's
+  const visible = async () => (await allScouts()).filter(r => !r.isHidden)
   const scopes = await myScopes(me)
-  if (scopes.some(x => x.scope === 'troop')) return allScouts()
+  if (scopes.some(x => x.scope === 'troop')) return visible()
   const secIds = await scopedSectionIds(me)
   if (!secIds!.length) return []
   const patrols = await db.select().from(s.patrols)
-  return (await allScouts()).filter(r => {
+  return (await visible()).filter(r => {
     const sid = sectionOfWith(r, patrols)
     return sid != null && secIds!.includes(sid)
   })
@@ -144,6 +146,7 @@ export async function scopedLeaders(me: SessionScout): Promise<SessionScout[]> {
   const db = await useDb()
   const all = (await db.select().from(s.scouts)).filter(r => r.role !== 'scout')
   if (me.role === 'troop_leader') return all.filter(r => r.id !== me.id)
+  const visible = all.filter(r => !r.isHidden)
   const secIds = await scopedSectionIds(me)
   if (!secIds || !secIds.length) return []
   const myPatrols = (await db.select().from(s.patrols)).filter(p => secIds.includes(p.sectionId)).map(p => p.id)
@@ -151,7 +154,7 @@ export async function scopedLeaders(me: SessionScout): Promise<SessionScout[]> {
   const patrolLeaderIds = new Set(
     scopes.filter(x => x.scope === 'patrol' && x.patrolId != null && myPatrols.includes(x.patrolId)).map(x => x.scoutId)
   )
-  return all.filter(r => patrolLeaderIds.has(r.id))
+  return visible.filter(r => patrolLeaderIds.has(r.id))
 }
 
 export async function assertLeaderInScope(me: SessionScout, scoutId: number) {
@@ -159,13 +162,19 @@ export async function assertLeaderInScope(me: SessionScout, scoutId: number) {
   if (!ok) throw createError({ statusCode: 403, message: 'Out of your sector' })
 }
 
+/** Hidden test accounts are for the Αρχηγός Συστήματος alone. */
+export const canSeeHidden = (me: SessionScout) => me.role === 'troop_leader'
+
 /** Total points per scout id: challenge answers + direct awards + patrol awards. */
 export async function pointTotals(): Promise<Map<number, number>> {
   const db = await useDb()
   const totals = new Map<number, number>()
   const add = (id: number, p: number) => totals.set(id, (totals.get(id) || 0) + p)
   for (const a of await db.select().from(s.challengeAnswers)) add(a.scoutId, a.pointsAwarded)
-  const actives = (await db.select().from(s.scouts).where(eq(s.scouts.role, 'scout'))).filter(r => r.isActive)
+  // a unit's award is shared by its real members; a hidden test account
+  // takes no share of it, so the unit's own total stays honest
+  const actives = (await db.select().from(s.scouts).where(eq(s.scouts.role, 'scout')))
+    .filter(r => r.isActive && !r.isHidden)
   for (const w of await db.select().from(s.pointAwards)) {
     if (w.scoutId) add(w.scoutId, w.points)
     else if (w.patrolId) for (const r of actives.filter(x => x.patrolId === w.patrolId)) add(r.id, w.points)

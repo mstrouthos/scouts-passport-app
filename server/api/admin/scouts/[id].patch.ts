@@ -17,10 +17,16 @@ export default defineEventHandler(async (event) => {
   }
   const body = await readBody<{
     patrolId?: number | null, isActive?: boolean, firstName?: string, lastName?: string,
-    firstNameEn?: string, lastNameEn?: string, phone?: string, idNumber?: string
+    firstNameEn?: string, lastNameEn?: string, phone?: string, idNumber?: string, isHidden?: boolean
   }>(event)
   const set: any = {}
   if (typeof body?.isActive === 'boolean') set.isActive = body.isActive
+  // only the Αρχηγός Συστήματος makes an account hidden, or brings it back
+  if (typeof body?.isHidden === 'boolean') {
+    if (me.role !== 'troop_leader')
+      throw createError({ statusCode: 403, message: 'Only the Αρχηγός Συστήματος can hide a member' })
+    set.isHidden = body.isHidden
+  }
   if (body?.firstName) set.firstName = String(body.firstName).trim()
   if (body?.lastName) set.lastName = String(body.lastName).trim()
   if (body?.firstNameEn !== undefined) set.firstNameEn = String(body.firstNameEn).trim() || null

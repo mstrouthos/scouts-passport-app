@@ -14,7 +14,8 @@ export default defineEventHandler(async (event) => {
 
   const sections = await db.select().from(s.sections)
   const patrols = await db.select().from(s.patrols)
-  const scouts = ((await db.select().from(s.scouts)).filter(r => !r.deletedAt)).filter(r => r.isActive)
+  // the launch list is about real people getting in; a test account is not one
+  const scouts = ((await db.select().from(s.scouts)).filter(r => !r.deletedAt && !r.isHidden)).filter(r => r.isActive)
   const bySlug = new Map(sections.map(x => [x.id, x.slug]))
 
   const row = (r: any, kind: 'scout' | 'parent', where: string | null) => ({

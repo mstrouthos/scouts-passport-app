@@ -8,7 +8,7 @@ import { groupsILead } from './groupScope'
    make the question worth ignoring. */
 export async function leadersForEvent(ev: typeof s.events.$inferSelect): Promise<number[]> {
   const db = await useDb()
-  const leaders = (await db.select().from(s.scouts)).filter(r => r.role !== 'scout' && r.isActive)
+  const leaders = ((await db.select().from(s.scouts)).filter(r => !r.isHidden)).filter(r => r.role !== 'scout' && r.isActive)
   const scopes = await db.select().from(s.leaderScopes)
   const patrols = await db.select().from(s.patrols)
 
@@ -44,7 +44,7 @@ export async function mayRsvp(me: SessionScout, ev: typeof s.events.$inferSelect
     Αρχηγός may read. A troop-wide leader belongs to all of them. */
 export async function sectionsOfLeader(scoutId: number): Promise<number[] | null> {
   const db = await useDb()
-  const person = (await db.select().from(s.scouts)).find(r => r.id === scoutId)
+  const person = ((await db.select().from(s.scouts)).filter(r => !r.isHidden)).find(r => r.id === scoutId)
   if (person?.role === 'troop_leader') return null
   const scopes = (await db.select().from(s.leaderScopes)).filter(x => x.scoutId === scoutId)
   if (scopes.some(x => x.scope === 'troop')) return null

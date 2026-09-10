@@ -8,8 +8,10 @@ export default defineEventHandler(async (event) => {
   const totals = await pointTotals()
   const allPatrols = (await db.select().from(s.patrols))
   const mySection = sectionOfWith(me, allPatrols)
+  // the league table is the sector's real members; a hidden test account is
+  // in it neither as a row nor inside its unit's average
   const actives = (await db.select().from(s.scouts).where(eq(s.scouts.role, 'scout')))
-    .filter(r => r.isActive && sectionOfWith(r, allPatrols) === mySection)
+    .filter(r => r.isActive && !r.isHidden && sectionOfWith(r, allPatrols) === mySection)
   const patrols = allPatrols.filter(p => p.sectionId === mySection)
 
   const individual = actives.map(r => ({

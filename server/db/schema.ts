@@ -46,6 +46,12 @@ export const scouts = pgTable('scouts', {
   lastLoginAt: text('last_login_at'),
   // Trashed, not gone: the row stays for 30 days so a mistake can be undone,
   // then the cron removes it and everything that referenced it.
+  /* A test account that lives on the live app without being part of it.
+     Invisible to every roster, ranking and roll except the Αρχηγός
+     Συστήματος's, and counted in no total — so a Βαθμοφόρος cannot tell one
+     is there, and a sector's numbers stay true. They sign in and use the app
+     exactly like anyone else, which is the whole point. */
+  isHidden: boolean('is_hidden').notNull().default(false),
   deletedAt: text('deleted_at'),
   deletedBy: integer('deleted_by'),
   locale: text('locale').notNull().default('el'),

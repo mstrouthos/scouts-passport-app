@@ -1,5 +1,5 @@
 import { useDb, schema as s } from '../../db'
-import { requireLeader, scopedSectionIds, visibleSectionIds, pointTotals, sectionOf, sectionOfWith } from '../../utils/guard'
+import { requireLeader, scopedSectionIds, visibleSectionIds, pointTotals, sectionOf, sectionOfWith, canSeeHidden } from '../../utils/guard'
 import { unitNames } from '../../utils/unitNames'
 
 export default defineEventHandler(async (event) => {
@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
   const totals = await pointTotals()
   const patrols = (await db.select().from(s.patrols)).sort((a, b) => a.sortOrder - b.sortOrder)
   const all = (await db.select().from(s.scouts)).filter(r => !r.deletedAt)
+    .filter(r => !r.isHidden || canSeeHidden(me))
   const badgeCounts = new Map<number, number>()
   for (const a of await db.select().from(s.scoutAchievements))
     badgeCounts.set(a.scoutId, (badgeCounts.get(a.scoutId) || 0) + 1)

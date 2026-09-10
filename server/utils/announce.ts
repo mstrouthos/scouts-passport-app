@@ -15,7 +15,7 @@ import { now } from './passcode'
     come along unless the sender turned that off. */
 export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelect, approvedBy: number | null) {
   const db = (await useDb())
-  const scouts = (await db.select().from(s.scouts)).filter(r => r.isActive)
+  const scouts = ((await db.select().from(s.scouts)).filter(r => !r.isHidden)).filter(r => r.isActive)
   const patrols = (await db.select().from(s.patrols))
 
   let memberIds: number[] = []

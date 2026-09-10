@@ -31,6 +31,15 @@ async function setUnit(patrolId: number | null) {
   finally { unitBusy.value = false }
 }
 
+/* Turning a test account back into an ordinary member, or the reverse. */
+async function setHidden(v: boolean) {
+  if (!confirm(v ? t('confirmHide') : t('confirmUnhide'))) return
+  try {
+    await $fetch(`/api/admin/scouts/${id}`, { method: 'PATCH', body: { isHidden: v } })
+    await refresh(); show('✅ ' + t('saved'))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+}
+
 const editingName = ref(false)
 const nameForm = reactive({ firstName: '', lastName: '', firstNameEn: '', lastNameEn: '' })
 const nameBusy = ref(false)
@@ -188,6 +197,10 @@ async function deleteScout() {
         </div>
 
         <template v-if="me?.can?.rosterEdit !== false">
+        <div v-if="data.isHidden" class="note">
+          <b>🕵️ {{ t('hiddenMember') }}</b>{{ t('hiddenMemberNote') }}
+          <button v-if="me?.role === 'troop_leader'" class="chip" style="margin-top:8px" @click="setHidden(false)">{{ t('unhideMember') }}</button>
+        </div>
         <div class="sec-title">{{ t('memberDetails') }}</div>
         <div class="card" style="display:flex;flex-direction:column;gap:10px">
           <template v-if="editingName">
