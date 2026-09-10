@@ -15,6 +15,9 @@ const runsBadges = computed(() => me.value?.role === 'troop_leader'
     <NuxtLink v-if="me?.can?.badges !== false && runsBadges" to="/admin/badges" class="srow">
       <div class="ico">🏅</div><div class="txt"><b>{{ t('badges') }}</b><span>{{ t('pickFromList') }}</span></div><span class="chev">›</span>
     </NuxtLink>
+    <NuxtLink v-if="me?.role === 'troop_leader'" to="/admin/cleanup" class="srow">
+      <div class="ico">🧹</div><div class="txt"><b>{{ t('resetTitle') }}</b><span>{{ t('resetSub') }}</span></div><span class="chev">›</span>
+    </NuxtLink>
     <NuxtLink v-if="me?.can?.rosterEdit !== false" to="/admin/trash" class="srow">
       <div class="ico">🗑️</div><div class="txt"><b>{{ t('trash') }}</b><span>{{ t('trashSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>

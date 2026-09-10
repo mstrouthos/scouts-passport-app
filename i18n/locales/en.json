@@ -612,5 +612,16 @@
   "confirmReset": "Delete {n} categories of data for good? This cannot be undone.",
   "resetOk": "Cleared",
   "resetCleared": "Cleared",
-  "resetKeeps": "Untouched: members, leaders, parents, sectors, units, questions, badges and information pages."
+  "resetKeeps": "Untouched: members, leaders, parents, sectors, units, questions, badges and information pages.",
+  "reset_logins": "Sign-in records",
+  "resetSub": "Clear the trial data",
+  "resetPick": "What to clear",
+  "troopLeaderOnly": "Troop leader only.",
+  "resetWhat_points": "Attendance, uniform and game points, and quiz answers",
+  "resetWhat_attendance": "Who was marked present, absent or in uniform",
+  "resetWhat_notifications": "Members' and parents' inboxes",
+  "resetWhat_announcements": "What was sent, and the notices to families with their PDFs",
+  "resetWhat_events": "The diary, with its attendance and points",
+  "resetWhat_progress": "Badges, scout requirements and venture logbooks",
+  "resetWhat_logins": "The \"who has signed in\" list goes back to nobody. Passcodes are unchanged."
 }

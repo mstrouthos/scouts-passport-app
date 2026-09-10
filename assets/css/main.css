@@ -205,6 +205,9 @@ input,textarea,select{font-family:inherit}
   text-decoration:none;
 }
 .btn:active{transform:scale(.98)}
+/* two buttons side by side: each is width:100% on its own, so without this
+   they add up to twice the row and push the page sideways */
+.btn{min-width:0}
 .btn:disabled{opacity:.4;box-shadow:none}
 .btn.gold{background:var(--gold);color:#4A3505;box-shadow:0 8px 20px rgba(240,180,41,.32)}
 .btn.ghost{background:var(--card);border:1.5px dashed #C6D4E4;color:var(--accent-deep);font-weight:600;box-shadow:none}

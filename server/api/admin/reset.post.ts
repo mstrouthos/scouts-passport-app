@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { isNotNull, sql } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { requireTroopLeader } from '../../utils/guard'
 
@@ -11,8 +11,8 @@ import { requireTroopLeader } from '../../utils/guard'
 
     What is deliberately NOT touched: members, Βαθμοφόροι, parents, sectors,
     units, the quiz questions themselves, the badge and requirement
-    definitions, and the information pages. Those are the setup, not the
-    practice run. */
+    definitions, the information pages, and everybody's passcode. Those are
+    the setup, not the practice run. */
 const PHRASE = 'ΚΑΘΑΡΙΣΜΟΣ'
 
 export default defineEventHandler(async (event) => {
@@ -59,6 +59,15 @@ export default defineEventHandler(async (event) => {
       await wipe(tx, s.eventReviews, 'events')
       await wipe(tx, s.pointAwards, 'events')
       await wipe(tx, s.events, 'events')
+    }
+    // who has signed in: the activation list goes back to nobody, without
+    // touching anybody's passcode — they keep the code they were given
+    if (what.has('logins')) {
+      const [{ n: a }] = await tx.select({ n: sql<number>`count(*)::int` }).from(s.scouts).where(isNotNull(s.scouts.firstLoginAt))
+      const [{ n: b }] = await tx.select({ n: sql<number>`count(*)::int` }).from(s.parents).where(isNotNull(s.parents.firstLoginAt))
+      if (a) await tx.update(s.scouts).set({ firstLoginAt: null, lastLoginAt: null })
+      if (b) await tx.update(s.parents).set({ firstLoginAt: null, lastLoginAt: null })
+      done.logins = a + b
     }
     // progress: badges, requirements and the Κοινότητα's booklet
     if (what.has('progress')) {
