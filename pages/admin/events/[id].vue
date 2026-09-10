@@ -22,6 +22,13 @@ const eventPatrols = computed(() => {
 const id = route.params.id
 const { data, refresh } = await useFetch<any>(`/api/admin/events/${id}/review`)
 const tab = ref<'att' | 'uni' | 'pts'>('att')
+/* The register belongs to whoever can actually write in it, on the day.
+   Before the day there is nothing to record; and someone who may mark
+   nobody here — a sector's Βαθμοφόρος on a ΒΑΘΜΟΦΟΡΟΙ event, say — is shown
+   no buttons at all rather than a row of dead ones. */
+const registerOpen = computed(() => data.value?.event?.attendanceOpen === true)
+const canMarkAnyone = computed(() => (data.value?.scouts || []).some((r: any) => r.canMark !== false))
+const showRegister = computed(() => registerOpen.value && canMarkAnyone.value)
 const game = reactive({ patrolId: 0, scoutId: 0, points: 20, reason: '' })
 /* Points go to a whole ενωμοτία or to one scout — never both at once. */
 const gameTarget = ref<'patrol' | 'scout'>('patrol')
@@ -219,6 +226,14 @@ const uniDefs = [
       </div>
     </template>
 
+    <div v-if="!registerOpen" class="note">
+      <b>🗓️ {{ t('registerNotYet') }}</b>{{ t('registerOpensOn', { when: fmtDate(data.event.attendanceOpensAt, locale) }) }}
+    </div>
+    <div v-else-if="!canMarkAnyone" class="note">
+      <b>👀 {{ t('registerReadOnly') }}</b>{{ t('registerNotYours') }}
+    </div>
+
+    <template v-if="showRegister">
     <div class="seg">
       <button :class="{ on: tab === 'att' }" @click="tab = 'att'">{{ t('attendance') }}</button>
       <button :class="{ on: tab === 'uni' }" @click="tab = 'uni'">{{ t('uniform') }}</button>
@@ -310,7 +325,8 @@ const uniDefs = [
       </div>
       <div v-else class="empty">{{ t('noAwards') }}</div>
     </template>
-  
+    </template>
+
     <Teleport to="body">
       <div v-if="editing" class="sheet-backdrop" @click.self="editing = false">
         <div class="sheet" style="display:flex;flex-direction:column;gap:12px;max-height:88dvh;overflow:auto">

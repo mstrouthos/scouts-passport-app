@@ -4,6 +4,7 @@ import { requireLeader, scopedPatrolIds, idParam } from '../../../../utils/guard
 import { assertScoutVisible } from '../../../../utils/requirements'
 import { now } from '../../../../utils/passcode'
 import { assertCan } from '../../../../utils/permissions'
+import { attendanceIsOpen } from '../../../../utils/attendance'
 
 /** Award points during an event, either to a whole ενωμοτία or to one scout —
     a patrol wins the game, but one scout can earn something on their own. */
@@ -32,8 +33,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = (await useDb())
-  if (!(await db.select().from(s.events).where(eq(s.events.id, eventId)).limit(1))[0])
-    throw createError({ statusCode: 404, message: 'Event not found' })
+  const ev = (await db.select().from(s.events).where(eq(s.events.id, eventId)).limit(1))[0]
+  if (!ev) throw createError({ statusCode: 404, message: 'Event not found' })
+  // points from the event are recorded at the event, not booked in advance
+  if (!attendanceIsOpen(ev.startsAt))
+    throw createError({ statusCode: 400, message: 'Οι πόντοι δίνονται από την ημέρα της δράσης' })
   await db.insert(s.pointAwards).values({
     patrolId, scoutId, eventId, kind: 'game', points,
     reasonEl: String(b?.reasonEl || 'Παιχνίδι'), reasonEn: b?.reasonEn || null,

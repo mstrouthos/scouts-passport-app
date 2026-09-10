@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../../../../db'
 import { requireLeader, scopedScouts, idParam, rankOf, sectionOfWith, canSeeHidden } from '../../../../utils/guard'
 import { groupMemberIds, canScheduleForGroup } from '../../../../utils/groupScope'
 import { canEditEvent } from '../../../../utils/eventScope'
+import { attendanceIsOpen, attendanceOpensAt } from '../../../../utils/attendance'
 import { leadersForEvent, sectionsOfLeader } from '../../../../utils/rsvp'
 import { scopedSectionIds } from '../../../../utils/guard'
 
@@ -94,6 +95,10 @@ export default defineEventHandler(async (event) => {
       id: e.id, titleEl: e.titleEl, titleEn: e.titleEn, startsAt: e.startsAt, scope: e.scope, groupId: e.groupId,
       // the sector decides the words on this screen: an Αγέλη game is won by an εξάδα
       sectionId: e.sectionId,
+      // the register opens on the day and stays open; before that there is
+      // nothing to record and the screen says so instead of offering buttons
+      attendanceOpen: attendanceIsOpen(e.startsAt),
+      attendanceOpensAt: attendanceOpensAt(e.startsAt),
       sectionSlug: e.sectionId != null ? (await db.select().from(s.sections)).find(x => x.id === e.sectionId)?.slug ?? null : null
     },
     scouts: roster.filter(r => r.isActive).sort((a, b) => (a.sectionId ?? 0) - (b.sectionId ?? 0)).map(r => {

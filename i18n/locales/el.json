@@ -641,5 +641,9 @@
   "errNotFoundBody": "Ίσως ο σύνδεσμος είναι παλιός.",
   "errGenericTitle": "Κάτι πήγε στραβά",
   "errGenericBody": "Δοκίμασε ξανά.",
-  "errRetry": "Δοκίμασε ξανά"
+  "errRetry": "Δοκίμασε ξανά",
+  "registerNotYet": "Οι παρουσίες δεν άνοιξαν ακόμη",
+  "registerOpensOn": "Ανοίγουν την ημέρα της δράσης, {when}.",
+  "registerReadOnly": "Μόνο για ενημέρωση",
+  "registerNotYours": "Τις παρουσίες αυτής της δράσης τις σημειώνει ο Αρχηγός Συστήματος."
 }

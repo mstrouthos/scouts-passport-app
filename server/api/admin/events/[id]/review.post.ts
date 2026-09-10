@@ -7,6 +7,7 @@ import { assertCan } from '../../../../utils/permissions'
 import { canScheduleForGroup, groupMemberIds } from '../../../../utils/groupScope'
 import { canEditEvent } from '../../../../utils/eventScope'
 import { leadersForEvent } from '../../../../utils/rsvp'
+import { attendanceIsOpen } from '../../../../utils/attendance'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -34,6 +35,8 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 403, message: 'Out of your sector' })
     }
   }
+  if (!attendanceIsOpen(ev.startsAt))
+    throw createError({ statusCode: 400, message: 'Οι παρουσίες ανοίγουν την ημέρα της δράσης' })
   if (!ev.tracksAttendance)
     throw createError({ statusCode: 400, message: 'This event does not track attendance' })
 
