@@ -51,6 +51,10 @@ export const scouts = pgTable('scouts', {
      Συστήματος's, and counted in no total — so a Βαθμοφόρος cannot tell one
      is there, and a sector's numbers stay true. They sign in and use the app
      exactly like anyone else, which is the whole point. */
+  /* Correcting your own name and phone is everyone's by default — the people
+     who know how their name is spelled are the ones who own it. A leader can
+     take it away from one member who keeps changing theirs. */
+  canEditSelf: boolean('can_edit_self').notNull().default(true),
   isHidden: boolean('is_hidden').notNull().default(false),
   deletedAt: text('deleted_at'),
   deletedBy: integer('deleted_by'),

@@ -629,5 +629,9 @@
   "hiddenMemberNote": "This account appears in no list, ranking or attendance roll, not even to its own sector leaders, and counts towards no standings. It signs in and uses the app normally.",
   "unhideMember": "Make an ordinary member",
   "confirmHide": "Make this a hidden test account?",
-  "confirmUnhide": "Make this an ordinary member? They will appear in lists and standings."
+  "confirmUnhide": "Make this an ordinary member? They will appear in lists and standings.",
+  "myDetails": "My details",
+  "selfEdit": "May correct their own details",
+  "selfEditSub": "Name and phone, from their own Settings",
+  "selfEditLocked": "Your leader has locked your details. Ask them if something needs correcting."
 }

@@ -40,6 +40,15 @@ async function setHidden(v: boolean) {
   } catch (e: any) { show(e?.data?.message || t('error')) }
 }
 
+/* Taking away, or giving back, this member's right to correct their own
+   name and number. */
+async function setCanEditSelf(v: boolean) {
+  try {
+    await $fetch(`/api/admin/scouts/${id}`, { method: 'PATCH', body: { canEditSelf: v } })
+    await refresh(); show('✅ ' + t('saved'))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+}
+
 const editingName = ref(false)
 const nameForm = reactive({ firstName: '', lastName: '', firstNameEn: '', lastNameEn: '' })
 const nameBusy = ref(false)
@@ -222,6 +231,11 @@ async function deleteScout() {
           </template>
         </div>
 
+        <button class="srow" @click="setCanEditSelf(data.canEditSelf === false)">
+          <div class="ico">✍️</div>
+          <div class="txt"><b>{{ t('selfEdit') }}</b><span>{{ t('selfEditSub') }}</span></div>
+          <span class="sw" :class="{ off: data.canEditSelf === false }" />
+        </button>
         <div class="sec-title">{{ t('loginCard') }}</div>
         <div class="card" style="display:flex;flex-direction:column;gap:10px">
           <div style="display:flex;align-items:center;gap:12px">

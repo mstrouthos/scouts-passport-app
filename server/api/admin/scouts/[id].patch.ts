@@ -17,11 +17,14 @@ export default defineEventHandler(async (event) => {
   }
   const body = await readBody<{
     patrolId?: number | null, isActive?: boolean, firstName?: string, lastName?: string,
-    firstNameEn?: string, lastNameEn?: string, phone?: string, idNumber?: string, isHidden?: boolean
+    firstNameEn?: string, lastNameEn?: string, phone?: string, idNumber?: string, isHidden?: boolean, canEditSelf?: boolean
   }>(event)
   const set: any = {}
   if (typeof body?.isActive === 'boolean') set.isActive = body.isActive
   // only the Αρχηγός Συστήματος makes an account hidden, or brings it back
+  // a leader of their sector may take away, or give back, the right to
+  // correct their own name and number
+  if (typeof body?.canEditSelf === 'boolean') set.canEditSelf = body.canEditSelf
   if (typeof body?.isHidden === 'boolean') {
     if (me.role !== 'troop_leader')
       throw createError({ statusCode: 403, message: 'Only the Αρχηγός Συστήματος can hide a member' })

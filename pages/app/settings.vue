@@ -11,6 +11,32 @@ onMounted(() => {
   else if (Notification.permission === 'denied') notifState.value = 'denied'
 })
 
+/* Correcting your own name and phone. Everyone may, until a leader turns it
+   off; the server checks that too, so this is a courtesy, not the lock. */
+const editing = ref(false)
+const busy = ref(false)
+const form = reactive({ firstName: '', lastName: '', firstNameEn: '', lastNameEn: '', phone: null as string | null })
+const phoneOk = computed(() => !form.phone || /^\+357\d{8}$/.test(form.phone))
+function openEdit() {
+  form.firstName = me.value?.firstName || ''
+  form.lastName = me.value?.lastName || ''
+  form.firstNameEn = me.value?.firstNameEn || ''
+  form.lastNameEn = me.value?.lastNameEn || ''
+  form.phone = me.value?.phone || null
+  editing.value = true
+}
+async function saveMe() {
+  if (!form.firstName.trim() || !form.lastName.trim() || !phoneOk.value || busy.value) return
+  busy.value = true
+  try {
+    await $fetch('/api/me', { method: 'PATCH', body: { ...form } })
+    await loadMe()
+    editing.value = false
+    show('✅ ' + t('saved'))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+  finally { busy.value = false }
+}
+
 async function pickLang(l: 'el' | 'en') {
   await setLocale(l)
   $fetch('/api/settings', { method: 'PATCH', body: { locale: l } }).catch(() => {})
@@ -37,6 +63,29 @@ async function enableNotifs() {
 
 <template>
   <AppShell :title="t('settings')" :sub="`${me?.firstName} ${me?.lastName}`" back="/app">
+    <div class="sec-title">{{ t('myDetails') }}</div>
+    <div class="card" style="display:flex;flex-direction:column;gap:10px">
+      <template v-if="editing">
+        <div><label class="lab">{{ t('firstName') }}</label><input v-model="form.firstName" class="in"></div>
+        <div><label class="lab">{{ t('lastName') }}</label><input v-model="form.lastName" class="in"></div>
+        <div><label class="lab">{{ t('firstName') }} (EN) <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="form.firstNameEn" class="in"></div>
+        <div><label class="lab">{{ t('lastName') }} (EN) <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="form.lastNameEn" class="in"></div>
+        <div><label class="lab">{{ t('phone') }}</label><PhoneInput v-model="form.phone" /></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" :disabled="!form.firstName.trim() || !form.lastName.trim() || !phoneOk || busy" @click="saveMe">{{ t('save') }}</button>
+          <button class="btn ghost" @click="editing = false">{{ t('cancel') }}</button>
+        </div>
+      </template>
+      <template v-else>
+        <div>
+          <b style="font-size:14px">{{ me?.firstName }} {{ me?.lastName }}</b>
+          <div class="tiny muted">{{ me?.phone || t('noPhoneOnFile') }}</div>
+        </div>
+        <button v-if="me?.canEditSelf !== false" class="chip" style="align-self:flex-start" @click="openEdit">✎ {{ t('edit') }}</button>
+        <div v-else class="tiny muted">{{ t('selfEditLocked') }}</div>
+      </template>
+    </div>
+
     <div class="sec-title">{{ t('language') }}</div>
     <div class="seg">
       <button :class="{ on: locale === 'el' }" @click="pickLang('el')">Ελληνικά</button>
