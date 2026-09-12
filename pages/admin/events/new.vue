@@ -12,14 +12,16 @@ const form = reactive({
   groupId: 0,
   sectionId: 0,
   leadersOnly: false,   // this sector's Βαθμοφόροι, not its members
-  date: new Date().toISOString().slice(0, 10), start: '17:00', end: '19:00', remind: true,
+  date: new Date().toISOString().slice(0, 10), start: '17:00',
+  endDate: '', end: '19:00', remind: true,   // a camp ends on another day
   tracksAttendance: true
 })
 watchEffect(() => { if (!form.sectionId && secs.value?.length) form.sectionId = secs.value[0].id })
 
 async function save() {
   const startsAt = new Date(`${form.date}T${form.start}`).toISOString()
-  const endsAt = form.end ? new Date(`${form.date}T${form.end}`).toISOString() : null
+  const endsAt = form.end ? new Date(`${form.endDate || form.date}T${form.end}`).toISOString() : null
+  if (endsAt && endsAt <= startsAt) return show(t('endAfterStart'))
   const remindAt = form.remind ? new Date(new Date(startsAt).getTime() - 86400_000).toISOString() : null
   try {
     await $fetch('/api/admin/events', {
@@ -75,11 +77,15 @@ async function save() {
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:13px">
-        <div><label class="lab">{{ t('date') }}</label><input v-model="form.date" type="date" class="in"></div>
         <div style="display:flex;gap:8px">
-          <div style="flex:1"><label class="lab">{{ t('starts') }}</label><input v-model="form.start" type="time" class="in"></div>
-          <div style="flex:1"><label class="lab">{{ t('ends') }}</label><input v-model="form.end" type="time" class="in"></div>
+          <div style="flex:1"><label class="lab">{{ t('starts') }}</label><input v-model="form.date" type="date" class="in"></div>
+          <div style="flex:none;width:132px"><label class="lab">&nbsp;</label><input v-model="form.start" type="time" class="in"></div>
         </div>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1"><label class="lab">{{ t('ends') }}</label><input v-model="form.endDate" type="date" class="in" :min="form.date" :placeholder="form.date"></div>
+          <div style="flex:none;width:132px"><label class="lab">&nbsp;</label><input v-model="form.end" type="time" class="in"></div>
+        </div>
+        <div class="tiny muted" style="margin-top:-6px">{{ t('endDateNote') }}</div>
         <button class="srow" @click="form.remind = !form.remind">
           <div class="ico">🔔</div><div class="txt"><b>{{ t('remind1d') }}</b></div>
           <span class="sw" :class="{ off: !form.remind }" />

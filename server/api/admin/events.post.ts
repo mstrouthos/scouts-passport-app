@@ -13,6 +13,11 @@ export default defineEventHandler(async (event) => {
   if (b0?.scope !== 'group') await assertCan(me, 'events.edit')
   const b = b0
   if (!b?.titleEl || !b?.startsAt) throw createError({ statusCode: 400, message: 'Title and start required' })
+  if (Number.isNaN(Date.parse(b.startsAt)) || (b.endsAt && Number.isNaN(Date.parse(b.endsAt))))
+    throw createError({ statusCode: 400, message: 'Not a valid date' })
+  // an event ends after it starts — the same day or a later one
+  if (b.endsAt && Date.parse(b.endsAt) <= Date.parse(b.startsAt))
+    throw createError({ statusCode: 400, message: 'Η λήξη πρέπει να είναι μετά την έναρξη' })
   const db = (await useDb())
   const secIds = await scopedSectionIds(me)
   let scope = ['troop', 'section', 'patrol', 'leaders', 'group'].includes(b.scope) ? b.scope : 'section'

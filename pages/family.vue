@@ -94,7 +94,7 @@ async function signOut() {
   me.value = null; posts.value = []; events.value = []
 }
 function sub(e: any) {
-  const time = e.isAllDay ? t('allDay') : `${fmtTime(e.startsAt)}${e.endsAt ? ' – ' + fmtTime(e.endsAt) : ''}`
+  const time = fmtSpan(e, locale, t('allDay'))
   return `${time}${e.location ? ' · ' + e.location : ''}`
 }
 function b64ToU8(base64: string) {

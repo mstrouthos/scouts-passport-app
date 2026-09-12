@@ -645,5 +645,7 @@
   "registerNotYet": "Attendance is not open yet",
   "registerOpensOn": "It opens on the day of the event, {when}.",
   "leadersOnly": "Leaders only",
-  "leadersOnlyNote": "For this section's leaders only — members and parents will not see it."
+  "leadersOnlyNote": "For this section's leaders only — members and parents will not see it.",
+  "endAfterStart": "The end must be after the start",
+  "endDateNote": "Leave the end date blank if it ends the same day."
 }

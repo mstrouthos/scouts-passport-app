@@ -61,6 +61,16 @@ export function fmtTime(iso: string) {
   const d = new Date(iso)
   return d.toTimeString().slice(0, 5)
 }
+/** When an event runs, start to end: "10:00 – 12:30" on one day,
+    "13 Σεπ 10:00 – 15 Σεπ 12:30" across days, or the days alone if all-day. */
+export function fmtSpan(e: { startsAt: string; endsAt?: string | null; isAllDay?: boolean | null }, locale: string, allDay: string) {
+  const lc = locale === 'en' ? 'en-GB' : 'el-GR'
+  const day = (iso: string) => new Date(iso).toLocaleDateString(lc, { day: 'numeric', month: 'short' }).replace('.', '')
+  const sameDay = !e.endsAt || new Date(e.startsAt).toDateString() === new Date(e.endsAt).toDateString()
+  if (e.isAllDay) return sameDay ? allDay : `${day(e.startsAt)} – ${day(e.endsAt!)}`
+  if (sameDay) return `${fmtTime(e.startsAt)}${e.endsAt ? ' – ' + fmtTime(e.endsAt) : ''}`
+  return `${day(e.startsAt)} ${fmtTime(e.startsAt)} – ${day(e.endsAt!)} ${fmtTime(e.endsAt!)}`
+}
 export function fmtDate(iso: string, locale: string) {
   return new Date(iso).toLocaleDateString(locale === 'en' ? 'en-GB' : 'el-GR', { day: 'numeric', month: 'short', year: 'numeric' })
 }

@@ -38,7 +38,7 @@ const inFilter = computed(() => (data.value || []).filter(e => {
   if (filter.value.startsWith('g')) return e.scope === 'group' && e.groupId === Number(filter.value.slice(1))
   return e.scope !== 'group' && e.sectionId === Number(filter.value.slice(1))
 }))
-const whenTime = (e: any) => e.isAllDay ? t('allDay') : `${fmtTime(e.startsAt)}${e.endsAt ? ' – ' + fmtTime(e.endsAt) : ''}`
+const whenTime = (e: any) => fmtSpan(e, locale, t('allDay'))
 const whoLabel = (e: any) => e.scope === 'troop' ? t('wholeTroop')
   : e.scope === 'leaders' ? [t('vathmoforoi'), e.sectionId != null ? lx(e, 'section') : null].filter(Boolean).join(' · ')
   : e.scope === 'group' ? groupLabel(e) : lx(e, 'section')

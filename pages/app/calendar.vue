@@ -24,7 +24,7 @@ const archiveOpen = ref(false)
 const soon = computed(() => upcoming.value.filter((e: any) => new Date(e.startsAt).getTime() < Date.now() + 7 * 86400_000))
 const later = computed(() => upcoming.value.filter((e: any) => new Date(e.startsAt).getTime() >= Date.now() + 7 * 86400_000))
 function sub(e: any) {
-  const time = e.isAllDay ? t('allDay') : `${fmtTime(e.startsAt)}${e.endsAt ? ' – ' + fmtTime(e.endsAt) : ''}`
+  const time = fmtSpan(e, locale, t('allDay'))
   return `${time}${e.location ? ' · ' + e.location : ''}`
 }
 </script>

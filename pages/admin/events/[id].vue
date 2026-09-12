@@ -80,6 +80,7 @@ async function openEdit() {
   editing.value = true
 }
 async function saveEvent() {
+  if (form.endsAt && form.startsAt && new Date(form.endsAt) <= new Date(form.startsAt)) return show(t('endAfterStart'))
   busy.value = true
   try {
     await $fetch(`/api/admin/events/${id}`, {
@@ -136,7 +137,12 @@ const RSVPS = [
   { v: 'no', k: '❌', labelKey: 'rsvpNo', cls: 'r' }
 ]
 // the hour matters as much as the day — nobody turns up to a cleaning at midnight
-const whenTime = (e: any) => e.isAllDay ? t('allDay') : `${fmtTime(e.startsAt)}${e.endsAt ? ' – ' + fmtTime(e.endsAt) : ''}`
+const whenTime = (e: any) => fmtSpan(e, locale, t('allDay'))
+// a one-day event reads "20 Σεπ 2026 · 10:00 – 12:30"; a camp names both days itself
+const whenFull = (e: any) => {
+  const sameDay = !e.endsAt || new Date(e.startsAt).toDateString() === new Date(e.endsAt).toDateString()
+  return sameDay ? `${fmtDate(e.startsAt, locale)} · ${whenTime(e)}` : whenTime(e)
+}
 const rsvpBusy = ref(false)
 async function setRsvp(answer: string) {
   if (rsvpBusy.value) return
@@ -193,7 +199,7 @@ const uniDefs = [
 
 <template>
   <AppShell v-if="data" :title="lx(data.event)"
-            :sub="`${fmtDate(data.event.startsAt, locale)} · ${whenTime(data.event)} · ${t('review')}`" back="/admin/events">
+            :sub="`${whenFull(data.event)} · ${t('review')}`" back="/admin/events">
     <template #actions>
       <a class="iconbtn" :href="`/api/calendar.ics?event=${id}`" :aria-label="t('addToCalendar')" style="text-decoration:none">📅</a>
       <button v-if="me?.can?.events !== false && meta?.editable !== false" class="iconbtn" :aria-label="t('editEvent')" @click="openEdit">✎</button>

@@ -25,7 +25,7 @@ const upcomingEvents = computed(() => (events.value || [])
   .filter((e: any) => new Date(e.endsAt || e.startsAt).getTime() > Date.now() - 86400_000)
   .slice(0, 4))
 function sub(e: any) {
-  const time = e.isAllDay ? t('allDay') : `${fmtTime(e.startsAt)}${e.endsAt ? ' – ' + fmtTime(e.endsAt) : ''}`
+  const time = fmtSpan(e, locale, t('allDay'))
   return `${time}${e.location ? ' · ' + e.location : ''}`
 }
 </script>

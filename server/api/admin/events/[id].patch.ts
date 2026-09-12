@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   await assertCan(me, 'events.edit')
   const id = idParam(event)
-  await eventInScope(me, id)
+  const ev = await eventInScope(me, id)
   const b = await readBody<any>(event)
   const db = (await useDb())
   const set: any = {}
@@ -33,6 +33,13 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, message: `${k} is not a valid date` })
     if (k === 'startsAt' && !v) throw createError({ statusCode: 400, message: 'Start required' })
     set[k] = v
+  }
+  // an event ends after it starts — the same day or a later one
+  {
+    const startsAt = set.startsAt ?? ev.startsAt
+    const endsAt = set.endsAt !== undefined ? set.endsAt : ev.endsAt
+    if (endsAt && Date.parse(endsAt) <= Date.parse(startsAt))
+      throw createError({ statusCode: 400, message: 'Η λήξη πρέπει να είναι μετά την έναρξη' })
   }
 
   // moving an event between sectors follows the same rules as creating one
