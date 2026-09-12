@@ -38,6 +38,7 @@ const inFilter = computed(() => (data.value || []).filter(e => {
   if (filter.value.startsWith('g')) return e.scope === 'group' && e.groupId === Number(filter.value.slice(1))
   return e.scope !== 'group' && e.sectionId === Number(filter.value.slice(1))
 }))
+const whenTime = (e: any) => e.isAllDay ? t('allDay') : `${fmtTime(e.startsAt)}${e.endsAt ? ' – ' + fmtTime(e.endsAt) : ''}`
 const isPast = (e: any) => new Date(e.endsAt || e.startsAt).getTime() <= Date.now() - 86400_000
 const shown = computed(() => inFilter.value.filter(e => !isPast(e)))
 /* What already happened stays reachable — attendance, points and all — newest
@@ -60,7 +61,7 @@ const archiveOpen = ref(false)
           <span style="font-size:8.5px;text-transform:uppercase;color:var(--muted)">{{ fmtDay(e.startsAt, locale).m }}</span>
         </div>
         <div style="flex:1"><b><span class="dot" :class="e.scope" />{{ lx(e) }}</b>
-          <span>{{ [e.scope === 'troop' ? t('wholeTroop') : e.scope === 'leaders' ? t('vathmoforoi') : e.scope === 'group' ? groupLabel(e) : lx(e, 'section'), e.location].filter(Boolean).join(' · ') }}</span>
+          <span>{{ [whenTime(e), e.scope === 'troop' ? t('wholeTroop') : e.scope === 'leaders' ? t('vathmoforoi') : e.scope === 'group' ? groupLabel(e) : lx(e, 'section'), e.location].filter(Boolean).join(' · ') }}</span>
         </div>
         <span class="pill" :class="!e.editable ? 'draft' : e.reviewed ? 'ok' : 'draft'">
           {{ !e.editable ? '🔒 ' + t('readOnly') : e.reviewed ? t('reviewed') : t('pending') }}
@@ -79,7 +80,7 @@ const archiveOpen = ref(false)
             <span style="font-size:8.5px;text-transform:uppercase;color:var(--muted)">{{ fmtDay(e.startsAt, locale).m }}</span>
           </div>
           <div style="flex:1"><b><span class="dot" :class="e.scope" />{{ lx(e) }}</b>
-            <span>{{ fmtDate(e.startsAt, locale) }} · {{ e.scope === 'troop' ? t('wholeTroop') : e.scope === 'leaders' ? t('vathmoforoi') : e.scope === 'group' ? groupLabel(e) : lx(e, 'section') }}</span>
+            <span>{{ fmtDate(e.startsAt, locale) }} · {{ whenTime(e) }} · {{ e.scope === 'troop' ? t('wholeTroop') : e.scope === 'leaders' ? t('vathmoforoi') : e.scope === 'group' ? groupLabel(e) : lx(e, 'section') }}</span>
           </div>
           <span class="pill" :class="e.reviewed ? 'ok' : 'draft'">{{ e.reviewed ? t('reviewed') : t('pending') }}</span>
         </NuxtLink>

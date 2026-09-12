@@ -96,7 +96,7 @@ export default defineEventHandler(async (event) => {
     myRsvp: rsvps.find(x => x.scoutId === me.id)?.answer ?? null,
     canRsvp: asked.includes(me.id),
     event: {
-      id: e.id, titleEl: e.titleEl, titleEn: e.titleEn, startsAt: e.startsAt, scope: e.scope, groupId: e.groupId,
+      id: e.id, titleEl: e.titleEl, titleEn: e.titleEn, startsAt: e.startsAt, endsAt: e.endsAt, isAllDay: e.isAllDay, scope: e.scope, groupId: e.groupId,
       // the sector decides the words on this screen: an Αγέλη game is won by an εξάδα
       sectionId: e.sectionId,
       // the register opens on the day and stays open; before that there is

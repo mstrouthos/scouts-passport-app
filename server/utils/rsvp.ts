@@ -3,16 +3,21 @@ import { useDb, schema as s } from '../db'
 import { scopedSectionIds, sectionOfWith, type SessionScout } from './guard'
 import { groupsILead } from './groupScope'
 
-/** Which Βαθμοφόροι an event actually concerns, and so who is asked whether
-   they are coming. Asking every leader about every sector's meeting would
-   make the question worth ignoring. */
-export async function leadersForEvent(ev: typeof s.events.$inferSelect): Promise<number[]> {
+type Ev = typeof s.events.$inferSelect
+
+/** Which Βαθμοφόροι hear of an event, and which of them are asked whether
+   they are coming. Everyone troop-wide — the Αρχηγός Συστήματος among them —
+   is told about every sector's doing, but only the Βαθμοφόροι of that sector
+   are asked; an Αρχηγός who is not in the Αγέλη has no business answering
+   for its cleaning day. Troop-wide and Βαθμοφόροι events ask everyone. */
+async function leadersOf(ev: Ev): Promise<{ told: number[]; asked: number[] }> {
   const db = await useDb()
   const leaders = ((await db.select().from(s.scouts)).filter(r => !r.isHidden)).filter(r => r.role !== 'scout' && r.isActive)
   const scopes = await db.select().from(s.leaderScopes)
   const patrols = await db.select().from(s.patrols)
 
-  const out: number[] = []
+  const told: number[] = []
+  const asked: number[] = []
   for (const l of leaders) {
     const mine = scopes.filter(x => x.scoutId === l.id)
     const troopWide = l.role === 'troop_leader' || mine.some(x => x.scope === 'troop')
@@ -24,15 +29,27 @@ export async function leadersForEvent(ev: typeof s.events.$inferSelect): Promise
         if (p) sections.add(p.sectionId)
       }
     }
-    let relevant = false
-    if (ev.scope === 'troop' || ev.scope === 'leaders') relevant = true
+    let ofTheirs = false
+    if (ev.scope === 'troop' || ev.scope === 'leaders') ofTheirs = true
     else if (ev.scope === 'group' && ev.groupId != null)
-      relevant = troopWide || (await groupsILead(l as any)).includes(ev.groupId)
+      ofTheirs = (await groupsILead(l as any)).includes(ev.groupId)
         || (ev.sectionId != null && sections.has(ev.sectionId))
-    else if (ev.sectionId != null) relevant = troopWide || sections.has(ev.sectionId)
-    if (relevant) out.push(l.id)
+    else if (ev.sectionId != null) ofTheirs = sections.has(ev.sectionId)
+    if (ofTheirs) asked.push(l.id)
+    if (ofTheirs || troopWide) told.push(l.id)
   }
-  return out
+  return { told, asked }
+}
+
+/** The Βαθμοφόροι an event asks whether they are coming — its own sector's. */
+export async function leadersForEvent(ev: Ev): Promise<number[]> {
+  return (await leadersOf(ev)).asked
+}
+
+/** Everyone who hears of the event: those asked, plus the troop-wide
+    Βαθμοφόροι who merely need to know. */
+export async function leadersToNotify(ev: Ev): Promise<number[]> {
+  return (await leadersOf(ev)).told
 }
 
 /** Can this leader answer for this event — i.e. is it one of theirs? */

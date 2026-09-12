@@ -132,6 +132,8 @@ const RSVPS = [
   { v: 'maybe', k: '🤔', labelKey: 'rsvpMaybe', cls: 'a' },
   { v: 'no', k: '❌', labelKey: 'rsvpNo', cls: 'r' }
 ]
+// the hour matters as much as the day — nobody turns up to a cleaning at midnight
+const whenTime = (e: any) => e.isAllDay ? t('allDay') : `${fmtTime(e.startsAt)}${e.endsAt ? ' – ' + fmtTime(e.endsAt) : ''}`
 const rsvpBusy = ref(false)
 async function setRsvp(answer: string) {
   if (rsvpBusy.value) return
@@ -188,7 +190,7 @@ const uniDefs = [
 
 <template>
   <AppShell v-if="data" :title="lx(data.event)"
-            :sub="`${fmtDate(data.event.startsAt, locale)} · ${t('review')}`" back="/admin/events">
+            :sub="`${fmtDate(data.event.startsAt, locale)} · ${whenTime(data.event)} · ${t('review')}`" back="/admin/events">
     <template #actions>
       <a class="iconbtn" :href="`/api/calendar.ics?event=${id}`" :aria-label="t('addToCalendar')" style="text-decoration:none">📅</a>
       <button v-if="me?.can?.events !== false && meta?.editable !== false" class="iconbtn" :aria-label="t('editEvent')" @click="openEdit">✎</button>

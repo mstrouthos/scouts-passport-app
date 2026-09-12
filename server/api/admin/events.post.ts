@@ -2,7 +2,7 @@ import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
 import { assertCan } from '../../utils/permissions'
 import { canScheduleForGroup } from '../../utils/groupScope'
-import { leadersForEvent } from '../../utils/rsvp'
+import { leadersForEvent, leadersToNotify } from '../../utils/rsvp'
 import { sendPushTo } from '../../utils/push'
 
 export default defineEventHandler(async (event) => {
@@ -59,20 +59,26 @@ export default defineEventHandler(async (event) => {
     remindAt: b.remindAt || null, createdBy: me.id
   }).returning())
 
-  // ask the Βαθμοφόροι this concerns whether they are coming — everyone but
-  // whoever just created it, who plainly knows
+  // ask the Βαθμοφόροι this concerns whether they are coming, and merely tell
+  // the troop-wide ones it is not theirs to attend — everyone but whoever
+  // just created it, who plainly knows
   let asked = 0
   try {
-    const ids = (await leadersForEvent(row)).filter(id => id !== me.id)
-    if (ids.length) {
-      const when = new Date(row.startsAt).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' })
-      asked = ids.length
-      await sendPushTo(ids, {
-        title: 'Πύλη Προσκόπων',
-        body: `📅 Νέα δράση: ${row.titleEl} (${when}). Θα είσαι εκεί;`,
-        kind: 'eventRsvp', refId: row.id
-      })
-    }
+    const ask = (await leadersForEvent(row)).filter(id => id !== me.id)
+    const askSet = new Set(ask)
+    const tell = (await leadersToNotify(row)).filter(id => id !== me.id && !askSet.has(id))
+    const when = new Date(row.startsAt).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' })
+    asked = ask.length
+    if (ask.length) await sendPushTo(ask, {
+      title: 'Πύλη Προσκόπων',
+      body: `📅 Νέα δράση: ${row.titleEl} (${when}). Θα είσαι εκεί;`,
+      kind: 'eventRsvp', refId: row.id
+    })
+    if (tell.length) await sendPushTo(tell, {
+      title: 'Πύλη Προσκόπων',
+      body: `📅 Νέα δράση: ${row.titleEl} (${when}).`,
+      kind: 'eventRsvp', refId: row.id
+    })
   } catch (err) { console.error('[event] rsvp notification failed', err) }
 
   return { id: row.id, asked }
