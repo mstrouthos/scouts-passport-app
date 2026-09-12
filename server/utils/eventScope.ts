@@ -22,6 +22,14 @@ export async function eventInScope(me: SessionScout, id: number) {
   return ev
 }
 
+/** A Βαθμοφόροι meeting called for one sector is that sector's Βαθμοφόροι's
+    alone (and the troop-wide leaders'); nobody else's diary lists it. */
+export function leadersMeetingOf(ev: { scope: string; sectionId: number | null }, secIds: number[] | null) {
+  if (ev.scope !== 'leaders') return true
+  if (secIds === null || ev.sectionId == null) return true
+  return secIds.includes(ev.sectionId)
+}
+
 /** May this leader edit the event? Same rule as eventInScope, without throwing. */
 export async function canEditEvent(me: SessionScout, ev: typeof s.events.$inferSelect) {
   const secIds = await scopedSectionIds(me)
@@ -39,8 +47,12 @@ export async function eventVisible(me: SessionScout, id: number) {
   if (!ev) throw createError({ statusCode: 404, message: 'Not found' })
   const secIds = await scopedSectionIds(me)
   if (secIds === null) return ev
+  if (ev.scope === 'leaders') {
+    if (leadersMeetingOf(ev, secIds)) return ev
+    throw createError({ statusCode: 403, message: 'Out of your sector' })
+  }
   if ((await rankOf(me)) === 'archigos') return ev
-  if (ev.scope === 'troop' || ev.scope === 'leaders') return ev
+  if (ev.scope === 'troop') return ev
   if (ev.scope === 'group' && ev.groupId != null && await canScheduleForGroup(me, ev.groupId)) return ev
   if (ev.sectionId != null && secIds.includes(ev.sectionId)) return ev
   throw createError({ statusCode: 403, message: 'Out of your sector' })

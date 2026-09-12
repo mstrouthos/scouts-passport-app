@@ -28,8 +28,15 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 403, message: 'You do not run that group' })
     sectionId = g.sectionId; patrolId = null
   } else if (scope === 'leaders') {
-    sectionId = null; patrolId = null
-    if (me.role !== 'troop_leader' && secIds !== null)
+    patrolId = null
+    // one sector's Βαθμοφόροι only: its own Αρχηγός may call that; all the
+    // Βαθμοφόροι together, only the Αρχηγός Συστήματος
+    if (sectionId != null) {
+      if (!(await db.select().from(s.sections)).some(x => x.id === sectionId))
+        throw createError({ statusCode: 400, message: 'Bad section' })
+      if (secIds !== null && !secIds.includes(sectionId))
+        throw createError({ statusCode: 403, message: 'Out of your sector' })
+    } else if (me.role !== 'troop_leader' && secIds !== null)
       throw createError({ statusCode: 403, message: 'Only the Αρχηγός Συστήματος can add a Βαθμοφόροι event' })
   } else if (scope === 'troop') {
     if (secIds !== null) throw createError({ statusCode: 403, message: 'Troop events are set by the Troop Leader' })

@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
   const rows = (await db.select().from(s.events))
     .filter(e => one == null || e.id === one)
     .filter(e => e.scope === 'troop'
-      || (e.scope === 'leaders' && isLeader)
+      || (e.scope === 'leaders' && isLeader && (e.sectionId == null || inMySectors(e.sectionId)))
       || (e.scope === 'section' && inMySectors(e.sectionId))
       || (e.scope === 'patrol' && (e.patrolId === me.patrolId || (isLeader && inMySectors(e.sectionId))))
       || (e.scope === 'group' && e.groupId != null && myGroups.includes(e.groupId)))

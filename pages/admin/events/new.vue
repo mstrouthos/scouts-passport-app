@@ -11,6 +11,7 @@ const form = reactive({
   scope: isTroop.value ? 'troop' : 'section',
   groupId: 0,
   sectionId: 0,
+  leadersOnly: false,   // this sector's Βαθμοφόροι, not its members
   date: new Date().toISOString().slice(0, 10), start: '17:00', end: '19:00', remind: true,
   tracksAttendance: true
 })
@@ -25,7 +26,7 @@ async function save() {
       method: 'POST',
       body: { titleEl: form.titleEl, titleEn: form.titleEn || null, location: form.location || null,
               themeEl: form.themeEl || null, descriptionEl: form.descriptionEl || null,
-              scope: form.scope,
+              scope: form.scope === 'section' && form.leadersOnly ? 'leaders' : form.scope,
               sectionId: form.scope === 'section' ? form.sectionId : null,
               groupId: form.scope === 'group' ? form.groupId : null,
               startsAt, endsAt, remindAt,
@@ -67,6 +68,10 @@ async function save() {
                     :class="{ on: form.scope === 'group' && form.groupId === g.id }"
                     @click="form.scope = 'group'; form.groupId = g.id">{{ g.emoji }} {{ g.nameEl }}</button>
           </div>
+          <label v-if="form.scope === 'section'" class="tiny muted" style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:8px">
+            <input v-model="form.leadersOnly" type="checkbox"> {{ t('leadersOnly') }}
+          </label>
+          <div v-if="form.scope === 'section' && form.leadersOnly" class="tiny muted" style="margin-top:4px">{{ t('leadersOnlyNote') }}</div>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:13px">

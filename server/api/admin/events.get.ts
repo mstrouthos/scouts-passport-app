@@ -1,6 +1,7 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds, rankOf } from '../../utils/guard'
 import { visibleGroupIds } from '../../utils/groupScope'
+import { leadersMeetingOf } from '../../utils/eventScope'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -16,7 +17,8 @@ export default defineEventHandler(async (event) => {
   const reviews = (await db.select().from(s.eventReviews))
   const sections = new Map((await db.select().from(s.sections)).map(x => [x.id, x]))
   return (await db.select().from(s.events))
-    .filter(e => seeAll || e.scope === 'troop' || e.scope === 'leaders'
+    .filter(e => e.scope === 'leaders' ? leadersMeetingOf(e, secIds)
+      : seeAll || e.scope === 'troop'
       || (e.scope === 'group' && e.groupId != null && (myGroups ?? []).includes(e.groupId))
       || (e.scope !== 'group' && e.sectionId != null && secIds!.includes(e.sectionId)))
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))

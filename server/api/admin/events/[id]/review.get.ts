@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 import { requireLeader, scopedScouts, idParam, rankOf, sectionOfWith, canSeeHidden } from '../../../../utils/guard'
 import { groupMemberIds, canScheduleForGroup } from '../../../../utils/groupScope'
-import { canEditEvent } from '../../../../utils/eventScope'
+import { canEditEvent, eventVisible } from '../../../../utils/eventScope'
 import { attendanceIsOpen, attendanceOpensAt } from '../../../../utils/attendance'
 import { leadersForEvent, sectionsOfLeader } from '../../../../utils/rsvp'
 import { scopedSectionIds } from '../../../../utils/guard'
@@ -11,8 +11,8 @@ export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const eventId = idParam(event)
   const db = (await useDb())
-  const e = (await db.select().from(s.events).where(eq(s.events.id, eventId)).limit(1))[0]
-  if (!e) throw createError({ statusCode: 404, message: 'Event not found' })
+  // what is not yours to see is not loaded at all
+  const e = await eventVisible(me, eventId)
   const reviews = (await db.select().from(s.eventReviews).where(eq(s.eventReviews.eventId, eventId)))
   const awards = (await db.select().from(s.pointAwards).where(eq(s.pointAwards.eventId, eventId)))
     .filter(a => a.kind === 'game')
@@ -44,10 +44,13 @@ export default defineEventHandler(async (event) => {
   const everyone = (await db.select().from(s.scouts)).filter(r => !r.isHidden || canSeeHidden(me))
   const mine = new Set((await scopedScouts(me)).map(r => r.id))
   const editable = await canEditEvent(me, e)
+  // the Βαθμοφόροι's own attendance is written by the troop-wide leaders only,
+  // whether the meeting is everyone's or one sector's
+  const marksLeaders = (await scopedSectionIds(me)) === null
   let roster: Array<typeof s.scouts.$inferSelect & { canMark: boolean }>
   if (e.scope === 'leaders') {
     const ids = new Set(asked)
-    roster = everyone.filter(r => ids.has(r.id)).map(r => ({ ...r, canMark: editable }))
+    roster = everyone.filter(r => ids.has(r.id)).map(r => ({ ...r, canMark: marksLeaders }))
   } else if (runsGroup) {
     roster = everyone.filter(r => r.role === 'scout' && onlyGroup!.has(r.id)).map(r => ({ ...r, canMark: true }))
   } else if (e.scope === 'troop') {
@@ -66,7 +69,9 @@ export default defineEventHandler(async (event) => {
   const rsvps = await db.select().from(s.eventRsvps).where(eq(s.eventRsvps.eventId, eventId))
   const people = await db.select().from(s.scouts)
   const leadersMeeting = e.scope === 'leaders'
+  // a sector's own Βαθμοφόροι meeting is read by that sector's Αρχηγός too
   const ownsLeadersMeeting = myRank === 'admin' || e.createdBy === me.id
+    || (myRank === 'archigos' && e.sectionId != null && (mySections ?? []).includes(e.sectionId))
   const visibleToMe = async (leaderId: number) => {
     if (leadersMeeting) return ownsLeadersMeeting
     if (myRank === 'admin' || mySections === null) return true

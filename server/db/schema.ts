@@ -184,7 +184,8 @@ export const scoutAchievements = pgTable('scout_achievements', {
 
 export const events = pgTable('events', {
   id: serial('id').primaryKey(),
-  // 'leaders' = a Βαθμοφόροι meeting: never shown to scouts or parents
+  // 'leaders' = a Βαθμοφόροι meeting: never shown to scouts or parents; with a
+  // sectionId it is one sector's Βαθμοφόροι only, and other sectors' do not see it
   // 'group' = a custom group's own meeting, e.g. band practice
   scope: text('scope', { enum: ['troop', 'section', 'patrol', 'leaders', 'group'] }).notNull(),
   sectionId: integer('section_id').references(() => sections.id),

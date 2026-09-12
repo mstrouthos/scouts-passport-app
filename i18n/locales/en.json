@@ -643,5 +643,7 @@
   "errGenericBody": "Please try again.",
   "errRetry": "Try again",
   "registerNotYet": "Attendance is not open yet",
-  "registerOpensOn": "It opens on the day of the event, {when}."
+  "registerOpensOn": "It opens on the day of the event, {when}.",
+  "leadersOnly": "Leaders only",
+  "leadersOnlyNote": "For this section's leaders only — members and parents will not see it."
 }

@@ -47,7 +47,7 @@ const editing = ref(false)
 const busy = ref(false)
 const meta = ref<any>(null)
 const form = reactive<any>({
-  titleEl: '', location: '', themeEl: '', descriptionEl: '', startsAt: '', endsAt: '', isAllDay: false,
+  titleEl: '', location: '', themeEl: '', descriptionEl: '', startsAt: '', endsAt: '', isAllDay: false, leadersOnly: false,
   tracksAttendance: true, scope: 'section', sectionId: null as number | null, groupId: null as number | null
 })
 function toLocal(iso: string | null) {
@@ -72,7 +72,9 @@ async function openEdit() {
   form.endsAt = toLocal(e.endsAt)
   form.isAllDay = !!e.isAllDay
   form.tracksAttendance = !!e.tracksAttendance
-  form.scope = e.scope
+  // one sector's Βαθμοφόροι is edited as that sector with the box ticked
+  form.leadersOnly = e.scope === 'leaders' && e.sectionId != null
+  form.scope = form.leadersOnly ? 'section' : e.scope
   form.sectionId = e.sectionId ?? null
   form.groupId = e.groupId ?? null
   editing.value = true
@@ -88,7 +90,8 @@ async function saveEvent() {
         startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : null,
         endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
         isAllDay: form.isAllDay, tracksAttendance: form.tracksAttendance,
-        scope: form.scope, sectionId: form.sectionId, groupId: form.groupId
+        scope: form.scope === 'section' && form.leadersOnly ? 'leaders' : form.scope,
+        sectionId: form.sectionId, groupId: form.groupId
       }
     })
     editing.value = false
@@ -370,6 +373,10 @@ const uniDefs = [
                       @click="form.scope = 'group'; form.groupId = g.id">{{ g.emoji }} {{ g.nameEl }}</button>
             </div>
           </div>
+          <!-- a single-sector Αρχηγός never picks a sector, but may still call their Βαθμοφόροι alone -->
+          <label v-if="form.scope === 'section'" class="tiny muted" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input v-model="form.leadersOnly" type="checkbox"> {{ t('leadersOnly') }}
+          </label>
 
           <button class="btn" :disabled="!form.titleEl || !form.startsAt || busy" @click="saveEvent">
             {{ busy ? t('loading') : t('save') }}

@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
-import { requireLeader, assertScoutInScope, idParam } from '../../../../utils/guard'
+import { requireLeader, assertScoutInScope, idParam, scopedSectionIds } from '../../../../utils/guard'
 import { now } from '../../../../utils/passcode'
 import { getPointRules } from '../../../../utils/settings'
 import { assertCan } from '../../../../utils/permissions'
@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   if (!viaGroup) {
     if (ev.scope === 'leaders') {
       // a Βαθμοφόροι event: whoever may edit it marks the Βαθμοφόροι it concerns
-      if (!(await canEditEvent(me, ev)) || !(await leadersForEvent(ev)).includes(scoutId))
+      if ((await scopedSectionIds(me)) !== null || !(await leadersForEvent(ev)).includes(scoutId))
         throw createError({ statusCode: 403, message: 'Out of your sector' })
     } else {
       await assertScoutInScope(me, scoutId)

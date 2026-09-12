@@ -30,7 +30,9 @@ async function leadersOf(ev: Ev): Promise<{ told: number[]; asked: number[] }> {
       }
     }
     let ofTheirs = false
-    if (ev.scope === 'troop' || ev.scope === 'leaders') ofTheirs = true
+    if (ev.scope === 'troop') ofTheirs = true
+    // a Βαθμοφόροι meeting: everyone's, or one sector's Βαθμοφόροι alone
+    else if (ev.scope === 'leaders') ofTheirs = ev.sectionId == null || sections.has(ev.sectionId)
     else if (ev.scope === 'group' && ev.groupId != null)
       ofTheirs = (await groupsILead(l as any)).includes(ev.groupId)
         || (ev.sectionId != null && sections.has(ev.sectionId))
