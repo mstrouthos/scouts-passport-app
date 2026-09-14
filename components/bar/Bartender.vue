@@ -18,6 +18,7 @@ const age = (iso: string) => Math.max(0, Math.round((Date.now() - new Date(iso).
           <span class="meta">{{ o.waiterName }} · {{ clock(o.createdAt) }}<br>πριν {{ age(o.createdAt) }}′</span></div>
         <div class="lines"><div v-for="i in o.items" :key="i.id" style="font-size:19px"><b>{{ i.qty }}×</b>{{ i.name }}</div></div>
         <div v-if="o.note" style="font-size:13px;opacity:.75">📝 {{ o.note }}</div>
+        <div class="tot"><span class="pill" :class="payClass(o)">{{ payLabel(o) }}</span><b>{{ eur(o.totalCents) }}</b></div>
         <div class="acts">
           <button v-if="o.status === 'new'" class="btn ok" @click="act(o.id, 'ready')">Έτοιμη — παραδόθηκε στον σερβιτόρο</button>
           <span v-else class="pill ready" style="align-self:center">Έτοιμη · περιμένει τον {{ o.waiterName }}</span>
