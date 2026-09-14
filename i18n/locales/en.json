@@ -675,7 +675,7 @@
   "barCategory": "Category (e.g. Drinks)",
   "barPrice": "Price (€)",
   "barRemoveItem": "Remove “{name}”?",
-  "barCrewNote": "Each waiter sends their orders to one bartender. The cashier confirms card payments. Everyone signs in at /bar with their six-digit code.",
+  "barCrewNote": "Each waiter sends their orders to one bartender, who makes them and records the payment when the waiter brings the money. The cashier confirms card payments. Everyone signs in at /bar with their six-digit code.",
   "barWaiter": "Waiters",
   "barCashier": "Cashier",
   "barNoWaiters": "no waiters",

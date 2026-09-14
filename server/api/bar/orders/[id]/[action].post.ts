@@ -3,8 +3,9 @@ import { useDb, schema as s } from '../../../../db'
 import { requireBarStaff } from '../../../../utils/bar'
 import { now } from '../../../../utils/passcode'
 
-/** One order, one step: the bartender readies it, the waiter delivers,
-    cancels or takes the money, the cashier confirms a card. */
+/** One order, one step: the bartender readies it and, when the waiter
+    brings the money to the bar, marks it paid; the waiter delivers or
+    cancels; the cashier confirms a card. */
 export default defineEventHandler(async (event) => {
   const me = await requireBarStaff(event)
   const id = Number(getRouterParam(event, 'id'))
@@ -30,7 +31,8 @@ export default defineEventHandler(async (event) => {
     if (o.status !== 'new') throw createError({ statusCode: 409, message: 'Ετοιμάστηκε ήδη — δεν ακυρώνεται' })
     set.status = 'cancelled'; set.cancelledAt = t
   } else if (action === 'pay') {
-    if (me.role !== 'waiter' || !mine) throw createError({ statusCode: 403, message: 'Not your order' })
+    // the money changes hands at the bar, so the bar writes it down
+    if (me.role !== 'bartender' || o.bartenderId !== me.id) throw createError({ statusCode: 403, message: 'Not your order' })
     if (o.status === 'cancelled') throw createError({ statusCode: 409, message: 'Cancelled' })
     const b = await readBody<{ method?: string }>(event)
     const method = b?.method === 'card' ? 'card' : b?.method === 'cash' ? 'cash' : null
@@ -39,7 +41,7 @@ export default defineEventHandler(async (event) => {
     // a card is money only once the cardholder says so
     set.cardConfirmedAt = null; set.cardConfirmedBy = null
   } else if (action === 'unpay') {
-    if (me.role !== 'waiter' || !mine) throw createError({ statusCode: 403, message: 'Not your order' })
+    if (me.role !== 'bartender' || o.bartenderId !== me.id) throw createError({ statusCode: 403, message: 'Not your order' })
     if (o.cardConfirmedAt) throw createError({ statusCode: 409, message: 'Η κάρτα επιβεβαιώθηκε ήδη' })
     set.paidMethod = null; set.paidAt = null; set.paidBy = null
   } else if (action === 'confirm-card') {

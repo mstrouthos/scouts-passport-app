@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /* The waiter: pick a table, tap what they want, send it to the bar. Then
-   watch for "Έτοιμη", carry it over, and take the money — cash, or a card
-   that the cashier will confirm. */
+   watch for "Έτοιμη", carry it over, and bring the money back to the bar,
+   which writes it down — the waiter only sees whether it is paid. */
 const props = defineProps<{ me: any }>()
 const { orders, act, toast, say, refresh } = useBarOrders()
 const tab = ref<'new' | 'mine'>('new')
@@ -33,11 +33,6 @@ async function send() {
 const active = computed(() => orders.value.filter(o => o.status !== 'cancelled' && !(o.status === 'delivered' && o.settled)))
 const done = computed(() => orders.value.filter(o => o.status === 'cancelled' || (o.status === 'delivered' && o.settled)).slice().reverse())
 const readyCount = computed(() => orders.value.filter(o => o.status === 'ready').length)
-/* Cash or card, asked right there on the order rather than in a dialog. */
-const paying = ref<number | null>(null)
-async function pay(o: any, method: 'cash' | 'card') {
-  if (await act(o.id, 'pay', { method })) paying.value = null
-}
 </script>
 
 <template>
@@ -76,13 +71,6 @@ async function pay(o: any, method: 'cash' | 'card') {
         <div class="acts">
           <button v-if="o.status === 'new'" class="btn red sm" @click="act(o.id, 'cancel')">Ακύρωση</button>
           <button v-if="o.status === 'ready'" class="btn ok" @click="act(o.id, 'delivered')">Παραδόθηκε στο τραπέζι</button>
-          <template v-if="!o.paidAt && paying === o.id">
-            <button class="btn ok" @click="pay(o, 'cash')">💶 Μετρητά</button>
-            <button class="btn ok" @click="pay(o, 'card')">💳 Κάρτα</button>
-            <button class="btn ghost sm" @click="paying = null">✕</button>
-          </template>
-          <button v-else-if="!o.paidAt" class="btn" @click="paying = o.id">Πληρώθηκε…</button>
-          <button v-else-if="!o.cardConfirmedAt" class="btn ghost sm" @click="act(o.id, 'unpay')">Αναίρεση πληρωμής</button>
         </div>
       </div>
       <div v-if="done.length" class="cat">Ολοκληρωμένες · {{ done.length }}</div>
