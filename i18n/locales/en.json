@@ -647,5 +647,9 @@
   "leadersOnly": "Leaders only",
   "leadersOnlyNote": "For this section's leaders only — members and parents will not see it.",
   "endAfterStart": "The end must be after the start",
-  "endDateNote": "Leave the end date blank if it ends the same day."
+  "endDateNote": "Leave the end date blank if it ends the same day.",
+  "noEventsDay": "Nothing on this day.",
+  "today": "Today",
+  "prevMonth": "Previous month",
+  "nextMonth": "Next month"
 }
