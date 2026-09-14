@@ -7,13 +7,19 @@ const canSeeRoles = computed(() => me.value?.role === 'troop_leader' || me.value
 const runsBadges = computed(() => me.value?.role === 'troop_leader'
   || me.value?.scopeSections == null
   || (me.value?.scopeSections || []).some((x: any) => x.slug === 'omada'))
-
+/* Το μπαρ: set up by the Αρχηγός Συστήματος, its books read by the Ομάδα's
+   Αρχηγός too. */
+const seesBar = computed(() => me.value?.role === 'troop_leader'
+  || (me.value?.rank === 'archigos' && (me.value?.scopeSections == null || (me.value?.scopeSections || []).some((x: any) => x.slug === 'omada'))))
 </script>
 
 <template>
   <AppShell :title="t('more')">
     <NuxtLink v-if="me?.can?.badges !== false && runsBadges" to="/admin/badges" class="srow">
       <div class="ico">🏅</div><div class="txt"><b>{{ t('badges') }}</b><span>{{ t('pickFromList') }}</span></div><span class="chev">›</span>
+    </NuxtLink>
+    <NuxtLink v-if="seesBar" to="/admin/bar" class="srow">
+      <div class="ico">🍻</div><div class="txt"><b>{{ t('barTitle') }}</b><span>{{ t('barSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>
     <NuxtLink v-if="me?.role === 'troop_leader'" to="/admin/cleanup" class="srow">
       <div class="ico">🧹</div><div class="txt"><b>{{ t('resetTitle') }}</b><span>{{ t('resetSub') }}</span></div><span class="chev">›</span>

@@ -344,6 +344,61 @@ CREATE TABLE IF NOT EXISTS family_contacts (
   added_by INTEGER, created_at TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS family_contact_uq ON family_contacts(section_id, email);
+-- Το μπαρ: a reusable ordering system for a night's event. Each event keeps
+-- its own menu, staff and orders, so what sold last time is still there
+-- when the next event is planned.
+CREATE TABLE IF NOT EXISTS bar_events (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  event_date TEXT,
+  table_count INTEGER NOT NULL DEFAULT 10,
+  status TEXT NOT NULL DEFAULT 'open',
+  created_by INTEGER, created_at TEXT NOT NULL, closed_at TEXT
+);
+CREATE TABLE IF NOT EXISTS bar_menu_items (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER NOT NULL REFERENCES bar_events(id),
+  category TEXT NOT NULL DEFAULT '',
+  name TEXT NOT NULL,
+  price_cents INTEGER NOT NULL DEFAULT 0,
+  sort INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE
+);
+CREATE TABLE IF NOT EXISTS bar_staff (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER NOT NULL REFERENCES bar_events(id),
+  role TEXT NOT NULL,
+  name TEXT NOT NULL,
+  code TEXT NOT NULL,
+  bartender_id INTEGER REFERENCES bar_staff(id),
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS bar_staff_code_uq ON bar_staff(code);
+CREATE TABLE IF NOT EXISTS bar_orders (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER NOT NULL REFERENCES bar_events(id),
+  number INTEGER NOT NULL,
+  table_no INTEGER NOT NULL,
+  waiter_id INTEGER NOT NULL REFERENCES bar_staff(id),
+  bartender_id INTEGER REFERENCES bar_staff(id),
+  status TEXT NOT NULL DEFAULT 'new',
+  total_cents INTEGER NOT NULL DEFAULT 0,
+  note TEXT,
+  paid_method TEXT,
+  paid_at TEXT, paid_by INTEGER,
+  card_confirmed_at TEXT, card_confirmed_by INTEGER,
+  created_at TEXT NOT NULL, ready_at TEXT, delivered_at TEXT, cancelled_at TEXT
+);
+CREATE INDEX IF NOT EXISTS bar_orders_event_ix ON bar_orders(event_id);
+CREATE TABLE IF NOT EXISTS bar_order_items (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER NOT NULL REFERENCES bar_orders(id),
+  menu_item_id INTEGER REFERENCES bar_menu_items(id),
+  name TEXT NOT NULL,
+  price_cents INTEGER NOT NULL,
+  qty INTEGER NOT NULL DEFAULT 1
+);
 `
 
 /* Best-effort column adds for databases created before these fields existed. */

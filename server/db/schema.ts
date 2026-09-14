@@ -525,3 +525,62 @@ export const notificationLog = pgTable('notification_log', {
   refId: integer('ref_id'),
   sentAt: text('sent_at').notNull()
 }, t => [uniqueIndex('notification_uq').on(t.scoutId, t.kind, t.refId)])
+
+/* Το μπαρ — a night's ordering system, kept per event so it can be reused. */
+export const barEvents = pgTable('bar_events', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  eventDate: text('event_date'),
+  tableCount: integer('table_count').notNull().default(10),
+  status: text('status', { enum: ['open', 'closed'] }).notNull().default('open'),
+  createdBy: integer('created_by'),
+  createdAt: text('created_at').notNull(),
+  closedAt: text('closed_at')
+})
+export const barMenuItems = pgTable('bar_menu_items', {
+  id: serial('id').primaryKey(),
+  eventId: integer('event_id').notNull().references(() => barEvents.id),
+  category: text('category').notNull().default(''),
+  name: text('name').notNull(),
+  priceCents: integer('price_cents').notNull().default(0),
+  sort: integer('sort').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true)
+})
+export const barStaff = pgTable('bar_staff', {
+  id: serial('id').primaryKey(),
+  eventId: integer('event_id').notNull().references(() => barEvents.id),
+  role: text('role', { enum: ['waiter', 'bartender', 'cashier'] }).notNull(),
+  name: text('name').notNull(),
+  code: text('code').notNull(),
+  bartenderId: integer('bartender_id'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: text('created_at').notNull()
+}, t => [uniqueIndex('bar_staff_code_uq').on(t.code)])
+export const barOrders = pgTable('bar_orders', {
+  id: serial('id').primaryKey(),
+  eventId: integer('event_id').notNull().references(() => barEvents.id),
+  number: integer('number').notNull(),
+  tableNo: integer('table_no').notNull(),
+  waiterId: integer('waiter_id').notNull().references(() => barStaff.id),
+  bartenderId: integer('bartender_id').references(() => barStaff.id),
+  status: text('status', { enum: ['new', 'ready', 'delivered', 'cancelled'] }).notNull().default('new'),
+  totalCents: integer('total_cents').notNull().default(0),
+  note: text('note'),
+  paidMethod: text('paid_method', { enum: ['cash', 'card'] }),
+  paidAt: text('paid_at'),
+  paidBy: integer('paid_by'),
+  cardConfirmedAt: text('card_confirmed_at'),
+  cardConfirmedBy: integer('card_confirmed_by'),
+  createdAt: text('created_at').notNull(),
+  readyAt: text('ready_at'),
+  deliveredAt: text('delivered_at'),
+  cancelledAt: text('cancelled_at')
+})
+export const barOrderItems = pgTable('bar_order_items', {
+  id: serial('id').primaryKey(),
+  orderId: integer('order_id').notNull().references(() => barOrders.id),
+  menuItemId: integer('menu_item_id').references(() => barMenuItems.id),
+  name: text('name').notNull(),
+  priceCents: integer('price_cents').notNull(),
+  qty: integer('qty').notNull().default(1)
+})
