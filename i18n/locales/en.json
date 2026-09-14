@@ -702,5 +702,10 @@
   "barWaiters": "By waiter",
   "barByHour": "By hour",
   "add": "Add",
-  "share": "Share"
+  "share": "Share",
+  "barHide": "Hide from menu",
+  "barShow": "Show on menu",
+  "barCode": "Code",
+  "barNewCode": "New code",
+  "delete": "Delete"
 }

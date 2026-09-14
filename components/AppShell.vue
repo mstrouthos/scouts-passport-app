@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = defineProps<{ title: string, sub?: string, back?: string | boolean }>()
+const props = defineProps<{ title: string, sub?: string, back?: string | boolean, noTabs?: boolean }>()
 const me = useMe()
 const route = useRoute()
 const router = useRouter()
@@ -162,7 +162,7 @@ function goBack() {
       </main>
     </div>
 
-    <nav class="tabbar" aria-label="Navigation">
+    <nav v-if="!noTabs" class="tabbar" aria-label="Navigation">
       <NuxtLink v-for="tb in tabs" :key="tb.to" :to="tb.to" class="tab" :class="{ on: isOn(tb.to) }" :aria-label="tb.label">
         <NavIcon :name="tb.icon" />
       </NuxtLink>

@@ -72,6 +72,9 @@ async function reassign(w: any) {
   const b = bartenders.value[Number(pick) - 1]
   if (b) await api(`/staff/${w.id}`, 'PATCH', { bartenderId: b.id })
 }
+async function renameStaff(x: any) {
+  const name = prompt(t('name'), x.name); if (name && name.trim()) await api(`/staff/${x.id}`, 'PATCH', { name })
+}
 async function newCode(x: any) {
   if (!confirm(t('barNewCodeConfirm', { name: x.name }))) return
   await api(`/staff/${x.id}`, 'PATCH', { newCode: true })
@@ -98,7 +101,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
 </script>
 
 <template>
-  <AppShell v-if="data" :title="data.name" :sub="`${data.eventDate || ''} · ${data.tableCount} ${t('barTables').toLowerCase()} · ${data.status === 'open' ? t('barOpen') : t('barClosed')}`" back="/admin/bar">
+  <AppShell v-if="data" no-tabs :title="data.name" :sub="`${data.eventDate || ''} · ${data.tableCount} ${t('barTables').toLowerCase()} · ${data.status === 'open' ? t('barOpen') : t('barClosed')}`" back="/admin/bar">
     <template #actions>
       <button v-if="canEdit" class="iconbtn" :aria-label="t('edit')" @click="rename">✎</button>
     </template>
@@ -121,9 +124,9 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
         <div v-for="m in data.menu.filter((x: any) => x.category === c)" :key="m.id" class="it" :style="m.isActive ? '' : 'opacity:.45'">
           <div style="flex:1"><b>{{ m.name }}</b><span>{{ eur(m.priceCents) }}<template v-if="!m.isActive"> · {{ t('barHidden') }}</template></span></div>
           <template v-if="canEdit">
-            <button class="chip" @click="editItem(m)">✎</button>
-            <button class="chip" @click="api(`/menu/${m.id}`, 'PATCH', { isActive: !m.isActive })">{{ m.isActive ? '🙈' : '👁' }}</button>
-            <button class="chip" @click="removeItem(m)">🗑️</button>
+            <button class="chip ic" :aria-label="t('edit')" @click="editItem(m)"><NavIcon name="pencil" /></button>
+            <button class="chip ic" :aria-label="m.isActive ? t('barHide') : t('barShow')" @click="api(`/menu/${m.id}`, 'PATCH', { isActive: !m.isActive })"><NavIcon :name="m.isActive ? 'eyeOff' : 'eye'" /></button>
+            <button class="chip ic" :aria-label="t('delete')" @click="removeItem(m)"><NavIcon name="trash" /></button>
           </template>
         </div>
       </div>
@@ -151,10 +154,11 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
           </div>
           <code v-if="canEdit" style="font-size:15px;font-weight:700;letter-spacing:.1em;background:var(--bg2);padding:4px 8px;border-radius:8px">{{ fmtCode(x.code) }}</code>
           <template v-if="canEdit">
-            <button class="chip" :aria-label="t('share')" @click="share(x)">📤</button>
-            <button v-if="x.role === 'waiter'" class="chip" @click="reassign(x)">↔︎</button>
-            <button class="chip" @click="newCode(x)">🔁</button>
-            <button class="chip" @click="removeStaff(x)">🗑️</button>
+            <button class="chip ic" :aria-label="t('edit')" @click="renameStaff(x)"><NavIcon name="pencil" /></button>
+            <button class="chip" @click="share(x)">📤 {{ t('barCode') }}</button>
+            <button v-if="x.role === 'waiter'" class="chip" @click="reassign(x)">↔ Bartender</button>
+            <button class="chip" @click="newCode(x)">🔁 {{ t('barNewCode') }}</button>
+            <button class="chip ic" :aria-label="t('delete')" @click="removeStaff(x)"><NavIcon name="trash" /></button>
           </template>
         </div>
       </div>
@@ -241,6 +245,8 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
 </template>
 
 <style scoped>
+.chip.ic{padding:6px 9px;display:inline-flex}
+.chip.ic svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .stat{background:var(--card);border-radius:14px;padding:12px 8px;text-align:center;box-shadow:var(--shadow)}
 .stat b{display:block;font-size:17px;letter-spacing:-.02em}

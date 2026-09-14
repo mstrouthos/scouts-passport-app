@@ -18,7 +18,7 @@ async function create() {
 </script>
 
 <template>
-  <AppShell :title="t('barTitle')" back="/admin/more">
+  <AppShell no-tabs :title="t('barTitle')" back="/admin/more">
     <div class="note">{{ t('barIntro') }}</div>
     <div class="adm">
       <div class="hdr">{{ t('barEvents') }} · {{ data?.length || 0 }}</div>
