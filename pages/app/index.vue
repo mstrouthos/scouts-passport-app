@@ -22,7 +22,7 @@ const showVenture = computed(() => me.value?.section?.slug === 'koinotita')
 
 const { data: events } = await useFetch<any[]>('/api/calendar')
 const upcomingEvents = computed(() => (events.value || [])
-  .filter((e: any) => new Date(e.endsAt || e.startsAt).getTime() > Date.now() - 86400_000)
+  .filter((e: any) => !eventEnded(e))
   .slice(0, 4))
 function sub(e: any) {
   const time = fmtSpan(e, locale, t('allDay'))

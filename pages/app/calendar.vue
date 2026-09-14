@@ -16,7 +16,7 @@ const filters = computed(() => {
   return out
 })
 const inFilter = computed(() => (data.value || []).filter((e: any) => (filter.value === 'all' || e.scope === filter.value)))
-const isPast = (e: any) => new Date(e.endsAt || e.startsAt).getTime() <= Date.now() - 86400_000
+const isPast = (e: any) => eventEnded(e)
 const upcoming = computed(() => inFilter.value.filter((e: any) => !isPast(e)))
 /* What already happened stays reachable — newest first, folded away until asked for. */
 const past = computed(() => inFilter.value.filter(isPast).slice().reverse())
@@ -56,7 +56,7 @@ function sub(e: any) {
 
     <template v-if="past.length">
       <button class="sec-title" style="display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer" @click="archiveOpen = !archiveOpen">
-        <span>🗄️ {{ t('archive') }} · {{ past.length }}</span><span class="chev" :style="archiveOpen ? 'transform:rotate(90deg)' : ''">›</span>
+        <span>🗄️ {{ t('pastEvents') }} · {{ past.length }}</span><span class="chev" :style="archiveOpen ? 'transform:rotate(90deg)' : ''">›</span>
       </button>
       <div v-if="archiveOpen" class="card" style="display:flex;flex-direction:column;gap:13px;opacity:.85">
         <button v-for="e in past" :key="e.id" class="ev" @click="openEvent = e">

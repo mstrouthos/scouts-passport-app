@@ -61,6 +61,15 @@ export function fmtTime(iso: string) {
   const d = new Date(iso)
   return d.toTimeString().slice(0, 5)
 }
+/** An event is over once its end has passed — the end time if it has one,
+    otherwise the end of its (start) day. Not a moment sooner: a meeting still
+    running is not history. */
+export function eventEnded(e: { startsAt: string; endsAt?: string | null; isAllDay?: boolean | null }, now = Date.now()) {
+  if (e.endsAt && !e.isAllDay) return new Date(e.endsAt).getTime() <= now
+  const d = new Date(e.endsAt || e.startsAt)
+  d.setHours(23, 59, 59, 999)
+  return d.getTime() <= now
+}
 /** When an event runs, start to end: "10:00 – 12:30" on one day,
     "13 Σεπ 10:00 – 15 Σεπ 12:30" across days, or the days alone if all-day. */
 export function fmtSpan(e: { startsAt: string; endsAt?: string | null; isAllDay?: boolean | null }, locale: string, allDay: string) {

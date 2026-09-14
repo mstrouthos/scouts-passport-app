@@ -42,7 +42,7 @@ const whenTime = (e: any) => fmtSpan(e, locale, t('allDay'))
 const whoLabel = (e: any) => e.scope === 'troop' ? t('wholeTroop')
   : e.scope === 'leaders' ? [t('vathmoforoi'), e.sectionId != null ? lx(e, 'section') : null].filter(Boolean).join(' · ')
   : e.scope === 'group' ? groupLabel(e) : lx(e, 'section')
-const isPast = (e: any) => new Date(e.endsAt || e.startsAt).getTime() <= Date.now() - 86400_000
+const isPast = (e: any) => eventEnded(e)
 const shown = computed(() => inFilter.value.filter(e => !isPast(e)))
 /* What already happened stays reachable — attendance, points and all — newest
    first, folded away so the working list is what is still to come. */
@@ -74,7 +74,7 @@ const archiveOpen = ref(false)
     <div v-if="past.length" class="adm">
       <button class="it" style="background:var(--bg2)" @click="archiveOpen = !archiveOpen">
         <span class="chev" :style="archiveOpen ? 'transform:rotate(90deg)' : ''">›</span>
-        <div style="flex:1"><b>🗄️ {{ t('archive') }}</b><span>{{ t('pastEvents') }} · {{ past.length }}</span></div>
+        <div style="flex:1"><b>🗄️ {{ t('pastEvents') }}</b><span>{{ past.length }}</span></div>
       </button>
       <template v-if="archiveOpen">
         <NuxtLink v-for="e in past" :key="e.id" :to="`/admin/events/${e.id}`" class="it" style="opacity:.85">

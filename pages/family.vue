@@ -51,7 +51,7 @@ const child = computed(() => children.value.find((c: any) => c.id === childId.va
 const childSection = computed(() => child.value?.section ?? me.value?.section ?? null)
 const forChild = (sectionId: number | null | undefined) => sectionId == null || sectionId === childSection.value?.id
 const shownPosts = computed(() => posts.value.filter(p => forChild(p.sectionId)))
-const isPast = (e: any) => new Date(e.endsAt || e.startsAt).getTime() <= Date.now() - 86400_000
+const isPast = (e: any) => eventEnded(e)
 const shownEvents = computed(() => events.value.filter(e => forChild(e.sectionId) && !isPast(e)))
 /* What already happened stays reachable — newest first, folded away until asked for. */
 const pastEvents = computed(() => events.value.filter(e => forChild(e.sectionId) && isPast(e)).reverse())
@@ -239,7 +239,7 @@ async function enableNotifs() {
 
         <template v-if="pastEvents.length">
           <button class="sec-title" style="display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer" @click="archiveOpen = !archiveOpen">
-            <span>🗄️ {{ t('archive') }} · {{ pastEvents.length }}</span><span class="chev" :style="archiveOpen ? 'transform:rotate(90deg)' : ''">›</span>
+            <span>🗄️ {{ t('pastEvents') }} · {{ pastEvents.length }}</span><span class="chev" :style="archiveOpen ? 'transform:rotate(90deg)' : ''">›</span>
           </button>
           <div v-if="archiveOpen" class="card" style="display:flex;flex-direction:column;gap:13px;opacity:.85">
             <button v-for="e in pastEvents" :key="e.id" class="ev" @click="openEvent = e">
