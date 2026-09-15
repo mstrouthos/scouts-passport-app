@@ -19,7 +19,7 @@ const owed = computed(() => sum(live.value.filter(o => !o.paidAt)))
       <div v-for="o in pending" :key="o.id" class="order">
         <div class="hd"><span class="no">#{{ o.number }}</span><span class="tb">Τραπέζι {{ o.tableNo }}</span>
           <span class="meta">{{ o.waiterName }} · {{ clock(o.paidAt) }}</span></div>
-        <div class="lines"><div v-for="i in o.items" :key="i.id"><b>{{ i.qty }}×</b>{{ i.name }}</div></div>
+        <div class="lines"><div v-for="i in o.items" :key="i.id"><b>{{ i.qty }}×</b>{{ i.name }}<span v-if="i.couponQty" class="cpn on">🎟 {{ i.couponQty }}</span></div></div>
         <div class="tot"><span>Κάρτα</span><b style="font-size:20px">{{ eur(o.totalCents) }}</b></div>
         <div class="acts"><button class="btn ok" @click="act(o.id, 'confirm-card')">Η κάρτα πέρασε ✓</button></div>
       </div>

@@ -14,7 +14,7 @@ const statusLabel = (s: string) => ({ new: 'Στο μπαρ', ready: 'Έτοιμ
 
 const items = computed(() => {
   const m = new Map<string, { name: string; qty: number; cents: number }>()
-  for (const o of live.value) for (const i of o.items) { const x = m.get(i.name) || { name: i.name, qty: 0, cents: 0 }; x.qty += i.qty; x.cents += i.qty * i.priceCents; m.set(i.name, x) }
+  for (const o of live.value) for (const i of o.items) { const x = m.get(i.name) || { name: i.name, qty: 0, cents: 0 }; x.qty += i.qty; x.cents += (i.qty - i.couponQty) * i.priceCents; m.set(i.name, x) }
   return [...m.values()].sort((a, b) => b.qty - a.qty)
 })
 </script>
@@ -33,7 +33,7 @@ const items = computed(() => {
       <div v-for="o in (tab === 'pending' ? pending : tab === 'unpaid' ? unpaid : done)" :key="o.id" class="order">
         <div class="hd"><span class="no">#{{ o.number }}</span><span class="tb">Τραπέζι {{ o.tableNo }}</span>
           <span class="meta">{{ o.waiterName }} → {{ o.bartenderName }}<br>{{ clock(o.createdAt) }}</span></div>
-        <div class="lines"><div v-for="i in o.items" :key="i.id"><b>{{ i.qty }}×</b>{{ i.name }}</div></div>
+        <div class="lines"><div v-for="i in o.items" :key="i.id"><b>{{ i.qty }}×</b>{{ i.name }}<span v-if="i.couponQty" class="cpn on">🎟 {{ i.couponQty }}</span></div></div>
         <div class="tot"><span><span class="pill" :class="o.status">{{ statusLabel(o.status) }}</span> <span class="pill" :class="payClass(o)">{{ payLabel(o) }}</span></span><b>{{ eur(o.totalCents) }}</b></div>
       </div>
     </template>

@@ -6,12 +6,19 @@ const me = useMe()
 const { show } = useToast()
 const isAdmin = computed(() => me.value?.role === 'troop_leader')
 const { data, refresh } = await useFetch<any[]>('/api/admin/bar/events')
+const { data: templates } = await useFetch<any[]>('/api/admin/bar/templates')
 const adding = ref(false)
-const form = reactive({ name: '', eventDate: new Date().toISOString().slice(0, 10), tableCount: 10, copyMenuFrom: 0 as number })
+// 't3' = template 3, 'e7' = copy event 7's menu, '' = start empty
+const form = reactive({ name: '', eventDate: new Date().toISOString().slice(0, 10), tableCount: 10, menuFrom: '' })
 const eur = (c: number) => (c / 100).toFixed(2).replace('.', ',') + ' €'
 async function create() {
   try {
-    const r = await $fetch<any>('/api/admin/bar/events', { method: 'POST', body: { ...form, copyMenuFrom: form.copyMenuFrom || undefined } })
+    const src = form.menuFrom
+    const r = await $fetch<any>('/api/admin/bar/events', { method: 'POST', body: {
+      name: form.name, eventDate: form.eventDate, tableCount: form.tableCount,
+      templateId: src.startsWith('t') ? Number(src.slice(1)) : undefined,
+      copyMenuFrom: src.startsWith('e') ? Number(src.slice(1)) : undefined
+    } })
     adding.value = false; await refresh(); navigateTo(`/admin/bar/${r.id}`)
   } catch (e: any) { show(e?.data?.message || t('error')) }
 }
@@ -39,10 +46,15 @@ async function create() {
           <div style="flex:1"><label class="lab">{{ t('date') }}</label><input v-model="form.eventDate" type="date" class="in"></div>
           <div style="width:110px"><label class="lab">{{ t('barTables') }}</label><input v-model.number="form.tableCount" type="number" min="1" max="200" class="in"></div>
         </div>
-        <div v-if="data?.length"><label class="lab">{{ t('barCopyMenu') }}</label>
-          <select v-model="form.copyMenuFrom" class="in">
-            <option :value="0">— {{ t('barEmptyMenu') }} —</option>
-            <option v-for="e in data" :key="e.id" :value="e.id">{{ e.name }}</option>
+        <div v-if="data?.length || templates?.length"><label class="lab">{{ t('barMenuFrom') }}</label>
+          <select v-model="form.menuFrom" class="in">
+            <option value="">— {{ t('barEmptyMenu') }} —</option>
+            <optgroup v-if="templates?.length" :label="t('barTemplates')">
+              <option v-for="tpl in templates" :key="'t' + tpl.id" :value="'t' + tpl.id">📋 {{ tpl.name }}</option>
+            </optgroup>
+            <optgroup v-if="data?.length" :label="t('barEvents')">
+              <option v-for="e in data" :key="'e' + e.id" :value="'e' + e.id">{{ e.name }}</option>
+            </optgroup>
           </select></div>
         <button class="btn" :disabled="!form.name.trim()" @click="create">{{ t('save') }}</button>
         <button class="btn ghost" @click="adding = false">{{ t('close') }}</button>

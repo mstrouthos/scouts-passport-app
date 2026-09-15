@@ -28,12 +28,12 @@ async function toggleStatus() {
 }
 
 /* menu */
-const mform = reactive({ category: '', name: '', price: '' })
+const mform = reactive({ category: '', name: '', price: '', couponOk: false })
 const cats = computed(() => [...new Set((data.value?.menu || []).map((m: any) => m.category))] as string[])
 async function addItem() {
   if (!mform.name.trim()) return
-  await api('/menu', 'POST', { category: mform.category, name: mform.name, price: Number(String(mform.price).replace(',', '.')) })
-  mform.name = ''; mform.price = ''
+  await api('/menu', 'POST', { category: mform.category, name: mform.name, price: Number(String(mform.price).replace(',', '.')), couponOk: mform.couponOk })
+  mform.name = ''; mform.price = ''; mform.couponOk = false
 }
 async function editItem(m: any) {
   const name = prompt(t('name'), m.name); if (name === null) return
@@ -44,15 +44,18 @@ async function removeItem(m: any) {
   if (!confirm(t('barRemoveItem', { name: m.name }))) return
   await api(`/menu/${m.id}`, 'DELETE')
 }
-/* the printed menu of the Μουσική Βραδιά, ready to load in one tap */
-const DEFAULT_MENU = [
-  { category: 'Ποτά', name: 'Νερό', price: 1 }, { category: 'Ποτά', name: 'Αναψυκτικά', price: 2 },
-  { category: 'Ποτά', name: 'Μπύρα KEO 330ml', price: 3 }, { category: 'Ποτά', name: 'Bucket 6 μπύρες KEO 330ml', price: 15 },
-  { category: 'Ποτά', name: 'Ζιβανία 200ml', price: 10 }, { category: 'Ποτά', name: 'Ποτήρι κρασί', price: 3 },
-  { category: 'Ποτά', name: 'Μπουκάλι κρασί', price: 10 },
-  { category: 'Σνακ', name: 'Nachos με dips', price: 5 }, { category: 'Σνακ', name: 'Platter αλλαντικών και τυριών', price: 10 }
-]
-async function loadDefault() { await api('/menu', 'POST', { items: DEFAULT_MENU }) }
+/* saved menus: keep this one for next time, or start from an earlier one */
+const { data: templates, refresh: refreshTemplates } = await useFetch<any[]>('/api/admin/bar/templates')
+async function saveTemplate() {
+  const name = prompt(t('barTemplateName'), data.value.name); if (!name || !name.trim()) return
+  try { await $fetch('/api/admin/bar/templates', { method: 'POST', body: { name, fromEventId: id } }); await refreshTemplates(); show('✅ ' + t('barTemplateSaved')) }
+  catch (e: any) { show(e?.data?.message || t('error')) }
+}
+async function loadTemplate(tid: number) { await api('/menu/from-template', 'POST', { templateId: tid }) }
+async function deleteTemplate(tpl: any) {
+  if (!confirm(t('barTemplateDelete', { name: tpl.name }))) return
+  try { await $fetch(`/api/admin/bar/templates/${tpl.id}`, { method: 'DELETE' }); await refreshTemplates() } catch (e: any) { show(e?.data?.message || t('error')) }
+}
 
 /* crew */
 const sform = reactive({ name: '', role: 'waiter', bartenderId: 0 })
@@ -118,13 +121,14 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
     <template v-if="tab === 'menu'">
       <div v-if="canEdit && !data.menu.length" class="card" style="display:flex;flex-direction:column;gap:8px">
         <div class="tiny muted">{{ t('barMenuEmpty') }}</div>
-        <button class="btn ghost" @click="loadDefault">📋 {{ t('barLoadDefault') }}</button>
+        <button v-for="tpl in templates" :key="tpl.id" class="btn ghost" @click="loadTemplate(tpl.id)">📋 {{ tpl.name }} · {{ tpl.items.length }}</button>
       </div>
       <div v-for="c in cats" :key="c" class="adm">
         <div class="hdr">{{ c || t('barMenu') }}</div>
         <div v-for="m in data.menu.filter((x: any) => x.category === c)" :key="m.id" class="it" :style="m.isActive ? '' : 'opacity:.45'">
-          <div style="flex:1"><b>{{ m.name }}</b><span>{{ eur(m.priceCents) }}<template v-if="!m.isActive"> · {{ t('barHidden') }}</template></span></div>
+          <div style="flex:1"><b>{{ m.name }}</b><span>{{ eur(m.priceCents) }}<template v-if="m.couponOk"> · 🎟 {{ t('barCouponOk') }}</template><template v-if="!m.isActive"> · {{ t('barHidden') }}</template></span></div>
           <template v-if="canEdit">
+            <button class="chip" :class="{ on: m.couponOk }" :aria-label="t('barCouponOk')" @click="api(`/menu/${m.id}`, 'PATCH', { couponOk: !m.couponOk })">🎟</button>
             <button class="chip ic" :aria-label="t('edit')" @click="editItem(m)"><NavIcon name="pencil" /></button>
             <button class="chip ic" :aria-label="m.isActive ? t('barHide') : t('barShow')" @click="api(`/menu/${m.id}`, 'PATCH', { isActive: !m.isActive })"><NavIcon :name="m.isActive ? 'eyeOff' : 'eye'" /></button>
             <button class="chip ic" :aria-label="t('delete')" @click="removeItem(m)"><NavIcon name="trash" /></button>
@@ -139,7 +143,18 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
           <input v-model="mform.name" class="in" style="flex:1" :placeholder="t('name')">
           <input v-model="mform.price" class="in" style="width:90px" inputmode="decimal" placeholder="€">
         </div>
+        <label class="tiny muted" style="display:flex;align-items:center;gap:6px;cursor:pointer"><input v-model="mform.couponOk" type="checkbox"> 🎟 {{ t('barCouponOkLong') }}</label>
         <button class="btn" :disabled="!mform.name.trim()" @click="addItem">{{ t('add') }}</button>
+      </div>
+      <div v-if="canEdit" class="card" style="display:flex;flex-direction:column;gap:8px">
+        <b style="font-size:13px">📋 {{ t('barTemplates') }}</b>
+        <div class="tiny muted">{{ t('barTemplatesNote') }}</div>
+        <button class="btn ghost" :disabled="!data.menu.length" @click="saveTemplate">💾 {{ t('barSaveTemplate') }}</button>
+        <div v-for="tpl in templates" :key="tpl.id" style="display:flex;align-items:center;gap:8px;font-size:13px">
+          <span style="flex:1"><b>{{ tpl.name }}</b> <span class="muted">· {{ tpl.items.length }}</span></span>
+          <button class="chip" @click="loadTemplate(tpl.id)">{{ t('barLoadTemplate') }}</button>
+          <button class="chip ic" :aria-label="t('delete')" @click="deleteTemplate(tpl)"><NavIcon name="trash" /></button>
+        </div>
       </div>
     </template>
 
@@ -209,12 +224,13 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
         <div class="stat" :style="report.unpaidCents ? 'color:var(--danger)' : ''"><b>{{ eur(report.unpaidCents) }}</b><span>{{ t('barUnpaid') }} · {{ report.unpaidOrders }}</span></div>
         <div v-if="report.cardPendingCents" class="stat"><b>{{ eur(report.cardPendingCents) }}</b><span>{{ t('barCardPending') }}</span></div>
         <div class="stat"><b>{{ report.avgPrepMin ?? '—' }}′</b><span>{{ t('barAvgPrep') }}</span></div>
+        <div class="stat"><b>🎟 {{ report.coupons }}</b><span>{{ t('barCoupons') }} · {{ eur(report.couponCents) }}</span></div>
         <div v-if="report.cancelled" class="stat"><b>{{ report.cancelled }}</b><span>{{ t('barCancelled') }}</span></div>
       </div>
       <div class="adm">
         <div class="hdr">{{ t('barSold') }}</div>
         <div v-for="i in report.items" :key="i.name" class="it">
-          <div style="flex:1"><b>{{ i.name }}</b><span>{{ eur(i.cents) }}</span></div><b style="font-size:16px">{{ i.qty }}</b>
+          <div style="flex:1"><b>{{ i.name }}</b><span>{{ eur(i.cents) }}<template v-if="i.coupons"> · 🎟 {{ i.coupons }}</template></span></div><b style="font-size:16px">{{ i.qty }}</b>
         </div>
       </div>
       <div class="adm">

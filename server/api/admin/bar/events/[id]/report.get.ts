@@ -21,10 +21,12 @@ export default defineEventHandler(async (event) => {
     }
     return [...m.values()].sort((a, b) => b.cents - a.cents)
   }
-  const items = new Map<string, { name: string; qty: number; cents: number }>()
+  const items = new Map<string, { name: string; qty: number; cents: number; coupons: number }>()
+  let coupons = 0, couponCents = 0
   for (const o of live) for (const i of o.items) {
-    const r = items.get(i.name) || { name: i.name, qty: 0, cents: 0 }
-    r.qty += i.qty; r.cents += i.qty * i.priceCents; items.set(i.name, r)
+    const r = items.get(i.name) || { name: i.name, qty: 0, cents: 0, coupons: 0 }
+    r.qty += i.qty; r.cents += (i.qty - i.couponQty) * i.priceCents; r.coupons += i.couponQty; items.set(i.name, r)
+    coupons += i.couponQty; couponCents += i.couponQty * i.priceCents
   }
   const prep = live.filter(o => o.readyAt).map(o => (new Date(o.readyAt!).getTime() - new Date(o.createdAt).getTime()) / 60000)
   const nameOf = (sid: number | null) => staff.find(x => x.id === sid)?.name ?? '—'
@@ -36,6 +38,8 @@ export default defineEventHandler(async (event) => {
     cardPendingCents: sum(live.filter(o => o.paidAt && o.paidMethod === 'card' && !o.cardConfirmedAt)),
     unpaidCents: sum(live.filter(o => !o.paidAt)),
     unpaidOrders: live.filter(o => !o.paidAt).length,
+    // door coupons redeemed, and what they would have been worth
+    coupons, couponCents,
     avgPrepMin: prep.length ? Math.round(prep.reduce((a, b) => a + b, 0) / prep.length * 10) / 10 : null,
     avgOrderCents: live.length ? Math.round(sum(live) / live.length) : 0,
     items: [...items.values()].sort((a, b) => b.qty - a.qty),
@@ -46,7 +50,7 @@ export default defineEventHandler(async (event) => {
         items: (() => {
           const m = new Map<string, { name: string; qty: number; cents: number }>()
           for (const o of live.filter(o => `Τραπέζι ${o.tableNo}` === r.label)) for (const i of o.items) {
-            const x = m.get(i.name) || { name: i.name, qty: 0, cents: 0 }; x.qty += i.qty; x.cents += i.qty * i.priceCents; m.set(i.name, x)
+            const x = m.get(i.name) || { name: i.name, qty: 0, cents: 0 }; x.qty += i.qty; x.cents += (i.qty - i.couponQty) * i.priceCents; m.set(i.name, x)
           }
           return [...m.values()].sort((a, b) => b.qty - a.qty)
         })()

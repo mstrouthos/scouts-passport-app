@@ -41,7 +41,7 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
       <button v-if="me" class="out" @click="signOut">Έξοδος</button>
     </header>
 
-    <main v-if="!me" class="login">
+    <main v-if="!me" class="signin">
       <div class="card">
         <label class="lab">Κωδικός προσωπικού</label>
         <input v-model="code" class="in big" inputmode="numeric" maxlength="6" placeholder="000000" @keyup.enter="signIn">
@@ -66,7 +66,7 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
 .barapp .top span{font-size:12px;opacity:.75}
 .barapp .out{background:rgba(255,255,255,.1);border:0;color:#fff;padding:8px 12px;border-radius:999px;font:inherit;font-size:12px;font-weight:600}
 .barapp main{flex:1;padding:14px 14px calc(90px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
-.barapp .login{justify-content:center}
+.barapp .signin{justify-content:center}
 .barapp .card{background:#1B2648;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
 .barapp .lab{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.7}
 .barapp .in{width:100%;box-sizing:border-box;background:#0F1730;border:1.5px solid #2C3A66;border-radius:12px;color:#fff;font:inherit;font-size:16px;padding:11px 13px}
@@ -113,6 +113,9 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
 .barapp .pill.paid{background:rgba(47,163,107,.25);color:#7BE0AC}
 .barapp .pill.unpaid{background:rgba(226,88,72,.2);color:#FF9A8B}
 .barapp .pill.pending{background:rgba(120,140,255,.2);color:#B7C2FF}
+.barapp .cpn{display:inline-block;margin-left:8px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);vertical-align:middle;cursor:pointer}
+.barapp .cpn.on{background:rgba(240,180,41,.22);color:#F0B429}
+.barapp .item.cp{box-shadow:inset 0 0 0 1.5px rgba(240,180,41,.5)}
 .barapp .empty{text-align:center;opacity:.55;padding:30px 0;font-size:14px}
 .barapp .sum{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));padding:10px 14px;background:linear-gradient(transparent,#0F1730 40%);z-index:4}
 .barapp .toast{position:fixed;left:50%;bottom:calc(120px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#fff;color:#0F1730;font-weight:700;padding:10px 16px;border-radius:999px;z-index:9;box-shadow:0 8px 24px rgba(0,0,0,.4)}

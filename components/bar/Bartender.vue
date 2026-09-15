@@ -23,7 +23,7 @@ async function pay(o: any, method: 'cash' | 'card') {
       <div v-for="o in queue" :key="o.id" class="order" :style="o.status === 'ready' ? 'opacity:.7' : ''">
         <div class="hd"><span class="no">#{{ o.number }}</span><span class="tb">Τραπέζι {{ o.tableNo }}</span>
           <span class="meta">{{ o.waiterName }} · {{ clock(o.createdAt) }}<br>πριν {{ age(o.createdAt) }}′</span></div>
-        <div class="lines"><div v-for="i in o.items" :key="i.id" style="font-size:19px"><b>{{ i.qty }}×</b>{{ i.name }}</div></div>
+        <div class="lines"><div v-for="i in o.items" :key="i.id" style="font-size:19px"><b>{{ i.qty }}×</b>{{ i.name }}<span v-if="i.couponQty" class="cpn on">🎟 {{ i.couponQty }} κουπόνι</span></div></div>
         <div v-if="o.note" style="font-size:13px;opacity:.75">📝 {{ o.note }}</div>
         <div class="tot"><span class="pill" :class="payClass(o)">{{ payLabel(o) }}</span><b>{{ eur(o.totalCents) }}</b></div>
         <div class="acts">
@@ -47,7 +47,7 @@ async function pay(o: any, method: 'cash' | 'card') {
       <div v-for="o in unpaid" :key="o.id" class="order">
         <div class="hd"><span class="no">#{{ o.number }}</span><span class="tb">Τραπέζι {{ o.tableNo }}</span>
           <span class="meta">{{ o.waiterName }} · {{ clock(o.createdAt) }}<br><span class="pill" :class="payClass(o)">{{ payLabel(o) }}</span></span></div>
-        <div class="lines"><div v-for="i in o.items" :key="i.id"><b>{{ i.qty }}×</b>{{ i.name }}</div></div>
+        <div class="lines"><div v-for="i in o.items" :key="i.id"><b>{{ i.qty }}×</b>{{ i.name }}<span v-if="i.couponQty" class="cpn on">🎟 {{ i.couponQty }}</span></div></div>
         <div class="tot"><span class="pill" :class="o.status">{{ ({ new: 'Στο μπαρ', ready: 'Έτοιμη', delivered: 'Παραδόθηκε' } as any)[o.status] }}</span><b>{{ eur(o.totalCents) }}</b></div>
         <div class="acts">
           <template v-if="!o.paidAt && paying === o.id">

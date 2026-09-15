@@ -391,13 +391,28 @@ CREATE TABLE IF NOT EXISTS bar_orders (
   created_at TEXT NOT NULL, ready_at TEXT, delivered_at TEXT, cancelled_at TEXT
 );
 CREATE INDEX IF NOT EXISTS bar_orders_event_ix ON bar_orders(event_id);
+CREATE TABLE IF NOT EXISTS bar_menu_templates (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  created_by INTEGER, created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS bar_menu_template_items (
+  id SERIAL PRIMARY KEY,
+  template_id INTEGER NOT NULL REFERENCES bar_menu_templates(id),
+  category TEXT NOT NULL DEFAULT '',
+  name TEXT NOT NULL,
+  price_cents INTEGER NOT NULL DEFAULT 0,
+  coupon_ok BOOLEAN NOT NULL DEFAULT FALSE,
+  sort INTEGER NOT NULL DEFAULT 0
+);
 CREATE TABLE IF NOT EXISTS bar_order_items (
   id SERIAL PRIMARY KEY,
   order_id INTEGER NOT NULL REFERENCES bar_orders(id),
   menu_item_id INTEGER REFERENCES bar_menu_items(id),
   name TEXT NOT NULL,
   price_cents INTEGER NOT NULL,
-  qty INTEGER NOT NULL DEFAULT 1
+  qty INTEGER NOT NULL DEFAULT 1,
+  coupon_qty INTEGER NOT NULL DEFAULT 0
 );
 `
 
@@ -443,5 +458,7 @@ export const MIGRATIONS = [
   "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS via_push BOOLEAN NOT NULL DEFAULT TRUE",
   "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS via_sms BOOLEAN NOT NULL DEFAULT FALSE",
   "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS scheduled_at TEXT",
-  "ALTER TABLE challenges ADD COLUMN IF NOT EXISTS is_bonus BOOLEAN NOT NULL DEFAULT FALSE"
+  "ALTER TABLE challenges ADD COLUMN IF NOT EXISTS is_bonus BOOLEAN NOT NULL DEFAULT FALSE",
+  "ALTER TABLE bar_menu_items ADD COLUMN IF NOT EXISTS coupon_ok BOOLEAN NOT NULL DEFAULT FALSE",
+  "ALTER TABLE bar_order_items ADD COLUMN IF NOT EXISTS coupon_qty INTEGER NOT NULL DEFAULT 0"
 ]

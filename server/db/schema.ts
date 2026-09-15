@@ -543,8 +543,25 @@ export const barMenuItems = pgTable('bar_menu_items', {
   category: text('category').notNull().default(''),
   name: text('name').notNull(),
   priceCents: integer('price_cents').notNull().default(0),
+  // the free-drink coupon handed out at the door is good for this
+  couponOk: boolean('coupon_ok').notNull().default(false),
   sort: integer('sort').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true)
+})
+export const barMenuTemplates = pgTable('bar_menu_templates', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  createdBy: integer('created_by'),
+  createdAt: text('created_at').notNull()
+})
+export const barMenuTemplateItems = pgTable('bar_menu_template_items', {
+  id: serial('id').primaryKey(),
+  templateId: integer('template_id').notNull().references(() => barMenuTemplates.id),
+  category: text('category').notNull().default(''),
+  name: text('name').notNull(),
+  priceCents: integer('price_cents').notNull().default(0),
+  couponOk: boolean('coupon_ok').notNull().default(false),
+  sort: integer('sort').notNull().default(0)
 })
 export const barStaff = pgTable('bar_staff', {
   id: serial('id').primaryKey(),
@@ -582,5 +599,7 @@ export const barOrderItems = pgTable('bar_order_items', {
   menuItemId: integer('menu_item_id').references(() => barMenuItems.id),
   name: text('name').notNull(),
   priceCents: integer('price_cents').notNull(),
-  qty: integer('qty').notNull().default(1)
+  qty: integer('qty').notNull().default(1),
+  // how many of the qty were paid with a door coupon (and so cost nothing)
+  couponQty: integer('coupon_qty').notNull().default(0)
 })
