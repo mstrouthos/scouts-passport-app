@@ -3,7 +3,7 @@
    marked waits here until the cashier confirms it went through. */
 defineProps<{ me: any }>()
 const { orders, act, toast } = useBarOrders()
-const tab = ref<'cards' | 'all'>('cards')
+const tab = ref<'cards' | 'all' | 'tables'>('cards')
 const pending = computed(() => orders.value.filter(o => o.status !== 'cancelled' && o.paidAt && o.paidMethod === 'card' && !o.cardConfirmedAt))
 const live = computed(() => orders.value.filter(o => o.status !== 'cancelled'))
 const sum = (xs: any[]) => xs.reduce((a, o) => a + o.totalCents, 0)
@@ -24,6 +24,7 @@ const owed = computed(() => sum(live.value.filter(o => !o.paidAt)))
         <div class="acts"><button class="btn ok" @click="act(o.id, 'confirm-card')">Η κάρτα πέρασε ✓</button></div>
       </div>
     </template>
+    <template v-else-if="tab === 'tables'"><BarTables :orders="orders" /></template>
     <template v-else>
       <div class="card" style="gap:6px">
         <div style="display:flex;justify-content:space-between"><span>Μετρητά</span><b>{{ eur(cash) }}</b></div>
@@ -40,6 +41,7 @@ const owed = computed(() => sum(live.value.filter(o => !o.paidAt)))
     <div v-if="toast" class="toast">{{ toast }}</div>
     <nav class="tabs">
       <button :class="{ on: tab === 'cards' }" @click="tab = 'cards'">Κάρτες<span v-if="pending.length" class="n">{{ pending.length }}</span></button>
+      <button :class="{ on: tab === 'tables' }" @click="tab = 'tables'">Τραπέζια</button>
       <button :class="{ on: tab === 'all' }" @click="tab = 'all'">Όλη η βραδιά</button>
     </nav>
   </main>

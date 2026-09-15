@@ -2,9 +2,10 @@
 /* The bartender: the queue in arrival order, one big button per order when
    it is on the counter; and, on the other tab, whatever is still owed. The
    waiter brings the money here, so the bar is who marks an order paid. */
-defineProps<{ me: any }>()
-const { orders, act, toast } = useBarOrders()
-const tab = ref<'queue' | 'unpaid'>('queue')
+const props = defineProps<{ me: any }>()
+const { orders: all, act, toast } = useBarOrders()
+const orders = computed(() => all.value.filter(o => o.bartenderId === props.me.id))
+const tab = ref<'queue' | 'unpaid' | 'tables'>('queue')
 const queue = computed(() => orders.value.filter(o => o.status === 'new' || o.status === 'ready'))
 const unpaid = computed(() => orders.value.filter(o => o.status !== 'cancelled' && !o.settled))
 const age = (iso: string) => Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000))
@@ -40,6 +41,7 @@ async function pay(o: any, method: 'cash' | 'card') {
         </div>
       </div>
     </template>
+    <template v-else-if="tab === 'tables'"><BarTables :orders="all" /></template>
     <template v-else>
       <div v-if="!unpaid.length" class="empty">Όλα πληρωμένα. 👌</div>
       <div v-for="o in unpaid" :key="o.id" class="order">
@@ -62,6 +64,7 @@ async function pay(o: any, method: 'cash' | 'card') {
     <nav class="tabs">
       <button :class="{ on: tab === 'queue' }" @click="tab = 'queue'">Εκκρεμείς<span v-if="queue.filter(o => o.status === 'new').length" class="n">{{ queue.filter(o => o.status === 'new').length }}</span></button>
       <button :class="{ on: tab === 'unpaid' }" @click="tab = 'unpaid'">Απλήρωτες<span v-if="unpaid.length" class="n">{{ unpaid.length }}</span></button>
+      <button :class="{ on: tab === 'tables' }" @click="tab = 'tables'">Τραπέζια</button>
     </nav>
   </main>
 </template>

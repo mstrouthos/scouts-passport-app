@@ -12,18 +12,6 @@ const done = computed(() => live.value.filter(o => o.status === 'delivered' && o
 const sum = (xs: any[]) => xs.reduce((a, o) => a + o.totalCents, 0)
 const statusLabel = (s: string) => ({ new: 'Στο μπαρ', ready: 'Έτοιμη', delivered: 'Παραδόθηκε' } as any)[s]
 
-/* per table: orders, total, owed, and the items added up */
-const openTable = ref<number | null>(null)
-const tables = computed(() => {
-  const m = new Map<number, { no: number; orders: any[]; cents: number; owed: number; items: Map<string, { name: string; qty: number; cents: number }> }>()
-  for (const o of live.value) {
-    const r = m.get(o.tableNo) || { no: o.tableNo, orders: [], cents: 0, owed: 0, items: new Map() }
-    r.orders.push(o); r.cents += o.totalCents; if (!o.settled) r.owed += o.totalCents
-    for (const i of o.items) { const x = r.items.get(i.name) || { name: i.name, qty: 0, cents: 0 }; x.qty += i.qty; x.cents += i.qty * i.priceCents; r.items.set(i.name, x) }
-    m.set(o.tableNo, r)
-  }
-  return [...m.values()].sort((a, b) => a.no - b.no).map(r => ({ ...r, items: [...r.items.values()].sort((a, b) => b.qty - a.qty) }))
-})
 const items = computed(() => {
   const m = new Map<string, { name: string; qty: number; cents: number }>()
   for (const o of live.value) for (const i of o.items) { const x = m.get(i.name) || { name: i.name, qty: 0, cents: 0 }; x.qty += i.qty; x.cents += i.qty * i.priceCents; m.set(i.name, x) }
@@ -50,18 +38,7 @@ const items = computed(() => {
       </div>
     </template>
 
-    <template v-else-if="tab === 'tables'">
-      <div v-if="!tables.length" class="empty">Καμία παραγγελία ακόμη.</div>
-      <div v-for="r in tables" :key="r.no" class="order" @click="openTable = openTable === r.no ? null : r.no">
-        <div class="hd"><span class="tb">Τραπέζι {{ r.no }}</span>
-          <span class="meta">{{ r.orders.length }} παραγγελίες<br><span v-if="r.owed" class="pill unpaid">οφείλει {{ eur(r.owed) }}</span><span v-else class="pill paid">εξοφλημένο</span></span></div>
-        <div class="tot" style="border:0;padding:0"><span style="opacity:.6">{{ openTable === r.no ? 'Τι παρήγγειλε ▾' : 'Τι παρήγγειλε ▸' }}</span><b style="font-size:20px">{{ eur(r.cents) }}</b></div>
-        <div v-if="openTable === r.no" class="lines" style="border-top:1px solid rgba(255,255,255,.1);padding-top:8px">
-          <div v-for="i in r.items" :key="i.name"><b>{{ i.qty }}×</b><span style="flex:1">{{ i.name }}</span><span style="opacity:.6">{{ eur(i.cents) }}</span></div>
-          <div style="opacity:.6;font-size:12px;margin-top:6px">Παραγγελίες: {{ r.orders.map(o => '#' + o.number).join(', ') }}</div>
-        </div>
-      </div>
-    </template>
+    <template v-else-if="tab === 'tables'"><BarTables :orders="orders" /></template>
 
     <template v-else>
       <div v-if="!items.length" class="empty">Τίποτα ακόμη.</div>

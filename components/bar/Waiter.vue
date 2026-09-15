@@ -3,8 +3,10 @@
    watch for "Έτοιμη", carry it over, and bring the money back to the bar,
    which writes it down — the waiter only sees whether it is paid. */
 const props = defineProps<{ me: any }>()
-const { orders, act, toast, say, refresh } = useBarOrders()
-const tab = ref<'new' | 'mine'>('new')
+const { orders: all, act, toast, say, refresh } = useBarOrders()
+// the night is everyone's; the list of "mine" is what I carried
+const orders = computed(() => all.value.filter(o => o.waiterId === props.me.id))
+const tab = ref<'new' | 'mine' | 'tables'>('new')
 const table = ref<number | null>(null)
 const qty = reactive<Record<number, number>>({})
 const sending = ref(false)
@@ -61,6 +63,8 @@ const readyCount = computed(() => orders.value.filter(o => o.status === 'ready')
       </div>
     </template>
 
+    <template v-else-if="tab === 'tables'"><BarTables :orders="all" /></template>
+
     <template v-else>
       <div v-if="!active.length && !done.length" class="empty">Καμία παραγγελία ακόμη.</div>
       <div v-for="o in active" :key="o.id" class="order">
@@ -85,6 +89,7 @@ const readyCount = computed(() => orders.value.filter(o => o.status === 'ready')
     <nav class="tabs">
       <button :class="{ on: tab === 'new' }" @click="tab = 'new'">Νέα παραγγελία</button>
       <button :class="{ on: tab === 'mine' }" @click="tab = 'mine'">Οι παραγγελίες μου<span v-if="readyCount" class="n">{{ readyCount }}</span></button>
+      <button :class="{ on: tab === 'tables' }" @click="tab = 'tables'">Τραπέζια</button>
     </nav>
   </main>
 </template>
