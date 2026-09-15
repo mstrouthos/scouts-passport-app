@@ -27,7 +27,45 @@ async function toggleStatus() {
   await api('', 'PATCH', { status: closing ? 'closed' : 'open' })
 }
 
-/* menu */
+/* menu, in the order the waiters see it; drag the ≡ to change that, and an
+   item dropped among another group's items joins that group */
+const list = ref<any[]>([])
+watch(() => data.value?.menu, m => { list.value = (m || []).map((x: any) => ({ ...x })) }, { immediate: true })
+const rows = ref<HTMLElement[]>([])
+let drag: { idx: number; moved: boolean } | null = null
+const dragging = ref<number | null>(null)
+function dragStart(e: PointerEvent, idx: number) {
+  if (!canEdit.value) return
+  drag = { idx, moved: false }; dragging.value = list.value[idx].id
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+}
+function dragMove(e: PointerEvent) {
+  if (!drag) return
+  const y = e.clientY
+  const els = rows.value.filter(Boolean)
+  let to = drag.idx
+  for (let i = 0; i < els.length; i++) {
+    const r = els[i].getBoundingClientRect()
+    if (y < r.top + r.height / 2) { to = i; break }
+    to = i
+  }
+  if (to !== drag.idx) {
+    const [it] = list.value.splice(drag.idx, 1)
+    list.value.splice(to, 0, it)
+    drag.idx = to; drag.moved = true
+  }
+}
+async function dragEnd() {
+  if (!drag) return
+  const moved = drag.moved, idx = drag.idx
+  drag = null; dragging.value = null
+  if (!moved) return
+  // join the neighbours' group: the one above, else the one below
+  const it = list.value[idx]
+  const near = list.value[idx - 1] || list.value[idx + 1]
+  if (near && near.category !== it.category) it.category = near.category
+  await api('/menu/reorder', 'POST', { items: list.value.map(x => ({ id: x.id, category: x.category })) })
+}
 const mform = reactive({ category: '', name: '', price: '', couponOk: false })
 const cats = computed(() => [...new Set((data.value?.menu || []).map((m: any) => m.category))] as string[])
 async function addItem() {
@@ -123,17 +161,20 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
         <div class="tiny muted">{{ t('barMenuEmpty') }}</div>
         <button v-for="tpl in templates" :key="tpl.id" class="btn ghost" @click="loadTemplate(tpl.id)">📋 {{ tpl.name }} · {{ tpl.items.length }}</button>
       </div>
-      <div v-for="c in cats" :key="c" class="adm">
-        <div class="hdr">{{ c || t('barMenu') }}</div>
-        <div v-for="m in data.menu.filter((x: any) => x.category === c)" :key="m.id" class="it" :style="m.isActive ? '' : 'opacity:.45'">
-          <div style="flex:1"><b>{{ m.name }}</b><span>{{ eur(m.priceCents) }}<template v-if="m.couponOk"> · 🎟 {{ t('barCouponOk') }}</template><template v-if="!m.isActive"> · {{ t('barHidden') }}</template></span></div>
+      <div v-if="list.length" class="adm" style="touch-action:pan-y" @pointermove="dragMove" @pointerup="dragEnd" @pointercancel="dragEnd">
+        <template v-for="(m, i) in list" :key="m.id">
+          <div v-if="i === 0 || list[i - 1].category !== m.category" class="hdr">{{ m.category || t('barMenu') }}</div>
+          <div :ref="el => { if (el) rows[i] = el as HTMLElement }" class="it" :class="{ lift: dragging === m.id }" :style="m.isActive ? '' : 'opacity:.45'">
+          <span v-if="canEdit" class="grip" @pointerdown="dragStart($event, i)">≡</span>
+          <div style="flex:1;min-width:0"><b>{{ m.name }}</b><span>{{ eur(m.priceCents) }}<template v-if="m.couponOk"> · 🎟 {{ t('barCouponOk') }}</template><template v-if="!m.isActive"> · {{ t('barHidden') }}</template></span></div>
           <template v-if="canEdit">
             <button class="chip" :class="{ on: m.couponOk }" :aria-label="t('barCouponOk')" @click="api(`/menu/${m.id}`, 'PATCH', { couponOk: !m.couponOk })">🎟</button>
             <button class="chip ic" :aria-label="t('edit')" @click="editItem(m)"><NavIcon name="pencil" /></button>
             <button class="chip ic" :aria-label="m.isActive ? t('barHide') : t('barShow')" @click="api(`/menu/${m.id}`, 'PATCH', { isActive: !m.isActive })"><NavIcon :name="m.isActive ? 'eyeOff' : 'eye'" /></button>
             <button class="chip ic" :aria-label="t('delete')" @click="removeItem(m)"><NavIcon name="trash" /></button>
           </template>
-        </div>
+          </div>
+        </template>
       </div>
       <div v-if="canEdit" class="card" style="display:flex;flex-direction:column;gap:8px">
         <b style="font-size:13px">+ {{ t('barAddItem') }}</b>
@@ -268,6 +309,8 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
 </template>
 
 <style scoped>
+.grip{flex:none;width:28px;text-align:center;font-size:20px;color:var(--muted);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.it.lift{background:var(--bg2);box-shadow:0 6px 18px rgba(0,0,0,.12);position:relative;z-index:1}
 .chip.ic{padding:6px 9px;display:inline-flex}
 .chip.ic svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
