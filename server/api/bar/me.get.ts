@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
-import { requireBarStaff } from '../../utils/bar'
+import { requireBarStaff, parseLayout } from '../../utils/bar'
 
 /** Who I am tonight, and everything the screen needs to start: the event,
     the menu, my bartender or my waiters. */
@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const staff = (await db.select().from(s.barStaff).where(eq(s.barStaff.eventId, me.eventId))).filter(x => x.isActive)
   return {
     id: me.id, name: me.name, role: me.role,
-    event: { id: ev.id, name: ev.name, tableCount: ev.tableCount },
+    event: { id: ev.id, name: ev.name, tableCount: ev.tableCount, layout: parseLayout(ev.layout) },
     menu,
     bartender: me.role === 'waiter' ? staff.find(x => x.id === me.bartenderId)?.name ?? null : null,
     waiters: me.role === 'bartender' ? staff.filter(x => x.role === 'waiter' && x.bartenderId === me.id).map(x => x.name) : []

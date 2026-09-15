@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
   const b = await readBody<{ name?: string; role?: string; bartenderId?: number }>(event)
   const name = String(b?.name || '').trim()
-  const role = ['waiter', 'bartender', 'cashier', 'supervisor'].includes(String(b?.role)) ? b!.role as any : null
+  const role = ['waiter', 'bartender', 'cashier', 'supervisor', 'organiser'].includes(String(b?.role)) ? b!.role as any : null
   if (!name || !role) throw createError({ statusCode: 400, message: 'Name and role required' })
   const db = await useDb()
   const [row] = await db.insert(s.barStaff).values({

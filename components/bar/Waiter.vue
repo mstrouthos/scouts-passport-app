@@ -8,6 +8,9 @@ const { orders: all, act, toast, say, refresh } = useBarOrders()
 const orders = computed(() => all.value.filter(o => o.waiterId === props.me.id))
 const tab = ref<'new' | 'mine' | 'tables'>('new')
 const table = ref<number | null>(null)
+// the room as the organiser drew it, if they did; the number grid otherwise
+const hasPlan = computed(() => !!props.me.event.layout?.tables?.length)
+const showPlan = ref(true)
 const qty = reactive<Record<number, number>>({})
 // how many of each line come with a door coupon — free, one drink each
 const coupon = reactive<Record<number, number>>({})
@@ -44,8 +47,9 @@ const readyCount = computed(() => orders.value.filter(o => o.status === 'ready')
 <template>
   <main>
     <template v-if="tab === 'new'">
-      <div class="cat">Τραπέζι</div>
-      <div class="grid">
+      <div class="cat" style="display:flex;align-items:center">Τραπέζι<span v-if="hasPlan" class="cpn" :class="{ on: showPlan }" @click="showPlan = !showPlan">{{ showPlan ? 'κάτοψη' : 'αριθμοί' }}</span></div>
+      <BarPlan v-if="hasPlan && showPlan" :table-count="me.event.tableCount" :layout="me.event.layout" :selected="table" @pick="table = table === $event ? null : $event" />
+      <div v-else class="grid">
         <button v-for="n in me.event.tableCount" :key="n" class="tbl" :class="{ on: table === n }" @click="table = table === n ? null : n">{{ n }}</button>
       </div>
       <template v-for="[cat, items] in menu" :key="cat">

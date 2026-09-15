@@ -52,7 +52,7 @@ async function enablePush() {
   } catch { push.value = 'no' }
 }
 const wantsPush = computed(() => me.value && (me.value.role === 'waiter' || me.value.role === 'bartender'))
-const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: 'Bartender', cashier: 'Ταμείο', supervisor: 'Επόπτης' } as any)[me.value?.role] || '')
+const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: 'Bartender', cashier: 'Ταμείο', supervisor: 'Επόπτης', organiser: 'Οργανωτής' } as any)[me.value?.role] || '')
 </script>
 
 <template>
@@ -85,6 +85,7 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
     <BarWaiter v-if="me?.role === 'waiter'" :me="me" />
     <BarBartender v-else-if="me?.role === 'bartender'" :me="me" />
     <BarSupervisor v-else-if="me?.role === 'supervisor'" :me="me" />
+    <BarOrganiser v-else-if="me?.role === 'organiser'" :me="me" />
     <BarCashier v-else-if="me" :me="me" />
   </div>
 </template>

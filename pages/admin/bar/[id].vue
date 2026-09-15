@@ -61,7 +61,7 @@ async function deleteTemplate(tpl: any) {
 const sform = reactive({ name: '', role: 'waiter', bartenderId: 0 })
 const bartenders = computed(() => (data.value?.staff || []).filter((x: any) => x.role === 'bartender' && x.isActive))
 const crew = computed(() => (data.value?.staff || []).filter((x: any) => x.isActive))
-const roleName = (r: string) => ({ waiter: t('barWaiter'), bartender: 'Bartender', cashier: t('barCashier'), supervisor: t('barSupervisor') } as any)[r]
+const roleName = (r: string) => ({ waiter: t('barWaiter'), bartender: 'Bartender', cashier: t('barCashier'), supervisor: t('barSupervisor'), organiser: t('barOrganiser') } as any)[r]
 const bartenderName = (bid: number | null) => bartenders.value.find((b: any) => b.id === bid)?.name || '—'
 const fmtCode = (c: string) => c.slice(0, 3) + ' ' + c.slice(3)
 async function addStaff() {
@@ -161,7 +161,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
     <!-- crew -->
     <template v-if="tab === 'staff'">
       <div class="note">{{ t('barCrewNote') }}</div>
-      <div v-for="role in ['bartender', 'waiter', 'cashier', 'supervisor']" :key="role" class="adm">
+      <div v-for="role in ['bartender', 'waiter', 'cashier', 'supervisor', 'organiser']" :key="role" class="adm">
         <div class="hdr">{{ roleName(role) }} · {{ crew.filter((x: any) => x.role === role).length }}</div>
         <div v-for="x in crew.filter((y: any) => y.role === role)" :key="x.id" class="it" style="flex-wrap:wrap">
           <div style="flex:1;min-width:140px"><b>{{ x.name }}</b>
@@ -182,7 +182,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
         <b style="font-size:13px">+ {{ t('barAddStaff') }}</b>
         <input v-model="sform.name" class="in" :placeholder="t('name')">
         <div class="chips">
-          <button v-for="r in ['bartender', 'waiter', 'cashier', 'supervisor']" :key="r" class="chip" :class="{ on: sform.role === r }" @click="sform.role = r">{{ roleName(r) }}</button>
+          <button v-for="r in ['bartender', 'waiter', 'cashier', 'supervisor', 'organiser']" :key="r" class="chip" :class="{ on: sform.role === r }" @click="sform.role = r">{{ roleName(r) }}</button>
         </div>
         <div v-if="sform.role === 'waiter'">
           <label class="lab">{{ t('barAssignTo') }}</label>

@@ -461,5 +461,6 @@ export const MIGRATIONS = [
   "ALTER TABLE challenges ADD COLUMN IF NOT EXISTS is_bonus BOOLEAN NOT NULL DEFAULT FALSE",
   "ALTER TABLE bar_menu_items ADD COLUMN IF NOT EXISTS coupon_ok BOOLEAN NOT NULL DEFAULT FALSE",
   "ALTER TABLE bar_order_items ADD COLUMN IF NOT EXISTS coupon_qty INTEGER NOT NULL DEFAULT 0",
-  "ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS bar_staff_id INTEGER REFERENCES bar_staff(id)"
+  "ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS bar_staff_id INTEGER REFERENCES bar_staff(id)",
+  "ALTER TABLE bar_events ADD COLUMN IF NOT EXISTS layout TEXT"
 ]

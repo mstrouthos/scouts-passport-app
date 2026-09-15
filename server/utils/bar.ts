@@ -72,4 +72,19 @@ export async function ordersWithItems(where: any) {
   }))
 }
 
+/** The floor plan. Positions are fractions of the plan's width and height,
+    so the same plan fits any phone. */
+export type Layout = { tables: Array<{ no: number; x: number; y: number }>; marks: Array<{ id: string; label: string; x: number; y: number }> }
+export function parseLayout(raw: string | null): Layout | null {
+  if (!raw) return null
+  try {
+    const j = JSON.parse(raw)
+    const f = (v: any) => Math.min(1, Math.max(0, Number(v) || 0))
+    return {
+      tables: (Array.isArray(j.tables) ? j.tables : []).map((t: any) => ({ no: Number(t.no), x: f(t.x), y: f(t.y) })).filter((t: any) => Number.isInteger(t.no) && t.no > 0),
+      marks: (Array.isArray(j.marks) ? j.marks : []).slice(0, 20).map((m: any) => ({ id: String(m.id || '').slice(0, 20), label: String(m.label || '').slice(0, 24), x: f(m.x), y: f(m.y) })).filter((m: any) => m.label)
+    }
+  } catch { return null }
+}
+
 export { and, eq }

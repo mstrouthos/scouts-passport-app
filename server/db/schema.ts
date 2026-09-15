@@ -534,6 +534,8 @@ export const barEvents = pgTable('bar_events', {
   name: text('name').notNull(),
   eventDate: text('event_date'),
   tableCount: integer('table_count').notNull().default(10),
+  // the floor plan, as JSON: where each table stands and the landmarks around them
+  layout: text('layout'),
   status: text('status', { enum: ['open', 'closed'] }).notNull().default('open'),
   createdBy: integer('created_by'),
   createdAt: text('created_at').notNull(),
@@ -568,7 +570,7 @@ export const barMenuTemplateItems = pgTable('bar_menu_template_items', {
 export const barStaff = pgTable('bar_staff', {
   id: serial('id').primaryKey(),
   eventId: integer('event_id').notNull().references(() => barEvents.id),
-  role: text('role', { enum: ['waiter', 'bartender', 'cashier', 'supervisor'] }).notNull(),
+  role: text('role', { enum: ['waiter', 'bartender', 'cashier', 'supervisor', 'organiser'] }).notNull(),
   name: text('name').notNull(),
   code: text('code').notNull(),
   bartenderId: integer('bartender_id'),
