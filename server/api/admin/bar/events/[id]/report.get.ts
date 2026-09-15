@@ -39,7 +39,18 @@ export default defineEventHandler(async (event) => {
     avgPrepMin: prep.length ? Math.round(prep.reduce((a, b) => a + b, 0) / prep.length * 10) / 10 : null,
     avgOrderCents: live.length ? Math.round(sum(live) / live.length) : 0,
     items: [...items.values()].sort((a, b) => b.qty - a.qty),
-    tables: tally(o => o.tableNo, k => `Τραπέζι ${k}`).sort((a, b) => Number(a.label.slice(8)) - Number(b.label.slice(8))),
+    tables: tally(o => o.tableNo, k => `Τραπέζι ${k}`).sort((a, b) => Number(a.label.slice(8)) - Number(b.label.slice(8)))
+      .map(r => ({
+        ...r,
+        // what the table had, added up across its orders
+        items: (() => {
+          const m = new Map<string, { name: string; qty: number; cents: number }>()
+          for (const o of live.filter(o => `Τραπέζι ${o.tableNo}` === r.label)) for (const i of o.items) {
+            const x = m.get(i.name) || { name: i.name, qty: 0, cents: 0 }; x.qty += i.qty; x.cents += i.qty * i.priceCents; m.set(i.name, x)
+          }
+          return [...m.values()].sort((a, b) => b.qty - a.qty)
+        })()
+      })),
     waiters: tally(o => o.waiterId, nameOf),
     bartenders: tally(o => o.bartenderId ?? 0, nameOf),
     hours: (() => {

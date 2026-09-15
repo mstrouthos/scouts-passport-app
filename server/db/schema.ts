@@ -549,7 +549,7 @@ export const barMenuItems = pgTable('bar_menu_items', {
 export const barStaff = pgTable('bar_staff', {
   id: serial('id').primaryKey(),
   eventId: integer('event_id').notNull().references(() => barEvents.id),
-  role: text('role', { enum: ['waiter', 'bartender', 'cashier'] }).notNull(),
+  role: text('role', { enum: ['waiter', 'bartender', 'cashier', 'supervisor'] }).notNull(),
   name: text('name').notNull(),
   code: text('code').notNull(),
   bartenderId: integer('bartender_id'),

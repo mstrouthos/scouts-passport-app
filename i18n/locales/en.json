@@ -707,5 +707,6 @@
   "barShow": "Show on menu",
   "barCode": "Code",
   "barNewCode": "New code",
-  "delete": "Delete"
+  "delete": "Delete",
+  "barSupervisor": "Supervisors"
 }

@@ -27,7 +27,7 @@ async function signOut() {
   me.value = null
 }
 onMounted(load)
-const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: 'Bartender', cashier: 'Ταμείο' } as any)[me.value?.role] || '')
+const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: 'Bartender', cashier: 'Ταμείο', supervisor: 'Επόπτης' } as any)[me.value?.role] || '')
 </script>
 
 <template>
@@ -52,6 +52,7 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
     </main>
     <BarWaiter v-else-if="me.role === 'waiter'" :me="me" />
     <BarBartender v-else-if="me.role === 'bartender'" :me="me" />
+    <BarSupervisor v-else-if="me.role === 'supervisor'" :me="me" />
     <BarCashier v-else :me="me" />
   </div>
 </template>
@@ -79,7 +80,7 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
 .barapp .err{color:#FF9A8B;font-size:13px}
 .barapp .hint{margin:0;font-size:12px;opacity:.6;text-align:center}
 .barapp .tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:#141E3C;padding:6px 8px calc(6px + env(safe-area-inset-bottom));gap:6px;z-index:5}
-.barapp .tabs button{flex:1;border:0;background:none;color:rgba(255,255,255,.6);font:inherit;font-size:13px;font-weight:600;padding:11px 4px;border-radius:12px;position:relative}
+.barapp .tabs button{flex:1;min-width:0;border:0;background:none;color:rgba(255,255,255,.6);font:inherit;font-size:12.5px;font-weight:600;padding:11px 4px;border-radius:12px;position:relative}
 .barapp .tabs button.on{background:rgba(255,255,255,.12);color:#fff}
 .barapp .tabs .n{position:absolute;top:4px;right:10px;background:#E25848;color:#fff;font-size:10px;font-weight:800;border-radius:999px;padding:1px 6px}
 .barapp .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}

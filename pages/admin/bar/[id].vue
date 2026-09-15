@@ -58,7 +58,7 @@ async function loadDefault() { await api('/menu', 'POST', { items: DEFAULT_MENU 
 const sform = reactive({ name: '', role: 'waiter', bartenderId: 0 })
 const bartenders = computed(() => (data.value?.staff || []).filter((x: any) => x.role === 'bartender' && x.isActive))
 const crew = computed(() => (data.value?.staff || []).filter((x: any) => x.isActive))
-const roleName = (r: string) => ({ waiter: t('barWaiter'), bartender: 'Bartender', cashier: t('barCashier') } as any)[r]
+const roleName = (r: string) => ({ waiter: t('barWaiter'), bartender: 'Bartender', cashier: t('barCashier'), supervisor: t('barSupervisor') } as any)[r]
 const bartenderName = (bid: number | null) => bartenders.value.find((b: any) => b.id === bid)?.name || '—'
 const fmtCode = (c: string) => c.slice(0, 3) + ' ' + c.slice(3)
 async function addStaff() {
@@ -96,6 +96,7 @@ watch(tab, async (v) => {
   if (v === 'report') report.value = await $fetch(`/api/admin/bar/events/${id}/report`)
   if (v === 'orders') orders.value = await $fetch(`/api/admin/bar/events/${id}/orders`)
 })
+const openTable = ref<string | null>(null)
 const payLabel = (o: any) => !o.paidAt ? t('barUnpaid') : o.paidMethod === 'cash' ? t('barCash') : o.cardConfirmedAt ? t('barCard') + ' ✓' : t('barCardPending')
 const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })
 </script>
@@ -145,7 +146,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
     <!-- crew -->
     <template v-if="tab === 'staff'">
       <div class="note">{{ t('barCrewNote') }}</div>
-      <div v-for="role in ['bartender', 'waiter', 'cashier']" :key="role" class="adm">
+      <div v-for="role in ['bartender', 'waiter', 'cashier', 'supervisor']" :key="role" class="adm">
         <div class="hdr">{{ roleName(role) }} · {{ crew.filter((x: any) => x.role === role).length }}</div>
         <div v-for="x in crew.filter((y: any) => y.role === role)" :key="x.id" class="it" style="flex-wrap:wrap">
           <div style="flex:1;min-width:140px"><b>{{ x.name }}</b>
@@ -166,7 +167,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
         <b style="font-size:13px">+ {{ t('barAddStaff') }}</b>
         <input v-model="sform.name" class="in" :placeholder="t('name')">
         <div class="chips">
-          <button v-for="r in ['bartender', 'waiter', 'cashier']" :key="r" class="chip" :class="{ on: sform.role === r }" @click="sform.role = r">{{ roleName(r) }}</button>
+          <button v-for="r in ['bartender', 'waiter', 'cashier', 'supervisor']" :key="r" class="chip" :class="{ on: sform.role === r }" @click="sform.role = r">{{ roleName(r) }}</button>
         </div>
         <div v-if="sform.role === 'waiter'">
           <label class="lab">{{ t('barAssignTo') }}</label>
@@ -218,9 +219,15 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
       </div>
       <div class="adm">
         <div class="hdr">{{ t('barByTable') }}</div>
-        <div v-for="r in report.tables" :key="r.label" class="it">
-          <div style="flex:1"><b>{{ r.label }}</b><span>{{ r.orders }} {{ t('barOrders') }}<template v-if="r.paidCents !== r.cents"> · {{ t('barUnpaid') }} {{ eur(r.cents - r.paidCents) }}</template></span></div><b>{{ eur(r.cents) }}</b>
-        </div>
+        <template v-for="r in report.tables" :key="r.label">
+          <button class="it" style="width:100%;text-align:left" @click="openTable = openTable === r.label ? null : r.label">
+            <span class="chev" :style="openTable === r.label ? 'transform:rotate(90deg)' : ''">›</span>
+            <div style="flex:1"><b>{{ r.label }}</b><span>{{ r.orders }} {{ t('barOrders') }}<template v-if="r.paidCents !== r.cents"> · {{ t('barUnpaid') }} {{ eur(r.cents - r.paidCents) }}</template></span></div><b>{{ eur(r.cents) }}</b>
+          </button>
+          <div v-if="openTable === r.label" v-for="i in r.items" :key="i.name" class="it" style="padding-left:40px;background:var(--bg2)">
+            <div style="flex:1"><b style="font-weight:500">{{ i.qty }}× {{ i.name }}</b></div><span>{{ eur(i.cents) }}</span>
+          </div>
+        </template>
       </div>
       <div class="adm">
         <div class="hdr">{{ t('barWaiters') }}</div>

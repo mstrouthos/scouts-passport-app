@@ -707,5 +707,6 @@
   "barShow": "Εμφάνιση στο μενού",
   "barCode": "Κωδικός",
   "barNewCode": "Νέος κωδικός",
-  "delete": "Διαγραφή"
+  "delete": "Διαγραφή",
+  "barSupervisor": "Επόπτες"
 }
