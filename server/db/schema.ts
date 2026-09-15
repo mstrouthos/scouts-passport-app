@@ -320,6 +320,8 @@ export const pushSubscriptions = pgTable('push_subscriptions', {
   id: serial('id').primaryKey(),
   scoutId: integer('scout_id').references(() => scouts.id),
   parentId: integer('parent_id').references(() => parents.id),
+  // a crew member's phone for the night: the bar buzzes the waiter, the waiter the bar
+  barStaffId: integer('bar_staff_id'),
   sectionId: integer('section_id').references(() => sections.id),
   endpoint: text('endpoint').notNull(),
   p256dh: text('p256dh').notNull(),

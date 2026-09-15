@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 import { requireBarStaff } from '../../../../utils/bar'
 import { now } from '../../../../utils/passcode'
+import { sendPushToBarStaff } from '../../../../utils/push'
 
 /** One order, one step: the bartender readies it and, when the waiter
     brings the money to the bar, marks it paid; the waiter delivers or
@@ -51,5 +52,13 @@ export default defineEventHandler(async (event) => {
   } else throw createError({ statusCode: 404, message: 'Unknown action' })
 
   await db.update(s.barOrders).set(set).where(eq(s.barOrders.id, id))
+  // the waiter's phone buzzes: it is on the counter, come and get it
+  if (action === 'ready') {
+    const items = await db.select().from(s.barOrderItems).where(eq(s.barOrderItems.orderId, id))
+    sendPushToBarStaff([o.waiterId], {
+      title: `✅ Έτοιμη #${o.number} · Τραπέζι ${o.tableNo}`,
+      body: `${items.map(i => `${i.qty}× ${i.name}`).join(', ')} — πάρ' την από τον ${me.name}`
+    }).catch(err => console.error('[bar] push failed', err))
+  }
   return { ok: true }
 })

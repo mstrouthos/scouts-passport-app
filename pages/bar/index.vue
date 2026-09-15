@@ -27,6 +27,31 @@ async function signOut() {
   me.value = null
 }
 onMounted(load)
+
+/* The phone buzzes when an order lands (bartender) or is ready (waiter).
+   Asked once per device; on an iPhone this only works once the page is
+   installed to the home screen, which the hint says. */
+const cfg = useRuntimeConfig()
+const push = ref<'ask' | 'on' | 'no' | 'busy'>('ask')
+onMounted(() => { try { if (localStorage.getItem('barPushOn')) push.value = 'on' } catch {} })
+function b64ToU8(base64: string) {
+  const pad = '='.repeat((4 - base64.length % 4) % 4)
+  const raw = atob((base64 + pad).replace(/-/g, '+').replace(/_/g, '/'))
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
+}
+async function enablePush() {
+  push.value = 'busy'
+  try {
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !cfg.public.vapidPublicKey) { push.value = 'no'; return }
+    if (await Notification.requestPermission() !== 'granted') { push.value = 'no'; return }
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(cfg.public.vapidPublicKey) })
+    await $fetch('/api/bar/subscribe', { method: 'POST', body: sub.toJSON() })
+    push.value = 'on'
+    try { localStorage.setItem('barPushOn', '1') } catch {}
+  } catch { push.value = 'no' }
+}
+const wantsPush = computed(() => me.value && (me.value.role === 'waiter' || me.value.role === 'bartender'))
 const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: 'Bartender', cashier: 'Ταμείο', supervisor: 'Επόπτης' } as any)[me.value?.role] || '')
 </script>
 
@@ -50,10 +75,17 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
         <p class="hint">Τον εξαψήφιο κωδικό σου τον δίνει ο υπεύθυνος της βραδιάς.</p>
       </div>
     </main>
-    <BarWaiter v-else-if="me.role === 'waiter'" :me="me" />
-    <BarBartender v-else-if="me.role === 'bartender'" :me="me" />
-    <BarSupervisor v-else-if="me.role === 'supervisor'" :me="me" />
-    <BarCashier v-else :me="me" />
+    <div v-if="wantsPush && push !== 'on'" class="pushbar">
+      <template v-if="push === 'no'">Χωρίς ειδοποιήσεις σε αυτή τη συσκευή — κοίτα την οθόνη. Σε iPhone: πρόσθεσε τη σελίδα στην αρχική οθόνη και ξαναδοκίμασε.</template>
+      <template v-else>
+        <span>🔔 Να χτυπάει το κινητό {{ me.role === 'waiter' ? 'όταν είναι έτοιμη μια παραγγελία σου;' : 'όταν έρχεται παραγγελία;' }}</span>
+        <button class="btn sm" :disabled="push === 'busy'" @click="enablePush">Ναι</button>
+      </template>
+    </div>
+    <BarWaiter v-if="me?.role === 'waiter'" :me="me" />
+    <BarBartender v-else-if="me?.role === 'bartender'" :me="me" />
+    <BarSupervisor v-else-if="me?.role === 'supervisor'" :me="me" />
+    <BarCashier v-else-if="me" :me="me" />
   </div>
 </template>
 
@@ -67,6 +99,8 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
 .barapp .out{background:rgba(255,255,255,.1);border:0;color:#fff;padding:8px 12px;border-radius:999px;font:inherit;font-size:12px;font-weight:600}
 .barapp main{flex:1;padding:14px 14px calc(90px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
 .barapp .signin{justify-content:center}
+.barapp .pushbar{display:flex;align-items:center;gap:10px;margin:12px 14px -4px;padding:10px 12px;border-radius:14px;background:rgba(240,180,41,.14);color:#F6D27A;font-size:13px;line-height:1.35}
+.barapp .pushbar span{flex:1}
 .barapp .card{background:#1B2648;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
 .barapp .lab{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.7}
 .barapp .in{width:100%;box-sizing:border-box;background:#0F1730;border:1.5px solid #2C3A66;border-radius:12px;color:#fff;font:inherit;font-size:16px;padding:11px 13px}

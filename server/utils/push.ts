@@ -61,6 +61,15 @@ export async function sendPushTo(scoutIds: number[], msg: { title: string, body:
   return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body, url: url || '/' }))
 }
 
+/** A buzz to the bar crew's phones: no inbox, no dedupe — an order is news
+    exactly once, and it is stale a minute later. */
+export async function sendPushToBarStaff(staffIds: number[], msg: { title: string, body: string, url?: string }): Promise<number> {
+  if (!staffIds.length) return 0
+  const db = (await useDb())
+  const subs = (await db.select().from(s.pushSubscriptions)).filter(x => x.barStaffId != null && staffIds.includes(x.barStaffId))
+  return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body, url: msg.url || '/bar' }))
+}
+
 /** Push to named parents — the ones linked to the scouts a message went to.
     Deduped per parent, so a parent with two kids in the group hears once. */
 export async function sendPushToParentIds(parentIds: number[], msg: { title: string, body: string, kind: string, refId: number }): Promise<number> {

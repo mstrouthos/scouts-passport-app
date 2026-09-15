@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { requireBarStaff } from '../../utils/bar'
 import { now } from '../../utils/passcode'
+import { sendPushToBarStaff } from '../../utils/push'
 
 /** A waiter sends a table's order to their bartender. */
 export default defineEventHandler(async (event) => {
@@ -31,5 +32,10 @@ export default defineEventHandler(async (event) => {
   await db.insert(s.barOrderItems).values(lines.map(l => ({
     orderId: row.id, menuItemId: l.item.id, name: l.item.name, priceCents: l.item.priceCents, qty: l.qty, couponQty: l.couponQty
   })))
+  // buzz the bartender's phone — the order is on its way
+  const what = lines.map(l => `${l.qty}× ${l.item.name}`).join(', ')
+  sendPushToBarStaff([me.bartenderId], {
+    title: `🍻 Νέα παραγγελία #${number} · Τραπέζι ${tableNo}`, body: `${what} — ${me.name}`
+  }).catch(err => console.error('[bar] push failed', err))
   return { id: row.id, number }
 })

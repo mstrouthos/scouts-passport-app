@@ -1,0 +1,21 @@
+import { eq } from 'drizzle-orm'
+import { useDb, schema as s } from '../../db'
+import { now } from '../../utils/passcode'
+import { requireBarStaff } from '../../utils/bar'
+
+/** A crew member's phone signs up to be buzzed for the night. */
+export default defineEventHandler(async (event) => {
+  const me = await requireBarStaff(event)
+  const b = await readBody<any>(event)
+  const endpoint = String(b?.endpoint || '')
+  const p256dh = String(b?.keys?.p256dh || '')
+  const auth = String(b?.keys?.auth || '')
+  if (!endpoint || !p256dh || !auth) throw createError({ statusCode: 400, message: 'Bad subscription' })
+  const db = await useDb()
+  await db.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.endpoint, endpoint))
+  await db.insert(s.pushSubscriptions).values({
+    scoutId: null, parentId: null, barStaffId: me.id, sectionId: null, endpoint, p256dh, auth,
+    userAgent: getHeader(event, 'user-agent') || null, createdAt: now()
+  })
+  return { ok: true }
+})
