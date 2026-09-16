@@ -106,7 +106,8 @@ async function deleteTemplate(tpl: any) {
 /* crew */
 const sform = reactive({ name: '', role: 'waiter', bartenderId: 0, accepts: ['cash', 'coupon'] as string[] })
 const KINDS = [['cash', '💶 ' + t('barCash')], ['card', '💳 ' + t('barCard')], ['coupon', '🎟 ' + t('barCoupons')]]
-const kindLabel = (k: string) => (KINDS.find(x => x[0] === k) || [k, k])[1]
+// orders taken before the method was asked have none — say so, don't crash
+const kindLabel = (k: string | null) => (KINDS.find(x => x[0] === k) || [k, k || '— —'])[1] as string
 function toggleKind(k: string) { sform.accepts = sform.accepts.includes(k) ? sform.accepts.filter(x => x !== k) : [...sform.accepts, k] }
 async function setAccepts(x: any, k: string) {
   const cur = (x.accepts || '').split(',').filter(Boolean)
@@ -157,7 +158,7 @@ watch(tab, async (v) => {
   if (v === 'orders') orders.value = await $fetch(`/api/admin/bar/events/${id}/orders`)
 })
 const openTable = ref<string | null>(null)
-const payLabel = (o: any) => `${kindLabel(o.paidMethod).slice(2)} ${o.paidAt ? '✓' + (o.accountName ? ' ' + o.accountName : '') : '· ' + t('pending').toLowerCase()}`
+const payLabel = (o: any) => `${kindLabel(o.paidMethod).slice(2).trim()} ${o.paidAt ? '✓' + (o.accountName ? ' ' + o.accountName : '') : '· ' + t('pending').toLowerCase()}`
 const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })
 </script>
 
