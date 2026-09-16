@@ -5,8 +5,10 @@
 const props = defineProps<{ me: any }>()
 const { orders: all, act, toast } = useBarOrders()
 const orders = computed(() => all.value.filter(o => o.bartenderId === props.me.id))
-const tab = ref<'queue' | 'unpaid' | 'tables'>('queue')
-const queue = computed(() => orders.value.filter(o => o.status === 'new' || o.status === 'ready'))
+const tab = ref<'queue' | 'ready' | 'unpaid' | 'tables'>('queue')
+// to make, and made-but-not-collected — kept apart so the queue stays short
+const queue = computed(() => orders.value.filter(o => o.status === 'new'))
+const ready = computed(() => orders.value.filter(o => o.status === 'ready'))
 const unpaid = computed(() => orders.value.filter(o => o.status !== 'cancelled' && !o.settled))
 const age = (iso: string) => Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000))
 
@@ -16,17 +18,22 @@ const age = (iso: string) => Math.max(0, Math.round((Date.now() - new Date(iso).
   <main>
     <template v-if="tab === 'queue'">
       <div v-if="!queue.length" class="empty">Τίποτα σε αναμονή. 🍺</div>
-      <div v-for="o in queue" :key="o.id" class="order" :style="o.status === 'ready' ? 'opacity:.7' : ''">
+      <div v-for="o in queue" :key="o.id" class="order">
         <div class="hd"><span class="no">#{{ o.number }}</span><span class="tb">Τραπέζι {{ o.tableNo }}</span>
           <span class="meta">{{ o.waiterName }} · {{ clock(o.createdAt) }}<br>πριν {{ age(o.createdAt) }}′</span></div>
         <div class="lines"><div v-for="i in o.items" :key="i.id" style="font-size:19px"><b>{{ i.qty }}×</b>{{ i.name }}<span v-if="i.couponQty" class="cpn on">🎟 {{ i.couponQty * (i.couponCost || 1) }} κουπόνι</span></div></div>
         <div v-if="o.note" style="font-size:13px;opacity:.75">📝 {{ o.note }}</div>
         <div class="tot"><span class="pill" :class="payClass(o)">{{ payLabel(o) }}</span><b>{{ eur(o.totalCents) }}</b></div>
-        <div class="acts">
-          <button v-if="o.status === 'new'" class="btn ok" @click="act(o.id, 'ready')">Έτοιμη — παραδόθηκε στον σερβιτόρο</button>
-          <span v-else class="pill ready" style="align-self:center">Έτοιμη · περιμένει τον {{ o.waiterName }}</span>
-        </div>
-
+        <div class="acts"><button class="btn ok" @click="act(o.id, 'ready')">Έτοιμη — παραδόθηκε στον σερβιτόρο</button></div>
+      </div>
+    </template>
+    <template v-else-if="tab === 'ready'">
+      <div v-if="!ready.length" class="empty">Τίποτα στον πάγκο.</div>
+      <div v-for="o in ready" :key="o.id" class="order">
+        <div class="hd"><span class="no">#{{ o.number }}</span><span class="tb">Τραπέζι {{ o.tableNo }}</span>
+          <span class="meta">{{ o.waiterName }} · έτοιμη {{ clock(o.readyAt) }}<br>περιμένει {{ age(o.readyAt) }}′</span></div>
+        <div class="lines"><div v-for="i in o.items" :key="i.id"><b>{{ i.qty }}×</b>{{ i.name }}<span v-if="i.couponQty" class="cpn on">🎟 {{ i.couponQty * (i.couponCost || 1) }}</span></div></div>
+        <div class="tot"><span class="pill ready">Περιμένει τον {{ o.waiterName }}</span><span class="pill" :class="payClass(o)">{{ payLabel(o) }}</span></div>
       </div>
     </template>
     <template v-else-if="tab === 'tables'"><BarTables :orders="all" /></template>
@@ -42,7 +49,8 @@ const age = (iso: string) => Math.max(0, Math.round((Date.now() - new Date(iso).
     </template>
     <div v-if="toast" class="toast">{{ toast }}</div>
     <nav class="tabs">
-      <button :class="{ on: tab === 'queue' }" @click="tab = 'queue'">Εκκρεμείς<span v-if="queue.filter(o => o.status === 'new').length" class="n">{{ queue.filter(o => o.status === 'new').length }}</span></button>
+      <button :class="{ on: tab === 'queue' }" @click="tab = 'queue'">Εκκρεμείς<span v-if="queue.length" class="n">{{ queue.length }}</span></button>
+      <button :class="{ on: tab === 'ready' }" @click="tab = 'ready'">Έτοιμες<span v-if="ready.length" class="n" style="background:#2FA36B">{{ ready.length }}</span></button>
       <button :class="{ on: tab === 'unpaid' }" @click="tab = 'unpaid'">Απλήρωτες<span v-if="unpaid.length" class="n">{{ unpaid.length }}</span></button>
       <button :class="{ on: tab === 'tables' }" @click="tab = 'tables'">Τραπέζια</button>
     </nav>
