@@ -96,7 +96,18 @@ async function deleteTemplate(tpl: any) {
 }
 
 /* crew */
-const sform = reactive({ name: '', role: 'waiter', bartenderId: 0 })
+const sform = reactive({ name: '', role: 'waiter', bartenderId: 0, accepts: ['cash', 'coupon'] as string[] })
+const KINDS = [['cash', '💶 ' + t('barCash')], ['card', '💳 ' + t('barCard')], ['coupon', '🎟 ' + t('barCoupons')]]
+const kindLabel = (k: string) => (KINDS.find(x => x[0] === k) || [k, k])[1]
+function toggleKind(k: string) { sform.accepts = sform.accepts.includes(k) ? sform.accepts.filter(x => x !== k) : [...sform.accepts, k] }
+async function setAccepts(x: any, k: string) {
+  const cur = (x.accepts || '').split(',').filter(Boolean)
+  await api(`/staff/${x.id}`, 'PATCH', { accepts: cur.includes(k) ? cur.filter((y: string) => y !== k) : [...cur, k] })
+}
+/* where card money lands */
+const aform = ref('')
+async function addAccount() { if (!aform.value.trim()) return; await api('/accounts', 'POST', { name: aform.value }); aform.value = '' }
+async function removeAccount(a: any) { if (confirm(t('barRemoveAccount', { name: a.name }))) await api(`/accounts/${a.id}`, 'DELETE') }
 const bartenders = computed(() => (data.value?.staff || []).filter((x: any) => x.role === 'bartender' && x.isActive))
 const crew = computed(() => (data.value?.staff || []).filter((x: any) => x.isActive))
 const roleName = (r: string) => ({ waiter: t('barWaiter'), bartender: 'Bartender', cashier: t('barCashier'), supervisor: t('barSupervisor'), organiser: t('barOrganiser') } as any)[r]
@@ -104,7 +115,7 @@ const bartenderName = (bid: number | null) => bartenders.value.find((b: any) => 
 const fmtCode = (c: string) => c.slice(0, 3) + ' ' + c.slice(3)
 async function addStaff() {
   if (!sform.name.trim()) return
-  await api('/staff', 'POST', { name: sform.name, role: sform.role, bartenderId: sform.role === 'waiter' ? sform.bartenderId || null : null })
+  await api('/staff', 'POST', { name: sform.name, role: sform.role, bartenderId: sform.role === 'waiter' ? sform.bartenderId || null : null, accepts: sform.role === 'cashier' ? sform.accepts : [] })
   sform.name = ''
 }
 async function reassign(w: any) {
@@ -138,7 +149,7 @@ watch(tab, async (v) => {
   if (v === 'orders') orders.value = await $fetch(`/api/admin/bar/events/${id}/orders`)
 })
 const openTable = ref<string | null>(null)
-const payLabel = (o: any) => !o.paidAt ? t('barUnpaid') : o.paidMethod === 'cash' ? t('barCash') : o.cardConfirmedAt ? t('barCard') + ' ✓' : t('barCardPending')
+const payLabel = (o: any) => `${kindLabel(o.paidMethod).slice(2)} ${o.paidAt ? '✓' + (o.accountName ? ' ' + o.accountName : '') : '· ' + t('pending').toLowerCase()}`
 const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })
 </script>
 
@@ -207,6 +218,9 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
         <div v-for="x in crew.filter((y: any) => y.role === role)" :key="x.id" class="it" style="flex-wrap:wrap">
           <div style="flex:1;min-width:140px"><b>{{ x.name }}</b>
             <span v-if="x.role === 'waiter'">→ {{ bartenderName(x.bartenderId) }}</span>
+            <span v-else-if="x.role === 'cashier'" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">
+              <button v-for="[k, l] in KINDS" :key="k" class="chip" :class="{ on: (x.accepts || '').split(',').includes(k) }" :disabled="!canEdit" @click="setAccepts(x, k)">{{ l }}</button>
+            </span>
             <span v-else-if="x.role === 'bartender'">{{ crew.filter((w: any) => w.bartenderId === x.id).map((w: any) => w.name).join(', ') || t('barNoWaiters') }}</span>
           </div>
           <code v-if="canEdit" style="font-size:15px;font-weight:700;letter-spacing:.1em;background:var(--bg2);padding:4px 8px;border-radius:8px">{{ fmtCode(x.code) }}</code>
@@ -225,6 +239,12 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
         <div class="chips">
           <button v-for="r in ['bartender', 'waiter', 'cashier', 'supervisor', 'organiser']" :key="r" class="chip" :class="{ on: sform.role === r }" @click="sform.role = r">{{ roleName(r) }}</button>
         </div>
+        <div v-if="sform.role === 'cashier'">
+          <label class="lab">{{ t('barAccepts') }}</label>
+          <div class="chips">
+            <button v-for="[k, l] in KINDS" :key="k" class="chip" :class="{ on: sform.accepts.includes(k) }" @click="toggleKind(k)">{{ l }}</button>
+          </div>
+        </div>
         <div v-if="sform.role === 'waiter'">
           <label class="lab">{{ t('barAssignTo') }}</label>
           <div class="chips">
@@ -232,7 +252,18 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
             <span v-if="!bartenders.length" class="tiny muted">{{ t('barAddBartenderFirst') }}</span>
           </div>
         </div>
-        <button class="btn" :disabled="!sform.name.trim() || (sform.role === 'waiter' && !sform.bartenderId)" @click="addStaff">{{ t('add') }}</button>
+        <button class="btn" :disabled="!sform.name.trim() || (sform.role === 'waiter' && !sform.bartenderId) || (sform.role === 'cashier' && !sform.accepts.length)" @click="addStaff">{{ t('add') }}</button>
+      </div>
+      <div class="adm">
+        <div class="hdr">🏦 {{ t('barAccounts') }} · {{ data.accounts?.length || 0 }}</div>
+        <div v-for="a in data.accounts" :key="a.id" class="it">
+          <div style="flex:1"><b>{{ a.name }}</b></div>
+          <button v-if="canEdit" class="chip ic" :aria-label="t('delete')" @click="removeAccount(a)"><NavIcon name="trash" /></button>
+        </div>
+        <div v-if="canEdit" class="it" style="gap:8px">
+          <input v-model="aform" class="in" style="flex:1" :placeholder="t('barAccountPh')" @keyup.enter="addAccount">
+          <button class="chip" @click="addAccount">{{ t('add') }}</button>
+        </div>
       </div>
       <button v-if="canEdit" class="btn" :class="data.status === 'open' ? 'danger' : ''" @click="toggleStatus">
         {{ data.status === 'open' ? '🔒 ' + t('barClose') : '🔓 ' + t('barReopen') }}
@@ -264,9 +295,16 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
         <div class="stat"><b>{{ eur(report.cardCents) }}</b><span>{{ t('barCard') }}</span></div>
         <div class="stat" :style="report.unpaidCents ? 'color:var(--danger)' : ''"><b>{{ eur(report.unpaidCents) }}</b><span>{{ t('barUnpaid') }} · {{ report.unpaidOrders }}</span></div>
         <div v-if="report.cardPendingCents" class="stat"><b>{{ eur(report.cardPendingCents) }}</b><span>{{ t('barCardPending') }}</span></div>
+        <div v-if="report.cashPendingCents" class="stat"><b>{{ eur(report.cashPendingCents) }}</b><span>{{ t('barCashPending') }}</span></div>
         <div class="stat"><b>{{ report.avgPrepMin ?? '—' }}′</b><span>{{ t('barAvgPrep') }}</span></div>
         <div class="stat"><b>🎟 {{ report.coupons }}</b><span>{{ t('barCoupons') }} · {{ eur(report.couponCents) }}</span></div>
         <div v-if="report.cancelled" class="stat"><b>{{ report.cancelled }}</b><span>{{ t('barCancelled') }}</span></div>
+      </div>
+      <div v-if="report.accounts?.length" class="adm">
+        <div class="hdr">🏦 {{ t('barAccounts') }}</div>
+        <div v-for="r in report.accounts" :key="r.label" class="it">
+          <div style="flex:1"><b>{{ r.label }}</b><span>{{ r.orders }} {{ t('barOrders') }}</span></div><b>{{ eur(r.cents) }}</b>
+        </div>
       </div>
       <div class="adm">
         <div class="hdr">{{ t('barSold') }}</div>

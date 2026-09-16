@@ -574,9 +574,19 @@ export const barStaff = pgTable('bar_staff', {
   name: text('name').notNull(),
   code: text('code').notNull(),
   bartenderId: integer('bartender_id'),
+  // a cashier's kinds of money, comma-separated: 'cash,coupon' or 'card'
+  accepts: text('accepts').notNull().default(''),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: text('created_at').notNull()
 }, t => [uniqueIndex('bar_staff_code_uq').on(t.code)])
+/** Where card money lands — the card cashier names the account on each payment. */
+export const barAccounts = pgTable('bar_accounts', {
+  id: serial('id').primaryKey(),
+  eventId: integer('event_id').notNull().references(() => barEvents.id),
+  name: text('name').notNull(),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: text('created_at').notNull()
+})
 export const barOrders = pgTable('bar_orders', {
   id: serial('id').primaryKey(),
   eventId: integer('event_id').notNull().references(() => barEvents.id),
@@ -587,9 +597,12 @@ export const barOrders = pgTable('bar_orders', {
   status: text('status', { enum: ['new', 'ready', 'delivered', 'cancelled'] }).notNull().default('new'),
   totalCents: integer('total_cents').notNull().default(0),
   note: text('note'),
-  paidMethod: text('paid_method', { enum: ['cash', 'card'] }),
+  // how the table will pay, said by the waiter; paid when a cashier who
+  // takes that kind of money confirms it
+  paidMethod: text('paid_method', { enum: ['cash', 'card', 'coupon'] }),
   paidAt: text('paid_at'),
   paidBy: integer('paid_by'),
+  accountId: integer('account_id'),
   cardConfirmedAt: text('card_confirmed_at'),
   cardConfirmedBy: integer('card_confirmed_by'),
   createdAt: text('created_at').notNull(),

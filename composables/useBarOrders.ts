@@ -25,6 +25,10 @@ export function useBarOrders(intervalMs = 3000) {
 }
 export const eur = (cents: number) => (cents / 100).toFixed(2).replace('.', ',') + ' €'
 export const clock = (iso: string | null) => iso ? new Date(iso).toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }) : ''
-export const payLabel = (o: any) => !o.paidAt ? 'Απλήρωτη'
-  : o.paidMethod === 'cash' ? 'Μετρητά' : o.cardConfirmedAt ? 'Κάρτα ✓' : 'Κάρτα · αναμονή'
-export const payClass = (o: any) => !o.paidAt ? 'unpaid' : o.settled ? 'paid' : 'pending'
+export const KIND = { cash: 'Μετρητά', card: 'Κάρτα', coupon: 'Κουπόνια' } as Record<string, string>
+export const payLabel = (o: any) => {
+  const k = KIND[o.paidMethod] || '—'
+  if (!o.paidAt) return `${k} · εκκρεμεί`
+  return o.paidMethod === 'card' && o.accountName ? `${k} ✓ ${o.accountName}` : `${k} ✓`
+}
+export const payClass = (o: any) => o.paidAt ? 'paid' : o.paidMethod === 'card' ? 'pending' : 'unpaid'

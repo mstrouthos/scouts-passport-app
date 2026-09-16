@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
   if (b?.name !== undefined) set.name = String(b.name).trim()
   if (b?.bartenderId !== undefined) set.bartenderId = b.bartenderId ? Number(b.bartenderId) : null
   if (b?.isActive !== undefined) set.isActive = !!b.isActive
+  if (Array.isArray(b?.accepts)) set.accepts = b.accepts.filter((x: string) => ['cash', 'card', 'coupon'].includes(x)).join(',')
   if (b?.newCode) set.code = await newStaffCode()
   await db.update(s.barStaff).set(set).where(eq(s.barStaff.id, sid))
   // a waiter moved to another bartender takes their open orders along

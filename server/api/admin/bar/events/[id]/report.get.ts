@@ -35,7 +35,16 @@ export default defineEventHandler(async (event) => {
     totalCents: sum(live), paidCents: sum(paid),
     cashCents: sum(paid.filter(o => o.paidMethod === 'cash')),
     cardCents: sum(paid.filter(o => o.paidMethod === 'card')),
-    cardPendingCents: sum(live.filter(o => o.paidAt && o.paidMethod === 'card' && !o.cardConfirmedAt)),
+    cardPendingCents: sum(live.filter(o => !o.paidAt && o.paidMethod === 'card')),
+    cashPendingCents: sum(live.filter(o => !o.paidAt && o.paidMethod !== 'card')),
+    // card money by the account it landed in
+    accounts: (() => {
+      const m = new Map<string, { label: string; orders: number; cents: number }>()
+      for (const o of paid.filter(o => o.paidMethod === 'card')) {
+        const k = o.accountName || '—'; const r = m.get(k) || { label: k, orders: 0, cents: 0 }; r.orders++; r.cents += o.totalCents; m.set(k, r)
+      }
+      return [...m.values()].sort((a, b) => b.cents - a.cents)
+    })(),
     unpaidCents: sum(live.filter(o => !o.paidAt)),
     unpaidOrders: live.filter(o => !o.paidAt).length,
     // door coupons redeemed, and what they would have been worth

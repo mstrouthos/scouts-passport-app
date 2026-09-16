@@ -15,6 +15,8 @@ const qty = reactive<Record<number, number>>({})
 // how many of each line come with a door coupon — free, one drink each
 const coupon = reactive<Record<number, number>>({})
 const sending = ref(false)
+// how the table says it will pay — the cashier who takes that confirms it
+const method = ref<'cash' | 'card'>('cash')
 
 const menu = computed(() => {
   const cats = new Map<string, any[]>()
@@ -30,7 +32,7 @@ async function send() {
   if (!table.value || !lines.value.length || sending.value) return
   sending.value = true
   try {
-    const r = await $fetch<any>('/api/bar/orders', { method: 'POST', body: { tableNo: table.value, items: lines.value.map((l: any) => ({ menuItemId: l.id, qty: l.qty, couponQty: l.couponQty })) } })
+    const r = await $fetch<any>('/api/bar/orders', { method: 'POST', body: { tableNo: table.value, method: method.value, items: lines.value.map((l: any) => ({ menuItemId: l.id, qty: l.qty, couponQty: l.couponQty })) } })
     for (const k of Object.keys(qty)) { qty[Number(k)] = 0; coupon[Number(k)] = 0 }
     table.value = null
     say(`Στάλθηκε · #${r.number}`)
@@ -65,6 +67,11 @@ const readyCount = computed(() => orders.value.filter(o => o.status === 'ready')
         </div>
       </template>
       <div v-if="lines.length" class="sum">
+        <div v-if="total > 0" class="seg2">
+          <button :class="{ on: method === 'cash' }" @click="method = 'cash'">💶 Μετρητά</button>
+          <button :class="{ on: method === 'card' }" @click="method = 'card'">💳 Κάρτα</button>
+        </div>
+        <div v-else class="seg2"><button class="on">🎟 Μόνο κουπόνια</button></div>
         <button class="btn" :disabled="!table || sending" @click="send">
           {{ table ? `Στείλε · Τραπέζι ${table} · ${eur(total)}` : `Διάλεξε τραπέζι · ${eur(total)}` }}<template v-if="coupons"> · 🎟 {{ coupons }}</template>
         </button>
@@ -81,8 +88,10 @@ const readyCount = computed(() => orders.value.filter(o => o.status === 'ready')
         <div class="lines"><div v-for="i in o.items" :key="i.id"><b>{{ i.qty }}×</b>{{ i.name }}<span v-if="i.couponQty" class="cpn on">🎟 {{ i.couponQty }}</span></div></div>
         <div class="tot"><span class="pill" :class="payClass(o)">{{ payLabel(o) }}</span><b>{{ eur(o.totalCents) }}</b></div>
         <div class="acts">
-          <button v-if="o.status === 'new'" class="btn red sm" @click="act(o.id, 'cancel')">Ακύρωση</button>
+          <button v-if="o.status === 'new' && !o.paidAt" class="btn red sm" @click="act(o.id, 'cancel')">Ακύρωση</button>
           <button v-if="o.status === 'ready'" class="btn ok" @click="act(o.id, 'delivered')">Παραδόθηκε στο τραπέζι</button>
+          <button v-if="!o.paidAt && o.paidMethod === 'cash'" class="btn ghost sm" @click="act(o.id, 'method', { method: 'card' })">Τελικά με κάρτα</button>
+          <button v-if="!o.paidAt && o.paidMethod === 'card'" class="btn ghost sm" @click="act(o.id, 'method', { method: 'cash' })">Τελικά με μετρητά</button>
         </div>
       </div>
       <div v-if="done.length" class="cat">Ολοκληρωμένες · {{ done.length }}</div>

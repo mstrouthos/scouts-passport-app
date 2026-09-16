@@ -62,13 +62,15 @@ export async function ordersWithItems(where: any) {
   if (!orders.length) return []
   const items = await db.select().from(s.barOrderItems).where(inArray(s.barOrderItems.orderId, orders.map(o => o.id)))
   const staff = await db.select().from(s.barStaff).where(eq(s.barStaff.eventId, orders[0].eventId))
+  const accounts = await db.select().from(s.barAccounts).where(eq(s.barAccounts.eventId, orders[0].eventId))
   const nameOf = (id: number | null) => staff.find(x => x.id === id)?.name ?? null
   return orders.map(o => ({
     ...o,
     waiterName: nameOf(o.waiterId), bartenderName: nameOf(o.bartenderId),
+    accountName: accounts.find(a => a.id === o.accountId)?.name ?? null,
     items: items.filter(i => i.orderId === o.id),
-    // paid and settled: cash on the spot, or a card the cashier has confirmed
-    settled: !!o.paidAt && (o.paidMethod !== 'card' || !!o.cardConfirmedAt)
+    // settled once a cashier has taken the money, whatever kind
+    settled: !!o.paidAt
   }))
 }
 
@@ -85,6 +87,24 @@ export function parseLayout(raw: string | null): Layout | null {
       marks: (Array.isArray(j.marks) ? j.marks : []).slice(0, 20).map((m: any) => ({ id: String(m.id || '').slice(0, 20), label: String(m.label || '').slice(0, 24), x: f(m.x), y: f(m.y) })).filter((m: any) => m.label)
     }
   } catch { return null }
+}
+
+export type PayKind = 'cash' | 'card' | 'coupon'
+export const PAY_KINDS: PayKind[] = ['cash', 'card', 'coupon']
+export const acceptsOf = (st: { accepts: string }) => st.accepts.split(',').map(x => x.trim()).filter(x => PAY_KINDS.includes(x as PayKind)) as PayKind[]
+
+/** Tell the cashiers who take this kind of money that an order is waiting. */
+export async function notifyCashiers(eventId: number, o: { number: number; tableNo: number; totalCents: number; paidMethod: string | null }, waiterName: string) {
+  const db = await useDb()
+  const cashiers = (await db.select().from(s.barStaff).where(eq(s.barStaff.eventId, eventId)))
+    .filter(x => x.isActive && x.role === 'cashier' && o.paidMethod && acceptsOf(x).includes(o.paidMethod as PayKind))
+  if (!cashiers.length) return
+  const { sendPushToBarStaff } = await import('./push')
+  const kind = ({ cash: 'Μετρητά', card: 'Κάρτα', coupon: 'Κουπόνια' } as any)[o.paidMethod!]
+  await sendPushToBarStaff(cashiers.map(c => c.id), {
+    title: `💶 Προς πληρωμή #${o.number} · Τραπέζι ${o.tableNo}`,
+    body: `${kind} · ${(o.totalCents / 100).toFixed(2).replace('.', ',')} € — ${waiterName}`
+  }).catch(err => console.error('[bar] cashier push failed', err))
 }
 
 export { and, eq }

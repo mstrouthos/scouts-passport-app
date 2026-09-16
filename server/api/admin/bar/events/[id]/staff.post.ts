@@ -6,7 +6,7 @@ import { now } from '../../../../../utils/passcode'
 export default defineEventHandler(async (event) => {
   await requireBarAdmin(event)
   const id = Number(getRouterParam(event, 'id'))
-  const b = await readBody<{ name?: string; role?: string; bartenderId?: number }>(event)
+  const b = await readBody<{ name?: string; role?: string; bartenderId?: number; accepts?: string[] }>(event)
   const name = String(b?.name || '').trim()
   const role = ['waiter', 'bartender', 'cashier', 'supervisor', 'organiser'].includes(String(b?.role)) ? b!.role as any : null
   if (!name || !role) throw createError({ statusCode: 400, message: 'Name and role required' })
@@ -14,6 +14,8 @@ export default defineEventHandler(async (event) => {
   const [row] = await db.insert(s.barStaff).values({
     eventId: id, role, name, code: await newStaffCode(),
     bartenderId: role === 'waiter' && b?.bartenderId ? Number(b.bartenderId) : null,
+    // which kinds of money a cashier takes
+    accepts: role === 'cashier' ? (Array.isArray(b?.accepts) ? b!.accepts : []).filter(x => ['cash', 'card', 'coupon'].includes(x)).join(',') : '',
     isActive: true, createdAt: now()
   }).returning()
   return { id: row.id, code: row.code }

@@ -12,5 +12,6 @@ export default defineEventHandler(async (event) => {
   if (!ev) throw createError({ statusCode: 404, message: 'Not found' })
   const menu = (await db.select().from(s.barMenuItems).where(eq(s.barMenuItems.eventId, id))).sort((a, b) => a.sort - b.sort || a.id - b.id)
   const staff = (await db.select().from(s.barStaff).where(eq(s.barStaff.eventId, id))).sort((a, b) => a.id - b.id)
-  return { ...ev, canEdit: me.role === 'troop_leader', menu, staff }
+  const accounts = (await db.select().from(s.barAccounts).where(eq(s.barAccounts.eventId, id))).filter(a => a.isActive)
+  return { ...ev, canEdit: me.role === 'troop_leader', menu, staff, accounts }
 })
