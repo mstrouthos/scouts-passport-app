@@ -150,6 +150,14 @@ function share(x: any) {
   else { navigator.clipboard?.writeText(text); show('📋 ' + t('copied')) }
 }
 
+/* wiping the night's orders: a typed word, then gone */
+const wipeOpen = ref(false)
+const wipeWord = ref('')
+async function wipe() {
+  const r = await api('/reset', 'POST', { confirm: wipeWord.value })
+  if (r) { wipeOpen.value = false; wipeWord.value = ''; show('🧹 ' + t('barWiped', { n: r.cleared })); if (tab.value === 'orders') orders.value = []; if (tab.value === 'report') report.value = await $fetch(`/api/admin/bar/events/${id}/report`) }
+}
+
 /* the books */
 const report = ref<any>(null)
 const orders = ref<any[]>([])
@@ -288,6 +296,16 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
         {{ data.status === 'open' ? '🔒 ' + t('barClose') : '🔓 ' + t('barReopen') }}
       </button>
       <button v-if="canEdit" class="btn ghost" @click="setTables">🪑 {{ t('barTables') }}: {{ data.tableCount }}</button>
+      <button v-if="canEdit" class="btn danger" @click="wipeOpen = true">🧹 {{ t('barWipe') }}</button>
+      <div v-if="wipeOpen" class="sheet-backdrop" @click.self="wipeOpen = false">
+        <div class="sheet">
+          <h3 style="margin:0;font-size:17px;text-align:center">🧹 {{ t('barWipe') }}</h3>
+          <div class="note">{{ t('barWipeNote') }}</div>
+          <div><label class="lab">{{ t('barWipeWord') }}</label><input v-model="wipeWord" class="in" placeholder="ΚΑΘΑΡΙΣΜΟΣ" autocapitalize="characters"></div>
+          <button class="btn danger" :disabled="wipeWord.trim().toUpperCase() !== 'ΚΑΘΑΡΙΣΜΟΣ'" @click="wipe">{{ t('barWipe') }}</button>
+          <button class="btn ghost" @click="wipeOpen = false">{{ t('close') }}</button>
+        </div>
+      </div>
     </template>
 
     <!-- orders -->

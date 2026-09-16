@@ -724,5 +724,9 @@
   "barAccountPh": "e.g. Bank of Cyprus · Group",
   "barRemoveAccount": "Remove account “{name}”?",
   "barCashPending": "Cash/coupons pending",
-  "barCouponCost": "Coupons for one"
+  "barCouponCost": "Coupons for one",
+  "barWipe": "Clear orders",
+  "barWipeNote": "Deletes every order and payment of this event — for good. Menu, crew, accounts and floor plan stay.",
+  "barWipeWord": "Type ΚΑΘΑΡΙΣΜΟΣ to confirm",
+  "barWiped": "{n} orders cleared"
 }
