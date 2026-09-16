@@ -25,8 +25,8 @@ export default defineEventHandler(async (event) => {
   let coupons = 0, couponCents = 0
   for (const o of live) for (const i of o.items) {
     const r = items.get(i.name) || { name: i.name, qty: 0, cents: 0, coupons: 0 }
-    r.qty += i.qty; r.cents += (i.qty - i.couponQty) * i.priceCents; r.coupons += i.couponQty; items.set(i.name, r)
-    coupons += i.couponQty; couponCents += i.couponQty * i.priceCents
+    r.qty += i.qty; r.cents += (i.qty - i.couponQty) * i.priceCents; r.coupons += i.couponQty * i.couponCost; items.set(i.name, r)
+    coupons += i.couponQty * i.couponCost; couponCents += i.couponQty * i.priceCents
   }
   const prep = live.filter(o => o.readyAt).map(o => (new Date(o.readyAt!).getTime() - new Date(o.createdAt).getTime()) / 60000)
   const nameOf = (sid: number | null) => staff.find(x => x.id === sid)?.name ?? '—'

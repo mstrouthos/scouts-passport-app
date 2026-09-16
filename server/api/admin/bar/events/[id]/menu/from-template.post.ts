@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   if (!src.length) throw createError({ statusCode: 400, message: 'Empty template' })
   let sort = (await db.select().from(s.barMenuItems).where(eq(s.barMenuItems.eventId, id))).reduce((m, x) => Math.max(m, x.sort), 0)
   await db.insert(s.barMenuItems).values(src.map(m => ({
-    eventId: id, category: m.category, name: m.name, priceCents: m.priceCents, couponOk: m.couponOk, sort: ++sort, isActive: true
+    eventId: id, category: m.category, name: m.name, priceCents: m.priceCents, couponOk: m.couponOk, couponCost: m.couponCost, sort: ++sort, isActive: true
   })))
   return { added: src.length }
 })

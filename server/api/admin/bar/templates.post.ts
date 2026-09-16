@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   if (!src.length) throw createError({ statusCode: 400, message: 'Το μενού είναι άδειο' })
   const [t] = await db.insert(s.barMenuTemplates).values({ name, createdBy: me.id, createdAt: now() }).returning()
   await db.insert(s.barMenuTemplateItems).values(src.map(m => ({
-    templateId: t.id, category: m.category, name: m.name, priceCents: m.priceCents, couponOk: m.couponOk, sort: m.sort
+    templateId: t.id, category: m.category, name: m.name, priceCents: m.priceCents, couponOk: m.couponOk, couponCost: m.couponCost, sort: m.sort
   })))
   return { id: t.id, items: src.length }
 })

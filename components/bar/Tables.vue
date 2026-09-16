@@ -8,7 +8,7 @@ const tables = computed(() => {
   for (const o of props.orders.filter(o => o.status !== 'cancelled')) {
     const r = m.get(o.tableNo) || { no: o.tableNo, orders: [], cents: 0, owed: 0, items: new Map() }
     r.orders.push(o); r.cents += o.totalCents; if (!o.settled) r.owed += o.totalCents
-    for (const i of o.items) { const x = r.items.get(i.name) || { name: i.name, qty: 0, cents: 0 }; x.qty += i.qty; x.cents += (i.qty - i.couponQty) * i.priceCents; x.coupons = (x.coupons || 0) + i.couponQty; r.items.set(i.name, x) }
+    for (const i of o.items) { const x = r.items.get(i.name) || { name: i.name, qty: 0, cents: 0 }; x.qty += i.qty; x.cents += (i.qty - i.couponQty) * i.priceCents; x.coupons = (x.coupons || 0) + i.couponQty * (i.couponCost || 1); r.items.set(i.name, x) }
     m.set(o.tableNo, r)
   }
   return [...m.values()].sort((a, b) => a.no - b.no).map(r => ({ ...r, items: [...r.items.values()].sort((a, b) => b.qty - a.qty) }))

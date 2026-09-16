@@ -723,5 +723,6 @@
   "barAccounts": "Λογαριασμοί καρτών",
   "barAccountPh": "π.χ. Τράπεζα Κύπρου · Σύστημα",
   "barRemoveAccount": "Να αφαιρεθεί ο λογαριασμός «{name}»;",
-  "barCashPending": "Μετρητά/κουπόνια σε αναμονή"
+  "barCashPending": "Μετρητά/κουπόνια σε αναμονή",
+  "barCouponCost": "Πόσα κουπόνια για ένα"
 }

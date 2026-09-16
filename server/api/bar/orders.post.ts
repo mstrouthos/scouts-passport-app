@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
     status: 'new', totalCents: total, paidMethod: method, note: b?.note ? String(b.note).slice(0, 200) : null, createdAt: now()
   }).returning()
   await db.insert(s.barOrderItems).values(lines.map(l => ({
-    orderId: row.id, menuItemId: l.item.id, name: l.item.name, priceCents: l.item.priceCents, qty: l.qty, couponQty: l.couponQty
+    orderId: row.id, menuItemId: l.item.id, name: l.item.name, priceCents: l.item.priceCents, qty: l.qty, couponQty: l.couponQty, couponCost: l.item.couponCost
   })))
   // buzz the bartender's phone — the order is on its way
   const what = lines.map(l => `${l.qty}× ${l.item.name}`).join(', ')

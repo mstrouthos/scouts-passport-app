@@ -723,5 +723,6 @@
   "barAccounts": "Card accounts",
   "barAccountPh": "e.g. Bank of Cyprus · Group",
   "barRemoveAccount": "Remove account “{name}”?",
-  "barCashPending": "Cash/coupons pending"
+  "barCashPending": "Cash/coupons pending",
+  "barCouponCost": "Coupons for one"
 }

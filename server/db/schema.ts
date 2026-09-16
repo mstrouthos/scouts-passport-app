@@ -549,6 +549,8 @@ export const barMenuItems = pgTable('bar_menu_items', {
   priceCents: integer('price_cents').notNull().default(0),
   // the free-drink coupon handed out at the door is good for this
   couponOk: boolean('coupon_ok').notNull().default(false),
+  // how many coupons one of these costs
+  couponCost: integer('coupon_cost').notNull().default(1),
   sort: integer('sort').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true)
 })
@@ -565,6 +567,7 @@ export const barMenuTemplateItems = pgTable('bar_menu_template_items', {
   name: text('name').notNull(),
   priceCents: integer('price_cents').notNull().default(0),
   couponOk: boolean('coupon_ok').notNull().default(false),
+  couponCost: integer('coupon_cost').notNull().default(1),
   sort: integer('sort').notNull().default(0)
 })
 export const barStaff = pgTable('bar_staff', {
@@ -618,5 +621,7 @@ export const barOrderItems = pgTable('bar_order_items', {
   priceCents: integer('price_cents').notNull(),
   qty: integer('qty').notNull().default(1),
   // how many of the qty were paid with a door coupon (and so cost nothing)
-  couponQty: integer('coupon_qty').notNull().default(0)
+  couponQty: integer('coupon_qty').notNull().default(0),
+  // coupons per unit at the time, so the count stays right if the menu changes
+  couponCost: integer('coupon_cost').notNull().default(1)
 })

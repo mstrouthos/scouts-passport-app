@@ -66,17 +66,25 @@ async function dragEnd() {
   if (near && near.category !== it.category) it.category = near.category
   await api('/menu/reorder', 'POST', { items: list.value.map(x => ({ id: x.id, category: x.category })) })
 }
-const mform = reactive({ category: '', name: '', price: '', couponOk: false })
+/* one form for a new item and for changing one — a sheet, not a chain of
+   prompts */
+const mform = reactive({ id: 0 as number, category: '', name: '', price: '', couponOk: false, couponCost: 1 })
+const mopen = ref(false)
 const cats = computed(() => [...new Set((data.value?.menu || []).map((m: any) => m.category))] as string[])
-async function addItem() {
-  if (!mform.name.trim()) return
-  await api('/menu', 'POST', { category: mform.category, name: mform.name, price: Number(String(mform.price).replace(',', '.')), couponOk: mform.couponOk })
-  mform.name = ''; mform.price = ''; mform.couponOk = false
+function openItem(m?: any) {
+  mform.id = m?.id || 0
+  mform.category = m?.category ?? (mform.category || cats.value[0] || '')
+  mform.name = m?.name || ''
+  mform.price = m ? (m.priceCents / 100).toFixed(2) : ''
+  mform.couponOk = m?.couponOk ?? false
+  mform.couponCost = m?.couponCost ?? 1
+  mopen.value = true
 }
-async function editItem(m: any) {
-  const name = prompt(t('name'), m.name); if (name === null) return
-  const price = prompt(t('barPrice'), (m.priceCents / 100).toFixed(2)); if (price === null) return
-  await api(`/menu/${m.id}`, 'PATCH', { name, price: Number(price.replace(',', '.')) })
+async function saveItem() {
+  if (!mform.name.trim()) return
+  const body = { category: mform.category, name: mform.name, price: Number(String(mform.price).replace(',', '.')), couponOk: mform.couponOk, couponCost: mform.couponCost }
+  const r = mform.id ? await api(`/menu/${mform.id}`, 'PATCH', body) : await api('/menu', 'POST', body)
+  if (r) mopen.value = false
 }
 async function removeItem(m: any) {
   if (!confirm(t('barRemoveItem', { name: m.name }))) return
@@ -177,26 +185,36 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
           <div v-if="i === 0 || list[i - 1].category !== m.category" class="hdr">{{ m.category || t('barMenu') }}</div>
           <div :ref="el => { if (el) rows[i] = el as HTMLElement }" class="it" :class="{ lift: dragging === m.id }" :style="m.isActive ? '' : 'opacity:.45'">
           <span v-if="canEdit" class="grip" @pointerdown="dragStart($event, i)">≡</span>
-          <div style="flex:1;min-width:0"><b>{{ m.name }}</b><span>{{ eur(m.priceCents) }}<template v-if="m.couponOk"> · 🎟 {{ t('barCouponOk') }}</template><template v-if="!m.isActive"> · {{ t('barHidden') }}</template></span></div>
+          <div style="flex:1;min-width:0"><b>{{ m.name }}</b><span>{{ eur(m.priceCents) }}<template v-if="m.couponOk"> · 🎟 {{ m.couponCost > 1 ? '×' + m.couponCost : t('barCouponOk') }}</template><template v-if="!m.isActive"> · {{ t('barHidden') }}</template></span></div>
           <template v-if="canEdit">
             <button class="chip" :class="{ on: m.couponOk }" :aria-label="t('barCouponOk')" @click="api(`/menu/${m.id}`, 'PATCH', { couponOk: !m.couponOk })">🎟</button>
-            <button class="chip ic" :aria-label="t('edit')" @click="editItem(m)"><NavIcon name="pencil" /></button>
+            <button class="chip ic" :aria-label="t('edit')" @click="openItem(m)"><NavIcon name="pencil" /></button>
             <button class="chip ic" :aria-label="m.isActive ? t('barHide') : t('barShow')" @click="api(`/menu/${m.id}`, 'PATCH', { isActive: !m.isActive })"><NavIcon :name="m.isActive ? 'eyeOff' : 'eye'" /></button>
             <button class="chip ic" :aria-label="t('delete')" @click="removeItem(m)"><NavIcon name="trash" /></button>
           </template>
           </div>
         </template>
       </div>
-      <div v-if="canEdit" class="card" style="display:flex;flex-direction:column;gap:8px">
-        <b style="font-size:13px">+ {{ t('barAddItem') }}</b>
-        <input v-model="mform.category" class="in" :placeholder="t('barCategory')" list="cats">
-        <datalist id="cats"><option v-for="c in cats" :key="c" :value="c" /></datalist>
-        <div style="display:flex;gap:8px">
-          <input v-model="mform.name" class="in" style="flex:1" :placeholder="t('name')">
-          <input v-model="mform.price" class="in" style="width:90px" inputmode="decimal" placeholder="€">
+      <button v-if="canEdit" class="btn" @click="openItem()">+ {{ t('barAddItem') }}</button>
+      <div v-if="mopen" class="sheet-backdrop" @click.self="mopen = false">
+        <div class="sheet">
+          <h3 style="margin:0;font-size:17px;text-align:center">{{ mform.id ? t('edit') : t('barAddItem') }}</h3>
+          <div><label class="lab">{{ t('name') }}</label><input v-model="mform.name" class="in" autofocus></div>
+          <div style="display:flex;gap:8px">
+            <div style="flex:1"><label class="lab">{{ t('barCategory') }}</label>
+              <input v-model="mform.category" class="in" list="cats" placeholder="Ποτά"><datalist id="cats"><option v-for="c in cats" :key="c" :value="c" /></datalist></div>
+            <div style="width:110px"><label class="lab">{{ t('barPrice') }}</label><input v-model="mform.price" class="in" inputmode="decimal" placeholder="0.00"></div>
+          </div>
+          <label class="tiny" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input v-model="mform.couponOk" type="checkbox"> 🎟 {{ t('barCouponOkLong') }}</label>
+          <div v-if="mform.couponOk" style="display:flex;align-items:center;gap:10px">
+            <span class="tiny muted" style="flex:1">{{ t('barCouponCost') }}</span>
+            <button class="chip" @click="mform.couponCost = Math.max(1, mform.couponCost - 1)">−</button>
+            <b style="min-width:24px;text-align:center">{{ mform.couponCost }}</b>
+            <button class="chip" @click="mform.couponCost = Math.min(20, mform.couponCost + 1)">+</button>
+          </div>
+          <button class="btn" :disabled="!mform.name.trim()" @click="saveItem">{{ t('save') }}</button>
+          <button class="btn ghost" @click="mopen = false">{{ t('close') }}</button>
         </div>
-        <label class="tiny muted" style="display:flex;align-items:center;gap:6px;cursor:pointer"><input v-model="mform.couponOk" type="checkbox"> 🎟 {{ t('barCouponOkLong') }}</label>
-        <button class="btn" :disabled="!mform.name.trim()" @click="addItem">{{ t('add') }}</button>
       </div>
       <div v-if="canEdit" class="card" style="display:flex;flex-direction:column;gap:8px">
         <b style="font-size:13px">📋 {{ t('barTemplates') }}</b>

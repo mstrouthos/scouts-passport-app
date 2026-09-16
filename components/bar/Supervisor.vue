@@ -33,7 +33,7 @@ const items = computed(() => {
       <div v-for="o in (tab === 'pending' ? pending : tab === 'unpaid' ? unpaid : done)" :key="o.id" class="order">
         <div class="hd"><span class="no">#{{ o.number }}</span><span class="tb">Τραπέζι {{ o.tableNo }}</span>
           <span class="meta">{{ o.waiterName }} → {{ o.bartenderName }}<br>{{ clock(o.createdAt) }}</span></div>
-        <div class="lines"><div v-for="i in o.items" :key="i.id"><b>{{ i.qty }}×</b>{{ i.name }}<span v-if="i.couponQty" class="cpn on">🎟 {{ i.couponQty }}</span></div></div>
+        <div class="lines"><div v-for="i in o.items" :key="i.id"><b>{{ i.qty }}×</b>{{ i.name }}<span v-if="i.couponQty" class="cpn on">🎟 {{ i.couponQty * (i.couponCost || 1) }}</span></div></div>
         <div class="tot"><span><span class="pill" :class="o.status">{{ statusLabel(o.status) }}</span> <span class="pill" :class="payClass(o)">{{ payLabel(o) }}</span></span><b>{{ eur(o.totalCents) }}</b></div>
       </div>
     </template>
