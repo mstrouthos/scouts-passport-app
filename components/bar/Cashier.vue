@@ -13,6 +13,9 @@ const pending = computed(() => live.value.filter(o => !o.paidAt && accepts.value
 const done = computed(() => live.value.filter(o => o.paidBy === props.me.id).slice().reverse())
 const sum = (xs: any[]) => xs.reduce((a, o) => a + o.totalCents, 0)
 const byKind = (k: string) => sum(live.value.filter(o => o.paidAt && o.paidMethod === k))
+// coupons are counted, not valued: how many pieces of paper came in
+const couponsOf = (o: any) => o.items.reduce((a: number, i: any) => a + i.couponQty * (i.couponCost || 1), 0)
+const couponsIn = (xs: any[]) => xs.reduce((a, o) => a + couponsOf(o), 0)
 
 /* card: pick the account, then confirm */
 const accounts = ref<any[]>(props.me.accounts || [])
@@ -39,8 +42,9 @@ async function addAccount() {
 <template>
   <main>
     <div class="card" style="flex-direction:row;justify-content:space-around;text-align:center;padding:10px">
-      <div v-for="k in accepts" :key="k"><b style="font-size:18px">{{ eur(byKind(k)) }}</b><br><span style="font-size:11px;opacity:.6">{{ KIND[k].toUpperCase() }}</span></div>
-      <div><b style="font-size:18px;color:#FF9A8B">{{ eur(sum(pending)) }}</b><br><span style="font-size:11px;opacity:.6">ΕΚΚΡΕΜΟΥΝ</span></div>
+      <div v-for="k in accepts" :key="k">
+        <b style="font-size:18px">{{ k === 'coupon' ? '🎟 ' + couponsIn(live.filter(o => o.paidAt)) : eur(byKind(k)) }}</b><br><span style="font-size:11px;opacity:.6">{{ KIND[k].toUpperCase() }}</span></div>
+      <div><b style="font-size:18px;color:#FF9A8B">{{ eur(sum(pending)) }}<template v-if="accepts.includes('coupon') && couponsIn(pending)"> · 🎟 {{ couponsIn(pending) }}</template></b><br><span style="font-size:11px;opacity:.6">ΕΚΚΡΕΜΟΥΝ</span></div>
     </div>
 
     <template v-if="tab === 'pending'">
@@ -49,7 +53,8 @@ async function addAccount() {
         <div class="hd"><span class="no">#{{ o.number }}</span><span class="tb">Τραπέζι {{ o.tableNo }}</span>
           <span class="meta">{{ o.waiterName }} · {{ clock(o.createdAt) }}<br><span class="pill" :class="o.status">{{ ({ new: 'Στο μπαρ', ready: 'Έτοιμη', delivered: 'Παραδόθηκε' } as any)[o.status] }}</span></span></div>
         <div class="lines"><div v-for="i in o.items" :key="i.id"><b>{{ i.qty }}×</b>{{ i.name }}<span v-if="i.couponQty" class="cpn on">🎟 {{ i.couponQty * (i.couponCost || 1) }}</span></div></div>
-        <div class="tot"><span class="pill" :class="payClass(o)">{{ KIND[o.paidMethod] }}</span><b style="font-size:20px">{{ eur(o.totalCents) }}</b></div>
+        <div class="tot"><span class="pill" :class="payClass(o)">{{ KIND[o.paidMethod] }}</span>
+          <b style="font-size:20px">{{ o.paidMethod === 'coupon' ? `🎟 ${couponsOf(o)}` : eur(o.totalCents) }}<template v-if="o.paidMethod !== 'coupon' && couponsOf(o)"> <span style="font-size:13px;opacity:.7">+ 🎟 {{ couponsOf(o) }}</span></template></b></div>
         <div v-if="o.paidMethod === 'card' && picking === o.id" class="chips" style="display:flex;flex-wrap:wrap;gap:6px">
           <button v-for="a in accounts" :key="a.id" class="btn sm" :class="chosen === a.id ? '' : 'ghost'" @click="chosen = a.id">🏦 {{ a.name }}</button>
         </div>
@@ -67,7 +72,7 @@ async function addAccount() {
       <div v-for="o in done" :key="o.id" class="order">
         <div class="hd"><span class="no">#{{ o.number }}</span><span class="tb">Τραπέζι {{ o.tableNo }}</span>
           <span class="meta">{{ clock(o.paidAt) }}<br><span class="pill paid">{{ payLabel(o) }}</span></span></div>
-        <div class="tot"><button class="btn ghost sm" @click="act(o.id, 'unpay')">Αναίρεση</button><b>{{ eur(o.totalCents) }}</b></div>
+        <div class="tot"><button class="btn ghost sm" @click="act(o.id, 'unpay')">Αναίρεση</button><b>{{ o.paidMethod === 'coupon' ? `🎟 ${couponsOf(o)}` : eur(o.totalCents) }}<template v-if="o.paidMethod !== 'coupon' && couponsOf(o)"> <span style="font-size:13px;opacity:.7">+ 🎟 {{ couponsOf(o) }}</span></template></b></div>
       </div>
     </template>
 
