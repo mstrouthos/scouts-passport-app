@@ -12,13 +12,15 @@ export default defineEventHandler(async (event) => {
   const ev = (await db.select().from(s.barEvents).where(eq(s.barEvents.id, id)))[0]
   const arrivals = await db.select().from(s.barArrivals).where(eq(s.barArrivals.eventId, id))
   const accountsAll = await db.select().from(s.barAccounts).where(eq(s.barAccounts.eventId, id))
-  const seats = parseLayout(ev?.layout ?? null)?.seats || {}
+  const lay = parseLayout(ev?.layout ?? null)
+  const seats = lay?.seats || {}, kidSeats = lay?.kidSeats || {}
   // the door: booked vs arrived per table, extras, and the ticket money apart from the bar's
   const doorTables = Array.from({ length: ev?.tableCount || 0 }, (_, i) => i + 1).map(no => {
-    const booked = seats[String(no)] || 0
-    const arrived = arrivals.filter(a => a.tableNo === no).reduce((s, a) => s + a.count, 0)
-    return { no, booked, arrived, extra: Math.max(0, arrived - booked) }
-  }).filter(t => t.booked || t.arrived)
+    const booked = seats[String(no)] || 0, kidsBooked = kidSeats[String(no)] || 0
+    const mine = arrivals.filter(a => a.tableNo === no)
+    const arrived = mine.reduce((s, a) => s + a.count, 0), kidsArrived = mine.reduce((s, a) => s + a.kids, 0)
+    return { no, booked, arrived, extra: Math.max(0, arrived - booked), kidsBooked, kidsArrived, kidsExtra: Math.max(0, kidsArrived - kidsBooked) }
+  }).filter(t => t.booked || t.arrived || t.kidsBooked || t.kidsArrived)
   const ticket = ev?.entranceCents || 0
   const doorCents = (xs: typeof arrivals) => xs.reduce((s, a) => s + a.count * ticket, 0)
   const door = {
@@ -26,6 +28,9 @@ export default defineEventHandler(async (event) => {
     booked: doorTables.reduce((s, t) => s + t.booked, 0),
     arrived: doorTables.reduce((s, t) => s + t.arrived, 0),
     extra: doorTables.reduce((s, t) => s + t.extra, 0),
+    kidsBooked: doorTables.reduce((s, t) => s + t.kidsBooked, 0),
+    kidsArrived: doorTables.reduce((s, t) => s + t.kidsArrived, 0),
+    kidsExtra: doorTables.reduce((s, t) => s + t.kidsExtra, 0),
     cents: doorCents(arrivals.filter(a => a.method === 'cash' || a.confirmedAt)),
     cashCents: doorCents(arrivals.filter(a => a.method === 'cash')),
     cardCents: doorCents(arrivals.filter(a => a.method === 'card' && a.confirmedAt)),

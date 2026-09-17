@@ -620,7 +620,9 @@ export const barArrivals = pgTable('bar_arrivals', {
   id: serial('id').primaryKey(),
   eventId: integer('event_id').notNull().references(() => barEvents.id),
   tableNo: integer('table_no').notNull(),
+  // paying adults; children come in free but are counted
   count: integer('count').notNull(),
+  kids: integer('kids').notNull().default(0),
   method: text('method', { enum: ['cash', 'card'] }).notNull(),
   accountId: integer('account_id'),
   cashierId: integer('cashier_id').references(() => barStaff.id),

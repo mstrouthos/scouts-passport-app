@@ -740,5 +740,7 @@
   "barDoor": "Είσοδος",
   "barPeople": "Άτομα",
   "barExtra": "Έξτρα",
-  "barBar": "Μπαρ"
+  "barBar": "Μπαρ",
+  "barAdults": "Ενήλικες",
+  "barKids": "Παιδιά"
 }

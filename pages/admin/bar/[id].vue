@@ -341,8 +341,9 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
       </div>
       <div class="sec-title">🎫 {{ t('barDoor') }}</div>
       <div class="stats">
-        <div class="stat"><b>{{ report.door.arrived }}<span style="font-size:12px;color:var(--muted)">/{{ report.door.booked }}</span></b><span>{{ t('barPeople') }}</span></div>
-        <div class="stat"><b>+{{ report.door.extra }}</b><span>{{ t('barExtra') }}</span></div>
+        <div class="stat"><b>{{ report.door.arrived }}<span style="font-size:12px;color:var(--muted)">/{{ report.door.booked }}</span></b><span>{{ t('barAdults') }}</span></div>
+        <div class="stat"><b>{{ report.door.kidsArrived }}<span style="font-size:12px;color:var(--muted)">/{{ report.door.kidsBooked }}</span></b><span>{{ t('barKids') }}</span></div>
+        <div class="stat"><b>+{{ report.door.extra }}<span v-if="report.door.kidsExtra" style="font-size:12px;color:var(--muted)"> · +{{ report.door.kidsExtra }} 👶</span></b><span>{{ t('barExtra') }}</span></div>
         <div class="stat"><b>{{ eur(report.door.ticketCents) }}</b><span>{{ t('barTicket') }}</span></div>
         <div class="stat"><b>{{ eur(report.door.cashCents) }}</b><span>{{ t('barCash') }}</span></div>
         <div class="stat"><b>{{ eur(report.door.cardCents) }}</b><span>{{ t('barCard') }}</span></div>
@@ -356,7 +357,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
       <div v-if="report.door.tables?.length" class="adm">
         <div class="hdr">🎫 {{ t('barByTable') }}</div>
         <div v-for="r in report.door.tables" :key="r.no" class="it">
-          <div style="flex:1"><b>{{ t('barTable') }} {{ r.no }}</b><span v-if="r.extra" style="color:var(--gold)">+{{ r.extra }} {{ t('barExtra').toLowerCase() }}</span></div><b>{{ r.arrived }}<span style="font-weight:400;color:var(--muted)">/{{ r.booked }}</span></b>
+          <div style="flex:1"><b>{{ t('barTable') }} {{ r.no }}</b><span><template v-if="r.kidsBooked || r.kidsArrived">👶 {{ r.kidsArrived }}/{{ r.kidsBooked }}</template><template v-if="r.extra"> · <span style="color:var(--gold)">+{{ r.extra }} {{ t('barExtra').toLowerCase() }}</span></template></span></div><b>{{ r.arrived }}<span style="font-weight:400;color:var(--muted)">/{{ r.booked }}</span></b>
         </div>
       </div>
       <div class="sec-title">🍻 {{ t('barBar') }}</div>

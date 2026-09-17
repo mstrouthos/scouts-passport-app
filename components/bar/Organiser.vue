@@ -5,6 +5,7 @@
 const props = defineProps<{ me: any }>()
 const layout = ref<any>(props.me.event.layout || { tables: [], marks: [], seats: {} })
 if (!layout.value.seats) layout.value.seats = {}
+if (!layout.value.kidSeats) layout.value.kidSeats = {}
 const tableCount = ref<number>(props.me.event.tableCount)
 const saved = ref('')
 let timer: any = null
@@ -17,15 +18,16 @@ async function save() {
     saved.value = 'Αποθηκεύτηκε ✓'; clearTimeout(timer); timer = setTimeout(() => { saved.value = '' }, 1500)
   } catch { saved.value = 'Δεν αποθηκεύτηκε' }
 }
-function onChange(l: any) { layout.value = { tables: l.tables.map((t: any) => ({ ...t })), marks: l.marks.map((m: any) => ({ ...m })), seats: layout.value.seats }; save() }
+function onChange(l: any) { layout.value = { tables: l.tables.map((t: any) => ({ ...t })), marks: l.marks.map((m: any) => ({ ...m })), seats: layout.value.seats, kidSeats: layout.value.kidSeats }; save() }
 // how many are booked at each table; saved a moment after the last tap
 let seatTimer: any = null
-function bumpSeats(no: number, by: number) {
-  const cur = layout.value.seats[String(no)] || 0
-  layout.value.seats = { ...layout.value.seats, [String(no)]: Math.max(0, Math.min(99, cur + by)) }
+function bumpSeats(no: number, by: number, kind: 'seats' | 'kidSeats' = 'seats') {
+  const cur = layout.value[kind][String(no)] || 0
+  layout.value[kind] = { ...layout.value[kind], [String(no)]: Math.max(0, Math.min(99, cur + by)) }
   clearTimeout(seatTimer); seatTimer = setTimeout(save, 600)
 }
 const totalSeats = computed(() => Object.values(layout.value.seats as Record<string, number>).reduce((a, b) => a + b, 0))
+const totalKids = computed(() => Object.values(layout.value.kidSeats as Record<string, number>).reduce((a, b) => a + b, 0))
 function toggleMark(label: string) {
   if (hasMark(label)) layout.value.marks = layout.value.marks.filter((m: any) => m.label !== label)
   // each new landmark lands a little further along the top, not on the last one
@@ -53,13 +55,18 @@ function bumpTables(by: number) {
     <div style="display:flex;flex-wrap:wrap;gap:8px">
       <button v-for="l in LANDMARKS" :key="l" class="btn sm" :class="hasMark(l) ? '' : 'ghost'" @click="toggleMark(l)">{{ hasMark(l) ? '✓ ' : '+ ' }}{{ l }}</button>
     </div>
-    <div class="cat">Άτομα ανά τραπέζι · {{ totalSeats }}</div>
-    <div v-for="no in tableCount" :key="no" class="item" style="min-height:44px">
+    <div class="cat">Άτομα ανά τραπέζι · {{ totalSeats }} ενήλικες · {{ totalKids }} παιδιά</div>
+    <div v-for="no in tableCount" :key="no" class="item" style="min-height:44px;flex-wrap:wrap">
       <div class="nm">Τραπέζι {{ no }}</div>
-      <div class="q">
+      <div class="q" style="gap:4px"><span style="font-size:11px;opacity:.6;margin-right:4px">👤</span>
         <button v-if="layout.seats[String(no)]" @click="bumpSeats(no, -1)">−</button>
         <b v-if="layout.seats[String(no)]">{{ layout.seats[String(no)] }}</b>
         <button class="plus" @click="bumpSeats(no, 1)">+</button>
+      </div>
+      <div class="q" style="gap:4px"><span style="font-size:11px;opacity:.6;margin-right:4px">👶</span>
+        <button v-if="layout.kidSeats[String(no)]" @click="bumpSeats(no, -1, 'kidSeats')">−</button>
+        <b v-if="layout.kidSeats[String(no)]">{{ layout.kidSeats[String(no)] }}</b>
+        <button class="plus" @click="bumpSeats(no, 1, 'kidSeats')">+</button>
       </div>
     </div>
     <div class="hint" style="text-align:left">Ό,τι αλλάζεις αποθηκεύεται αμέσως. Οι σερβιτόροι βλέπουν την κάτοψη όταν διαλέγουν τραπέζι.</div>

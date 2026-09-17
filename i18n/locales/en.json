@@ -740,5 +740,7 @@
   "barDoor": "Door",
   "barPeople": "People",
   "barExtra": "Extra",
-  "barBar": "Bar"
+  "barBar": "Bar",
+  "barAdults": "Adults",
+  "barKids": "Children"
 }
