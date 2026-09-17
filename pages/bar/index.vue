@@ -115,7 +115,7 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
 .barapp .top b{display:block;font-size:17px}
 .barapp .top span{font-size:12px;opacity:.75}
 .barapp .out{background:rgba(255,255,255,.1);border:0;color:#fff;padding:8px 12px;border-radius:999px;font:inherit;font-size:12px;font-weight:600}
-.barapp main{flex:1;padding:14px 14px calc(90px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
+.barapp main{flex:1;padding:14px 14px calc(90px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px}
 .barapp .signin{justify-content:center}
 .barapp .pushbar{display:flex;align-items:center;gap:10px;margin:12px 14px -4px;padding:10px 12px;border-radius:14px;background:rgba(240,180,41,.14);color:#F6D27A;font-size:13px;line-height:1.35}
 .barapp .pushbar span{flex:1}
@@ -136,14 +136,14 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
 .barapp .tabs button.on{background:rgba(255,255,255,.12);color:#fff}
 .barapp .tabs .n{position:absolute;top:4px;right:10px;background:#E25848;color:#fff;font-size:10px;font-weight:800;border-radius:999px;padding:1px 6px}
 .barapp .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.barapp .tbl{aspect-ratio:1;border:0;border-radius:14px;background:#1B2648;color:#fff;font:inherit;font-size:20px;font-weight:800}
+.barapp .tbl{aspect-ratio:1.5;border:0;border-radius:14px;background:#1B2648;color:#fff;font:inherit;font-size:20px;font-weight:800}
 .barapp .tbl.on{background:#F0B429;color:#2B1F05}
 .barapp .cat{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#F0B429;margin:6px 0 -4px}
-.barapp .item{display:flex;align-items:center;gap:10px;background:#1B2648;border-radius:14px;padding:10px 12px}
+.barapp .item{display:flex;align-items:center;gap:10px;background:#1B2648;border-radius:12px;padding:6px 12px;min-height:48px}
 .barapp .item .nm{flex:1;min-width:0;font-size:15px;font-weight:600}
 .barapp .item .pr{font-size:13px;opacity:.7;white-space:nowrap}
 .barapp .item .q{display:flex;align-items:center;gap:6px}
-.barapp .item .q button{width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.1);color:#fff;font-size:20px;font-weight:700}
+.barapp .item .q button{width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.1);color:#fff;font-size:20px;font-weight:700}
 .barapp .item .q button.plus{background:#F0B429;color:#2B1F05}
 .barapp .item .q b{min-width:22px;text-align:center;font-size:17px}
 .barapp .order{background:#1B2648;border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
