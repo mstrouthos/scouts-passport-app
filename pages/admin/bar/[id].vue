@@ -6,7 +6,7 @@ const { show } = useToast()
 const route = useRoute()
 const id = Number(route.params.id)
 const { data, refresh } = await useFetch<any>(`/api/admin/bar/events/${id}`)
-const tab = ref<'menu' | 'staff' | 'report' | 'orders'>('menu')
+const tab = ref<'menu' | 'staff' | 'report' | 'orders' | 'settings'>('menu')
 const canEdit = computed(() => data.value?.canEdit === true)
 const eur = (c: number) => (c / 100).toFixed(2).replace('.', ',') + ' €'
 const api = async (path: string, method: any, body?: any) => {
@@ -14,13 +14,10 @@ const api = async (path: string, method: any, body?: any) => {
   catch (e: any) { show(e?.data?.message || t('error')) }
 }
 
-/* settings */
-async function rename() {
-  const name = prompt(t('name'), data.value.name); if (name && name.trim()) await api('', 'PATCH', { name })
-}
-async function setTables() {
-  const n = prompt(t('barTables'), String(data.value.tableCount)); if (n) await api('', 'PATCH', { tableCount: Number(n) })
-}
+/* settings: the event's own fields, edited together */
+const eform = reactive({ name: '', eventDate: '', tableCount: 10 })
+watch(() => data.value, d => { if (d) { eform.name = d.name; eform.eventDate = d.eventDate || ''; eform.tableCount = d.tableCount } }, { immediate: true })
+async function saveEvent() { if (await api('', 'PATCH', { name: eform.name, eventDate: eform.eventDate || null, tableCount: eform.tableCount })) show('✅ ' + t('saved')) }
 async function toggleStatus() {
   const closing = data.value.status === 'open'
   if (closing && !confirm(t('barCloseConfirm'))) return
@@ -173,14 +170,15 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
 <template>
   <AppShell v-if="data" no-tabs :title="data.name" :sub="`${data.eventDate || ''} · ${data.tableCount} ${t('barTables').toLowerCase()} · ${data.status === 'open' ? t('barOpen') : t('barClosed')}`" back="/admin/bar">
     <template #actions>
-      <button v-if="canEdit" class="iconbtn" :aria-label="t('edit')" @click="rename">✎</button>
+      <button v-if="canEdit" class="iconbtn" :aria-label="t('edit')" @click="tab = 'settings'">✎</button>
     </template>
 
-    <div class="seg">
+    <div class="seg" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
       <button :class="{ on: tab === 'menu' }" @click="tab = 'menu'">{{ t('barMenu') }}</button>
       <button :class="{ on: tab === 'staff' }" @click="tab = 'staff'">{{ t('barCrew') }}</button>
       <button :class="{ on: tab === 'orders' }" @click="tab = 'orders'">{{ t('barOrdersTab') }}</button>
       <button :class="{ on: tab === 'report' }" @click="tab = 'report'">{{ t('barReport') }}</button>
+      <button :class="{ on: tab === 'settings' }" @click="tab = 'settings'">{{ t('settings') }}</button>
     </div>
 
     <!-- menu -->
@@ -281,6 +279,19 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
         </div>
         <button class="btn" :disabled="!sform.name.trim() || (sform.role === 'waiter' && !sform.bartenderId) || (sform.role === 'cashier' && !sform.accepts.length)" @click="addStaff">{{ t('add') }}</button>
       </div>
+    </template>
+
+    <!-- the event itself: what it is called, when, how many tables; the till's
+         accounts; closing it; wiping its orders -->
+    <template v-if="tab === 'settings'">
+      <div class="card" style="display:flex;flex-direction:column;gap:10px">
+        <div><label class="lab">{{ t('name') }}</label><input v-model="eform.name" class="in" :disabled="!canEdit"></div>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1"><label class="lab">{{ t('date') }}</label><input v-model="eform.eventDate" type="date" class="in" :disabled="!canEdit"></div>
+          <div style="width:110px"><label class="lab">🪑 {{ t('barTables') }}</label><input v-model.number="eform.tableCount" type="number" min="1" max="200" class="in" :disabled="!canEdit"></div>
+        </div>
+        <button v-if="canEdit" class="btn" :disabled="!eform.name.trim()" @click="saveEvent">{{ t('save') }}</button>
+      </div>
       <div class="adm">
         <div class="hdr">🏦 {{ t('barAccounts') }} · {{ data.accounts?.length || 0 }}</div>
         <div v-for="a in data.accounts" :key="a.id" class="it">
@@ -295,7 +306,6 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
       <button v-if="canEdit" class="btn" :class="data.status === 'open' ? 'danger' : ''" @click="toggleStatus">
         {{ data.status === 'open' ? '🔒 ' + t('barClose') : '🔓 ' + t('barReopen') }}
       </button>
-      <button v-if="canEdit" class="btn ghost" @click="setTables">🪑 {{ t('barTables') }}: {{ data.tableCount }}</button>
       <button v-if="canEdit" class="btn danger" @click="wipeOpen = true">🧹 {{ t('barWipe') }}</button>
       <div v-if="wipeOpen" class="sheet-backdrop" @click.self="wipeOpen = false">
         <div class="sheet">
@@ -384,6 +394,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
 </template>
 
 <style scoped>
+.seg button{white-space:nowrap;flex:none;padding-left:12px;padding-right:12px}
 .grip{flex:none;width:28px;text-align:center;font-size:20px;color:var(--muted);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
 .it.lift{background:var(--bg2);box-shadow:0 6px 18px rgba(0,0,0,.12);position:relative;z-index:1}
 .chip.ic{padding:6px 9px;display:inline-flex}
