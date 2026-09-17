@@ -13,7 +13,7 @@ const props = defineProps<{
 const emit = defineEmits<{ (e: 'pick', no: number): void; (e: 'change', layout: { tables: any[]; marks: any[] }): void }>()
 
 const box = ref<HTMLElement | null>(null)
-const tables = ref<Array<{ no: number; x: number; y: number }>>([])
+const tables = ref<Array<{ no: number; x: number; y: number; placed: boolean }>>([])
 const marks = ref<Array<{ id: string; label: string; x: number; y: number }>>([])
 watch(() => [props.layout, props.tableCount], () => {
   const known = new Map((props.layout?.tables || []).map(t => [t.no, t]))
@@ -21,7 +21,7 @@ watch(() => [props.layout, props.tableCount], () => {
     const no = i + 1
     const t = known.get(no)
     // parked, evenly, along the bottom until someone places it
-    return t ? { ...t } : { no, x: (i + 0.5) / props.tableCount, y: 0.92 }
+    return t ? { ...t, placed: true } : { no, x: (i + 0.5) / props.tableCount, y: 0.92, placed: false }
   })
   marks.value = (props.layout?.marks || []).map(m => ({ ...m }))
 }, { immediate: true, deep: true })
@@ -50,17 +50,27 @@ defineExpose({ tables, marks })
 </script>
 
 <template>
+  <div>
   <div ref="box" class="plan" :class="{ edit: editable }" @pointermove="move" @pointerup="up" @pointercancel="up">
     <div v-for="(m, i) in marks" :key="m.id" class="mark" :style="{ left: m.x * 100 + '%', top: m.y * 100 + '%' }"
          @pointerdown="down($event, 'mark', i)">{{ m.label }}</div>
-    <button v-for="(t, i) in tables" :key="t.no" class="tbl" :class="{ on: selected === t.no, owed: owed && owed[t.no] }"
+    <button v-for="(t, i) in tables.filter(t => editable || t.placed)" :key="t.no" class="tbl" :class="{ on: selected === t.no, owed: owed && owed[t.no] }"
             :style="{ left: t.x * 100 + '%', top: t.y * 100 + '%' }"
-            @pointerdown="down($event, 'table', i)" @click="tap(t.no)">{{ t.no }}</button>
+            @pointerdown="down($event, 'table', tables.indexOf(t))" @click="tap(t.no)">{{ t.no }}</button>
+  </div>
+  <!-- tables the organiser has not placed yet: still pickable, in a row below -->
+  <div v-if="!editable && tables.some(t => !t.placed)" class="unplaced">
+    <button v-for="t in tables.filter(t => !t.placed)" :key="t.no" class="tbl flat" :class="{ on: selected === t.no }" @click="tap(t.no)">{{ t.no }}</button>
+  </div>
   </div>
 </template>
 
 <style scoped>
-.plan{position:relative;width:100%;aspect-ratio:3/4;background:#141E3C;border-radius:16px;border:1.5px solid #2C3A66;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.plan{position:relative;width:100%;aspect-ratio:3/4;background:#141E3C;border-radius:16px;border:1.5px solid #2C3A66;overflow:hidden;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+/* dragging needs the touches; a waiter only taps, so the page still scrolls */
+.plan.edit{touch-action:none}
+.unplaced{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tbl.flat{position:static;transform:none;width:40px;height:40px;box-shadow:none}
 .plan::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:10% 10%}
 .tbl{position:absolute;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;border:2px solid #2C3A66;background:#1B2648;color:#fff;font:inherit;font-size:17px;font-weight:800;display:grid;place-items:center;padding:0;box-shadow:0 4px 12px rgba(0,0,0,.35)}
 .tbl.on{background:#F0B429;color:#2B1F05;border-color:#F0B429}
