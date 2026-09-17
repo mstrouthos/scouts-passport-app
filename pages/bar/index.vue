@@ -179,6 +179,8 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
 .barapp .tabs .n{position:absolute;top:4px;right:10px;background:#E25848;color:#fff;font-size:10px;font-weight:800;border-radius:999px;padding:1px 6px}
 .barapp .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 .barapp .tbl{aspect-ratio:1.5;border:0;border-radius:14px;background:#1B2648;color:#fff;font:inherit;font-size:20px;font-weight:800}
+.barapp .tcp{position:absolute;right:-4px;top:-6px;font-size:10px;font-weight:800;background:#F0B429;color:#2B1F05;border-radius:999px;padding:1px 5px;line-height:1.3}
+.barapp .tbl.on .tcp{background:#2B1F05;color:#F0B429}
 .barapp .tbl.on{background:#F0B429;color:#2B1F05}
 .barapp .cat{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#F0B429;margin:6px 0 -4px}
 .barapp .item{display:flex;align-items:center;gap:10px;background:#1B2648;border-radius:12px;padding:6px 12px;min-height:48px}

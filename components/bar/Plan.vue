@@ -9,6 +9,7 @@ const props = defineProps<{
   editable?: boolean
   selected?: number | null
   owed?: Record<number, number>
+  coupons?: Record<number, { issued: number; left: number }>
 }>()
 const emit = defineEmits<{ (e: 'pick', no: number): void; (e: 'change', layout: { tables: any[]; marks: any[] }): void }>()
 
@@ -56,11 +57,11 @@ defineExpose({ tables, marks })
          @pointerdown="down($event, 'mark', i)">{{ m.label }}</div>
     <button v-for="(t, i) in tables.filter(t => editable || t.placed)" :key="t.no" class="tbl" :class="{ on: selected === t.no, owed: owed && owed[t.no] }"
             :style="{ left: t.x * 100 + '%', top: t.y * 100 + '%' }"
-            @pointerdown="down($event, 'table', tables.indexOf(t))" @click="tap(t.no)">{{ t.no }}</button>
+            @pointerdown="down($event, 'table', tables.indexOf(t))" @click="tap(t.no)">{{ t.no }}<span v-if="coupons?.[t.no]?.issued" class="tcp">🎟{{ Math.max(0, coupons[t.no].left) }}</span></button>
   </div>
   <!-- tables the organiser has not placed yet: still pickable, in a row below -->
   <div v-if="!editable && tables.some(t => !t.placed)" class="unplaced">
-    <button v-for="t in tables.filter(t => !t.placed)" :key="t.no" class="tbl flat" :class="{ on: selected === t.no }" @click="tap(t.no)">{{ t.no }}</button>
+    <button v-for="t in tables.filter(t => !t.placed)" :key="t.no" class="tbl flat" :class="{ on: selected === t.no }" style="position:relative" @click="tap(t.no)">{{ t.no }}<span v-if="coupons?.[t.no]?.issued" class="tcp">🎟{{ Math.max(0, coupons[t.no].left) }}</span></button>
   </div>
   </div>
 </template>
@@ -77,4 +78,6 @@ defineExpose({ tables, marks })
 .tbl.owed{border-color:#FF9A8B}
 .edit .tbl,.edit .mark{cursor:grab}
 .mark{position:absolute;transform:translate(-50%,-50%);padding:5px 10px;border-radius:8px;background:rgba(240,180,41,.18);color:#F0B429;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.tcp{position:absolute;right:-6px;top:-8px;font-size:10px;font-weight:800;background:#F0B429;color:#2B1F05;border-radius:999px;padding:1px 5px;line-height:1.3}
+.tbl.on .tcp{background:#2B1F05;color:#F0B429}
 </style>

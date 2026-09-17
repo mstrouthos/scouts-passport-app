@@ -74,9 +74,9 @@ const readyCount = computed(() => orders.value.filter(o => o.status === 'ready')
           <button :class="{ on: !showPlan }" style="padding:4px 10px;font-size:11.5px" @click="showPlan = false">Αριθμοί</button>
         </span>
       </div>
-      <BarPlan v-if="hasPlan && showPlan" :table-count="me.event.tableCount" :layout="me.event.layout" :selected="table" @pick="table = table === $event ? null : $event" />
+      <BarPlan v-if="hasPlan && showPlan" :table-count="me.event.tableCount" :layout="me.event.layout" :selected="table" :coupons="balances" @pick="table = table === $event ? null : $event" />
       <div v-else class="grid">
-        <button v-for="n in me.event.tableCount" :key="n" class="tbl" :class="{ on: table === n }" @click="table = table === n ? null : n">{{ n }}</button>
+        <button v-for="n in me.event.tableCount" :key="n" class="tbl" :class="{ on: table === n }" style="position:relative" @click="table = table === n ? null : n">{{ n }}<span v-if="balances[n]?.issued" class="tcp">🎟{{ Math.max(0, balances[n].left) }}</span></button>
       </div>
       <template v-for="[cat, items] in menu" :key="cat">
         <div class="cat">{{ cat || 'Μενού' }}</div>
