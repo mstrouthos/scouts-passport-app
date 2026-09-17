@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
   const row = (await db.select().from(s.barArrivals).where(eq(s.barArrivals.id, id)))[0]
   if (!row || row.eventId !== me.eventId) throw createError({ statusCode: 404, message: 'Not found' })
   if (row.cashierId !== me.id) throw createError({ statusCode: 403, message: 'Not yours to undo' })
+  if (row.confirmedAt && row.confirmedBy !== me.id) throw createError({ statusCode: 409, message: 'Επιβεβαιώθηκε ήδη από το ταμείο καρτών' })
   await db.delete(s.barArrivals).where(eq(s.barArrivals.id, id))
   return { ok: true }
 })

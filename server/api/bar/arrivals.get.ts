@@ -12,6 +12,7 @@ export default defineEventHandler(async (event) => {
   return rows.map(r => ({
     ...r,
     cashierName: staff.find(x => x.id === r.cashierId)?.name ?? null,
+    confirmedName: staff.find(x => x.id === r.confirmedBy)?.name ?? null,
     accountName: accounts.find(a => a.id === r.accountId)?.name ?? null
   }))
 })

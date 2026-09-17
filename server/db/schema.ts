@@ -624,6 +624,9 @@ export const barArrivals = pgTable('bar_arrivals', {
   method: text('method', { enum: ['cash', 'card'] }).notNull(),
   accountId: integer('account_id'),
   cashierId: integer('cashier_id').references(() => barStaff.id),
+  // a card taken at the door by someone without the machine waits for the card cashier
+  confirmedAt: text('confirmed_at'),
+  confirmedBy: integer('confirmed_by'),
   createdAt: text('created_at').notNull()
 })
 export const barOrderItems = pgTable('bar_order_items', {

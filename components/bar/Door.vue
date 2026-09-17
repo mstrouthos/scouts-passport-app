@@ -25,20 +25,31 @@ const totals = computed(() => ({
   arrived: shown.value.reduce((s, t) => s + t.arrived, 0),
   extra: shown.value.reduce((s, t) => s + t.extra, 0),
   cash: arrivals.value.filter(a => a.method === 'cash').reduce((s, a) => s + a.count, 0) * ticket.value,
-  card: arrivals.value.filter(a => a.method === 'card').reduce((s, a) => s + a.count, 0) * ticket.value
+  card: arrivals.value.filter(a => a.method === 'card' && a.confirmedAt).reduce((s, a) => s + a.count, 0) * ticket.value,
+  cardPending: arrivals.value.filter(a => a.method === 'card' && !a.confirmedAt).reduce((s, a) => s + a.count, 0) * ticket.value
 }))
 
 /* letting a party in */
 const accepts = computed<string[]>(() => props.me.accepts || [])
+// anyone at the door can write down a card; only the machine's holder confirms it
+const takesCard = computed(() => accepts.value.includes('card'))
+const takesCash = computed(() => accepts.value.includes('cash'))
+const pendingCards = computed(() => arrivals.value.filter(a => a.method === 'card' && !a.confirmedAt))
+const confirming = ref<number | null>(null)
+async function confirmCard(a: any) {
+  if (!accountId.value) return say('Διάλεξε λογαριασμό')
+  try { await $fetch(`/api/bar/arrivals/${a.id}/confirm`, { method: 'POST', body: { accountId: accountId.value } }); confirming.value = null; await refresh() }
+  catch (e: any) { say(e?.data?.message || 'Κάτι πήγε στραβά') }
+}
 const open = ref<number | null>(null)
 const count = ref(1)
-const method = ref<'cash' | 'card'>(accepts.value.includes('cash') ? 'cash' : 'card')
+const method = ref<'cash' | 'card'>(takesCash.value ? 'cash' : 'card')
 const accountId = ref<number | null>(props.me.accounts?.[0]?.id ?? null)
 function start(no: number, remaining: number) { open.value = no; count.value = Math.max(1, remaining) }
 async function admit() {
   try {
-    await $fetch('/api/bar/arrivals', { method: 'POST', body: { tableNo: open.value, count: count.value, method: method.value, accountId: method.value === 'card' ? accountId.value : undefined } })
-    say(`Μπήκαν ${count.value} · Τραπέζι ${open.value}`); open.value = null; await refresh()
+    const r = await $fetch<any>('/api/bar/arrivals', { method: 'POST', body: { tableNo: open.value, count: count.value, method: method.value, accountId: method.value === 'card' && takesCard.value ? accountId.value : undefined } })
+    say(r.pending ? `Μπήκαν ${count.value} · η κάρτα περιμένει το ταμείο καρτών` : `Μπήκαν ${count.value} · Τραπέζι ${open.value}`); open.value = null; await refresh()
   } catch (e: any) { say(e?.data?.message || 'Κάτι πήγε στραβά') }
 }
 async function undo(a: any) {
@@ -56,7 +67,23 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
       <div v-if="ticket"><b style="font-size:18px">{{ eur(totals.cash + totals.card) }}</b><br><span style="font-size:11px;opacity:.6">ΕΙΣΟΔΟΣ</span></div>
       <div v-if="ticket && accepts.includes('cash')"><b style="font-size:16px">{{ eur(totals.cash) }}</b><br><span style="font-size:11px;opacity:.6">ΜΕΤΡΗΤΑ</span></div>
       <div v-if="ticket && accepts.includes('card')"><b style="font-size:16px">{{ eur(totals.card) }}</b><br><span style="font-size:11px;opacity:.6">ΚΑΡΤΑ</span></div>
+      <div v-if="ticket && totals.cardPending"><b style="font-size:16px;color:#B7C2FF">{{ eur(totals.cardPending) }}</b><br><span style="font-size:11px;opacity:.6">ΚΑΡΤΑ · ΑΝΑΜΟΝΗ</span></div>
     </div>
+
+    <!-- door cards written down by a cashier without the machine -->
+    <template v-if="canAdmit && takesCard && pendingCards.length">
+      <div class="cat">Κάρτες προς επιβεβαίωση · {{ pendingCards.length }}</div>
+      <div v-for="a in pendingCards" :key="a.id" class="order" style="gap:6px">
+        <div class="hd"><span class="tb">Τραπέζι {{ a.tableNo }}</span><span class="meta">{{ a.count }} άτομα · {{ a.cashierName }} · {{ clock(a.createdAt) }}</span></div>
+        <div v-if="confirming === a.id" style="display:flex;flex-wrap:wrap;gap:6px">
+          <button v-for="acc in me.accounts" :key="acc.id" class="btn sm" :class="accountId === acc.id ? '' : 'ghost'" @click="accountId = acc.id">🏦 {{ acc.name }}</button>
+        </div>
+        <div class="acts">
+          <button class="btn ok" @click="confirming === a.id ? confirmCard(a) : (confirming = a.id)">{{ confirming === a.id ? 'Η κάρτα πέρασε ✓' : `Η κάρτα πέρασε… · ${eur(a.count * ticket)}` }}</button>
+          <button v-if="confirming === a.id" class="btn ghost sm" @click="confirming = null">✕</button>
+        </div>
+      </div>
+    </template>
     <div v-if="!ticket" class="hint" style="text-align:left">Η τιμή εισόδου δεν έχει οριστεί — τα άτομα μετριούνται, τα χρήματα όχι.</div>
 
     <div v-if="!shown.length" class="empty">Κανένα τραπέζι με κράτηση ακόμη.</div>
@@ -68,7 +95,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
         </span></div>
       <div v-if="t.entries.length" style="display:flex;flex-direction:column;gap:2px;font-size:12px;opacity:.75">
         <div v-for="a in t.entries" :key="a.id" style="display:flex;gap:8px;align-items:center">
-          <span>{{ clock(a.createdAt) }}</span><span style="flex:1">{{ a.count }} άτομα · {{ KIND[a.method] }}<template v-if="a.accountName"> · {{ a.accountName }}</template> · {{ a.cashierName }}</span>
+          <span>{{ clock(a.createdAt) }}</span><span style="flex:1">{{ a.count }} άτομα · {{ KIND[a.method] }}<template v-if="a.accountName"> · {{ a.accountName }}</template> · {{ a.cashierName }}<span v-if="a.method === 'card' && !a.confirmedAt" class="pill pending" style="margin-left:6px">αναμονή</span></span>
           <button v-if="canAdmit && a.cashierId === me.id" class="btn ghost sm" style="padding:3px 8px;font-size:11px" @click="undo(a)">✕</button>
         </div>
       </div>
@@ -80,16 +107,17 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
               <button class="btn ghost sm" @click="count = Math.max(1, count - 1)">−</button><b style="font-size:20px;min-width:28px;text-align:center">{{ count }}</b><button class="btn sm" @click="count = Math.min(99, count + 1)">+</button>
             </div>
           </div>
-          <div v-if="accepts.length > 1" class="seg2" style="margin:0">
-            <button v-if="accepts.includes('cash')" :class="{ on: method === 'cash' }" @click="method = 'cash'">💶 Μετρητά</button>
-            <button v-if="accepts.includes('card')" :class="{ on: method === 'card' }" @click="method = 'card'">💳 Κάρτα</button>
+          <div v-if="takesCash" class="seg2" style="margin:0">
+            <button :class="{ on: method === 'cash' }" @click="method = 'cash'">💶 Μετρητά</button>
+            <button :class="{ on: method === 'card' }" @click="method = 'card'">💳 Κάρτα</button>
           </div>
-          <div v-if="method === 'card'" style="display:flex;flex-wrap:wrap;gap:6px">
+          <div v-if="method === 'card' && takesCard" style="display:flex;flex-wrap:wrap;gap:6px">
             <button v-for="a in me.accounts" :key="a.id" class="btn sm" :class="accountId === a.id ? '' : 'ghost'" @click="accountId = a.id">🏦 {{ a.name }}</button>
             <span v-if="!me.accounts?.length" class="hint">Πρόσθεσε λογαριασμό στις Ρυθμίσεις</span>
           </div>
+          <div v-else-if="method === 'card'" class="hint" style="text-align:left">Η κάρτα θα επιβεβαιωθεί από το ταμείο καρτών.</div>
           <div class="acts">
-            <button class="btn ok" :disabled="method === 'card' && !accountId" @click="admit">Μπήκαν {{ count }}{{ ticket ? ' · ' + eur(count * ticket) : '' }} ✓</button>
+            <button class="btn ok" :disabled="method === 'card' && takesCard && !accountId" @click="admit">Μπήκαν {{ count }}{{ ticket ? ' · ' + eur(count * ticket) : '' }} ✓</button>
             <button class="btn ghost sm" @click="open = null">✕</button>
           </div>
         </div>

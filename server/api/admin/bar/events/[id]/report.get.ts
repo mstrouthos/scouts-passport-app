@@ -26,9 +26,10 @@ export default defineEventHandler(async (event) => {
     booked: doorTables.reduce((s, t) => s + t.booked, 0),
     arrived: doorTables.reduce((s, t) => s + t.arrived, 0),
     extra: doorTables.reduce((s, t) => s + t.extra, 0),
-    cents: doorCents(arrivals),
+    cents: doorCents(arrivals.filter(a => a.method === 'cash' || a.confirmedAt)),
     cashCents: doorCents(arrivals.filter(a => a.method === 'cash')),
-    cardCents: doorCents(arrivals.filter(a => a.method === 'card')),
+    cardCents: doorCents(arrivals.filter(a => a.method === 'card' && a.confirmedAt)),
+    cardPendingCents: doorCents(arrivals.filter(a => a.method === 'card' && !a.confirmedAt)),
     accounts: accountsAll.map(a => ({ label: a.name, people: arrivals.filter(x => x.accountId === a.id).reduce((s, x) => s + x.count, 0), cents: doorCents(arrivals.filter(x => x.accountId === a.id)) })).filter(a => a.people),
     tables: doorTables
   }

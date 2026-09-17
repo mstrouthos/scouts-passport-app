@@ -424,6 +424,7 @@ CREATE TABLE IF NOT EXISTS bar_arrivals (
   method TEXT NOT NULL,
   account_id INTEGER,
   cashier_id INTEGER REFERENCES bar_staff(id),
+  confirmed_at TEXT, confirmed_by INTEGER,
   created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS bar_order_items (
@@ -490,5 +491,7 @@ export const MIGRATIONS = [
   "ALTER TABLE bar_menu_items ADD COLUMN IF NOT EXISTS coupon_cost INTEGER NOT NULL DEFAULT 1",
   "ALTER TABLE bar_menu_template_items ADD COLUMN IF NOT EXISTS coupon_cost INTEGER NOT NULL DEFAULT 1",
   "ALTER TABLE bar_order_items ADD COLUMN IF NOT EXISTS coupon_cost INTEGER NOT NULL DEFAULT 1",
-  "ALTER TABLE bar_events ADD COLUMN IF NOT EXISTS entrance_cents INTEGER NOT NULL DEFAULT 0"
+  "ALTER TABLE bar_events ADD COLUMN IF NOT EXISTS entrance_cents INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE bar_arrivals ADD COLUMN IF NOT EXISTS confirmed_at TEXT",
+  "ALTER TABLE bar_arrivals ADD COLUMN IF NOT EXISTS confirmed_by INTEGER"
 ]
