@@ -33,7 +33,21 @@ onMounted(load)
    installed to the home screen, which the hint says. */
 const cfg = useRuntimeConfig()
 const push = ref<'ask' | 'on' | 'no' | 'busy'>('ask')
-onMounted(() => { try { if (localStorage.getItem('barPushOn')) push.value = 'on' } catch {} })
+const { resync: resyncPush, test: testPush } = usePushResync()
+// "on" means the browser says so, not a flag we set once: a subscription that
+// died is re-made on load, and a permission revoked shows the bar again
+watch(me, async (v) => {
+  if (!v) return
+  if ('Notification' in window && Notification.permission === 'granted') { push.value = (await resyncPush(true)) ? 'on' : 'no' }
+  else if ('Notification' in window && Notification.permission === 'denied') push.value = 'no'
+})
+const testing = ref('')
+async function tryPush() {
+  testing.value = '…'
+  try { const r = await testPush(); testing.value = r.sent ? 'Στάλθηκε — κοίτα το κινητό σου' : 'Δεν έφυγε — δες τις ρυθμίσεις της συσκευής' }
+  catch (e: any) { testing.value = e?.data?.message || e?.message || 'Δεν έφυγε' }
+  setTimeout(() => { testing.value = '' }, 4000)
+}
 function b64ToU8(base64: string) {
   const pad = '='.repeat((4 - base64.length % 4) % 4)
   const raw = atob((base64 + pad).replace(/-/g, '+').replace(/_/g, '/'))
@@ -48,7 +62,6 @@ async function enablePush() {
     const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(cfg.public.vapidPublicKey) })
     await $fetch('/api/bar/subscribe', { method: 'POST', body: sub.toJSON() })
     push.value = 'on'
-    try { localStorage.setItem('barPushOn', '1') } catch {}
   } catch { push.value = 'no' }
 }
 const wantsPush = computed(() => me.value && ['waiter', 'bartender', 'cashier'].includes(me.value.role))
@@ -75,8 +88,12 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
         <p class="hint">Τον εξαψήφιο κωδικό σου τον δίνει ο υπεύθυνος της βραδιάς.</p>
       </div>
     </main>
-    <div v-if="wantsPush && push !== 'on'" class="pushbar">
-      <template v-if="push === 'no'">Χωρίς ειδοποιήσεις σε αυτή τη συσκευή — κοίτα την οθόνη. Σε iPhone: πρόσθεσε τη σελίδα στην αρχική οθόνη και ξαναδοκίμασε.</template>
+    <div v-if="wantsPush && push === 'on'" class="pushbar" style="background:rgba(47,163,107,.12);color:#7BE0AC">
+      <span>🔔 Ειδοποιήσεις ενεργές{{ testing ? ' · ' + testing : '' }}</span>
+      <button class="btn ghost sm" @click="tryPush">Δοκιμή</button>
+    </div>
+    <div v-else-if="wantsPush" class="pushbar">
+      <template v-if="push === 'no'">Χωρίς ειδοποιήσεις σε αυτή τη συσκευή — κοίτα την οθόνη. iPhone: πρόσθεσε τη σελίδα στην αρχική οθόνη και άνοιξέ την από εκεί. Android/Samsung: Ρυθμίσεις → Εφαρμογές → ο browser → Ειδοποιήσεις, και βγάλε τον browser από την εξοικονόμηση μπαταρίας.</template>
       <template v-else>
         <span>🔔 Να χτυπάει το κινητό {{ me.role === 'waiter' ? 'όταν είναι έτοιμη μια παραγγελία σου;' : me.role === 'cashier' ? 'όταν υπάρχει παραγγελία προς πληρωμή;' : 'όταν έρχεται παραγγελία;' }}</span>
         <button class="btn sm" :disabled="push === 'busy'" @click="enablePush">Ναι</button>
@@ -156,6 +173,11 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
 .barapp .seg2 button.on{background:#fff;color:#0F1730}
 .barapp .empty{text-align:center;opacity:.55;padding:30px 0;font-size:14px}
 .barapp main.with-sum{padding-bottom:calc(200px + env(safe-area-inset-bottom))}
-.barapp .sum{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));padding:10px 14px;background:linear-gradient(transparent,#0F1730 40%);z-index:4}
+/* the send panel is its own thing — pale, opaque, unmistakable against the dark list */
+.barapp .sum{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));padding:12px 14px 10px;background:#F4F6FB;color:#0F1730;border-radius:18px 18px 0 0;box-shadow:0 -8px 28px rgba(0,0,0,.45);z-index:4}
+.barapp .sum .seg2{background:#E1E6F0}
+.barapp .sum .seg2 button{color:#4A5670}
+.barapp .sum .seg2 button.on{background:#0F1730;color:#fff}
+.barapp .sum .btn{box-shadow:0 6px 16px rgba(240,180,41,.35)}
 .barapp .toast{position:fixed;left:50%;bottom:calc(120px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#fff;color:#0F1730;font-weight:700;padding:10px 16px;border-radius:999px;z-index:9;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 </style>

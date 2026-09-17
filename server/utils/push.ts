@@ -17,6 +17,9 @@ function ensureConfigured(): boolean {
   return configured
 }
 
+/** Exposed for the test push, which targets one known row. */
+export const deliverTo = (subs: Array<typeof s.pushSubscriptions.$inferSelect>, payload: string) => deliver(subs, payload)
+
 async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, payload: string): Promise<number> {
   // say why nothing went out: a silent zero here is indistinguishable from
   // "nobody was subscribed", which is what made a broken push hard to see

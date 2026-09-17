@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { resync: resyncPush } = usePushResync()
+onMounted(() => { resyncPush() })
 const props = defineProps<{ title: string, sub?: string, back?: string | boolean, noTabs?: boolean }>()
 const me = useMe()
 const route = useRoute()

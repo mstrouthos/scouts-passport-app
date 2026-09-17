@@ -9,6 +9,8 @@ const lx = useLx()
 const cfg = useRuntimeConfig()
 
 const me = ref<any>(null)
+const { resync: resyncPush } = usePushResync()
+watch(me, v => { if (v) resyncPush() })
 const posts = ref<any[]>([])
 const events = ref<any[]>([])
 const code = ref('')

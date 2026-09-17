@@ -11,6 +11,14 @@ self.addEventListener('push', (event) => {
     data: { url: data.url || '/' }
   }))
 })
+/* Android replaces subscriptions now and then; re-create ours and tell the
+   server, using the same key, so nobody has to switch anything back on. */
+self.addEventListener('pushsubscriptionchange', (event) => {
+  const key = event.oldSubscription && event.oldSubscription.options && event.oldSubscription.options.applicationServerKey
+  event.waitUntil(self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key })
+    .then((sub) => fetch('/api/push/resync', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(sub.toJSON()) }))
+    .catch(() => {}))
+})
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const url = (event.notification.data && event.notification.data.url) || '/'
