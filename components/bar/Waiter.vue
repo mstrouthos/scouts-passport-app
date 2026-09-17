@@ -68,15 +68,20 @@ const readyCount = computed(() => orders.value.filter(o => o.status === 'ready')
 <template>
   <main :class="{ 'with-sum': tab === 'new' && lines.length }">
     <template v-if="tab === 'new'">
-      <div class="cat" style="display:flex;align-items:center;justify-content:space-between">Τραπέζι<span v-if="table" class="cpn" :class="{ on: couponsLeft > 0 }" style="margin-left:8px;cursor:default">🎟 {{ bal?.issued ? `${couponsLeft} διαθέσιμ${couponsLeft === 1 ? 'ο' : 'α'}` : 'κανείς ακόμη' }}</span>
+      <div class="cat" style="display:flex;align-items:center;justify-content:space-between">Τραπέζι
         <span v-if="hasPlan" class="seg2" style="margin:0;padding:3px">
           <button :class="{ on: showPlan }" style="padding:4px 10px;font-size:11.5px" @click="showPlan = true">Κάτοψη</button>
           <button :class="{ on: !showPlan }" style="padding:4px 10px;font-size:11.5px" @click="showPlan = false">Αριθμοί</button>
         </span>
       </div>
-      <BarPlan v-if="hasPlan && showPlan" :table-count="me.event.tableCount" :layout="me.event.layout" :selected="table" :coupons="balances" @pick="table = table === $event ? null : $event" />
+      <BarPlan v-if="hasPlan && showPlan" :table-count="me.event.tableCount" :layout="me.event.layout" :selected="table" @pick="table = table === $event ? null : $event" />
       <div v-else class="grid">
-        <button v-for="n in me.event.tableCount" :key="n" class="tbl" :class="{ on: table === n }" style="position:relative" @click="table = table === n ? null : n">{{ n }}<span v-if="balances[n]?.issued" class="tcp">🎟{{ Math.max(0, balances[n].left) }}</span></button>
+        <button v-for="n in me.event.tableCount" :key="n" class="tbl" :class="{ on: table === n }" @click="table = table === n ? null : n">{{ n }}</button>
+      </div>
+      <div v-if="table" class="tsel">
+        <b>Τραπέζι {{ table }}</b>
+        <span v-if="bal?.issued" :class="couponsLeft ? 'ok' : 'none'">🎟 {{ couponsLeft }} κουπόνι{{ couponsLeft === 1 ? '' : 'α' }} διαθέσιμ{{ couponsLeft === 1 ? 'ο' : 'α' }}<span style="opacity:.6"> · {{ bal.used }}/{{ bal.issued }} χρησιμοποιημένα</span></span>
+        <span v-else class="none">🎟 δεν έχει μπει κανείς ακόμη — χωρίς κουπόνια</span>
       </div>
       <template v-for="[cat, items] in menu" :key="cat">
         <div class="cat">{{ cat || 'Μενού' }}</div>
