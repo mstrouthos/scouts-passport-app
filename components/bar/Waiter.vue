@@ -48,7 +48,7 @@ const readyCount = computed(() => orders.value.filter(o => o.status === 'ready')
 </script>
 
 <template>
-  <main>
+  <main :class="{ 'with-sum': tab === 'new' && lines.length }">
     <template v-if="tab === 'new'">
       <div class="cat" style="display:flex;align-items:center">Τραπέζι<span v-if="hasPlan" class="cpn" :class="{ on: showPlan }" @click="showPlan = !showPlan">{{ showPlan ? 'κάτοψη' : 'αριθμοί' }}</span></div>
       <BarPlan v-if="hasPlan && showPlan" :table-count="me.event.tableCount" :layout="me.event.layout" :selected="table" @pick="table = table === $event ? null : $event" />

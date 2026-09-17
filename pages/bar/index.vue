@@ -155,6 +155,7 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
 .barapp .seg2 button{flex:1;border:0;background:none;color:rgba(255,255,255,.6);font:inherit;font-size:14px;font-weight:700;padding:10px;border-radius:9px}
 .barapp .seg2 button.on{background:#fff;color:#0F1730}
 .barapp .empty{text-align:center;opacity:.55;padding:30px 0;font-size:14px}
+.barapp main.with-sum{padding-bottom:calc(200px + env(safe-area-inset-bottom))}
 .barapp .sum{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom));padding:10px 14px;background:linear-gradient(transparent,#0F1730 40%);z-index:4}
 .barapp .toast{position:fixed;left:50%;bottom:calc(120px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#fff;color:#0F1730;font-weight:700;padding:10px 16px;border-radius:999px;z-index:9;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 </style>
