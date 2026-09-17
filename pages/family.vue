@@ -91,6 +91,7 @@ async function load() {
   }
   offline.value = false
   try { localStorage.setItem('family-cache', JSON.stringify(me.value)) } catch {}
+  await ensureSessionToken()
 }
 const offline = ref(false)
 onMounted(load)
@@ -98,6 +99,7 @@ onMounted(load)
 async function signIn() {
   err.value = ''; busy.value = true
   try {
+    writeSessionToken(null)
     await $fetch('/api/family/login', { method: 'POST', body: { passcode: code.value } })
     code.value = ''
     await load()
@@ -108,6 +110,7 @@ async function signOut() {
   await $fetch('/api/family/logout', { method: 'POST' })
   me.value = null; posts.value = []; events.value = []
   try { localStorage.removeItem('family-cache') } catch {}
+  writeSessionToken(null)
 }
 function sub(e: any) {
   const time = fmtSpan(e, locale, t('allDay'))

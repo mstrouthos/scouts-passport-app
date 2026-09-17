@@ -10,13 +10,15 @@ const err = ref('')
 const busy = ref(false)
 
 async function load() {
-  try { me.value = await $fetch('/api/bar/me') } catch { me.value = null }
+  try { me.value = await $fetch('/api/bar/me'); await ensureSessionToken() } catch { me.value = null }
 }
 async function signIn() {
   err.value = ''; busy.value = true
   try {
     await $fetch('/api/bar/login', { method: 'POST', body: { code: code.value } })
     code.value = ''
+    // the session grew a bar identity; our copy must carry it too
+    writeSessionToken(null)
     await load()
   } catch (e: any) { err.value = e?.data?.message || 'Κάτι πήγε στραβά' }
   finally { busy.value = false }
@@ -24,6 +26,8 @@ async function signIn() {
 async function signOut() {
   if (!confirm('Αποσύνδεση;')) return
   await $fetch('/api/bar/logout', { method: 'POST' })
+  // the bar identity left the session; refresh our copy so it matches
+  writeSessionToken(null); await ensureSessionToken()
   me.value = null
 }
 onMounted(load)

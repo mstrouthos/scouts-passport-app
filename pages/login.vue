@@ -4,6 +4,9 @@ const pass = ref('')
 const err = ref('')
 const busy = ref(false)
 const digits = computed(() => pass.value.replace(/\D/g, ''))
+// why we are here, if the server said — for reports of "it logged me out"
+const why = useMeWhy()
+const standalone = computed(() => import.meta.client && (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true))
 
 function format(e: Event) {
   const d = (e.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 8)
@@ -13,6 +16,8 @@ async function submit() {
   if (digits.value.length !== 8 || busy.value) return
   busy.value = true; err.value = ''
   try {
+    // a fresh sign-in must not ride on a previous person's copy of the session
+    writeSessionToken(null)
     const res = await $fetch<{ role: string }>('/api/login', { method: 'POST', body: { passcode: digits.value } })
     await loadMe()
     navigateTo(res.role === 'scout' ? '/app' : '/admin', { replace: true })
@@ -40,6 +45,7 @@ async function submit() {
           <button class="btn" type="submit" :disabled="digits.length !== 8 || busy">{{ t('enter') }}</button>
         </div>
       </form>
+      <div v-if="why" class="tiny" style="opacity:.55;text-align:center;margin-top:10px">{{ why }}{{ standalone ? ' · app' : ' · browser' }}</div>
       <div v-if="err" class="err" role="alert">{{ err }}</div>
       <div class="helper rise" style="animation-delay:.8s">{{ t('loginHelp1') }}<br>{{ t('loginHelp2') }}</div>
     </div>

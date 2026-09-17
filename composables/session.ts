@@ -14,6 +14,8 @@ export const useMe = () => useState<Me | null>('me', () => null)
    cellular radio, or during a deploy, is NOT signed out, and bouncing it to
    the passcode screen is what made people say "it keeps logging me out". */
 export const useMeError = () => useState<'unauth' | 'network' | null>('meError', () => null)
+/* The server's stated reason for a 401, shown small on the passcode screen. */
+export const useMeWhy = () => useState<string | null>('meWhy', () => null)
 /* Whether the current `me` came from the last good answer rather than the
    server just now — shown offline, refreshed when the server is back. */
 export const useMeStale = () => useState<boolean>('meStale', () => false)
@@ -32,6 +34,8 @@ export async function loadMe(): Promise<Me | null> {
     me.value = await $fetch<Me>('/api/me')
     err.value = null; stale.value = false
     writeCache(me.value)
+    // keep our own copy of the session for phones that drop the cookie
+    await ensureSessionToken()
     const { locale, setLocale } = useNuxtApp().$i18n as any
     if (me.value && me.value.locale !== locale.value) await setLocale(me.value.locale)
   } catch (e: any) {
@@ -39,6 +43,8 @@ export async function loadMe(): Promise<Me | null> {
     if (status === 401 || status === 403) {
       // the server heard us and said no: truly signed out
       me.value = null; err.value = 'unauth'; stale.value = false; writeCache(null)
+      if (import.meta.client) writeSessionToken(null)
+      useMeWhy().value = e?.data?.data?.why || e?.response?._data?.data?.why || `http-${status}`
     } else {
       // no answer (offline, deploy in progress, timeout): carry on with what
       // we knew, and try again shortly

@@ -37,6 +37,7 @@ async function logout() {
   try { await $fetch('/api/logout', { method: 'POST' }) } catch { /* ignore */ }
   useMe().value = null
   try { localStorage.removeItem('me-cache') } catch {}
+  writeSessionToken(null)
   useNotifications().reset()
   // a full page load rather than an in-app route change: it drops every cached
   // fetch and composable still holding the previous person's data, and it is

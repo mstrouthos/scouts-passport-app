@@ -8,16 +8,21 @@ export type SessionScout = typeof s.scouts.$inferSelect
 type Patrol = typeof s.patrols.$inferSelect
 
 export async function requireScout(event: H3Event): Promise<SessionScout> {
-  const session = await requireUserSession(event)
+  // Say WHY someone is not signed in — a phone that sends no cookie at all is
+  // a different problem from one whose cookie the server will not accept, and
+  // the passcode screen can show the code so a report from the field is useful.
+  const hasCookie = /(^|;\s*)nuxt-session=[^;]+/.test(getHeader(event, 'cookie') || '')
+  const session = await getUserSession(event)
   const id = (session.user as any)?.id
+  if (!id) throw createError({ statusCode: 401, message: 'Not signed in', data: { why: hasCookie ? 'bad-session' : 'no-cookie' } })
   const db = await useDb()
-  const row = id ? (await db.select().from(s.scouts).where(eq(s.scouts.id, id)).limit(1))[0] : null
-  if (!row || !row.isActive) throw createError({ statusCode: 401, message: 'Not signed in' })
+  const row = (await db.select().from(s.scouts).where(eq(s.scouts.id, id)).limit(1))[0]
+  if (!row || !row.isActive) throw createError({ statusCode: 401, message: 'Not signed in', data: { why: 'no-user' } })
   // Sessions issued before this check have no `pv` and are left alone; any
   // session that carries one must still match the passcode on file.
   const pv = (session.user as any)?.pv
   if (pv && pv !== passcodeVersion(row.passcodeHmac))
-    throw createError({ statusCode: 401, message: 'Passcode changed — sign in again' })
+    throw createError({ statusCode: 401, message: 'Passcode changed — sign in again', data: { why: 'passcode-changed' } })
   await markSeenScout(row)
   return row
 }
