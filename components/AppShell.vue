@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { resync: resyncPush } = usePushResync()
+const meStale = useMeStale()
 onMounted(() => { resyncPush() })
 const props = defineProps<{ title: string, sub?: string, back?: string | boolean, noTabs?: boolean }>()
 const me = useMe()
@@ -35,6 +36,7 @@ async function logout() {
   // someone signed in on a shared phone
   try { await $fetch('/api/logout', { method: 'POST' }) } catch { /* ignore */ }
   useMe().value = null
+  try { localStorage.removeItem('me-cache') } catch {}
   useNotifications().reset()
   // a full page load rather than an in-app route change: it drops every cached
   // fetch and composable still holding the previous person's data, and it is
@@ -160,6 +162,7 @@ function goBack() {
       </header>
 
       <main class="content">
+        <div v-if="meStale" class="note" style="background:var(--gold-soft)">📡 {{ t('offlineNote') }}</div>
         <slot />
       </main>
     </div>

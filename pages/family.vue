@@ -78,8 +78,21 @@ async function load() {
       $fetch<any[]>('/api/family/posts'),
       $fetch<any[]>('/api/family/calendar')
     ])
-  } catch { me.value = null }
+  } catch (e: any) {
+    const status = e?.response?.status ?? e?.statusCode ?? 0
+    // a real "no" shows the passcode screen; a server we could not reach
+    // keeps whatever we last knew and tries again
+    if (status === 401 || status === 403) { me.value = null; try { localStorage.removeItem('family-cache') } catch {} }
+    else {
+      try { const raw = localStorage.getItem('family-cache'); if (raw && !me.value) me.value = JSON.parse(raw) } catch {}
+      offline.value = true; setTimeout(load, 8000)
+    }
+    return
+  }
+  offline.value = false
+  try { localStorage.setItem('family-cache', JSON.stringify(me.value)) } catch {}
 }
+const offline = ref(false)
 onMounted(load)
 
 async function signIn() {
@@ -94,6 +107,7 @@ async function signIn() {
 async function signOut() {
   await $fetch('/api/family/logout', { method: 'POST' })
   me.value = null; posts.value = []; events.value = []
+  try { localStorage.removeItem('family-cache') } catch {}
 }
 function sub(e: any) {
   const time = fmtSpan(e, locale, t('allDay'))
@@ -141,6 +155,7 @@ async function enableNotifs() {
     </header>
 
     <main class="content" style="padding-bottom:40px">
+      <div v-if="offline && me" class="note" style="background:var(--gold-soft)">📡 {{ t('offlineNote') }}</div>
       <!-- not signed in -->
       <template v-if="!me">
         <div class="note"><b>🔐 {{ t('parentSignIn') }}</b>{{ t('parentSignInHelp') }}</div>

@@ -9,17 +9,58 @@ export type Me = {
 }
 
 export const useMe = () => useState<Me | null>('me', () => null)
+/* Why the last loadMe failed: signed out for real, or merely unreachable.
+   The two must not be confused — an installed app that opens on a dead
+   cellular radio, or during a deploy, is NOT signed out, and bouncing it to
+   the passcode screen is what made people say "it keeps logging me out". */
+export const useMeError = () => useState<'unauth' | 'network' | null>('meError', () => null)
+/* Whether the current `me` came from the last good answer rather than the
+   server just now — shown offline, refreshed when the server is back. */
+export const useMeStale = () => useState<boolean>('meStale', () => false)
+
+const CACHE = 'me-cache'
+function readCache(): Me | null {
+  try { const raw = localStorage.getItem(CACHE); return raw ? JSON.parse(raw) : null } catch { return null }
+}
+function writeCache(me: Me | null) {
+  try { me ? localStorage.setItem(CACHE, JSON.stringify(me)) : localStorage.removeItem(CACHE) } catch {}
+}
 
 export async function loadMe(): Promise<Me | null> {
-  const me = useMe()
+  const me = useMe(), err = useMeError(), stale = useMeStale()
   try {
     me.value = await $fetch<Me>('/api/me')
+    err.value = null; stale.value = false
+    writeCache(me.value)
     const { locale, setLocale } = useNuxtApp().$i18n as any
     if (me.value && me.value.locale !== locale.value) await setLocale(me.value.locale)
-  } catch {
-    me.value = null
+  } catch (e: any) {
+    const status = e?.response?.status ?? e?.statusCode ?? 0
+    if (status === 401 || status === 403) {
+      // the server heard us and said no: truly signed out
+      me.value = null; err.value = 'unauth'; stale.value = false; writeCache(null)
+    } else {
+      // no answer (offline, deploy in progress, timeout): carry on with what
+      // we knew, and try again shortly
+      err.value = 'network'
+      const cached = readCache()
+      if (cached) { me.value = cached; stale.value = true }
+      else me.value = null
+    }
   }
   return me.value
+}
+
+/** Keep trying, quietly, until the server answers — used while `me` is stale. */
+export function retryMeUntilFresh() {
+  const stale = useMeStale()
+  if (!import.meta.client) return
+  const tick = async () => {
+    if (!stale.value) return
+    await loadMe()
+    if (stale.value) setTimeout(tick, 8000)
+  }
+  setTimeout(tick, 4000)
 }
 
 /** Pick the localized variant of a { xEl / xEn } pair, falling back to Greek. */
