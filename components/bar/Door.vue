@@ -66,6 +66,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
 <template>
   <div style="display:flex;flex-direction:column;gap:10px">
     <div class="card" style="flex-direction:row;justify-content:space-around;text-align:center;padding:10px">
+      <div><b style="font-size:18px">{{ totals.arrived + totals.kidsArrived }}<span style="opacity:.5">/{{ totals.booked + totals.kidsBooked }}</span></b><br><span style="font-size:11px;opacity:.6">ΑΤΟΜΑ</span></div>
       <div><b style="font-size:18px">{{ totals.arrived }}<span style="opacity:.5">/{{ totals.booked }}</span></b><br><span style="font-size:11px;opacity:.6">ΕΝΗΛΙΚΕΣ</span></div>
       <div v-if="totals.kidsBooked || totals.kidsArrived"><b style="font-size:18px">{{ totals.kidsArrived }}<span style="opacity:.5">/{{ totals.kidsBooked }}</span></b><br><span style="font-size:11px;opacity:.6">ΠΑΙΔΙΑ</span></div>
       <div v-if="totals.extra"><b style="font-size:18px;color:#F0B429">+{{ totals.extra }}</b><br><span style="font-size:11px;opacity:.6">ΕΞΤΡΑ</span></div>
@@ -95,8 +96,8 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
     <div v-for="t in shown" :key="t.no" class="order" style="gap:6px">
       <div class="hd"><span class="tb">Τραπέζι {{ t.no }}</span>
         <span class="meta" style="text-align:right">
-          <b style="font-size:20px" :style="t.extra ? 'color:#F0B429' : t.arrived >= t.booked && t.booked ? 'color:#7BE0AC' : ''">{{ t.arrived }}<span style="opacity:.5;font-size:14px">/{{ t.booked }}</span></b>
-          <b v-if="t.kidsBooked || t.kidsArrived" style="font-size:14px;margin-left:8px">👶 {{ t.kidsArrived }}<span style="opacity:.5">/{{ t.kidsBooked }}</span></b>
+          <b style="font-size:20px" :style="t.extra || t.kidsExtra ? 'color:#F0B429' : t.arrived + t.kidsArrived >= t.booked + t.kidsBooked && t.booked + t.kidsBooked ? 'color:#7BE0AC' : ''">{{ t.arrived + t.kidsArrived }}<span style="opacity:.5;font-size:14px">/{{ t.booked + t.kidsBooked }}</span></b>
+          <br><span style="font-size:12px;opacity:.75">👤 {{ t.arrived }}/{{ t.booked }}<template v-if="t.kidsBooked || t.kidsArrived"> · 👶 {{ t.kidsArrived }}/{{ t.kidsBooked }}</template></span>
           <span v-if="t.extra" class="pill pending" style="margin-left:6px">+{{ t.extra }} έξτρα</span>
           <span v-if="t.kidsExtra" class="pill pending" style="margin-left:6px">+{{ t.kidsExtra }} 👶</span>
         </span></div>

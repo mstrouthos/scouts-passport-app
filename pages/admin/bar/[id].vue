@@ -341,6 +341,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
       </div>
       <div class="sec-title">🎫 {{ t('barDoor') }}</div>
       <div class="stats">
+        <div class="stat"><b>{{ report.door.arrived + report.door.kidsArrived }}<span style="font-size:12px;color:var(--muted)">/{{ report.door.booked + report.door.kidsBooked }}</span></b><span>{{ t('barPeople') }}</span></div>
         <div class="stat"><b>{{ report.door.arrived }}<span style="font-size:12px;color:var(--muted)">/{{ report.door.booked }}</span></b><span>{{ t('barAdults') }}</span></div>
         <div class="stat"><b>{{ report.door.kidsArrived }}<span style="font-size:12px;color:var(--muted)">/{{ report.door.kidsBooked }}</span></b><span>{{ t('barKids') }}</span></div>
         <div class="stat"><b>+{{ report.door.extra }}<span v-if="report.door.kidsExtra" style="font-size:12px;color:var(--muted)"> · +{{ report.door.kidsExtra }} 👶</span></b><span>{{ t('barExtra') }}</span></div>
@@ -357,7 +358,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
       <div v-if="report.door.tables?.length" class="adm">
         <div class="hdr">🎫 {{ t('barByTable') }}</div>
         <div v-for="r in report.door.tables" :key="r.no" class="it">
-          <div style="flex:1"><b>{{ t('barTable') }} {{ r.no }}</b><span><template v-if="r.kidsBooked || r.kidsArrived">👶 {{ r.kidsArrived }}/{{ r.kidsBooked }}</template><template v-if="r.extra"> · <span style="color:var(--gold)">+{{ r.extra }} {{ t('barExtra').toLowerCase() }}</span></template></span></div><b>{{ r.arrived }}<span style="font-weight:400;color:var(--muted)">/{{ r.booked }}</span></b>
+          <div style="flex:1"><b>{{ t('barTable') }} {{ r.no }}</b><span>👤 {{ r.arrived }}/{{ r.booked }}<template v-if="r.kidsBooked || r.kidsArrived"> · 👶 {{ r.kidsArrived }}/{{ r.kidsBooked }}</template><template v-if="r.extra || r.kidsExtra"> · <span style="color:var(--gold)">+{{ r.extra + r.kidsExtra }} {{ t('barExtra').toLowerCase() }}</span></template></span></div><b>{{ r.arrived + r.kidsArrived }}<span style="font-weight:400;color:var(--muted)">/{{ r.booked + r.kidsBooked }}</span></b>
         </div>
       </div>
       <div class="sec-title">🍻 {{ t('barBar') }}</div>
