@@ -744,5 +744,7 @@
   "barAdults": "Adults",
   "barKids": "Children",
   "reloadApp": "Reload app",
-  "reloadAppSub": "Loads the latest version again"
+  "reloadAppSub": "Loads the latest version again",
+  "barCouponsPerAdult": "Coupons per adult",
+  "barUnused": "unused"
 }

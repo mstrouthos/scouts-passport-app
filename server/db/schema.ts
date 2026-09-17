@@ -538,6 +538,8 @@ export const barEvents = pgTable('bar_events', {
   layout: text('layout'),
   // the ticket at the door
   entranceCents: integer('entrance_cents').notNull().default(0),
+  // the free drinks a ticket comes with
+  couponsPerAdult: integer('coupons_per_adult').notNull().default(1),
   status: text('status', { enum: ['open', 'closed'] }).notNull().default('open'),
   createdBy: integer('created_by'),
   createdAt: text('created_at').notNull(),

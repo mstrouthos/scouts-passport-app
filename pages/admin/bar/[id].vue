@@ -15,9 +15,9 @@ const api = async (path: string, method: any, body?: any) => {
 }
 
 /* settings: the event's own fields, edited together */
-const eform = reactive({ name: '', eventDate: '', tableCount: 10, entrance: '' })
-watch(() => data.value, d => { if (d) { eform.name = d.name; eform.eventDate = d.eventDate || ''; eform.tableCount = d.tableCount; eform.entrance = d.entranceCents ? (d.entranceCents / 100).toFixed(2) : '' } }, { immediate: true })
-async function saveEvent() { if (await api('', 'PATCH', { name: eform.name, eventDate: eform.eventDate || null, tableCount: eform.tableCount, entranceCents: Math.round(Number(String(eform.entrance).replace(',', '.')) * 100) || 0 })) show('✅ ' + t('saved')) }
+const eform = reactive({ name: '', eventDate: '', tableCount: 10, entrance: '', couponsPerAdult: 1 })
+watch(() => data.value, d => { if (d) { eform.name = d.name; eform.eventDate = d.eventDate || ''; eform.tableCount = d.tableCount; eform.entrance = d.entranceCents ? (d.entranceCents / 100).toFixed(2) : ''; eform.couponsPerAdult = d.couponsPerAdult ?? 1 } }, { immediate: true })
+async function saveEvent() { if (await api('', 'PATCH', { name: eform.name, eventDate: eform.eventDate || null, tableCount: eform.tableCount, entranceCents: Math.round(Number(String(eform.entrance).replace(',', '.')) * 100) || 0, couponsPerAdult: eform.couponsPerAdult })) show('✅ ' + t('saved')) }
 async function toggleStatus() {
   const closing = data.value.status === 'open'
   if (closing && !confirm(t('barCloseConfirm'))) return
@@ -290,7 +290,10 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
           <div style="flex:1"><label class="lab">{{ t('date') }}</label><input v-model="eform.eventDate" type="date" class="in" :disabled="!canEdit"></div>
           <div style="width:110px"><label class="lab">🪑 {{ t('barTables') }}</label><input v-model.number="eform.tableCount" type="number" min="1" max="200" class="in" :disabled="!canEdit"></div>
         </div>
-        <div><label class="lab">🎫 {{ t('barTicket') }}</label><input v-model="eform.entrance" class="in" inputmode="decimal" placeholder="0.00" :disabled="!canEdit"></div>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1"><label class="lab">🎫 {{ t('barTicket') }}</label><input v-model="eform.entrance" class="in" inputmode="decimal" placeholder="0.00" :disabled="!canEdit"></div>
+          <div style="width:150px"><label class="lab">🎟 {{ t('barCouponsPerAdult') }}</label><input v-model.number="eform.couponsPerAdult" type="number" min="0" max="20" class="in" :disabled="!canEdit"></div>
+        </div>
         <button v-if="canEdit" class="btn" :disabled="!eform.name.trim()" @click="saveEvent">{{ t('save') }}</button>
       </div>
       <div class="adm">
@@ -372,7 +375,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
         <div v-if="report.cardPendingCents" class="stat"><b>{{ eur(report.cardPendingCents) }}</b><span>{{ t('barCardPending') }}</span></div>
         <div v-if="report.cashPendingCents" class="stat"><b>{{ eur(report.cashPendingCents) }}</b><span>{{ t('barCashPending') }}</span></div>
         <div class="stat"><b>{{ report.avgPrepMin ?? '—' }}′</b><span>{{ t('barAvgPrep') }}</span></div>
-        <div class="stat"><b>🎟 {{ report.coupons }}</b><span>{{ t('barCoupons') }} · {{ eur(report.couponCents) }}</span></div>
+        <div class="stat"><b>🎟 {{ report.coupons }}<span style="font-size:12px;color:var(--muted)">/{{ report.couponsIssued }}</span></b><span>{{ t('barCoupons') }} · {{ eur(report.couponCents) }} · {{ report.couponsUnused }} {{ t('barUnused') }}</span></div>
         <div v-if="report.cancelled" class="stat"><b>{{ report.cancelled }}</b><span>{{ t('barCancelled') }}</span></div>
       </div>
       <div v-if="report.accounts?.length" class="adm">

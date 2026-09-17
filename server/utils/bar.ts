@@ -94,6 +94,23 @@ export function parseLayout(raw: string | null): Layout | null {
   } catch { return null }
 }
 
+/** Each table's coupons: handed out at the door (adults admitted × the
+    event's rate), used on its live orders, and what is left. */
+export async function couponBalances(eventId: number) {
+  const db = await useDb()
+  const ev = (await db.select().from(s.barEvents).where(eq(s.barEvents.id, eventId)))[0]
+  const rate = ev?.couponsPerAdult ?? 1
+  const arrivals = await db.select().from(s.barArrivals).where(eq(s.barArrivals.eventId, eventId))
+  const orders = (await db.select().from(s.barOrders).where(eq(s.barOrders.eventId, eventId))).filter(o => o.status !== 'cancelled')
+  const items = orders.length ? await db.select().from(s.barOrderItems).where(inArray(s.barOrderItems.orderId, orders.map(o => o.id))) : []
+  const out: Record<number, { issued: number; used: number; left: number }> = {}
+  for (let no = 1; no <= (ev?.tableCount || 0); no++) out[no] = { issued: 0, used: 0, left: 0 }
+  for (const a of arrivals) if (out[a.tableNo]) out[a.tableNo].issued += a.count * rate
+  for (const o of orders) for (const i of items.filter(i => i.orderId === o.id)) if (out[o.tableNo]) out[o.tableNo].used += i.couponQty * i.couponCost
+  for (const t of Object.values(out)) t.left = t.issued - t.used
+  return out
+}
+
 export type PayKind = 'cash' | 'card' | 'coupon'
 export const PAY_KINDS: PayKind[] = ['cash', 'card', 'coupon']
 export const acceptsOf = (st: { accepts: string }) => st.accepts.split(',').map(x => x.trim()).filter(x => PAY_KINDS.includes(x as PayKind)) as PayKind[]

@@ -4,6 +4,14 @@
    which writes it down — the waiter only sees whether it is paid. */
 const props = defineProps<{ me: any }>()
 const { orders: all, act, toast, say, refresh } = useBarOrders()
+// what each table may still spend in coupons — refreshed with the orders
+const balances = ref<Record<number, { issued: number; used: number; left: number }>>({})
+async function loadBalances() { try { balances.value = await $fetch('/api/bar/coupons') } catch {} }
+let balTimer: any = null
+onMounted(() => { loadBalances(); balTimer = setInterval(loadBalances, 4000) })
+onUnmounted(() => clearInterval(balTimer))
+const bal = computed(() => table.value ? balances.value[table.value] : null)
+const couponsLeft = computed(() => bal.value ? Math.max(0, bal.value.left) : 0)
 // the night is everyone's; the list of "mine" is what I carried
 const orders = computed(() => all.value.filter(o => o.waiterId === props.me.id))
 const tab = ref<'new' | 'mine' | 'tables'>('new')
@@ -28,7 +36,17 @@ const total = computed(() => lines.value.reduce((a: number, l: any) => a + l.pri
 // coupons to collect: units covered × what each unit costs in coupons
 const coupons = computed(() => lines.value.reduce((a: number, l: any) => a + l.couponQty * (l.couponCost || 1), 0))
 function bump(id: number, by: number) { qty[id] = Math.max(0, (qty[id] || 0) + by); coupon[id] = Math.min(qty[id], coupon[id] || 0) }
-function bumpCoupon(id: number) { coupon[id] = ((coupon[id] || 0) + 1) % ((qty[id] || 0) + 1) }
+function bumpCoupon(id: number) {
+  const m = props.me.menu.find((x: any) => x.id === id)
+  const cost = m?.couponCost || 1
+  // the most of this line the table can still cover, given the other lines
+  const otherUsed = coupons.value - (coupon[id] || 0) * cost
+  const maxHere = Math.min(qty[id] || 0, Math.floor((couponsLeft.value - otherUsed) / cost))
+  if (maxHere <= 0) { say(bal.value?.issued ? `Το τραπέζι έχει ${couponsLeft.value - otherUsed} κουπόνια — δεν φτάνουν` : 'Δεν έχει μπει κανείς από αυτό το τραπέζι ακόμη'); coupon[id] = 0; return }
+  coupon[id] = ((coupon[id] || 0) + 1) % (maxHere + 1)
+}
+// pick a new table: coupons already ticked may no longer be covered
+watch(table, () => { for (const k of Object.keys(coupon)) coupon[Number(k)] = 0 })
 async function send() {
   if (!table.value || !lines.value.length || sending.value) return
   sending.value = true
@@ -50,7 +68,7 @@ const readyCount = computed(() => orders.value.filter(o => o.status === 'ready')
 <template>
   <main :class="{ 'with-sum': tab === 'new' && lines.length }">
     <template v-if="tab === 'new'">
-      <div class="cat" style="display:flex;align-items:center;justify-content:space-between">Τραπέζι
+      <div class="cat" style="display:flex;align-items:center;justify-content:space-between">Τραπέζι<span v-if="table" class="cpn" :class="{ on: couponsLeft > 0 }" style="margin-left:8px;cursor:default">🎟 {{ bal?.issued ? `${couponsLeft} διαθέσιμ${couponsLeft === 1 ? 'ο' : 'α'}` : 'κανείς ακόμη' }}</span>
         <span v-if="hasPlan" class="seg2" style="margin:0;padding:3px">
           <button :class="{ on: showPlan }" style="padding:4px 10px;font-size:11.5px" @click="showPlan = true">Κάτοψη</button>
           <button :class="{ on: !showPlan }" style="padding:4px 10px;font-size:11.5px" @click="showPlan = false">Αριθμοί</button>
@@ -82,7 +100,7 @@ const readyCount = computed(() => orders.value.filter(o => o.status === 'ready')
         <div v-else-if="total > 0" class="seg2"><button class="on">🎟 {{ coupons }} κουπόνι{{ coupons === 1 ? '' : 'α' }} + 💶 {{ eur(total) }} μετρητά</button></div>
         <div v-else class="seg2"><button class="on">🎟 Μόνο κουπόνια · {{ coupons }}</button></div>
         <button class="btn" :disabled="!table || sending" @click="send">
-          {{ table ? `Στείλε · Τραπέζι ${table} · ${eur(total)}` : `Διάλεξε τραπέζι · ${eur(total)}` }}<template v-if="coupons"> · 🎟 {{ coupons }}</template>
+          {{ table ? `Στείλε · Τραπέζι ${table} · ${eur(total)}` : `Διάλεξε τραπέζι · ${eur(total)}` }}<template v-if="coupons"> · 🎟 {{ coupons }}/{{ couponsLeft }}</template>
         </button>
       </div>
     </template>

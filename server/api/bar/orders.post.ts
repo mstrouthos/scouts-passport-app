@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
-import { requireBarStaff, notifyCashiers } from '../../utils/bar'
+import { requireBarStaff, notifyCashiers, couponBalances } from '../../utils/bar'
 import { now } from '../../utils/passcode'
 import { sendPushToBarStaff } from '../../utils/push'
 
@@ -23,6 +23,13 @@ export default defineEventHandler(async (event) => {
     return { item, qty, couponQty }
   }).filter(l => l.item && l.qty > 0) as Array<{ item: typeof menu[number]; qty: number; couponQty: number }>
   if (!lines.length) throw createError({ statusCode: 400, message: 'Η παραγγελία είναι άδεια' })
+  // coupons come from the door: a table may only spend what its adults were handed
+  const wanted = lines.reduce((a, l) => a + l.couponQty * l.item.couponCost, 0)
+  if (wanted > 0) {
+    const bal = (await couponBalances(me.eventId))[tableNo]
+    if (!bal || wanted > bal.left)
+      throw createError({ statusCode: 409, message: bal?.issued ? `Το τραπέζι ${tableNo} έχει ${Math.max(0, bal.left)} κουπόνι${bal.left === 1 ? '' : 'α'} διαθέσιμ${bal.left === 1 ? 'ο' : 'α'}` : `Στο τραπέζι ${tableNo} δεν έχει μπει κανείς ακόμη — δεν έχει κουπόνια` })
+  }
   const total = lines.reduce((a, l) => a + l.item.priceCents * (l.qty - l.couponQty), 0)
   // how the table will pay: coupons alone if nothing is left to pay,
   // otherwise cash or card as the waiter was told

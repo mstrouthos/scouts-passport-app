@@ -78,8 +78,10 @@ export default defineEventHandler(async (event) => {
     })(),
     unpaidCents: sum(live.filter(o => !o.paidAt)),
     unpaidOrders: live.filter(o => !o.paidAt).length,
-    // door coupons redeemed, and what they would have been worth
+    // door coupons redeemed, and what they would have been worth; issued and unused too
     coupons, couponCents,
+    couponsIssued: arrivals.reduce((s, a) => s + a.count, 0) * (ev?.couponsPerAdult ?? 1),
+    couponsUnused: Math.max(0, arrivals.reduce((s, a) => s + a.count, 0) * (ev?.couponsPerAdult ?? 1) - coupons),
     avgPrepMin: prep.length ? Math.round(prep.reduce((a, b) => a + b, 0) / prep.length * 10) / 10 : null,
     avgOrderCents: live.length ? Math.round(sum(live) / live.length) : 0,
     items: [...items.values()].sort((a, b) => b.qty - a.qty),

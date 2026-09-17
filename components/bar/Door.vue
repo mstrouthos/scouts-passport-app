@@ -6,7 +6,8 @@ const props = defineProps<{ me: any; canAdmit?: boolean }>()
 const arrivals = ref<any[]>([])
 const toast = ref('')
 let timer: any = null
-async function refresh() { try { arrivals.value = await $fetch<any[]>('/api/bar/arrivals') } catch {} }
+const balances = ref<Record<number, { issued: number; used: number; left: number }>>({})
+async function refresh() { try { [arrivals.value, balances.value] = await Promise.all([$fetch<any[]>('/api/bar/arrivals'), $fetch<any>('/api/bar/coupons')]) } catch {} }
 onMounted(() => { refresh(); timer = setInterval(refresh, 4000) })
 onUnmounted(() => clearInterval(timer))
 function say(m: string) { toast.value = m; setTimeout(() => { toast.value = '' }, 2000) }
@@ -97,7 +98,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
       <div class="hd"><span class="tb">Τραπέζι {{ t.no }}</span>
         <span class="meta" style="text-align:right">
           <b style="font-size:20px" :style="t.extra || t.kidsExtra ? 'color:#F0B429' : t.arrived + t.kidsArrived >= t.booked + t.kidsBooked && t.booked + t.kidsBooked ? 'color:#7BE0AC' : ''">{{ t.arrived + t.kidsArrived }}<span style="opacity:.5;font-size:14px">/{{ t.booked + t.kidsBooked }}</span></b>
-          <br><span style="font-size:12px;opacity:.75">👤 {{ t.arrived }}/{{ t.booked }}<template v-if="t.kidsBooked || t.kidsArrived"> · 👶 {{ t.kidsArrived }}/{{ t.kidsBooked }}</template></span>
+          <br><span style="font-size:12px;opacity:.75">👤 {{ t.arrived }}/{{ t.booked }}<template v-if="t.kidsBooked || t.kidsArrived"> · 👶 {{ t.kidsArrived }}/{{ t.kidsBooked }}</template><template v-if="balances[t.no]?.issued"> · 🎟 {{ balances[t.no].used }}/{{ balances[t.no].issued }}</template></span>
           <span v-if="t.extra" class="pill pending" style="margin-left:6px">+{{ t.extra }} έξτρα</span>
           <span v-if="t.kidsExtra" class="pill pending" style="margin-left:6px">+{{ t.kidsExtra }} 👶</span>
         </span></div>
