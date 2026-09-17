@@ -4,6 +4,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // be readable before they can sign in
   const open = to.path === '/' || to.path === '/login' || to.path === '/install'
     || to.path.startsWith('/family') || to.path.startsWith('/bar')
+  // someone already signed in has no business on the passcode screen
+  if (to.path === '/login') {
+    const me = useMe()
+    if (!me.value) await loadMe()
+    if (me.value) return navigateTo(me.value.role === 'scout' ? '/app' : '/admin', { replace: true })
+    return
+  }
   if (open) return
   const me = useMe()
   if (!me.value) await loadMe()
