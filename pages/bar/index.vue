@@ -138,11 +138,16 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
 .barapp .out{background:rgba(255,255,255,.1);border:0;color:#fff;padding:8px 12px;border-radius:999px;font:inherit;font-size:12px;font-weight:600}
 .barapp main{flex:1;padding:14px 14px calc(90px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px}
 .barapp .signin{justify-content:center}
-.barapp .bsheet{background:#1B2648;color:#F4F6FB}
-.barapp .bsheet::before{background:rgba(255,255,255,.25)}
-.barapp .srow2{display:flex;align-items:center;gap:10px;background:#0F1730;border-radius:14px;padding:12px 14px;font-size:13px}
+/* sheets are the one light surface in the crew's dark screen: opaque white,
+   dark text, and room between the buttons */
+.barapp .bsheet{background:#FFFFFF;color:#0F1730;display:flex;flex-direction:column;gap:10px}
+.barapp .bsheet::before{background:#C9D2E0}
+.barapp .bsheet .btn.red{background:#FDECEA;color:#B4261B}
+.barapp .bsheet .btn.ghost{background:#EEF2F7;color:#0F1730}
+.barapp .bsheet .btn.sm{width:auto}
+.barapp .srow2{display:flex;align-items:center;gap:12px;background:#F2F5FA;border-radius:14px;padding:12px 14px;font-size:13px;color:#0F1730}
 .barapp .srow2 b{display:block;font-size:14px}
-.barapp .srow2 span{opacity:.7;line-height:1.35}
+.barapp .srow2 span{color:#4A5670;line-height:1.35}
 .barapp .pushbar{display:flex;align-items:center;gap:10px;margin:12px 14px -4px;padding:10px 12px;border-radius:14px;background:rgba(240,180,41,.14);color:#F6D27A;font-size:13px;line-height:1.35}
 .barapp .pushbar span{flex:1}
 .barapp .card{background:#1B2648;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
