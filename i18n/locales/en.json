@@ -728,5 +728,9 @@
   "barWipe": "Clear orders",
   "barWipeNote": "Deletes every order and payment of this event — for good. Menu, crew, accounts and floor plan stay.",
   "barWipeWord": "Type ΚΑΘΑΡΙΣΜΟΣ to confirm",
-  "barWiped": "{n} orders cleared"
+  "barWiped": "{n} orders cleared",
+  "notifTest": "Test notification",
+  "notifTestSub": "Sends a notification to this device",
+  "notifTestSent": "Sent — check your phone",
+  "notifTestFailed": "Didn't go — check the device's notification settings"
 }

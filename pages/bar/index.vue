@@ -41,6 +41,11 @@ watch(me, async (v) => {
   if ('Notification' in window && Notification.permission === 'granted') { push.value = (await resyncPush(true)) ? 'on' : 'no' }
   else if ('Notification' in window && Notification.permission === 'denied') push.value = 'no'
 })
+// the question is asked once; after that it lives in the settings sheet
+const asked = ref(false)
+onMounted(() => { try { asked.value = !!localStorage.getItem('barPushAsked') } catch {} })
+function markAsked() { asked.value = true; try { localStorage.setItem('barPushAsked', '1') } catch {} }
+const settingsOpen = ref(false)
 const testing = ref('')
 async function tryPush() {
   testing.value = '…'
@@ -54,6 +59,7 @@ function b64ToU8(base64: string) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
 }
 async function enablePush() {
+  markAsked()
   push.value = 'busy'
   try {
     if (!('Notification' in window) || !('serviceWorker' in navigator) || !cfg.public.vapidPublicKey) { push.value = 'no'; return }
@@ -76,7 +82,7 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
         <span v-if="me">{{ roleLabel }} · {{ me.name }}<template v-if="me.bartender"> · Bartender: {{ me.bartender }}</template></span>
         <span v-else>30ό Σύστημα Προσκόπων Αμμοχώστου</span>
       </div>
-      <button v-if="me" class="out" @click="signOut">Έξοδος</button>
+      <button v-if="me" class="out" @click="settingsOpen = true">⚙︎ Ρυθμίσεις</button>
     </header>
 
     <main v-if="!me" class="signin">
@@ -88,16 +94,27 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
         <p class="hint">Τον εξαψήφιο κωδικό σου τον δίνει ο υπεύθυνος της βραδιάς.</p>
       </div>
     </main>
-    <div v-if="wantsPush && push === 'on'" class="pushbar" style="background:rgba(47,163,107,.12);color:#7BE0AC">
-      <span>🔔 Ειδοποιήσεις ενεργές{{ testing ? ' · ' + testing : '' }}</span>
-      <button class="btn ghost sm" @click="tryPush">Δοκιμή</button>
+    <!-- asked once, on first sign-in; afterwards it is in Ρυθμίσεις -->
+    <div v-if="wantsPush && push === 'ask' && !asked" class="pushbar">
+      <span>🔔 Να χτυπάει το κινητό {{ me.role === 'waiter' ? 'όταν είναι έτοιμη μια παραγγελία σου;' : me.role === 'cashier' ? 'όταν υπάρχει παραγγελία προς πληρωμή;' : 'όταν έρχεται παραγγελία;' }}</span>
+      <button class="btn sm" :disabled="push === 'busy'" @click="enablePush">Ναι</button>
+      <button class="btn ghost sm" @click="markAsked">Όχι</button>
     </div>
-    <div v-else-if="wantsPush" class="pushbar">
-      <template v-if="push === 'no'">Χωρίς ειδοποιήσεις σε αυτή τη συσκευή — κοίτα την οθόνη. iPhone: πρόσθεσε τη σελίδα στην αρχική οθόνη και άνοιξέ την από εκεί. Android/Samsung: Ρυθμίσεις → Εφαρμογές → ο browser → Ειδοποιήσεις, και βγάλε τον browser από την εξοικονόμηση μπαταρίας.</template>
-      <template v-else>
-        <span>🔔 Να χτυπάει το κινητό {{ me.role === 'waiter' ? 'όταν είναι έτοιμη μια παραγγελία σου;' : me.role === 'cashier' ? 'όταν υπάρχει παραγγελία προς πληρωμή;' : 'όταν έρχεται παραγγελία;' }}</span>
-        <button class="btn sm" :disabled="push === 'busy'" @click="enablePush">Ναι</button>
-      </template>
+
+    <div v-if="settingsOpen && me" class="sheet-backdrop" @click.self="settingsOpen = false">
+      <div class="sheet bsheet">
+        <h3 style="margin:0;font-size:17px;text-align:center">{{ me.name }} · {{ roleLabel }}</h3>
+        <div class="srow2">
+          <div style="flex:1"><b>🔔 Ειδοποιήσεις</b>
+            <span v-if="push === 'on'">Ενεργές σε αυτή τη συσκευή{{ testing ? ' · ' + testing : '' }}</span>
+            <span v-else-if="push === 'no'">Δεν επιτρέπονται εδώ. iPhone: πρόσθεσε τη σελίδα στην αρχική οθόνη και άνοιξέ την από εκεί. Android/Samsung: Ρυθμίσεις → Εφαρμογές → ο browser → Ειδοποιήσεις, και βγάλε τον browser από την εξοικονόμηση μπαταρίας.</span>
+            <span v-else>Ανενεργές</span></div>
+          <button v-if="push === 'on'" class="btn sm" @click="tryPush">Δοκιμή</button>
+          <button v-else-if="push !== 'no'" class="btn sm" :disabled="push === 'busy'" @click="enablePush">Ενεργοποίηση</button>
+        </div>
+        <button class="btn red" @click="signOut">Έξοδος</button>
+        <button class="btn ghost" @click="settingsOpen = false">Κλείσιμο</button>
+      </div>
     </div>
     <BarWaiter v-if="me?.role === 'waiter'" :me="me" />
     <BarBartender v-else-if="me?.role === 'bartender'" :me="me" />
@@ -117,6 +134,11 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
 .barapp .out{background:rgba(255,255,255,.1);border:0;color:#fff;padding:8px 12px;border-radius:999px;font:inherit;font-size:12px;font-weight:600}
 .barapp main{flex:1;padding:14px 14px calc(90px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px}
 .barapp .signin{justify-content:center}
+.barapp .bsheet{background:#1B2648;color:#F4F6FB}
+.barapp .bsheet::before{background:rgba(255,255,255,.25)}
+.barapp .srow2{display:flex;align-items:center;gap:10px;background:#0F1730;border-radius:14px;padding:12px 14px;font-size:13px}
+.barapp .srow2 b{display:block;font-size:14px}
+.barapp .srow2 span{opacity:.7;line-height:1.35}
 .barapp .pushbar{display:flex;align-items:center;gap:10px;margin:12px 14px -4px;padding:10px 12px;border-radius:14px;background:rgba(240,180,41,.14);color:#F6D27A;font-size:13px;line-height:1.35}
 .barapp .pushbar span{flex:1}
 .barapp .card{background:#1B2648;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}

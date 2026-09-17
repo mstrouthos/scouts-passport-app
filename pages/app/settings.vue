@@ -4,6 +4,16 @@ const me = useMe()
 const { show } = useToast()
 const cfg = useRuntimeConfig()
 const notifState = ref<'idle' | 'granted' | 'denied' | 'unsupported'>('idle')
+const { test: testPush } = usePushResync()
+const testBusy = ref(false)
+const testMsg = ref('')
+async function testNotif() {
+  testBusy.value = true; testMsg.value = '…'
+  try { const r = await testPush(); testMsg.value = r.sent ? t('notifTestSent') : t('notifTestFailed') }
+  catch (e: any) { testMsg.value = e?.data?.message || e?.message || t('notifTestFailed') }
+  finally { testBusy.value = false; setTimeout(() => { testMsg.value = '' }, 5000) }
+}
+
 
 onMounted(() => {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) notifState.value = 'unsupported'
@@ -110,6 +120,10 @@ async function enableNotifs() {
         <span v-if="notifState === 'denied'">{{ t('notifDenied') }}</span>
         <span v-else-if="notifState === 'unsupported'">{{ t('notifUnsupported') }}</span>
       </div>
+    </button>
+    <button v-if="notifState === 'granted'" class="srow" :disabled="testBusy" @click="testNotif">
+      <div class="ico">📳</div>
+      <div class="txt"><b>{{ t('notifTest') }}</b><span>{{ testMsg || t('notifTestSub') }}</span></div>
     </button>
 
     <div class="sec-title">{{ t('install') }}</div>
