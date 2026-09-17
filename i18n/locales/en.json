@@ -742,5 +742,7 @@
   "barExtra": "Extra",
   "barBar": "Bar",
   "barAdults": "Adults",
-  "barKids": "Children"
+  "barKids": "Children",
+  "reloadApp": "Reload app",
+  "reloadAppSub": "Loads the latest version again"
 }

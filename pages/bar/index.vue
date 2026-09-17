@@ -23,6 +23,15 @@ async function signIn() {
   } catch (e: any) { err.value = e?.data?.message || 'Κάτι πήγε στραβά' }
   finally { busy.value = false }
 }
+/* A real reload: drop the cached app shell so the next start is the newest
+   build, then start again. */
+async function hardReload() {
+  try {
+    const regs = await navigator.serviceWorker?.getRegistrations?.() || []
+    await Promise.all(regs.map(r => r.update().catch(() => {})))
+  } catch {}
+  location.reload()
+}
 async function signOut() {
   if (!confirm('Αποσύνδεση;')) return
   await $fetch('/api/bar/logout', { method: 'POST' })
@@ -116,6 +125,8 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
           <button v-if="push === 'on'" class="btn sm" @click="tryPush">Δοκιμή</button>
           <button v-else-if="push !== 'no'" class="btn sm" :disabled="push === 'busy'" @click="enablePush">Ενεργοποίηση</button>
         </div>
+        <!-- an installed app has no reload button of its own -->
+        <button class="btn ghost" @click="hardReload">↻ Ανανέωση εφαρμογής</button>
         <button class="btn red" @click="signOut">Έξοδος</button>
         <button class="btn ghost" @click="settingsOpen = false">Κλείσιμο</button>
       </div>

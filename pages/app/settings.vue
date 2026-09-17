@@ -3,6 +3,10 @@ const { t, locale, setLocale } = useI18n()
 const me = useMe()
 const { show } = useToast()
 const cfg = useRuntimeConfig()
+async function hardReload() {
+  try { const regs = await navigator.serviceWorker?.getRegistrations?.() || []; await Promise.all(regs.map(r => r.update().catch(() => {}))) } catch {}
+  location.reload()
+}
 const notifState = ref<'idle' | 'granted' | 'denied' | 'unsupported'>('idle')
 const { test: testPush } = usePushResync()
 const testBusy = ref(false)
@@ -112,6 +116,10 @@ async function enableNotifs() {
       <button :class="{ on: locale === 'en' }" @click="pickLang('en')">English</button>
     </div>
 
+    <button class="srow" @click="hardReload">
+      <div class="ico">↻</div>
+      <div class="txt"><b>{{ t('reloadApp') }}</b><span>{{ t('reloadAppSub') }}</span></div>
+    </button>
     <div class="sec-title">{{ t('notifications') }}</div>
     <button class="srow" :disabled="notifState === 'granted'" @click="enableNotifs">
       <div class="ico">🔔</div>
