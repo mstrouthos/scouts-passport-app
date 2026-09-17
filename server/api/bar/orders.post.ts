@@ -26,7 +26,10 @@ export default defineEventHandler(async (event) => {
   const total = lines.reduce((a, l) => a + l.item.priceCents * (l.qty - l.couponQty), 0)
   // how the table will pay: coupons alone if nothing is left to pay,
   // otherwise cash or card as the waiter was told
-  const method = total === 0 ? 'coupon' : b?.method === 'card' ? 'card' : b?.method === 'cash' ? 'cash' : null
+  // an order with coupons on it settles the rest in cash — a card cannot be
+  // split against paper
+  const hasCoupons = lines.some(l => l.couponQty > 0)
+  const method = total === 0 ? 'coupon' : hasCoupons ? 'cash' : b?.method === 'card' ? 'card' : b?.method === 'cash' ? 'cash' : null
   if (!method) throw createError({ statusCode: 400, message: 'Μετρητά ή κάρτα;' })
   const number = (await db.select().from(s.barOrders).where(eq(s.barOrders.eventId, me.eventId))).reduce((m, o) => Math.max(m, o.number), 0) + 1
   const [row] = await db.insert(s.barOrders).values({

@@ -41,6 +41,10 @@ export default defineEventHandler(async (event) => {
     const b = await readBody<{ method?: string }>(event)
     const method = b?.method === 'card' ? 'card' : b?.method === 'cash' ? 'cash' : null
     if (!method) throw createError({ statusCode: 400, message: 'Μετρητά ή κάρτα;' })
+    if (method === 'card') {
+      const items = await db.select().from(s.barOrderItems).where(eq(s.barOrderItems.orderId, id))
+      if (items.some(i => i.couponQty > 0)) throw createError({ statusCode: 409, message: 'Με κουπόνια, το υπόλοιπο μόνο μετρητά' })
+    }
     set.paidMethod = method; tellCashiers = method !== o.paidMethod
   } else if (action === 'pay') {
     // only a cashier, and only one who takes this kind of money

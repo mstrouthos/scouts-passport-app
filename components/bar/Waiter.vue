@@ -33,7 +33,7 @@ async function send() {
   if (!table.value || !lines.value.length || sending.value) return
   sending.value = true
   try {
-    const r = await $fetch<any>('/api/bar/orders', { method: 'POST', body: { tableNo: table.value, method: method.value, items: lines.value.map((l: any) => ({ menuItemId: l.id, qty: l.qty, couponQty: l.couponQty })) } })
+    const r = await $fetch<any>('/api/bar/orders', { method: 'POST', body: { tableNo: table.value, method: coupons.value ? 'cash' : method.value, items: lines.value.map((l: any) => ({ menuItemId: l.id, qty: l.qty, couponQty: l.couponQty })) } })
     for (const k of Object.keys(qty)) { qty[Number(k)] = 0; coupon[Number(k)] = 0 }
     table.value = null
     say(`Στάλθηκε · #${r.number}`)
@@ -73,11 +73,14 @@ const readyCount = computed(() => orders.value.filter(o => o.status === 'ready')
         </div>
       </template>
       <div v-if="lines.length" class="sum">
-        <div v-if="total > 0" class="seg2">
+        <!-- coupons on the order: the rest, if any, is cash — a card cannot
+             be split against paper -->
+        <div v-if="total > 0 && !coupons" class="seg2">
           <button :class="{ on: method === 'cash' }" @click="method = 'cash'">💶 Μετρητά</button>
           <button :class="{ on: method === 'card' }" @click="method = 'card'">💳 Κάρτα</button>
         </div>
-        <div v-else class="seg2"><button class="on">🎟 Μόνο κουπόνια</button></div>
+        <div v-else-if="total > 0" class="seg2"><button class="on">🎟 {{ coupons }} κουπόνι{{ coupons === 1 ? '' : 'α' }} + 💶 {{ eur(total) }} μετρητά</button></div>
+        <div v-else class="seg2"><button class="on">🎟 Μόνο κουπόνια · {{ coupons }}</button></div>
         <button class="btn" :disabled="!table || sending" @click="send">
           {{ table ? `Στείλε · Τραπέζι ${table} · ${eur(total)}` : `Διάλεξε τραπέζι · ${eur(total)}` }}<template v-if="coupons"> · 🎟 {{ coupons }}</template>
         </button>
@@ -96,7 +99,7 @@ const readyCount = computed(() => orders.value.filter(o => o.status === 'ready')
         <div class="acts">
           <button v-if="o.status === 'new' && !o.paidAt" class="btn red sm" @click="act(o.id, 'cancel')">Ακύρωση</button>
           <button v-if="o.status === 'ready'" class="btn ok" @click="act(o.id, 'delivered')">Παραδόθηκε στο τραπέζι</button>
-          <button v-if="!o.paidAt && o.paidMethod === 'cash'" class="btn ghost sm" @click="act(o.id, 'method', { method: 'card' })">Τελικά με κάρτα</button>
+          <button v-if="!o.paidAt && o.paidMethod === 'cash' && !o.items.some((i: any) => i.couponQty)" class="btn ghost sm" @click="act(o.id, 'method', { method: 'card' })">Τελικά με κάρτα</button>
           <button v-if="!o.paidAt && o.paidMethod === 'card'" class="btn ghost sm" @click="act(o.id, 'method', { method: 'cash' })">Τελικά με μετρητά</button>
         </div>
       </div>
