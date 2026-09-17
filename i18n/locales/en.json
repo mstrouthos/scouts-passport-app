@@ -733,5 +733,12 @@
   "notifTestSub": "Sends a notification to this device",
   "notifTestSent": "Sent — check your phone",
   "notifTestFailed": "Didn't go — check the device's notification settings",
-  "offlineNote": "Can't reach the server right now — showing what was last loaded. It will retry on its own."
+  "offlineNote": "Can't reach the server right now — showing what was last loaded. It will retry on its own.",
+  "barTicket": "Ticket price",
+  "barGrand": "Night total",
+  "barDoorIncome": "Door income",
+  "barDoor": "Door",
+  "barPeople": "People",
+  "barExtra": "Extra",
+  "barBar": "Bar"
 }

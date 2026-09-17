@@ -415,6 +415,17 @@ CREATE TABLE IF NOT EXISTS bar_accounts (
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TEXT NOT NULL
 );
+-- who turned up: the door, table by table, in the batches they arrived in
+CREATE TABLE IF NOT EXISTS bar_arrivals (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER NOT NULL REFERENCES bar_events(id),
+  table_no INTEGER NOT NULL,
+  count INTEGER NOT NULL,
+  method TEXT NOT NULL,
+  account_id INTEGER,
+  cashier_id INTEGER REFERENCES bar_staff(id),
+  created_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS bar_order_items (
   id SERIAL PRIMARY KEY,
   order_id INTEGER NOT NULL REFERENCES bar_orders(id),
@@ -478,5 +489,6 @@ export const MIGRATIONS = [
   "ALTER TABLE bar_orders ADD COLUMN IF NOT EXISTS account_id INTEGER",
   "ALTER TABLE bar_menu_items ADD COLUMN IF NOT EXISTS coupon_cost INTEGER NOT NULL DEFAULT 1",
   "ALTER TABLE bar_menu_template_items ADD COLUMN IF NOT EXISTS coupon_cost INTEGER NOT NULL DEFAULT 1",
-  "ALTER TABLE bar_order_items ADD COLUMN IF NOT EXISTS coupon_cost INTEGER NOT NULL DEFAULT 1"
+  "ALTER TABLE bar_order_items ADD COLUMN IF NOT EXISTS coupon_cost INTEGER NOT NULL DEFAULT 1",
+  "ALTER TABLE bar_events ADD COLUMN IF NOT EXISTS entrance_cents INTEGER NOT NULL DEFAULT 0"
 ]

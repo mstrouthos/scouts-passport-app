@@ -15,9 +15,9 @@ const api = async (path: string, method: any, body?: any) => {
 }
 
 /* settings: the event's own fields, edited together */
-const eform = reactive({ name: '', eventDate: '', tableCount: 10 })
-watch(() => data.value, d => { if (d) { eform.name = d.name; eform.eventDate = d.eventDate || ''; eform.tableCount = d.tableCount } }, { immediate: true })
-async function saveEvent() { if (await api('', 'PATCH', { name: eform.name, eventDate: eform.eventDate || null, tableCount: eform.tableCount })) show('✅ ' + t('saved')) }
+const eform = reactive({ name: '', eventDate: '', tableCount: 10, entrance: '' })
+watch(() => data.value, d => { if (d) { eform.name = d.name; eform.eventDate = d.eventDate || ''; eform.tableCount = d.tableCount; eform.entrance = d.entranceCents ? (d.entranceCents / 100).toFixed(2) : '' } }, { immediate: true })
+async function saveEvent() { if (await api('', 'PATCH', { name: eform.name, eventDate: eform.eventDate || null, tableCount: eform.tableCount, entranceCents: Math.round(Number(String(eform.entrance).replace(',', '.')) * 100) || 0 })) show('✅ ' + t('saved')) }
 async function toggleStatus() {
   const closing = data.value.status === 'open'
   if (closing && !confirm(t('barCloseConfirm'))) return
@@ -290,6 +290,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
           <div style="flex:1"><label class="lab">{{ t('date') }}</label><input v-model="eform.eventDate" type="date" class="in" :disabled="!canEdit"></div>
           <div style="width:110px"><label class="lab">🪑 {{ t('barTables') }}</label><input v-model.number="eform.tableCount" type="number" min="1" max="200" class="in" :disabled="!canEdit"></div>
         </div>
+        <div><label class="lab">🎫 {{ t('barTicket') }}</label><input v-model="eform.entrance" class="in" inputmode="decimal" placeholder="0.00" :disabled="!canEdit"></div>
         <button v-if="canEdit" class="btn" :disabled="!eform.name.trim()" @click="saveEvent">{{ t('save') }}</button>
       </div>
       <div class="adm">
@@ -334,6 +335,31 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
 
     <!-- the books -->
     <template v-if="tab === 'report' && report">
+      <div class="stats" style="grid-template-columns:1fr 1fr">
+        <div class="stat" style="background:var(--green-soft)"><b>{{ eur(report.grandCents) }}</b><span>{{ t('barGrand') }}</span></div>
+        <div class="stat"><b>{{ eur(report.door.cents) }}</b><span>{{ t('barDoorIncome') }}</span></div>
+      </div>
+      <div class="sec-title">🎫 {{ t('barDoor') }}</div>
+      <div class="stats">
+        <div class="stat"><b>{{ report.door.arrived }}<span style="font-size:12px;color:var(--muted)">/{{ report.door.booked }}</span></b><span>{{ t('barPeople') }}</span></div>
+        <div class="stat"><b>+{{ report.door.extra }}</b><span>{{ t('barExtra') }}</span></div>
+        <div class="stat"><b>{{ eur(report.door.ticketCents) }}</b><span>{{ t('barTicket') }}</span></div>
+        <div class="stat"><b>{{ eur(report.door.cashCents) }}</b><span>{{ t('barCash') }}</span></div>
+        <div class="stat"><b>{{ eur(report.door.cardCents) }}</b><span>{{ t('barCard') }}</span></div>
+      </div>
+      <div v-if="report.door.accounts?.length" class="adm">
+        <div class="hdr">🎫 🏦 {{ t('barAccounts') }}</div>
+        <div v-for="r in report.door.accounts" :key="r.label" class="it">
+          <div style="flex:1"><b>{{ r.label }}</b><span>{{ r.people }} {{ t('barPeople').toLowerCase() }}</span></div><b>{{ eur(r.cents) }}</b>
+        </div>
+      </div>
+      <div v-if="report.door.tables?.length" class="adm">
+        <div class="hdr">🎫 {{ t('barByTable') }}</div>
+        <div v-for="r in report.door.tables" :key="r.no" class="it">
+          <div style="flex:1"><b>{{ t('barTable') }} {{ r.no }}</b><span v-if="r.extra" style="color:var(--gold)">+{{ r.extra }} {{ t('barExtra').toLowerCase() }}</span></div><b>{{ r.arrived }}<span style="font-weight:400;color:var(--muted)">/{{ r.booked }}</span></b>
+        </div>
+      </div>
+      <div class="sec-title">🍻 {{ t('barBar') }}</div>
       <div class="stats">
         <div class="stat"><b>{{ eur(report.paidCents) }}</b><span>{{ t('barTakings') }}</span></div>
         <div class="stat"><b>{{ report.orders }}</b><span>{{ t('barOrders') }}</span></div>

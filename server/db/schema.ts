@@ -536,6 +536,8 @@ export const barEvents = pgTable('bar_events', {
   tableCount: integer('table_count').notNull().default(10),
   // the floor plan, as JSON: where each table stands and the landmarks around them
   layout: text('layout'),
+  // the ticket at the door
+  entranceCents: integer('entrance_cents').notNull().default(0),
   status: text('status', { enum: ['open', 'closed'] }).notNull().default('open'),
   createdBy: integer('created_by'),
   createdAt: text('created_at').notNull(),
@@ -612,6 +614,17 @@ export const barOrders = pgTable('bar_orders', {
   readyAt: text('ready_at'),
   deliveredAt: text('delivered_at'),
   cancelledAt: text('cancelled_at')
+})
+/** Who turned up, table by table, in the batches they arrived in. */
+export const barArrivals = pgTable('bar_arrivals', {
+  id: serial('id').primaryKey(),
+  eventId: integer('event_id').notNull().references(() => barEvents.id),
+  tableNo: integer('table_no').notNull(),
+  count: integer('count').notNull(),
+  method: text('method', { enum: ['cash', 'card'] }).notNull(),
+  accountId: integer('account_id'),
+  cashierId: integer('cashier_id').references(() => barStaff.id),
+  createdAt: text('created_at').notNull()
 })
 export const barOrderItems = pgTable('bar_order_items', {
   id: serial('id').primaryKey(),

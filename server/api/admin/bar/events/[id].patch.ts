@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
   const set: any = {}
   if (b?.name !== undefined) { const v = String(b.name).trim(); if (!v) throw createError({ statusCode: 400, message: 'Name required' }); set.name = v }
   if (b?.eventDate !== undefined) set.eventDate = b.eventDate || null
+  if (b?.entranceCents !== undefined) set.entranceCents = Math.max(0, Math.round(Number(b.entranceCents)) || 0)
   if (b?.tableCount !== undefined) set.tableCount = Math.min(200, Math.max(1, Math.floor(Number(b.tableCount) || 10)))
   // closing signs the crew out; the figures stay
   if (b?.status === 'closed') { set.status = 'closed'; set.closedAt = now() }

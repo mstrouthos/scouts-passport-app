@@ -5,7 +5,8 @@
    went to. The card cashier can add accounts as they go. */
 const props = defineProps<{ me: any }>()
 const { orders, act, toast, say } = useBarOrders()
-const tab = ref<'pending' | 'done' | 'tables' | 'all'>('pending')
+const tab = ref<'pending' | 'door' | 'done' | 'tables' | 'all'>('pending')
+const canAdmit = computed(() => accepts.value.includes('cash') || accepts.value.includes('card'))
 const accepts = computed<string[]>(() => props.me.accepts || [])
 const takesCard = computed(() => accepts.value.includes('card'))
 const live = computed(() => orders.value.filter(o => o.status !== 'cancelled'))
@@ -76,6 +77,7 @@ async function addAccount() {
       </div>
     </template>
 
+    <template v-else-if="tab === 'door'"><BarDoor :me="me" :can-admit="canAdmit" /></template>
     <template v-else-if="tab === 'tables'"><BarTables :orders="orders" /></template>
 
     <template v-else>
@@ -99,6 +101,7 @@ async function addAccount() {
     <div v-if="toast" class="toast">{{ toast }}</div>
     <nav class="tabs">
       <button :class="{ on: tab === 'pending' }" @click="tab = 'pending'">Προς πληρωμή<span v-if="pending.length" class="n">{{ pending.length }}</span></button>
+      <button :class="{ on: tab === 'door' }" @click="tab = 'door'">Είσοδος</button>
       <button :class="{ on: tab === 'done' }" @click="tab = 'done'">Πληρωμένα</button>
       <button :class="{ on: tab === 'tables' }" @click="tab = 'tables'">Τραπέζια</button>
       <button :class="{ on: tab === 'all' }" @click="tab = 'all'">Όλα</button>

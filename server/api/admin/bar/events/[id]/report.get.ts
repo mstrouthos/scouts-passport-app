@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../../db'
-import { requireBarReader, ordersWithItems } from '../../../../../utils/bar'
+import { requireBarReader, ordersWithItems, parseLayout } from '../../../../../utils/bar'
 
 /** The night in numbers: takings, what sold, which tables, who served, how
     fast the bar was. Kept for the next event's planning. */
@@ -9,6 +9,29 @@ export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
   const db = await useDb()
   const all = await ordersWithItems(eq(s.barOrders.eventId, id))
+  const ev = (await db.select().from(s.barEvents).where(eq(s.barEvents.id, id)))[0]
+  const arrivals = await db.select().from(s.barArrivals).where(eq(s.barArrivals.eventId, id))
+  const accountsAll = await db.select().from(s.barAccounts).where(eq(s.barAccounts.eventId, id))
+  const seats = parseLayout(ev?.layout ?? null)?.seats || {}
+  // the door: booked vs arrived per table, extras, and the ticket money apart from the bar's
+  const doorTables = Array.from({ length: ev?.tableCount || 0 }, (_, i) => i + 1).map(no => {
+    const booked = seats[String(no)] || 0
+    const arrived = arrivals.filter(a => a.tableNo === no).reduce((s, a) => s + a.count, 0)
+    return { no, booked, arrived, extra: Math.max(0, arrived - booked) }
+  }).filter(t => t.booked || t.arrived)
+  const ticket = ev?.entranceCents || 0
+  const doorCents = (xs: typeof arrivals) => xs.reduce((s, a) => s + a.count * ticket, 0)
+  const door = {
+    ticketCents: ticket,
+    booked: doorTables.reduce((s, t) => s + t.booked, 0),
+    arrived: doorTables.reduce((s, t) => s + t.arrived, 0),
+    extra: doorTables.reduce((s, t) => s + t.extra, 0),
+    cents: doorCents(arrivals),
+    cashCents: doorCents(arrivals.filter(a => a.method === 'cash')),
+    cardCents: doorCents(arrivals.filter(a => a.method === 'card')),
+    accounts: accountsAll.map(a => ({ label: a.name, people: arrivals.filter(x => x.accountId === a.id).reduce((s, x) => s + x.count, 0), cents: doorCents(arrivals.filter(x => x.accountId === a.id)) })).filter(a => a.people),
+    tables: doorTables
+  }
   const staff = await db.select().from(s.barStaff).where(eq(s.barStaff.eventId, id))
   const live = all.filter(o => o.status !== 'cancelled')
   const sum = (xs: typeof live) => xs.reduce((a, o) => a + o.totalCents, 0)
@@ -31,6 +54,8 @@ export default defineEventHandler(async (event) => {
   const prep = live.filter(o => o.readyAt).map(o => (new Date(o.readyAt!).getTime() - new Date(o.createdAt).getTime()) / 60000)
   const nameOf = (sid: number | null) => staff.find(x => x.id === sid)?.name ?? '—'
   return {
+    door,
+    grandCents: sum(paid) + door.cents,
     orders: live.length, cancelled: all.length - live.length,
     totalCents: sum(live), paidCents: sum(paid),
     cashCents: sum(paid.filter(o => o.paidMethod === 'cash')),

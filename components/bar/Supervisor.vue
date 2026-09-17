@@ -4,7 +4,7 @@
    what is selling. Reads everything, touches nothing. */
 defineProps<{ me: any }>()
 const { orders } = useBarOrders()
-const tab = ref<'pending' | 'unpaid' | 'done' | 'tables' | 'items'>('pending')
+const tab = ref<'pending' | 'unpaid' | 'done' | 'tables' | 'door' | 'items'>('pending')
 const live = computed(() => orders.value.filter(o => o.status !== 'cancelled'))
 const pending = computed(() => live.value.filter(o => o.status === 'new' || o.status === 'ready'))
 const unpaid = computed(() => live.value.filter(o => !o.settled))
@@ -39,6 +39,7 @@ const items = computed(() => {
     </template>
 
     <template v-else-if="tab === 'tables'"><BarTables :orders="orders" /></template>
+    <template v-else-if="tab === 'door'"><BarDoor :me="me" /></template>
 
     <template v-else>
       <div v-if="!items.length" class="empty">Τίποτα ακόμη.</div>
@@ -52,6 +53,7 @@ const items = computed(() => {
       <button :class="{ on: tab === 'unpaid' }" @click="tab = 'unpaid'">Απλήρωτες<span v-if="unpaid.length" class="n">{{ unpaid.length }}</span></button>
       <button :class="{ on: tab === 'done' }" @click="tab = 'done'">Τέλος</button>
       <button :class="{ on: tab === 'tables' }" @click="tab = 'tables'">Τραπέζια</button>
+      <button :class="{ on: tab === 'door' }" @click="tab = 'door'">Είσοδος</button>
       <button :class="{ on: tab === 'items' }" @click="tab = 'items'">Είδη</button>
     </nav>
   </main>

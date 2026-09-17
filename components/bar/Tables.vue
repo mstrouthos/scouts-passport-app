@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /* Every table's bill, for whoever is settling it: total, what is still
    owed, and — on tap — exactly what the table had and which orders it was. */
-const props = defineProps<{ orders: any[] }>()
+const props = defineProps<{ orders: any[]; people?: Record<number, { arrived: number; booked: number }> }>()
 const open = ref<number | null>(null)
 const tables = computed(() => {
   const m = new Map<number, { no: number; orders: any[]; cents: number; owed: number; items: Map<string, { name: string; qty: number; cents: number; coupons?: number }> }>()
@@ -19,7 +19,7 @@ const tables = computed(() => {
   <div v-if="!tables.length" class="empty">Καμία παραγγελία ακόμη.</div>
   <div v-for="r in tables" :key="r.no" class="order" @click="open = open === r.no ? null : r.no">
     <div class="hd"><span class="tb">Τραπέζι {{ r.no }}</span>
-      <span class="meta">{{ r.orders.length }} {{ r.orders.length === 1 ? 'παραγγελία' : 'παραγγελίες' }}<br><span v-if="r.owed" class="pill unpaid">οφείλει {{ eur(r.owed) }}</span><span v-else class="pill paid">εξοφλημένο</span></span></div>
+      <span class="meta"><template v-if="people && people[r.no]">👥 {{ people[r.no].arrived }}/{{ people[r.no].booked }} · </template>{{ r.orders.length }} {{ r.orders.length === 1 ? 'παραγγελία' : 'παραγγελίες' }}<br><span v-if="r.owed" class="pill unpaid">οφείλει {{ eur(r.owed) }}</span><span v-else class="pill paid">εξοφλημένο</span></span></div>
     <div class="tot" style="border:0;padding:0"><span style="opacity:.6">{{ open === r.no ? 'Τι παρήγγειλε ▾' : 'Τι παρήγγειλε ▸' }}</span><b style="font-size:20px">{{ eur(r.cents) }}</b></div>
     <div v-if="open === r.no" class="lines" style="border-top:1px solid rgba(255,255,255,.1);padding-top:8px">
       <div v-for="i in r.items" :key="i.name"><b>{{ i.qty }}×</b><span style="flex:1">{{ i.name }}<span v-if="i.coupons" class="cpn on">🎟 {{ i.coupons }}</span></span><span style="opacity:.6">{{ eur(i.cents) }}</span></div>

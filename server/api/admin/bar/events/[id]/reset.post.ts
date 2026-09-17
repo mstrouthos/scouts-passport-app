@@ -15,5 +15,6 @@ export default defineEventHandler(async (event) => {
   const orderIds = (await db.select({ id: s.barOrders.id }).from(s.barOrders).where(eq(s.barOrders.eventId, id))).map(x => x.id)
   if (orderIds.length) await db.delete(s.barOrderItems).where(inArray(s.barOrderItems.orderId, orderIds))
   await db.delete(s.barOrders).where(eq(s.barOrders.eventId, id))
+  await db.delete(s.barArrivals).where(eq(s.barArrivals.eventId, id))
   return { cleared: orderIds.length }
 })
