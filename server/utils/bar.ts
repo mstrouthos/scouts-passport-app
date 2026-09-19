@@ -76,7 +76,7 @@ export async function ordersWithItems(where: any) {
 
 /** The floor plan. Positions are fractions of the plan's width and height,
     so the same plan fits any phone. */
-export type Layout = { tables: Array<{ no: number; x: number; y: number }>; marks: Array<{ id: string; label: string; x: number; y: number }>; seats: Record<string, number>; kidSeats: Record<string, number> }
+export type Layout = { tables: Array<{ no: number; x: number; y: number }>; marks: Array<{ id: string; label: string; x: number; y: number }>; seats: Record<string, number>; kidSeats: Record<string, number>; waiters: Record<string, number> }
 const seatMap = (o: any) => Object.fromEntries(Object.entries(o && typeof o === 'object' ? o : {})
   .map(([k, v]) => [String(Number(k)), Math.max(0, Math.min(99, Math.floor(Number(v)) || 0))]).filter(([k]) => k !== 'NaN'))
 export function parseLayout(raw: string | null): Layout | null {
@@ -89,7 +89,9 @@ export function parseLayout(raw: string | null): Layout | null {
       marks: (Array.isArray(j.marks) ? j.marks : []).slice(0, 20).map((m: any) => ({ id: String(m.id || '').slice(0, 20), label: String(m.label || '').slice(0, 24), x: f(m.x), y: f(m.y) })).filter((m: any) => m.label),
       // how many are booked at each table, by table number: adults, and children
       seats: seatMap(j.seats),
-      kidSeats: seatMap(j.kidSeats)
+      kidSeats: seatMap(j.kidSeats),
+      // which waiter answers each table's call
+      waiters: seatMap(j.waiters)
     }
   } catch { return null }
 }

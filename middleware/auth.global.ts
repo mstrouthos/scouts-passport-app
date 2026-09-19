@@ -3,7 +3,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // /install is linked from the SMS that carries someone's code, so it has to
   // be readable before they can sign in
   const open = to.path === '/' || to.path === '/login' || to.path === '/install'
-    || to.path.startsWith('/family') || to.path.startsWith('/bar')
+    || to.path.startsWith('/family') || to.path.startsWith('/bar') || to.path.startsWith('/t/')
   // someone already signed in has no business on the passcode screen
   if (to.path === '/login') {
     const me = useMe()

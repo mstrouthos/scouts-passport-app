@@ -633,6 +633,15 @@ export const barArrivals = pgTable('bar_arrivals', {
   confirmedBy: integer('confirmed_by'),
   createdAt: text('created_at').notNull()
 })
+/** A table asking for its waiter. */
+export const barCalls = pgTable('bar_calls', {
+  id: serial('id').primaryKey(),
+  eventId: integer('event_id').notNull().references(() => barEvents.id),
+  tableNo: integer('table_no').notNull(),
+  createdAt: text('created_at').notNull(),
+  handledAt: text('handled_at'),
+  handledBy: integer('handled_by')
+})
 export const barOrderItems = pgTable('bar_order_items', {
   id: serial('id').primaryKey(),
   orderId: integer('order_id').notNull().references(() => barOrders.id),

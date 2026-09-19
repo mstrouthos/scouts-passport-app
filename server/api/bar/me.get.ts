@@ -19,6 +19,8 @@ export default defineEventHandler(async (event) => {
     event: { id: ev.id, name: ev.name, tableCount: ev.tableCount, layout: parseLayout(ev.layout), entranceCents: ev.entranceCents, couponsPerAdult: ev.couponsPerAdult },
     menu,
     bartender: me.role === 'waiter' ? staff.find(x => x.id === me.bartenderId)?.name ?? null : null,
-    waiters: me.role === 'bartender' ? staff.filter(x => x.role === 'waiter' && x.bartenderId === me.id).map(x => x.name) : []
+    waiters: me.role === 'bartender' ? staff.filter(x => x.role === 'waiter' && x.bartenderId === me.id).map(x => x.name) : [],
+    // the organiser assigns tables to waiters
+    waiterList: me.role === 'organiser' ? staff.filter(x => x.role === 'waiter').map(x => ({ id: x.id, name: x.name })) : []
   }
 })

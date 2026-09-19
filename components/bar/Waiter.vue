@@ -11,6 +11,14 @@ let balTimer: any = null
 onMounted(() => { loadBalances(); balTimer = setInterval(loadBalances, 4000) })
 onUnmounted(() => clearInterval(balTimer))
 const bal = computed(() => table.value ? balances.value[table.value] : null)
+// tables asking for me
+const calls = ref<any[]>([])
+async function loadCalls() { try { calls.value = await $fetch<any[]>('/api/bar/calls') } catch {} }
+let callTimer: any = null
+onMounted(() => { loadCalls(); callTimer = setInterval(loadCalls, 4000) })
+onUnmounted(() => clearInterval(callTimer))
+async function wentTo(c: any) { try { await $fetch(`/api/bar/calls/${c.id}/done`, { method: 'POST' }); await loadCalls() } catch {} }
+const ago = (iso: string) => Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000))
 const couponsLeft = computed(() => bal.value ? Math.max(0, bal.value.left) : 0)
 // the night is everyone's; the list of "mine" is what I carried
 const orders = computed(() => all.value.filter(o => o.waiterId === props.me.id))
@@ -113,7 +121,11 @@ const readyCount = computed(() => orders.value.filter(o => o.status === 'ready')
     <template v-else-if="tab === 'tables'"><BarTables :orders="all" /></template>
 
     <template v-else>
-      <div v-if="!active.length && !done.length" class="empty">Καμία παραγγελία ακόμη.</div>
+      <div v-for="c in calls" :key="'c' + c.id" class="order" style="border:1.5px solid #F0B429">
+        <div class="hd"><span class="no">🔔</span><span class="tb">Τραπέζι {{ c.tableNo }} σε ζητάει</span><span class="meta">πριν {{ ago(c.createdAt) }}′</span></div>
+        <div class="acts"><button class="btn ok" @click="wentTo(c)">Πήγα ✓</button></div>
+      </div>
+      <div v-if="!active.length && !done.length && !calls.length" class="empty">Καμία παραγγελία ακόμη.</div>
       <div v-for="o in active" :key="o.id" class="order">
         <div class="hd"><span class="no">#{{ o.number }}</span><span class="tb">Τραπέζι {{ o.tableNo }}</span>
           <span class="meta">{{ clock(o.createdAt) }}<br><span class="pill" :class="o.status">{{ ({ new: 'Στο μπαρ', ready: 'Έτοιμη!', delivered: 'Παραδόθηκε' } as any)[o.status] }}</span></span></div>
@@ -137,7 +149,7 @@ const readyCount = computed(() => orders.value.filter(o => o.status === 'ready')
     <div v-if="toast" class="toast">{{ toast }}</div>
     <nav class="tabs">
       <button :class="{ on: tab === 'new' }" @click="tab = 'new'">Νέα παραγγελία</button>
-      <button :class="{ on: tab === 'mine' }" @click="tab = 'mine'">Οι παραγγελίες μου<span v-if="readyCount" class="n">{{ readyCount }}</span></button>
+      <button :class="{ on: tab === 'mine' }" @click="tab = 'mine'">Οι παραγγελίες μου<span v-if="readyCount + calls.length" class="n">{{ readyCount + calls.length }}</span></button>
       <button :class="{ on: tab === 'tables' }" @click="tab = 'tables'">Τραπέζια</button>
     </nav>
   </main>

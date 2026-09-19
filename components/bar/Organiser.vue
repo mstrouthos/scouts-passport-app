@@ -6,6 +6,12 @@ const props = defineProps<{ me: any }>()
 const layout = ref<any>(props.me.event.layout || { tables: [], marks: [], seats: {} })
 if (!layout.value.seats) layout.value.seats = {}
 if (!layout.value.kidSeats) layout.value.kidSeats = {}
+if (!layout.value.waiters) layout.value.waiters = {}
+function setWaiter(no: number, id: number) {
+  const cur = layout.value.waiters[String(no)]
+  layout.value.waiters = { ...layout.value.waiters, [String(no)]: cur === id ? 0 : id }
+  clearTimeout(seatTimer); seatTimer = setTimeout(save, 400)
+}
 const tableCount = ref<number>(props.me.event.tableCount)
 const saved = ref('')
 let timer: any = null
@@ -18,7 +24,7 @@ async function save() {
     saved.value = 'Αποθηκεύτηκε ✓'; clearTimeout(timer); timer = setTimeout(() => { saved.value = '' }, 1500)
   } catch { saved.value = 'Δεν αποθηκεύτηκε' }
 }
-function onChange(l: any) { layout.value = { tables: l.tables.map((t: any) => ({ ...t })), marks: l.marks.map((m: any) => ({ ...m })), seats: layout.value.seats, kidSeats: layout.value.kidSeats }; save() }
+function onChange(l: any) { layout.value = { tables: l.tables.map((t: any) => ({ ...t })), marks: l.marks.map((m: any) => ({ ...m })), seats: layout.value.seats, kidSeats: layout.value.kidSeats, waiters: layout.value.waiters }; save() }
 // how many are booked at each table; saved a moment after the last tap
 let seatTimer: any = null
 function bumpSeats(no: number, by: number, kind: 'seats' | 'kidSeats' = 'seats') {
@@ -67,6 +73,15 @@ function bumpTables(by: number) {
         <button v-if="layout.kidSeats[String(no)]" @click="bumpSeats(no, -1, 'kidSeats')">−</button>
         <b v-if="layout.kidSeats[String(no)]">{{ layout.kidSeats[String(no)] }}</b>
         <button class="plus" @click="bumpSeats(no, 1, 'kidSeats')">+</button>
+      </div>
+    </div>
+    <div class="cat">Σερβιτόρος ανά τραπέζι</div>
+    <div class="hint" style="text-align:left;margin-top:-4px">Όταν ένα τραπέζι καλεί (QR), χτυπάει ο σερβιτόρος του· χωρίς ανάθεση χτυπούν όλοι.</div>
+    <div v-for="no in tableCount" :key="'w' + no" class="item" style="min-height:44px;flex-wrap:wrap">
+      <div class="nm" style="flex:0 0 auto;min-width:88px">Τραπέζι {{ no }}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;flex:1">
+        <button v-for="w in me.waiterList" :key="w.id" class="btn sm" :class="layout.waiters[String(no)] === w.id ? '' : 'ghost'" style="padding:6px 10px;font-size:12px" @click="setWaiter(no, w.id)">{{ w.name }}</button>
+        <span v-if="!me.waiterList?.length" class="hint">Δεν υπάρχουν σερβιτόροι ακόμη.</span>
       </div>
     </div>
     <div class="hint" style="text-align:left">Ό,τι αλλάζεις αποθηκεύεται αμέσως. Οι σερβιτόροι βλέπουν την κάτοψη όταν διαλέγουν τραπέζι.</div>

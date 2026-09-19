@@ -428,6 +428,14 @@ CREATE TABLE IF NOT EXISTS bar_arrivals (
   confirmed_at TEXT, confirmed_by INTEGER,
   created_at TEXT NOT NULL
 );
+-- a table asking for its waiter, from the QR page (or, one day, a button)
+CREATE TABLE IF NOT EXISTS bar_calls (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER NOT NULL REFERENCES bar_events(id),
+  table_no INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  handled_at TEXT, handled_by INTEGER
+);
 CREATE TABLE IF NOT EXISTS bar_order_items (
   id SERIAL PRIMARY KEY,
   order_id INTEGER NOT NULL REFERENCES bar_orders(id),

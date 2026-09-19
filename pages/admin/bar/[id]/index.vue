@@ -296,6 +296,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour:
         </div>
         <button v-if="canEdit" class="btn" :disabled="!eform.name.trim()" @click="saveEvent">{{ t('save') }}</button>
       </div>
+      <NuxtLink :to="`/admin/bar/${id}/qr`" class="btn ghost">📱 {{ t('barQr') }}</NuxtLink>
       <div class="adm">
         <div class="hdr">🏦 {{ t('barAccounts') }} · {{ data.accounts?.length || 0 }}</div>
         <div v-for="a in data.accounts" :key="a.id" class="it">
