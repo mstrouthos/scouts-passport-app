@@ -24,7 +24,9 @@ export function usePushResync() {
     done = true
     try {
       const sub = await current()
-      if (sub) await $fetch('/api/push/resync', { method: 'POST', body: sub.toJSON() })
+      // the bar is its own installed app; everything else is the members' one
+      const surface = useRoute().path.startsWith('/bar') ? 'bar' : 'scouts'
+      if (sub) await $fetch('/api/push/resync', { method: 'POST', body: { ...sub.toJSON(), surface } })
       return sub
     } catch { return null }
   }

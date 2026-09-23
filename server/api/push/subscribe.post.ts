@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const db = (await useDb())
   await db.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.endpoint, endpoint))
   await db.insert(s.pushSubscriptions).values({
-    scoutId: me.id, endpoint, p256dh, auth,
+    scoutId: me.id, surfaces: 'scouts', endpoint, p256dh, auth,
     userAgent: getHeader(event, 'user-agent') || null, createdAt: now()
   })
   return { ok: true }

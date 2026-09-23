@@ -23,8 +23,14 @@ export default defineEventHandler(async (event) => {
   const parent = parentId ? (await db.select().from(s.parents).where(eq(s.parents.id, parentId)))[0] : null
   // one device, one row: the session says who it belongs to right now
   const who = { scoutId, parentId: parent ? parentId : null, barStaffId, sectionId: parent?.sectionId ?? null }
+  // which installed app is asking — a phone may hold both, each with its own
+  // endpoint, and each should hear only its own news
+  const surface = b?.surface === 'bar' ? 'bar' : 'scouts'
   const existing = (await db.select().from(s.pushSubscriptions).where(eq(s.pushSubscriptions.endpoint, endpoint)))[0]
-  if (existing) await db.update(s.pushSubscriptions).set({ ...who, p256dh, auth }).where(eq(s.pushSubscriptions.id, existing.id))
-  else await db.insert(s.pushSubscriptions).values({ ...who, endpoint, p256dh, auth, userAgent: getHeader(event, 'user-agent') || null, createdAt: now() })
+  if (existing) {
+    // one endpoint, one browser: if the same one serves both apps, it keeps both
+    const surfaces = [...new Set([...(existing.surfaces || '').split(',').filter(Boolean), surface])].join(',')
+    await db.update(s.pushSubscriptions).set({ ...who, p256dh, auth, surfaces }).where(eq(s.pushSubscriptions.id, existing.id))
+  } else await db.insert(s.pushSubscriptions).values({ ...who, surfaces: surface, endpoint, p256dh, auth, userAgent: getHeader(event, 'user-agent') || null, createdAt: now() })
   return { ok: true }
 })

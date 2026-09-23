@@ -17,6 +17,12 @@ function ensureConfigured(): boolean {
   return configured
 }
 
+type Sub = typeof s.pushSubscriptions.$inferSelect
+/** Does this endpoint belong to the app the message is for? A row from
+    before surfaces were recorded belongs to everything it is filed under. */
+export const onSurface = (x: Sub, want: 'scouts' | 'bar') =>
+  !x.surfaces || x.surfaces.split(',').includes(want)
+
 /** Exposed for the test push, which targets one known row. */
 export const deliverTo = (subs: Array<typeof s.pushSubscriptions.$inferSelect>, payload: string) => deliver(subs, payload)
 
@@ -59,7 +65,8 @@ export async function sendPushTo(scoutIds: number[], msg: { title: string, body:
   await db.insert(s.notifications).values(fresh.map(id => ({
     scoutId: id, kind: msg.kind, refId: msg.refId, title: msg.title, body: msg.body, createdAt: sentAt
   })))
-  const subs = (await db.select().from(s.pushSubscriptions)).filter(x => x.scoutId != null && fresh.includes(x.scoutId))
+  const subs = (await db.select().from(s.pushSubscriptions))
+    .filter(x => x.scoutId != null && fresh.includes(x.scoutId) && onSurface(x, 'scouts'))
   const url = linkForNotification(msg.kind, msg.refId)
   return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body, url: url || '/' }))
 }
@@ -69,7 +76,14 @@ export async function sendPushTo(scoutIds: number[], msg: { title: string, body:
 export async function sendPushToBarStaff(staffIds: number[], msg: { title: string, body: string, url?: string }): Promise<number> {
   if (!staffIds.length) return 0
   const db = (await useDb())
-  const subs = (await db.select().from(s.pushSubscriptions)).filter(x => x.barStaffId != null && staffIds.includes(x.barStaffId))
+  const mine = (await db.select().from(s.pushSubscriptions)).filter(x => x.barStaffId != null && staffIds.includes(x.barStaffId))
+  // the bar app's own endpoints; a crew member who never installed it is
+  // still buzzed on whatever they do have
+  const subs = staffIds.flatMap(id => {
+    const theirs = mine.filter(x => x.barStaffId === id)
+    const barOnly = theirs.filter(x => onSurface(x, 'bar'))
+    return barOnly.length ? barOnly : theirs
+  })
   return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body, url: msg.url || '/bar' }))
 }
 
@@ -94,7 +108,8 @@ export async function sendPushToParentIds(parentIds: number[], msg: { title: str
   await db.insert(s.parentNotifications).values(fresh.map(pid => ({
     parentId: pid, kind: msg.kind, refId: msg.refId, title: msg.title, body: msg.body, createdAt: sentAt
   })))
-  const subs = (await db.select().from(s.pushSubscriptions)).filter(x => x.parentId != null && fresh.includes(x.parentId))
+  const subs = (await db.select().from(s.pushSubscriptions))
+    .filter(x => x.parentId != null && fresh.includes(x.parentId) && onSurface(x, 'scouts'))
   if (!subs.length) return 0
   const url = linkForNotification(msg.kind, msg.refId) || '/family'
   return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body, url }))
@@ -106,7 +121,7 @@ export async function sendPushToParents(sectionIds: number[] | null, msg: { titl
   const db = (await useDb())
   const subs = (await db.select().from(s.pushSubscriptions))
     // parents who signed in are reached by id instead, so skip them here
-    .filter(x => x.scoutId == null && x.parentId == null && x.sectionId != null)
+    .filter(x => x.scoutId == null && x.parentId == null && x.sectionId != null && onSurface(x, 'scouts'))
     .filter(x => sectionIds === null || sectionIds.includes(x.sectionId!))
   if (!subs.length) return 0
   const targetSections = [...new Set(subs.map(x => x.sectionId!))]

@@ -322,6 +322,10 @@ export const pushSubscriptions = pgTable('push_subscriptions', {
   parentId: integer('parent_id').references(() => parents.id),
   // a crew member's phone for the night: the bar buzzes the waiter, the waiter the bar
   barStaffId: integer('bar_staff_id'),
+  // which installed app this endpoint belongs to: 'scouts', 'bar', or both.
+  // A phone with the members' app and the bar app on its home screen holds a
+  // separate subscription for each, and each must hear only its own news.
+  surfaces: text('surfaces').notNull().default(''),
   sectionId: integer('section_id').references(() => sections.id),
   endpoint: text('endpoint').notNull(),
   p256dh: text('p256dh').notNull(),
