@@ -110,7 +110,14 @@ function tap(c: any) {
   open.value = c
   if (!c.answer && !c.closed) startReading()
 }
-watch(open, v => { if (!v) { stopTicker(); stopRead() } })
+watch(open, v => { if (!v) { stopTicker(); stopRead(); result.value = null } })
+/* the reading countdown as a ring that empties */
+const RING = 2 * Math.PI * 30
+const readFrac = computed(() => readLeft.value / (READ_MS / 1000))
+/* The moment of the answer, shown in the sheet itself: a right one lights the
+   card, the phoenix cheers and the points float up; a wrong one wobbles. */
+const result = ref<{ correct: boolean; points: number } | null>(null)
+let resultTimer: any = null
 async function submit() {
   if (picked.value == null || !open.value || busy.value) return
   busy.value = true
@@ -119,7 +126,8 @@ async function submit() {
       method: 'POST', body: { optionId: picked.value }
     })
     stopTicker()
-    show(res.isCorrect ? `🎉 +${res.points} ${t('pts')}` : t('wrong'))
+    result.value = { correct: !!res.isCorrect, points: res.points || 0 }
+    clearTimeout(resultTimer); resultTimer = setTimeout(() => { result.value = null }, 2200)
     await refresh()
     open.value = items.value.find(x => x.id === open.value.id) || null
     picked.value = null
@@ -128,7 +136,7 @@ async function submit() {
 }
 function optClass(c: any, o: any) {
   if (!c.answer) return { sel: picked.value === o.id }
-  return { correct: o.isCorrect, wrong: c.answer.optionId === o.id && !o.isCorrect }
+  return { correct: o.isCorrect, wrong: c.answer.optionId === o.id && !o.isCorrect, mine: c.answer.optionId === o.id }
 }
 </script>
 
@@ -154,10 +162,12 @@ function optClass(c: any, o: any) {
     </div>
 
     <!-- the path -->
+    <!-- the trail: coins laid on a path, seen from above and a little behind -->
     <div v-if="items.length" class="path">
-      <div v-for="(c, i) in items" :key="c.id" class="row" :style="{ transform: `translateX(${offsetOf(i)}px)` }">
+      <div v-for="(c, i) in items" :key="c.id" class="row" :style="{ '--x': offsetOf(i) + 'px', '--i': i }">
+        <div v-if="c.state === 'open'" class="here">{{ t('today') }}</div>
         <button class="node" :class="nodeClass(c)" :disabled="c.state === 'missed'" @click="tap(c)">
-          <span class="ico">{{ nodeIcon(c) }}</span>
+          <span class="face"><span class="ico">{{ nodeIcon(c) }}</span></span>
           <span v-if="c.isBonus" class="star">🎁</span>
         </button>
         <div class="cap" :class="{ dim: c.state === 'missed' }">{{ lx(c) }}</div>
@@ -167,30 +177,42 @@ function optClass(c: any, o: any) {
 
     <Teleport to="body">
       <div v-if="open" class="sheet-backdrop" @click.self="open = null">
-        <div class="sheet" style="display:flex;flex-direction:column;gap:13px;max-height:88dvh;overflow:auto">
+        <div class="sheet qsheet" style="display:flex;flex-direction:column;gap:13px;max-height:88dvh;overflow:auto">
           <div v-if="open.imageEmoji" style="text-align:center;font-size:40px">{{ open.imageEmoji }}</div>
           <div v-if="open.isBonus" class="pill sched" style="align-self:center">🎁 {{ t('bonusQuestion') }}</div>
           <div style="font-size:15px;font-weight:650;line-height:1.4">{{ lx(open, 'question') }}</div>
 
           <!-- a few seconds to read, then the options appear on their own -->
           <template v-if="!open.answer && !open.closed && !reveal">
-            <div class="timer" style="justify-content:center">
-              <span>👀</span><b>{{ readLeft }}</b><span class="tiny">{{ t('readCountdown') }}</span>
+            <div class="readring">
+              <svg viewBox="0 0 72 72" aria-hidden="true">
+                <circle cx="36" cy="36" r="30" class="track" />
+                <circle cx="36" cy="36" r="30" class="left" :style="{ strokeDasharray: RING, strokeDashoffset: RING * (1 - readFrac) }" />
+              </svg>
+              <b>{{ readLeft }}</b>
             </div>
+            <div class="tiny muted" style="text-align:center">👀 {{ t('readCountdown') }}</div>
           </template>
 
           <template v-else>
             <div v-if="reveal && !open.answer" class="timer" :class="{ floor: live === reveal.minPoints }">
               <span>⏱</span><b>{{ live }}</b><span class="tiny">{{ t('ptsNow') }}</span>
             </div>
-            <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="opts">
               <button v-for="(o, i) in open.options" :key="o.id" class="opt" :class="optClass(open, o)"
+                      :style="{ animationDelay: i * 80 + 'ms' }"
                       :disabled="!!open.answer || open.closed" @click="picked = o.id">
                 <span class="k">{{ K[i] }}</span>{{ lx(o, 'text') }}
               </button>
             </div>
           </template>
 
+          <div v-if="result" class="moment" :class="result.correct ? 'good' : 'bad'" @click="result = null">
+            <div class="m-burst" aria-hidden="true"><i v-for="n in 12" :key="n" :style="{ '--a': n * 30 + 'deg' }" /></div>
+            <MascotPhoenix v-if="result.correct" class="m-bird" pose="cheer" />
+            <div class="m-pts">{{ result.correct ? `+${result.points}` : '✕' }}</div>
+            <div class="m-word">{{ result.correct ? t('correct') : t('wrong') }}</div>
+          </div>
           <template v-if="open.answer">
             <div class="verdict" :class="open.answer.isCorrect ? 'good' : 'bad'">
               <b>{{ open.answer.isCorrect ? t('correct') : t('wrong') }}</b>
@@ -241,20 +263,93 @@ function optClass(c: any, o: any) {
 .timer b{font-size:17px}
 .timer.floor{background:#FDECE7; color:var(--danger)}
 
-.path{display:flex; flex-direction:column; align-items:center; gap:6px; padding:6px 0 20px}
-.row{display:flex; flex-direction:column; align-items:center; gap:4px; transition:transform .2s}
-.node{
-  position:relative; width:68px; height:68px; border-radius:50%; border:0;
-  background:#D9E1EA; color:#fff; font-size:26px; display:grid; place-items:center;
-  box-shadow:0 5px 0 #BCC7D3; transition:transform .1s;
+.path{display:flex; flex-direction:column; align-items:center; gap:10px; padding:10px 0 28px; perspective:700px}
+.row{
+  display:flex; flex-direction:column; align-items:center; gap:6px; position:relative;
+  transform:translateX(var(--x)); animation:drop .5s calc(var(--i) * 70ms) cubic-bezier(.3,1.3,.5,1) both;
 }
-.node:active:not(:disabled){transform:translateY(3px); box-shadow:0 2px 0 #BCC7D3}
-.node.open{background:#fff; border:3px solid var(--accent); box-shadow:0 5px 0 var(--accent-deep)}
-.node.correct{background:var(--green); box-shadow:0 5px 0 #1B7A4B}
-.node.wrong{background:var(--danger); box-shadow:0 5px 0 #A63C28}
-.node.missed{opacity:.5}
-.node.bonus{background:linear-gradient(145deg,#C79BEA,#8B5CC7); box-shadow:0 5px 0 #6B3FA0}
-.node .star{position:absolute; top:-6px; right:-6px; font-size:17px}
+/* a coin on the ground: tilted back, with a rim underneath for thickness */
+.node{
+  position:relative; width:72px; height:72px; border:0; padding:0; border-radius:50%; background:none;
+  transform:rotateX(38deg); transform-style:preserve-3d; transition:transform .15s;
+  --top:#DDE5EE; --rim:#AFBCCB; --ink:#8494A8;
+}
+.node .face{
+  position:absolute; inset:0; border-radius:50%; display:grid; place-items:center;
+  background:radial-gradient(circle at 38% 30%, color-mix(in srgb, var(--top) 55%, #fff), var(--top) 62%);
+  box-shadow:0 7px 0 var(--rim), 0 16px 18px rgba(20,40,80,.22), inset 0 2px 0 rgba(255,255,255,.6);
+  color:var(--ink);
+}
+.node .ico{font-size:27px; transform:rotateX(-38deg) translateY(-3px); display:block}
+.node:active:not(:disabled){transform:rotateX(38deg) translateY(5px)}
+.node:active:not(:disabled) .face{box-shadow:0 2px 0 var(--rim), 0 6px 8px rgba(20,40,80,.2)}
+.node.open{--top:#FFFFFF; --rim:var(--accent-deep); --ink:var(--ink)}
+.node.open .face{box-shadow:0 7px 0 var(--rim), 0 0 0 4px var(--accent), 0 16px 26px rgba(46,124,246,.35)}
+.node.open::after{ /* a pulse on the ground around today's coin */
+  content:""; position:absolute; inset:-10px; border-radius:50%; border:3px solid var(--accent);
+  animation:pulse 1.8s ease-out infinite; pointer-events:none;
+}
+.node.correct{--top:#3BBF7E; --rim:#1B7A4B; --ink:#fff}
+.node.wrong{--top:#E4674E; --rim:#A63C28; --ink:#fff}
+.node.missed{opacity:.55}
+.node.bonus{--top:#A77BE0; --rim:#6B3FA0; --ink:#fff}
+.node .star{position:absolute; top:-10px; right:-8px; font-size:18px; transform:rotateX(-38deg)}
+.row:has(.here){margin-top:18px}
+.here{
+  position:absolute; top:-26px; z-index:2; font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+  background:var(--accent); color:#fff; padding:3px 9px; border-radius:999px; box-shadow:0 4px 10px rgba(46,124,246,.35);
+  animation:bob 1.6s ease-in-out infinite;
+}
+.here::after{content:""; position:absolute; left:50%; bottom:-4px; margin-left:-4px; border:4px solid transparent; border-top-color:var(--accent); border-bottom:0}
 .cap{font-size:11.5px; font-weight:650; text-align:center; max-width:150px}
 .cap.dim{color:var(--muted); font-weight:500}
+
+/* reading: a ring that empties */
+.readring{position:relative; align-self:center; width:72px; height:72px; display:grid; place-items:center}
+.readring svg{position:absolute; inset:0; transform:rotate(-90deg)}
+.readring circle{fill:none; stroke-width:6}
+.readring .track{stroke:#E6ECF3}
+.readring .left{stroke:var(--accent); stroke-linecap:round; transition:stroke-dashoffset .2s linear}
+.readring b{font-size:24px}
+
+/* options fall into place, one after another */
+.opts{display:flex; flex-direction:column; gap:8px; perspective:800px}
+.opt{transform-origin:50% 0; animation:flipin .45s cubic-bezier(.3,1.3,.5,1) both}
+.opt.correct.mine{animation:glow .9s ease-out both}
+.opt.wrong.mine{animation:wobble .6s ease-in-out both}
+
+/* the answer's moment: over the whole sheet for two seconds, then gone */
+.qsheet{position:relative}
+.moment{
+  position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  border-radius:inherit; cursor:pointer;
+  background:radial-gradient(60% 45% at 50% 42%, rgba(255,255,255,.96), rgba(248,251,254,.88) 70%);
+  animation:mfade 2.2s ease-in-out both;
+}
+.m-bird{width:150px}
+.m-pts{font-size:48px; font-weight:900; letter-spacing:-.02em; line-height:1; margin-top:-6px; animation:floatup 2.2s cubic-bezier(.2,.8,.3,1) both}
+.m-word{font-size:15px; font-weight:750; margin-top:6px; animation:floatup 2.2s .08s cubic-bezier(.2,.8,.3,1) both}
+.moment.good .m-pts, .moment.good .m-word{color:var(--green)}
+.moment.good .m-pts{text-shadow:0 6px 22px rgba(47,163,107,.45)}
+.moment.bad .m-pts, .moment.bad .m-word{color:var(--danger)}
+.moment.bad .m-pts{font-size:64px; animation:wobble .6s ease-in-out both}
+.m-burst{position:absolute; left:50%; top:42%}
+.m-burst i{position:absolute; width:6px; height:20px; margin:-10px 0 0 -3px; border-radius:3px; opacity:0;
+  background:linear-gradient(#FFF1B0,#F5C542); animation:mspark .8s .1s ease-out both}
+.moment.bad .m-burst{display:none}
+@keyframes mfade{0%{opacity:0}10%,82%{opacity:1}100%{opacity:0}}
+@keyframes mspark{0%{opacity:0; transform:rotate(var(--a)) translateY(-40px) scaleY(.4)}30%{opacity:1}100%{opacity:0; transform:rotate(var(--a)) translateY(-120px)}}
+
+@keyframes drop{from{opacity:0; transform:translateX(var(--x)) translateY(-26px) scale(.8)}}
+@keyframes pulse{from{opacity:.8; transform:scale(.85)}to{opacity:0; transform:scale(1.45)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes flipin{from{opacity:0; transform:rotateX(-80deg) translateY(-6px)}}
+@keyframes glow{0%{transform:scale(1)}35%{transform:scale(1.04) translateZ(20px); box-shadow:0 0 0 4px rgba(47,163,107,.3), 0 12px 28px rgba(47,163,107,.35)}100%{transform:scale(1)}}
+@keyframes wobble{0%,100%{transform:rotateY(0)}20%{transform:rotateY(-18deg) translateX(-6px)}40%{transform:rotateY(14deg) translateX(5px)}60%{transform:rotateY(-9deg) translateX(-3px)}80%{transform:rotateY(5deg)}}
+@keyframes floatup{0%{opacity:0; transform:translateY(20px) scale(.6)}20%{opacity:1; transform:translateY(0) scale(1.15)}35%{transform:scale(1)}100%{opacity:1; transform:translateY(-10px)}}
+
+@media (prefers-reduced-motion: reduce){
+  .row, .opt, .here, .node.open::after, .m-pts, .m-word, .opt.correct.mine, .opt.wrong.mine{animation:none}
+  .m-burst{display:none}
+}
 </style>

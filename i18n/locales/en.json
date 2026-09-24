@@ -749,5 +749,6 @@
   "barUnused": "unused",
   "barQr": "Table QR codes",
   "barQrNote": "One QR per table. Guests scan it, see the menu and call their waiter. The same cards work for every event — they point at whichever event is open.",
-  "print": "Print"
+  "print": "Print",
+  "spinMedal": "drag to spin"
 }
