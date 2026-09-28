@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
-import { sendPushTo, sendPushToParents, sendPushToParentIds } from './push'
+import { sendPushTo, sendPushToParents, sendPushToParentIds, type PushTrace } from './push'
 import { sendEmails } from './email'
 import { sendSms } from './sms'
 import { sectionOfWith } from './guard'
@@ -13,7 +13,7 @@ import { now } from './passcode'
     Parents are reached through their children, so whoever the message is aimed
     at — a section, the troop, or a named group like the band — their parents
     come along unless the sender turned that off. */
-export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelect, approvedBy: number | null) {
+export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelect, approvedBy: number | null, trace?: PushTrace[]) {
   const db = (await useDb())
   const scouts = ((await db.select().from(s.scouts)).filter(r => !r.isHidden)).filter(r => r.isActive)
   const patrols = (await db.select().from(s.patrols))
@@ -37,7 +37,7 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
 
   const msg = { title: 'Πύλη Προσκόπων', body: a.textEl, kind: 'announcement', refId: a.id }
   // the in-app inbox is always written; push delivery rides along with it
-  const pushed = await sendPushTo(memberIds, msg)
+  const pushed = await sendPushTo(memberIds, msg, trace)
 
   // parents of the scouts this went to — this is what makes "tell the parents
   // of the band" work, without anyone keeping a second list of families

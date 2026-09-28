@@ -12,7 +12,7 @@ const { data, refresh } = await useFetch<any>('/api/admin/activation')
 const { data: groups } = await useFetch<any[]>('/api/admin/groups')
 
 type Row = { kind: 'scout' | 'parent', id: number, name: string, where: string | null,
-  activated: boolean, hasPhone: boolean, lastLoginAt: string | null }
+  activated: boolean, push: boolean, hasPhone: boolean, lastLoginAt: string | null }
 
 const picked = ref<Set<string>>(new Set())
 const busy = ref(false)
@@ -84,7 +84,7 @@ async function send(reallySend: boolean) {
   <AppShell :title="t('launch')" :sub="t('launchSub')" back="/admin/more">
     <div class="hero-card">
       <div class="big">{{ activatedCount }}<span>/{{ total }}</span></div>
-      <div class="lbl">{{ t('haveSignedIn') }}</div>
+      <div class="lbl">{{ t('haveSignedIn') }} · 🔔 {{ data?.withPush || 0 }} {{ t('pushOn') }}</div>
       <div class="bar"><i :style="{ width: (total ? (activatedCount / total) * 100 : 0) + '%' }" /></div>
       <div class="tiny muted" style="margin-top:9px">{{ t('activationNote') }}</div>
     </div>
@@ -119,6 +119,7 @@ async function send(reallySend: boolean) {
             <b>{{ p.name }}<span v-if="p.where" class="tiny muted"> · {{ p.where }}</span></b>
             <span>
               {{ p.activated ? `${t('signedIn')} · ${fmtDate(p.lastLoginAt, locale)}` : t('neverSignedIn') }}
+              <template v-if="p.activated"> · {{ p.push ? '🔔 ' + t('pushOn') : '🔕 ' + t('pushOff') }}</template>
               <template v-if="!p.hasPhone"> · {{ t('noPhoneOnFile') }}</template>
             </span>
           </div>

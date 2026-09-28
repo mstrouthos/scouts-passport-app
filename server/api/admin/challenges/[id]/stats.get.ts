@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 import { requireLeader, scopedScouts, idParam } from '../../../../utils/guard'
 import { challengeInScope } from '../../../../utils/challengeScope'
+import { onSurface } from '../../../../utils/push'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -18,7 +19,11 @@ export default defineEventHandler(async (event) => {
   const eligible = c.patrolId ? mine.filter(r => r.patrolId === c.patrolId) : mine
   const answeredIds = new Set(ans.map(a => a.scoutId))
   const patrols = new Map((await db.select().from(s.patrols)).map(p => [p.id, p]))
+  // who would hear a reminder on their phone, and who only in the in-app bell
+  const pushOn = new Set((await db.select().from(s.pushSubscriptions))
+    .filter(x => x.scoutId != null && onSurface(x, 'scouts')).map(x => x.scoutId))
   const patrolOf = (r: typeof mine[number]) => ({
+    push: pushOn.has(r.id),
     patrolEl: r.patrolId ? patrols.get(r.patrolId)?.nameEl : '', patrolEn: r.patrolId ? patrols.get(r.patrolId)?.nameEn : ''
   })
 

@@ -752,5 +752,7 @@
   "print": "Εκτύπωση",
   "spinMedal": "σύρε για να γυρίσει",
   "scoutAnswers": "Τι απάντησαν",
-  "secondsShort": "δ"
+  "secondsShort": "δ",
+  "pushOn": "ειδοποιήσεις ενεργές",
+  "pushOff": "χωρίς ειδοποιήσεις στο κινητό"
 }

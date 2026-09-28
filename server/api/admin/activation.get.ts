@@ -1,5 +1,6 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds, sectionOfWith } from '../../utils/guard'
+import { onSurface } from '../../utils/push'
 
 /* Who has actually got into the app. Only people who hold a code of their own
    appear: the Αγέλη and Μικρή Αγέλη never sign in themselves — their families
@@ -17,6 +18,10 @@ export default defineEventHandler(async (event) => {
   // the launch list is about real people getting in; a test account is not one
   const scouts = ((await db.select().from(s.scouts)).filter(r => !r.deletedAt && !r.isHidden)).filter(r => r.isActive)
   const bySlug = new Map(sections.map(x => [x.id, x.slug]))
+  // who has a phone subscribed to the members' app's notifications right now
+  const subs = (await db.select().from(s.pushSubscriptions)).filter(x => onSurface(x, 'scouts'))
+  const pushScouts = new Set(subs.map(x => x.scoutId).filter(x => x != null))
+  const pushParents = new Set(subs.map(x => x.parentId).filter(x => x != null))
 
   const row = (r: any, kind: 'scout' | 'parent', where: string | null) => ({
     kind, id: r.id,
@@ -26,6 +31,7 @@ export default defineEventHandler(async (event) => {
     where,
     hasPhone: !!r.phone,
     activated: !!r.firstLoginAt,
+    push: kind === 'parent' ? pushParents.has(r.id) : pushScouts.has(r.id),
     lastLoginAt: r.lastLoginAt ?? null
   })
 
@@ -79,6 +85,7 @@ export default defineEventHandler(async (event) => {
   return {
     groups: out,
     total: everyone.length,
-    activated: everyone.filter(p => p.activated).length
+    activated: everyone.filter(p => p.activated).length,
+    withPush: everyone.filter(p => p.push).length
   }
 })

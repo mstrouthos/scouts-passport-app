@@ -137,6 +137,7 @@ async function remove() {
         <div class="adm">
           <div v-for="r in data.missing" :key="r.id" class="it">
             <div style="flex:1"><b>{{ name(r) }}</b><span>{{ lx(r, 'patrol') }}</span></div>
+            <span class="bell" :title="r.push ? t('pushOn') : t('pushOff')">{{ r.push ? '🔔' : '🔕' }}</span>
           </div>
         </div>
         </template>
@@ -198,6 +199,7 @@ async function remove() {
 </template>
 
 <style scoped>
+.bell{flex:none; font-size:16px; opacity:.85}
 .ans{flex:none; font-size:12.5px; font-weight:700; padding:4px 9px; border-radius:999px; white-space:nowrap}
 .ans small{font-weight:600; margin-left:2px}
 .ans.good{background:color-mix(in srgb, var(--green) 14%, transparent); color:var(--green)}

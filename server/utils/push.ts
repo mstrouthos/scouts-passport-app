@@ -26,7 +26,18 @@ export const onSurface = (x: Sub, want: 'scouts' | 'bar') =>
 /** Exposed for the test push, which targets one known row. */
 export const deliverTo = (subs: Array<typeof s.pushSubscriptions.$inferSelect>, payload: string) => deliver(subs, payload)
 
-async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, payload: string): Promise<number> {
+/** What became of one member's push, for the scheduled job's log:
+    delivered to at least one of their devices, failed on all of them, sent to
+    the bell only because they have no device subscribed, or skipped because
+    they had already been sent this very message. */
+export type PushTrace = {
+  scoutId: number
+  outcome: 'delivered' | 'failed' | 'no-device' | 'already-sent'
+  devices: number, delivered: number, errors: string[]
+}
+
+async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, payload: string,
+  onResult?: (sub: Sub, ok: boolean, why?: string) => void): Promise<number> {
   // say why nothing went out: a silent zero here is indistinguishable from
   // "nobody was subscribed", which is what made a broken push hard to see
   if (!subs.length) { console.log('[push] nothing sent — no subscriptions for these recipients'); return 0 }
@@ -38,10 +49,14 @@ async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, pay
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload)
       sent++
+      onResult?.(sub, true)
     } catch (err: any) {
       console.warn(`[push] delivery failed (${err?.statusCode ?? '?'}) for ${sub.endpoint.slice(0, 48)}`, err?.body || err?.message || '')
-      if (err?.statusCode === 404 || err?.statusCode === 410)
-        await db.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.id, sub.id))
+      const gone = err?.statusCode === 404 || err?.statusCode === 410
+      if (gone) await db.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.id, sub.id))
+      onResult?.(sub, false, gone
+        ? `subscription expired (${err.statusCode}), removed — needs to enable notifications again`
+        : `error ${err?.statusCode ?? ''} ${String(err?.body || err?.message || '').slice(0, 80)}`.trim())
     }
   }))
   return sent
@@ -50,7 +65,8 @@ async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, pay
 /** Push to member accounts, deduplicated via notification_log. Every deduped
     recipient also gets a row in their in-app inbox (`notifications`), so the
     message survives even when push isn't enabled or fails to deliver. */
-export async function sendPushTo(scoutIds: number[], msg: { title: string, body: string, kind: string, refId: number }): Promise<number> {
+export async function sendPushTo(scoutIds: number[], msg: { title: string, body: string, kind: string, refId: number },
+  trace?: PushTrace[]): Promise<number> {
   if (!scoutIds.length) return 0
   const db = (await useDb())
   const fresh: number[] = []
@@ -58,7 +74,9 @@ export async function sendPushTo(scoutIds: number[], msg: { title: string, body:
     try {
       await db.insert(s.notificationLog).values({ scoutId: id, kind: msg.kind, refId: msg.refId, sentAt: now() })
       fresh.push(id)
-    } catch { /* already notified */ }
+    } catch { /* already notified */
+      trace?.push({ scoutId: id, outcome: 'already-sent', devices: 0, delivered: 0, errors: [] })
+    }
   }
   if (!fresh.length) return 0
   const sentAt = now()
@@ -68,7 +86,20 @@ export async function sendPushTo(scoutIds: number[], msg: { title: string, body:
   const subs = (await db.select().from(s.pushSubscriptions))
     .filter(x => x.scoutId != null && fresh.includes(x.scoutId) && onSurface(x, 'scouts'))
   const url = linkForNotification(msg.kind, msg.refId)
-  return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body, url: url || '/' }))
+  const per = new Map<number, PushTrace>(fresh.map(id => [id, { scoutId: id, outcome: 'no-device', devices: 0, delivered: 0, errors: [] }]))
+  for (const x of subs) per.get(x.scoutId!)!.devices++
+  const sent = await deliver(subs, JSON.stringify({ title: msg.title, body: msg.body, url: url || '/' }), (sub, ok, why) => {
+    const p = per.get(sub.scoutId!)!
+    if (ok) p.delivered++; else p.errors.push(why || 'failed')
+  })
+  if (trace) {
+    for (const p of per.values()) {
+      if (p.devices && !p.delivered && !p.errors.length) p.errors.push('push is not configured on the server (VAPID keys)')
+      p.outcome = !p.devices ? 'no-device' : p.delivered ? 'delivered' : 'failed'
+      trace.push(p)
+    }
+  }
+  return sent
 }
 
 /** A buzz to the bar crew's phones: no inbox, no dedupe — an order is news

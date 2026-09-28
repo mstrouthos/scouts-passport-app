@@ -752,5 +752,7 @@
   "print": "Print",
   "spinMedal": "drag to spin",
   "scoutAnswers": "What they answered",
-  "secondsShort": "s"
+  "secondsShort": "s",
+  "pushOn": "notifications on",
+  "pushOff": "no notifications on their phone"
 }

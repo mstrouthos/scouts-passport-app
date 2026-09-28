@@ -34,10 +34,12 @@ export async function cascadeDeleteScout(id: number) {
 }
 
 /** Members trashed more than 30 days ago are removed for good. */
-export async function purgeTrashedScouts(nowIso: string): Promise<number> {
+/** Deletes for good the members trashed 30+ days ago; returns who they were,
+    for the scheduled job's log. */
+export async function purgeTrashedScouts(nowIso: string): Promise<string[]> {
   const db = (await useDb())
   const cutoff = new Date(Date.parse(nowIso) - 30 * 86400_000).toISOString()
   const due = (await db.select().from(s.scouts)).filter(r => r.deletedAt && r.deletedAt <= cutoff)
   for (const r of due) await cascadeDeleteScout(r.id)
-  return due.length
+  return due.map(r => `${r.firstName} ${r.lastName} (#${r.id}, trashed ${r.deletedAt!.slice(0, 10)})`)
 }
