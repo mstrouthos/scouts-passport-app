@@ -18,6 +18,33 @@ export default defineEventHandler(async (event) => {
   const eligible = c.patrolId ? mine.filter(r => r.patrolId === c.patrolId) : mine
   const answeredIds = new Set(ans.map(a => a.scoutId))
   const patrols = new Map((await db.select().from(s.patrols)).map(p => [p.id, p]))
+  const patrolOf = (r: typeof mine[number]) => ({
+    patrolEl: r.patrolId ? patrols.get(r.patrolId)?.nameEl : '', patrolEn: r.patrolId ? patrols.get(r.patrolId)?.nameEn : ''
+  })
+
+  /* Who answered what — for administrators only. Everyone else sees the
+     counts per option, not which scout chose which. */
+  let responses: any[] | undefined
+  if (me.role === 'troop_leader') {
+    const byId = new Map(mine.map(r => [r.id, r]))
+    const reveals = new Map((await db.select().from(s.challengeReveals).where(eq(s.challengeReveals.challengeId, id)))
+      .map(r => [r.scoutId, r.revealedAt]))
+    responses = ans
+      .filter(a => byId.has(a.scoutId))
+      .sort((a, b) => a.answeredAt.localeCompare(b.answeredAt))
+      .map(a => {
+        const r = byId.get(a.scoutId)!
+        const shown = reveals.get(a.scoutId)
+        return {
+          id: r.id, firstName: r.firstName, lastName: r.lastName, firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn,
+          ...patrolOf(r),
+          optionIndex: opts.findIndex(o => o.id === a.optionId),
+          isCorrect: a.isCorrect, points: a.pointsAwarded, answeredAt: a.answeredAt,
+          // from the options appearing to the answer
+          tookMs: shown ? Math.max(0, Date.parse(a.answeredAt) - Date.parse(shown)) : null
+        }
+      })
+  }
 
   return {
     challenge: { id: c.id, titleEl: c.titleEl, titleEn: c.titleEn, questionEl: c.questionEl, questionEn: c.questionEn, points: c.points },
@@ -25,11 +52,10 @@ export default defineEventHandler(async (event) => {
       id: o.id, textEl: o.textEl, textEn: o.textEn, isCorrect: o.isCorrect,
       count: ans.filter(a => a.optionId === o.id).length
     })),
-    answered: ans.length, eligible: eligible.length,
+    answered: ans.length, eligible: eligible.length, responses,
     missing: eligible.filter(r => !answeredIds.has(r.id)).map(r => ({
       id: r.id, firstName: r.firstName, lastName: r.lastName,
-      firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn,
-      patrolEl: r.patrolId ? patrols.get(r.patrolId)?.nameEl : '', patrolEn: r.patrolId ? patrols.get(r.patrolId)?.nameEn : ''
+      firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, ...patrolOf(r)
     }))
   }
 })

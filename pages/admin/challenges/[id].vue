@@ -20,6 +20,9 @@ const runsQuiz = computed(() => {
 })
 watchEffect(() => { if (me.value && !runsQuiz.value) navigateTo('/admin') })
 const K = ['Α', 'Β', 'Γ', 'Δ', 'Ε', 'Ζ']
+/* each scout's answer, which the server sends to administrators only */
+const when = (iso: string) => new Date(iso).toLocaleString('el-GR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+const took = (ms: number | null) => ms == null ? '' : `${Math.round(ms / 1000)}${t('secondsShort')}`
 
 // ----- edit -----
 const editing = ref(false)
@@ -112,13 +115,31 @@ async function remove() {
         </div>
         <button class="btn ghost" @click="openEdit">✎ {{ t('editQuestion') }}</button>
       </div>
-      <div v-if="data.missing.length" style="display:flex;flex-direction:column;gap:13px">
+      <div v-if="data.responses?.length || data.missing.length" style="display:flex;flex-direction:column;gap:13px">
+        <template v-if="data.responses?.length">
+          <div class="sec-title">{{ t('scoutAnswers') }}</div>
+          <div class="adm">
+            <div v-for="r in data.responses" :key="r.id" class="it">
+              <div style="flex:1;min-width:0">
+                <b>{{ name(r) }}</b>
+                <span>{{ [lx(r, 'patrol'), when(r.answeredAt), took(r.tookMs)].filter(Boolean).join(' · ') }}</span>
+              </div>
+              <div class="ans" :class="r.isCorrect ? 'good' : 'bad'"
+                   :title="r.optionIndex >= 0 ? lx(data.options[r.optionIndex], 'text') : ''">
+                {{ r.isCorrect ? '✓' : '✗' }} {{ K[r.optionIndex] ?? '?' }}
+                <small v-if="r.isCorrect">+{{ r.points }}</small>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template v-if="data.missing.length">
         <div class="sec-title">{{ t('notAnswered') }}</div>
         <div class="adm">
           <div v-for="r in data.missing" :key="r.id" class="it">
             <div style="flex:1"><b>{{ name(r) }}</b><span>{{ lx(r, 'patrol') }}</span></div>
           </div>
         </div>
+        </template>
       </div>
     </div>
 
@@ -175,3 +196,10 @@ async function remove() {
     </Teleport>
   </AppShell>
 </template>
+
+<style scoped>
+.ans{flex:none; font-size:12.5px; font-weight:700; padding:4px 9px; border-radius:999px; white-space:nowrap}
+.ans small{font-weight:600; margin-left:2px}
+.ans.good{background:color-mix(in srgb, var(--green) 14%, transparent); color:var(--green)}
+.ans.bad{background:color-mix(in srgb, var(--danger) 12%, transparent); color:var(--danger)}
+</style>
