@@ -7,6 +7,8 @@ import { now, isAfter, isAtOrBefore } from '../../utils/passcode'
 import { nextOccurrence } from '../../utils/recur'
 import { purgeTrashedScouts } from '../../utils/deleteScout'
 import { READ_TTL_MS } from '../../utils/notifyRetention'
+import { cyprusTimeOnDayOf } from '../../utils/cyprusTime'
+import { localDay, bonusEarned } from '../../utils/streak'
 
 /** Hit by host cron every few minutes with the token:
     curl -X POST -H "x-cron-token: $TOKEN" https://.../api/cron/tick */
@@ -20,15 +22,36 @@ export default defineEventHandler(async (event) => {
   const patrols = (await db.select().from(s.patrols))
   let notified = 0
 
-  // challenges that just unlocked
+  // today's challenge: not announced the moment it unlocks (that is usually
+  // midnight, and these are children) but at 15:00 Cyprus time, as a reminder
+  // to those who have not answered it yet. One that unlocks after 15:00 is
+  // announced as it unlocks; one that has already closed is not announced.
+  const answered = await db.select({ challengeId: s.challengeAnswers.challengeId, scoutId: s.challengeAnswers.scoutId, answeredAt: s.challengeAnswers.answeredAt })
+    .from(s.challengeAnswers)
+  // the local days each scout has answered on, for the bonus: only those whose
+  // full Mon-Sun week has earned it are reminded of it
+  const daysOf = new Map<number, Set<string>>()
+  for (const a of answered) {
+    const set = daysOf.get(a.scoutId) || new Set<string>()
+    set.add(localDay(a.answeredAt)); daysOf.set(a.scoutId, set)
+  }
   for (const c of await db.select().from(s.challenges)) {
-    if (!c.isPublished || !c.unlocksAt || isAfter(c.unlocksAt, t) || c.notifiedAt) continue
+    if (!c.isPublished || !c.unlocksAt || c.notifiedAt) continue
+    const remindAt = [c.unlocksAt, cyprusTimeOnDayOf(c.unlocksAt, 15)].sort((a, b) => Date.parse(a) - Date.parse(b))[1]
+    if (isAfter(remindAt, t)) continue
+    if (c.closesAt && isAtOrBefore(c.closesAt, t)) {
+      await db.update(s.challenges).set({ notifiedAt: t }).where(eq(s.challenges.id, c.id))
+      continue
+    }
+    const done = new Set(answered.filter(a => a.challengeId === c.id).map(a => a.scoutId))
     const pool = c.forLeaders ? scouts.filter(r => r.role !== 'scout') : scouts.filter(r => r.role === 'scout')
-    const targets = pool.filter(r =>
+    const targets = pool.filter(r => !done.has(r.id))
+      .filter(r => !c.isBonus || bonusEarned(daysOf.get(r.id) || [], localDay(t)))
+      .filter(r =>
       (!c.sectionId && !c.patrolId)
       || (c.patrolId != null ? r.patrolId === c.patrolId : sectionOfWith(r as any, patrols) === c.sectionId))
     notified += await sendPushTo(targets.map(r => r.id), {
-      title: 'Νέα πρόκληση! 🎯',
+      title: c.isBonus ? 'Κέρδισες την ερώτηση μπόνους! 🎁' : 'Η σημερινή πρόκληση σε περιμένει! 🎯',
       body: `${c.titleEl} · ${c.points} πόντοι`, kind: 'challenge_unlocked', refId: c.id
     })
     await db.update(s.challenges).set({ notifiedAt: t }).where(eq(s.challenges.id, c.id))
