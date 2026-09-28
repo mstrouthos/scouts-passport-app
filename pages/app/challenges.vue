@@ -13,27 +13,23 @@ const open = ref<any>(null)      // the question sheet
 const picked = ref<number | null>(null)
 const busy = ref(false)
 
-/* Reading time is free. The clock — and the point decay — starts only when the
-   scout asks to see the options, and the server owns the start time. */
-const reveal = ref<any>(null)       // { revealedAt, points, minPoints, decayEveryMs }
+/* Opening a question asks the server when its options appear: five seconds
+   after it was first opened, to read it — and the same moment again on every
+   reopen or reload. Until then the reading ring counts down; from then the
+   answer clock runs and the points decay. Closing the question and opening
+   it again restarts neither, and while it is running there is no close
+   button at all: the only way out is to answer. */
+const reveal = ref<any>(null)       // { revealedAt, readLeftMs, elapsedMs, points, minPoints, decayEveryMs }
 const elapsed = ref(0)
+const readLeft = ref(0)             // whole seconds of reading left
+const reading = computed(() => !!reveal.value && readLeft.value > 0)
 /* Wall-clock anchor of the server's revealedAt, in this device's time. The
    countdown is Date.now() minus this, so it keeps running while the scout is
    off in another app — googling, say — and is exact again the moment they
    come back. performance.now() would not do: it can pause in the background. */
 let revealedAtLocal = 0
 let ticker: any = null
-/* Five seconds to read the question, then the options appear on their own
-   and the clock starts. There is no button to hold off on. */
 const READ_MS = 5000
-const readLeft = ref(0)
-let readTimer: any = null
-let readTick: any = null
-function stopRead() {
-  if (readTimer) { clearTimeout(readTimer); readTimer = null }
-  if (readTick) { clearInterval(readTick); readTick = null }
-  readLeft.value = 0
-}
 
 const live = computed(() => {
   const r = reveal.value
@@ -42,44 +38,39 @@ const live = computed(() => {
 })
 
 function stopTicker() { if (ticker) { clearInterval(ticker); ticker = null } }
-const tick = () => { elapsed.value = Math.max(0, Date.now() - revealedAtLocal) }
+const tick = () => {
+  const d = Date.now() - revealedAtLocal
+  readLeft.value = d < 0 ? Math.ceil(-d / 1000) : 0
+  elapsed.value = Math.max(0, d)
+}
+const anchor = (r: any) => { revealedAtLocal = Date.now() + (r.readLeftMs || 0) - (r.elapsedMs || 0); tick() }
 /* Back from another app: the server still holds the true start, so ask it
    again rather than trust a clock that may have drifted while we were away. */
 async function resync() {
   if (document.visibilityState !== 'visible' || !open.value || !reveal.value || open.value.answer) return
   try {
-    const r = await $fetch<any>(`/api/challenges/${open.value.id}/reveal`, { method: 'POST' })
-    revealedAtLocal = Date.now() - r.elapsedMs
-    tick()
+    anchor(await $fetch<any>(`/api/challenges/${open.value.id}/reveal`, { method: 'POST' }))
   } catch { tick() }
 }
 onMounted(() => document.addEventListener('visibilitychange', resync))
-onBeforeUnmount(() => { stopTicker(); stopRead(); document.removeEventListener('visibilitychange', resync) })
+onBeforeUnmount(() => { stopTicker(); document.removeEventListener('visibilitychange', resync) })
 
-async function revealOptions() {
+async function startQuestion() {
   if (!open.value || busy.value) return
   busy.value = true
   try {
     const r = await $fetch<any>(`/api/challenges/${open.value.id}/reveal`, { method: 'POST' })
     reveal.value = r
-    revealedAtLocal = Date.now() - r.elapsedMs
-    tick()
+    anchor(r)
     stopTicker()
-    ticker = setInterval(tick, 250)
+    ticker = setInterval(tick, 200)
   } catch (e: any) { show(e?.data?.message || t('error')) }
   finally { busy.value = false }
 }
-/* Opening a question: a short head start to read it, then the options come
-   by themselves. A question whose clock already started (reopened, or a
-   reload) skips the head start — the clock has not been waiting. */
-function startReading() {
-  stopRead()
-  if (open.value.revealedAt) { revealOptions(); return }
-  readLeft.value = READ_MS / 1000
-  const until = Date.now() + READ_MS
-  readTick = setInterval(() => { readLeft.value = Math.max(0, Math.ceil((until - Date.now()) / 1000)) }, 200)
-  readTimer = setTimeout(() => { stopRead(); if (open.value) revealOptions() }, READ_MS)
-}
+/* A question in progress holds the sheet: no close button, no tapping the
+   backdrop away. If it could not be started (offline), it can be closed. */
+const locked = computed(() => !!open.value && !open.value.answer && !open.value.closed && !!reveal.value)
+function close() { if (!locked.value) open.value = null }
 const K = ['Α', 'Β', 'Γ', 'Δ', 'Ε', 'Ζ']
 const DAYS = ['Δ', 'Τ', 'Τ', 'Π', 'Π', 'Σ', 'Κ']
 
@@ -106,11 +97,12 @@ function tap(c: any) {
   picked.value = null
   reveal.value = null
   elapsed.value = 0
-  stopTicker(); stopRead()
+  readLeft.value = 0
+  stopTicker()
   open.value = c
-  if (!c.answer && !c.closed) startReading()
+  if (!c.answer && !c.closed) startQuestion()
 }
-watch(open, v => { if (!v) { stopTicker(); stopRead(); result.value = null } })
+watch(open, v => { if (!v) { stopTicker(); result.value = null } })
 /* the reading countdown as a ring that empties */
 const RING = 2 * Math.PI * 30
 const readFrac = computed(() => readLeft.value / (READ_MS / 1000))
@@ -131,7 +123,13 @@ async function submit() {
     await refresh()
     open.value = items.value.find(x => x.id === open.value.id) || null
     picked.value = null
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) {
+    show(e?.data?.message || t('error'))
+    // it may have closed while open: pick up its state, which lets the sheet go
+    await refresh()
+    const now_ = items.value.find(x => x.id === open.value?.id)
+    if (now_ && (now_.closed || now_.answer)) open.value = now_
+  }
   finally { busy.value = false }
 }
 function optClass(c: any, o: any) {
@@ -176,14 +174,14 @@ function optClass(c: any, o: any) {
     <div v-else class="empty">{{ t('noChallenges') }}</div>
 
     <Teleport to="body">
-      <div v-if="open" class="sheet-backdrop" @click.self="open = null">
+      <div v-if="open" class="sheet-backdrop" @click.self="close">
         <div class="sheet qsheet" style="display:flex;flex-direction:column;gap:13px;max-height:88dvh;overflow:auto">
           <div v-if="open.imageEmoji" style="text-align:center;font-size:40px">{{ open.imageEmoji }}</div>
           <div v-if="open.isBonus" class="pill sched" style="align-self:center">🎁 {{ t('bonusQuestion') }}</div>
           <div style="font-size:15px;font-weight:650;line-height:1.4">{{ lx(open, 'question') }}</div>
 
           <!-- a few seconds to read, then the options appear on their own -->
-          <template v-if="!open.answer && !open.closed && !reveal">
+          <template v-if="!open.answer && !open.closed && (!reveal || reading)">
             <div class="readring">
               <svg viewBox="0 0 72 72" aria-hidden="true">
                 <circle cx="36" cy="36" r="30" class="track" />
@@ -195,7 +193,7 @@ function optClass(c: any, o: any) {
           </template>
 
           <template v-else>
-            <div v-if="reveal && !open.answer" class="timer" :class="{ floor: live === reveal.minPoints }">
+            <div v-if="reveal && !reading && !open.answer" class="timer" :class="{ floor: live === reveal.minPoints }">
               <span>⏱</span><b>{{ live }}</b><span class="tiny">{{ t('ptsNow') }}</span>
             </div>
             <div class="opts">
@@ -225,12 +223,12 @@ function optClass(c: any, o: any) {
           <template v-else-if="open.closed">
             <div class="verdict bad"><b>{{ t('closed') }}</b></div>
           </template>
-          <template v-else-if="reveal">
+          <template v-else-if="reveal && !reading">
             <div class="tiny muted">{{ t('oneTry') }}</div>
             <button class="btn" :disabled="picked == null || busy" @click="submit">{{ t('submit') }}</button>
           </template>
 
-          <button class="btn ghost" @click="open = null">{{ t('close') }}</button>
+          <button v-if="!locked" class="btn ghost" @click="close">{{ t('close') }}</button>
         </div>
       </div>
     </Teleport>

@@ -7,6 +7,10 @@
 export const MAX_POINTS = 10
 export const MIN_POINTS = 5
 export const DECAY_EVERY_MS = 5000
+/** The few seconds to read a question before its options appear. They are
+    counted by the server from the moment the question is opened, so closing
+    it and opening it again does not buy a fresh read. */
+export const READ_MS = 5000
 
 /** Points a correct answer is worth `elapsedMs` after the options appeared. */
 export function pointsAfter(elapsedMs: number): number {
