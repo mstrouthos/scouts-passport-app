@@ -110,9 +110,15 @@ const readFrac = computed(() => readLeft.value / (READ_MS / 1000))
    card, the phoenix cheers and the points float up; a wrong one wobbles. */
 const result = ref<{ correct: boolean; points: number } | null>(null)
 let resultTimer: any = null
+/* the day's check-in: after the first answer of the day, once the answer's
+   own moment has played, the streak flame and the week */
+const streakShow = ref(false)
+let streakTimer: any = null
+onBeforeUnmount(() => { clearTimeout(streakTimer) })
 async function submit() {
   if (picked.value == null || !open.value || busy.value) return
   busy.value = true
+  const firstToday = !data.value?.answeredToday
   try {
     const res = await $fetch<any>(`/api/challenges/${open.value.id}/answer`, {
       method: 'POST', body: { optionId: picked.value }
@@ -123,6 +129,9 @@ async function submit() {
     await refresh()
     open.value = items.value.find(x => x.id === open.value.id) || null
     picked.value = null
+    if (firstToday && data.value?.answeredToday) {
+      clearTimeout(streakTimer); streakTimer = setTimeout(() => { streakShow.value = true }, 2300)
+    }
   } catch (e: any) {
     show(e?.data?.message || t('error'))
     // it may have closed while open: pick up its state, which lets the sheet go
@@ -172,6 +181,9 @@ function optClass(c: any, o: any) {
       </div>
     </div>
     <div v-else class="empty">{{ t('noChallenges') }}</div>
+
+    <FxStreakCelebration v-if="streakShow && data" :streak="data.streak" :week="data.week" :bonus="data.bonusEarned"
+                         @close="streakShow = false" />
 
     <Teleport to="body">
       <div v-if="open" class="sheet-backdrop" @click.self="close">

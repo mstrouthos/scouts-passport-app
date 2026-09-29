@@ -754,5 +754,10 @@
   "scoutAnswers": "What they answered",
   "secondsShort": "s",
   "pushOn": "notifications on",
-  "pushOff": "no notifications on their phone"
+  "pushOff": "no notifications on their phone",
+  "streakDay": "day streak",
+  "streakDays": "day streak",
+  "streakStarted": "Streak started! Come back tomorrow to keep the flame alive.",
+  "streakKeep": "Come back tomorrow so the flame doesn't go out!",
+  "streakContinue": "Continue"
 }
