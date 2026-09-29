@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
-import { requireLeader, scopedScouts, idParam } from '../../../../utils/guard'
+import { requireLeader, scopedScouts, idParam, sectionOfWith } from '../../../../utils/guard'
 import { challengeInScope } from '../../../../utils/challengeScope'
 import { onSurface } from '../../../../utils/push'
 
@@ -16,9 +16,16 @@ export default defineEventHandler(async (event) => {
     .sort((a, b) => a.sortOrder - b.sortOrder)
   const ans = (await db.select().from(s.challengeAnswers).where(eq(s.challengeAnswers.challengeId, id)))
   const mine = (await scopedScouts(me)).filter(r => r.isActive)
-  const eligible = c.patrolId ? mine.filter(r => r.patrolId === c.patrolId) : mine
+  const patrolRows = await db.select().from(s.patrols)
+  // who the question is for: its patrol, or its section — the same people the
+  // quiz shows it to and the reminder goes to. Everyone a leader manages is
+  // not the audience: an administrator manages the Αγέλη too, who never see
+  // the Ομάδα's quiz, and they must not be counted as "not answered yet".
+  const eligible = mine.filter(r => c.patrolId != null ? r.patrolId === c.patrolId
+    : c.sectionId != null ? sectionOfWith(r, patrolRows) === c.sectionId
+    : true)
   const answeredIds = new Set(ans.map(a => a.scoutId))
-  const patrols = new Map((await db.select().from(s.patrols)).map(p => [p.id, p]))
+  const patrols = new Map(patrolRows.map(p => [p.id, p]))
   // who would hear a reminder on their phone, and who only in the in-app bell
   const pushOn = new Set((await db.select().from(s.pushSubscriptions))
     .filter(x => x.scoutId != null && onSurface(x, 'scouts')).map(x => x.scoutId))
