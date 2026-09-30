@@ -10,33 +10,67 @@ const { data, refresh } = await useFetch<any>('/api/admin/polls')
 
 const composing = ref(false)
 const busy = ref(false)
-const form = reactive({ questionEl: '', sectionId: null as number | null, isMulti: false, options: ['', ''] })
+type Opt = { id?: number, textEl: string, count?: number }
+const form = reactive({ questionEl: '', sectionId: null as number | null, isMulti: false, options: [] as Opt[] })
+/* the poll being edited, or null when putting a new one */
+const editingId = ref<number | null>(null)
+let editingOriginal: Opt[] = []
 const openResults = ref<number | null>(null)
 
 const sectionName = (id: number | null) =>
   id == null ? t('wholeTroop') : (data.value?.sections || []).find((x: any) => x.id === id)?.nameEl ?? ''
 
 function openNew() {
+  editingId.value = null
   Object.assign(form, {
-    questionEl: '', isMulti: false, options: ['', ''],
+    questionEl: '', isMulti: false, options: [{ textEl: '' }, { textEl: '' }],
     sectionId: data.value?.canAskWholeTroop ? null : (data.value?.sections?.[0]?.id ?? null)
   })
   composing.value = true
 }
+/* Editing works while the poll runs: the votes stay with their options, so an
+   option renamed keeps its votes; only an option removed loses its own. */
+function openEdit(poll: any) {
+  editingId.value = poll.id
+  editingOriginal = poll.options.map((o: any) => ({ id: o.id, textEl: o.textEl, count: o.count }))
+  Object.assign(form, {
+    questionEl: poll.questionEl, isMulti: poll.isMulti, sectionId: poll.sectionId,
+    options: editingOriginal.map(o => ({ ...o }))
+  })
+  composing.value = true
+}
+function removeOption(i: number) { form.options.splice(i, 1) }
 const canSave = computed(() =>
-  form.questionEl.trim() && form.options.filter(o => o.trim()).length >= 2)
+  form.questionEl.trim() && form.options.filter(o => o.textEl.trim()).length >= 2)
 
 async function save() {
   if (!canSave.value || busy.value) return
+  const options = form.options.map(o => ({ ...o, textEl: o.textEl.trim() })).filter(o => o.textEl)
+  if (editingId.value) {
+    // say so before any votes are lost with an option taken away
+    const kept = new Set(options.filter(o => o.id).map(o => o.id))
+    const lost = editingOriginal.filter(o => !kept.has(o.id)).reduce((n, o) => n + (o.count || 0), 0)
+    if (lost && !confirm(t('pollEditRemovesVotes', { n: lost }))) return
+  }
   busy.value = true
   try {
-    const res = await $fetch<any>('/api/admin/polls', {
-      method: 'POST',
-      body: { ...form, options: form.options.map(o => o.trim()).filter(Boolean) }
-    })
-    composing.value = false
-    await refresh()
-    show(`🗳️ ${t('pollAsked', { n: res.asked })}`)
+    if (editingId.value) {
+      await $fetch(`/api/admin/polls/${editingId.value}`, {
+        method: 'PATCH',
+        body: { questionEl: form.questionEl, isMulti: form.isMulti, options: options.map(o => ({ id: o.id, textEl: o.textEl })) }
+      })
+      composing.value = false
+      await refresh()
+      show('✅ ' + t('saved'))
+    } else {
+      const res = await $fetch<any>('/api/admin/polls', {
+        method: 'POST',
+        body: { questionEl: form.questionEl, sectionId: form.sectionId, isMulti: form.isMulti, options: options.map(o => o.textEl) }
+      })
+      composing.value = false
+      await refresh()
+      show(`🗳️ ${t('pollAsked', { n: res.asked })}`)
+    }
   } catch (e: any) { show(e?.data?.message || t('error')) }
   finally { busy.value = false }
 }
@@ -100,6 +134,7 @@ const share = (o: any, poll: any) => poll.voterCount ? Math.round((o.count / pol
       </div>
 
       <div v-if="p.canManage" style="display:flex;gap:7px">
+        <button class="chip" @click="openEdit(p)">✎ {{ t('edit') }}</button>
         <button class="chip" @click="setClosed(p, !p.isClosed)">
           {{ p.isClosed ? t('pollReopen') : t('pollClose') }}
         </button>
@@ -112,10 +147,15 @@ const share = (o: any, poll: any) => poll.voterCount ? Math.round((o.count / pol
     <Teleport to="body">
       <div v-if="composing" class="sheet-backdrop" @click.self="composing = false">
         <div class="sheet" style="display:flex;flex-direction:column;gap:12px;max-height:88dvh;overflow:auto">
-          <h3 style="margin:0;font-size:17px;text-align:center">{{ t('newPoll') }}</h3>
+          <h3 style="margin:0;font-size:17px;text-align:center">{{ editingId ? t('editPoll') : t('newPoll') }}</h3>
+          <div v-if="editingId" class="tiny muted" style="text-align:center">{{ t('pollEditNote') }}</div>
           <div><label class="lab">{{ t('pollQuestion') }}</label><input v-model="form.questionEl" class="in"></div>
 
-          <div>
+          <div v-if="editingId">
+            <label class="lab">{{ t('whoFor') }}</label>
+            <div class="tiny" style="font-weight:600">{{ sectionName(form.sectionId) }}</div>
+          </div>
+          <div v-else>
             <label class="lab">{{ t('whoFor') }}</label>
             <div class="chips">
               <button v-if="data?.canAskWholeTroop" class="chip" :class="{ on: form.sectionId === null }"
@@ -130,17 +170,21 @@ const share = (o: any, poll: any) => poll.voterCount ? Math.round((o.count / pol
           <div>
             <label class="lab">{{ t('pollOptions') }}</label>
             <div style="display:flex;flex-direction:column;gap:7px">
-              <input v-for="(_, i) in form.options" :key="i" v-model="form.options[i]" class="in"
-                     :placeholder="`${t('pollOption')} ${i + 1}`">
+              <div v-for="(o, i) in form.options" :key="o.id ?? 'new' + i" style="display:flex;gap:7px;align-items:center">
+                <input v-model="o.textEl" class="in" style="flex:1" :placeholder="`${t('pollOption')} ${i + 1}`">
+                <span v-if="o.count" class="tiny muted" style="flex:none">{{ o.count === 1 ? t('pollVote1') : t('pollVotesN', { n: o.count }) }}</span>
+                <button v-if="form.options.length > 2" class="chip" style="flex:none;color:var(--danger)"
+                        :aria-label="t('delete')" @click="removeOption(i)">✕</button>
+              </div>
             </div>
-            <button class="chip" style="margin-top:7px" @click="form.options.push('')">+ {{ t('pollAddOption') }}</button>
+            <button class="chip" style="margin-top:7px" @click="form.options.push({ textEl: '' })">+ {{ t('pollAddOption') }}</button>
           </div>
 
           <label class="tiny muted" style="display:flex;align-items:center;gap:6px;cursor:pointer">
             <input v-model="form.isMulti" type="checkbox"> {{ t('pollAllowMulti') }}
           </label>
 
-          <button class="btn" :disabled="!canSave || busy" @click="save">{{ busy ? t('loading') : t('send') }}</button>
+          <button class="btn" :disabled="!canSave || busy" @click="save">{{ busy ? t('loading') : editingId ? t('save') : t('send') }}</button>
           <button class="btn ghost" @click="composing = false">{{ t('close') }}</button>
         </div>
       </div>
