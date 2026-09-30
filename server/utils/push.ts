@@ -26,6 +26,16 @@ export const onSurface = (x: Sub, want: 'scouts' | 'bar') =>
 /** Exposed for the test push, which targets one known row. */
 export const deliverTo = (subs: Array<typeof s.pushSubscriptions.$inferSelect>, payload: string) => deliver(subs, payload)
 
+/* How each push travels. `urgency: high` is what gets it through at once on
+   Android: at the default, normal, the phone's push service holds messages
+   while the phone is idle or saving battery — Samsung's more than most — and
+   hands them over hours later, when the screen next comes on, which looks
+   exactly like "notifications don't arrive". TTL is how long the push service
+   keeps trying a phone that is off or out of signal: half a day for the
+   troop's news, a few minutes for the bar, where an order is stale by then. */
+const NEWS = { urgency: 'high' as const, TTL: 12 * 3600 }
+const BAR = { urgency: 'high' as const, TTL: 5 * 60 }
+
 /** What became of one member's push, for the scheduled job's log:
     delivered to at least one of their devices, failed on all of them, sent to
     the bell only because they have no device subscribed, or skipped because
@@ -37,7 +47,7 @@ export type PushTrace = {
 }
 
 async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, payload: string,
-  onResult?: (sub: Sub, ok: boolean, why?: string) => void): Promise<number> {
+  onResult?: (sub: Sub, ok: boolean, why?: string) => void, how: { urgency: 'high', TTL: number } = NEWS): Promise<number> {
   // say why nothing went out: a silent zero here is indistinguishable from
   // "nobody was subscribed", which is what made a broken push hard to see
   if (!subs.length) { console.log('[push] nothing sent — no subscriptions for these recipients'); return 0 }
@@ -47,7 +57,7 @@ async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, pay
   await Promise.all(subs.map(async (sub) => {
     try {
       await webpush.sendNotification(
-        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload)
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload, how)
       sent++
       onResult?.(sub, true)
     } catch (err: any) {
@@ -115,7 +125,7 @@ export async function sendPushToBarStaff(staffIds: number[], msg: { title: strin
     const barOnly = theirs.filter(x => onSurface(x, 'bar'))
     return barOnly.length ? barOnly : theirs
   })
-  return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body, url: msg.url || '/bar' }))
+  return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body, url: msg.url || '/bar' }), undefined, BAR)
 }
 
 /** Push to named parents — the ones linked to the scouts a message went to.

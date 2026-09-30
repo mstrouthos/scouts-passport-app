@@ -5,7 +5,10 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(data.title, {
     body: data.body,
     icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
+    // the small status-bar icon: Android draws only its shape, in white, so
+    // it must be a silhouette on transparent — a full-colour icon here shows
+    // as a plain white square
+    badge: '/icons/badge-96.png',
     lang: 'el',
     // carried through to the click handler so an award opens itself
     data: { url: data.url || '/' }
