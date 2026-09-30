@@ -120,6 +120,11 @@ async function addImage(e: Event) {
   finally { uploading.value = false }
 }
 
+/* Preview: the page exactly as members and families see it — its title,
+   text, pictures, maps and drawings — from what is in the editor now, saved
+   or not, whatever section it is for. */
+const previewing = ref(false)
+
 /* A place: picked on a map, and placed in the text as a line of its own —
    "📍 name (lat, lng)" — where the cursor was; shown to readers as a map. */
 const pickingPlace = ref(false)
@@ -221,6 +226,7 @@ async function save() {
               <div class="txt"><b>{{ t('submitForApproval') }}</b><span>{{ t('submitForApprovalSub') }}</span></div>
               <span class="sw" :class="{ off: !editing.submitForApproval }" />
             </button>
+            <button class="btn ghost" :disabled="!editing.titleEl?.trim()" @click="previewing = true">👁️ {{ t('previewPage') }}</button>
             <button v-if="isAdmin && editing.pendingApproval" class="btn" @click="approve">✅ {{ t('approveAndPublish') }}</button>
             <button class="btn" :class="{ ghost: isAdmin && editing.pendingApproval }" :disabled="!editing.titleEl?.trim()" @click="save">{{ t('save') }}</button>
           </template>
@@ -228,11 +234,37 @@ async function save() {
         </div>
       </div>
       <MapPicker v-if="pickingPlace" @pick="placePicked" @close="pickingPlace = false" />
+
+      <!-- the page as readers see it -->
+      <div v-if="previewing && editing" class="sheet-backdrop" @click.self="previewing = false">
+        <div class="sheet preview">
+          <div class="pv-tag">👁️ {{ t('previewPage') }} · {{ sectionName(editing.sectionId) }}</div>
+          <div class="pv-head">
+            <div class="pv-title">{{ editing.iconEmoji }} {{ editing.titleEl }}</div>
+            <div class="pv-sub">{{ t('info') }}</div>
+          </div>
+          <div class="pv-body">
+            <UniformArt v-if="editing.illustration === 'uniforms'" kind="formal" />
+            <InfoBody :text="editing.bodyEl || ''" />
+            <UniformArt v-if="editing.illustration === 'uniforms'" kind="work" />
+          </div>
+          <button class="btn ghost" @click="previewing = false">{{ t('close') }}</button>
+        </div>
+      </div>
     </Teleport>
   </AppShell>
 </template>
 
 <style scoped>
+/* solid, not the sheet's frosted glass: the editor must not show through */
+.preview{display:flex; flex-direction:column; gap:12px; min-height:72dvh; max-height:92dvh; overflow:auto;
+  background:var(--bg) !important; -webkit-backdrop-filter:none !important; backdrop-filter:none !important}
+.preview > .btn{margin-top:auto}
+.pv-tag{align-self:center; font-size:11.5px; font-weight:700; color:var(--muted)}
+.pv-head{margin:0 -4px; padding:16px 16px 18px; border-radius:18px; color:#fff; background:var(--grad-auth)}
+.pv-title{font-size:19px; font-weight:800; letter-spacing:-.01em}
+.pv-sub{font-size:12px; opacity:.8; margin-top:2px}
+.pv-body{display:flex; flex-direction:column; gap:13px}
 .it{transition:transform .18s ease}
 .grip{flex:none; display:grid; place-items:center; width:26px; align-self:stretch; margin:-10px 0 -10px -8px;
   color:#9AA8BA; cursor:grab; touch-action:none; user-select:none}

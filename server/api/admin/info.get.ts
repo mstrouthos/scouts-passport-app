@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
       id: p.id, slug: p.slug, icon: p.iconEmoji, titleEl: p.titleEl, titleEn: p.titleEn,
       summaryEl: p.summaryEl, summaryEn: p.summaryEn, bodyEl: p.bodyEl, bodyEn: p.bodyEn,
       sectionId: p.sectionId, isPublished: p.isPublished, sortOrder: p.sortOrder,
-      pendingApproval: p.pendingApproval, author: p.createdBy ? people.get(p.createdBy) ?? null : null
+      pendingApproval: p.pendingApproval, illustration: p.illustration, author: p.createdBy ? people.get(p.createdBy) ?? null : null
     }))
   }
 })

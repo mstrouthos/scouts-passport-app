@@ -791,5 +791,6 @@
   "mapMyLocation": "My location",
   "mapLabel": "Place name",
   "mapLabelPh": "e.g. Troodos campsite",
-  "mapInsert": "Add to the page"
+  "mapInsert": "Add to the page",
+  "previewPage": "Preview"
 }
