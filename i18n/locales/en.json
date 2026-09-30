@@ -779,5 +779,6 @@
   "teamScoringAvgNote": "The members' points are divided by each team's number of members — a big team doesn't win just for being big.",
   "teamScoringSumNote": "All members' points in each team are added up.",
   "sumNote": "Sum of the points of all active members.",
-  "pointsEditingFor": "Values for:"
+  "pointsEditingFor": "Values for:",
+  "slugAuto": "made from the title"
 }

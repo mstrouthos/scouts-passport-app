@@ -167,7 +167,9 @@ async function save() {
           <div v-else-if="editing.pendingApproval && isAdmin" class="note">{{ t('infoWaitingNote') }}</div>
           <div style="display:flex;gap:8px">
             <div style="flex:1"><label class="lab">{{ t('icon') }}</label><input v-model="editing.iconEmoji" class="in"></div>
-            <div style="flex:2"><label class="lab">{{ t('slug') }}</label><input v-model="editing.slug" class="in" placeholder="e.g. knots"></div>
+            <!-- the identifier is made from the title; an administrator may set
+                 one to write a section's own version of a troop-wide page -->
+            <div v-if="isAdmin && !editing.id" style="flex:2"><label class="lab">{{ t('slug') }} <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="editing.slug" class="in" :placeholder="t('slugAuto')"></div>
           </div>
           <div>
             <label class="lab">{{ t('whoFor') }}</label>
@@ -204,7 +206,7 @@ async function save() {
               <span class="sw" :class="{ off: !editing.submitForApproval }" />
             </button>
             <button v-if="isAdmin && editing.pendingApproval" class="btn" @click="approve">✅ {{ t('approveAndPublish') }}</button>
-            <button class="btn" :class="{ ghost: isAdmin && editing.pendingApproval }" :disabled="!editing.slug || !editing.titleEl" @click="save">{{ t('save') }}</button>
+            <button class="btn" :class="{ ghost: isAdmin && editing.pendingApproval }" :disabled="!editing.titleEl?.trim()" @click="save">{{ t('save') }}</button>
           </template>
           <button class="btn ghost" @click="editing = null">{{ t('close') }}</button>
         </div>
