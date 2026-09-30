@@ -13,27 +13,87 @@ const query = ref('')
 const results = ref<Hit[]>([])
 const searching = ref(false)
 const point = ref<{ lat: number, lng: number } | null>(null)
+/* The map: Google's when the server has a key and Google accepts it, else
+   OpenStreetMap's — with a word saying why, when Google refused. */
+const mode = ref<'google' | 'osm' | null>(null)
+const googleNote = ref('')
 let L: any = null, map: any = null, marker: any = null
+let g: any = null, gmap: any = null, gmarker: any = null
 
-onMounted(async () => {
+async function startOsm() {
   L = (await import('leaflet')).default
   await import('leaflet/dist/leaflet.css')
   if (!el.value) return
+  mode.value = 'osm'
   map = L.map(el.value).setView([35.0, 33.2], 8)   // all of Cyprus to start
   map.attributionControl.setPrefix(false)
   L.tileLayer(OSM_TILES, { maxZoom: 19, attribution: OSM_CREDIT }).addTo(map)
   map.on('click', (e: any) => place(e.latlng.lat, e.latlng.lng))
+  if (point.value) place(point.value.lat, point.value.lng, 16)
+}
+async function startGoogle(key: string) {
+  g = await loadGoogleMaps(key)
+  if (!el.value) return
+  mode.value = 'google'
+  gmap = new g.maps.Map(el.value, {
+    center: { lat: 35.0, lng: 33.2 }, zoom: 8, gestureHandling: 'greedy', clickableIcons: false,
+    mapTypeControl: false, streetViewControl: false, fullscreenControl: false
+  })
+  gmap.addListener('click', (e: any) => place(e.latLng.lat(), e.latLng.lng()))
+}
+/* Google turned the key down after all: carry on with OpenStreetMap */
+function onRefused() {
+  if (mode.value !== 'google') return
+  gmap = gmarker = null
+  if (el.value) el.value.innerHTML = ''
+  googleNote.value = t('googleRefused')
+  startOsm()
+}
+onMounted(async () => {
+  window.addEventListener('gm-refused', onRefused)
+  const { key } = await $fetch<any>('/api/admin/maps/key').catch(() => ({ key: null }))
+  if (key) {
+    try { await startGoogle(key); return } catch { googleNote.value = t('googleRefused') }
+  }
+  await startOsm()
 })
-onBeforeUnmount(() => { map?.remove(); map = null })
+onBeforeUnmount(() => { window.removeEventListener('gm-refused', onRefused); map?.remove(); map = null; gmap = null })
 
 function place(lat: number, lng: number, zoom?: number) {
   point.value = { lat, lng }
+  if (mode.value === 'google' && gmap) {
+    if (gmarker) gmarker.setPosition({ lat, lng })
+    else {
+      gmarker = new g.maps.Marker({ position: { lat, lng }, map: gmap, draggable: true })
+      gmarker.addListener('dragend', () => { const p = gmarker.getPosition(); point.value = { lat: p.lat(), lng: p.lng() } })
+    }
+    if (zoom) { gmap.setCenter({ lat, lng }); gmap.setZoom(zoom) }
+    return
+  }
+  if (!map) return
   if (marker) marker.setLatLng([lat, lng])
   else {
     marker = L.marker([lat, lng], { icon: pinIcon(L), draggable: true }).addTo(map)
     marker.on('dragend', () => { const p = marker.getLatLng(); point.value = { lat: p.lat, lng: p.lng } })
   }
   if (zoom) map.setView([lat, lng], zoom)
+}
+
+/* Words, on Google — from the browser, which is what a key locked to the
+   app's address expects; null when Google cannot be asked */
+async function googleWords(q: string): Promise<Hit[] | null> {
+  if (mode.value !== 'google' || !g) return null
+  try {
+    const { Place } = await g.maps.importLibrary('places')
+    const { places } = await Place.searchByText({
+      textQuery: q, fields: ['displayName', 'formattedAddress', 'location'], language: 'el', region: 'cy', maxResultCount: 8,
+      locationBias: { north: 35.8, south: 34.5, east: 34.7, west: 32.2 }
+    })
+    return (places || []).filter((p: any) => p.location).map((p: any) => ({
+      lat: p.location.lat(), lng: p.location.lng(), name: p.displayName || q, detail: p.formattedAddress || '',
+      cy: /Κύπρος|Cyprus/.test(p.formattedAddress || '')
+    }))
+  } catch (e) { console.warn('[maps] Google search failed', e); return null }
 }
 /* Search: Photon, which finds streets, ports and villages from loose wording in
    Greek or Latin letters, alongside OpenStreetMap's own search, which knows
@@ -130,10 +190,11 @@ async function search() {
     let found = await smart(q)
     // words — the query, or the words a pasted link carried
     const wq = query.value.trim()
+    // words: Google Maps — in the browser, else through the server
+    if (found === null) found = await googleWords(wq)
     if (found === null) {
-      // words: Google Maps, when the server has a key
-      const g = await $fetch<any>('/api/admin/maps/search', { query: { q: wq }, timeout: 12000 }).catch(() => ({ google: false }))
-      if (g.google) found = g.results
+      const gs = await $fetch<any>('/api/admin/maps/search', { query: { q: wq }, timeout: 12000 }).catch(() => ({ google: false }))
+      if (gs.google) found = gs.results
     }
     if (found === null) {
       // else OpenStreetMap — in Cyprus: the whole phrase, then its words (a
@@ -187,6 +248,7 @@ function here() {
           </button>
         </div>
         <div ref="el" class="picker" />
+        <div v-if="googleNote" class="note tiny">{{ googleNote }}</div>
         <div class="tiny muted">{{ t('mapTapHint') }}</div>
         <button class="chip" style="align-self:flex-start" @click="here">🎯 {{ t('mapMyLocation') }}</button>
         <div><label class="lab">{{ t('mapLabel') }}</label><input v-model="label" class="in" :placeholder="t('mapLabelPh')"></div>

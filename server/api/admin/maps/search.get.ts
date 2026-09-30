@@ -11,7 +11,10 @@ export default defineEventHandler(async (event) => {
   if (!q) return { google: true, results: [] }
   const res = await $fetch<any>('https://places.googleapis.com/v1/places:searchText', {
     method: 'POST',
-    headers: { 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location' },
+    // a key locked to the app's address is checked against the referrer:
+    // this request is made on the app's behalf, so it says so
+    headers: { 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location',
+      Referer: `${getRequestURL(event).origin}/` },
     body: {
       textQuery: q, languageCode: 'el', regionCode: 'CY', maxResultCount: 8,
       locationBias: { rectangle: { low: { latitude: 34.5, longitude: 32.2 }, high: { latitude: 35.8, longitude: 34.7 } } }
