@@ -120,6 +120,21 @@ async function addImage(e: Event) {
   finally { uploading.value = false }
 }
 
+/* A place: picked on a map, and placed in the text as a line of its own —
+   "📍 name (lat, lng)" — where the cursor was; shown to readers as a map. */
+const pickingPlace = ref(false)
+function insertLine(line: string) {
+  const ta = bodyEl.value, text = editing.value.bodyEl || ''
+  const at = ta ? ta.selectionStart : text.length
+  const before = text.slice(0, at), after = text.slice(at)
+  editing.value.bodyEl = `${before}${before && !before.endsWith('\n') ? '\n' : ''}${line}\n${after.startsWith('\n') ? after.slice(1) : after}`
+}
+function placePicked(p: { lat: number, lng: number, label: string }) {
+  insertLine(pinLine(p.lat, p.lng, p.label))
+  pickingPlace.value = false
+  show('📍 ' + t('locationAdded'))
+}
+
 async function save() {
   try {
     await $fetch('/api/admin/info', { method: 'POST', body: editing.value })
@@ -192,6 +207,7 @@ async function save() {
               📷 {{ uploading ? t('loading') : t('addImage') }}
               <input type="file" accept="image/*" style="display:none" :disabled="uploading" @change="addImage">
             </label>
+            <button class="chip" style="display:inline-flex;margin:7px 0 0 6px" @click="pickingPlace = true">📍 {{ t('addLocation') }}</button>
             <div class="tiny muted" style="margin-top:4px">{{ t('addImageHint') }}</div>
           </div>
           <div><label class="lab">{{ t('bodyEn') }}</label><textarea v-model="editing.bodyEn" class="in" rows="4" :placeholder="t('enOptional')" /></div>
@@ -211,6 +227,7 @@ async function save() {
           <button class="btn ghost" @click="editing = null">{{ t('close') }}</button>
         </div>
       </div>
+      <MapPicker v-if="pickingPlace" @pick="placePicked" @close="pickingPlace = false" />
     </Teleport>
   </AppShell>
 </template>

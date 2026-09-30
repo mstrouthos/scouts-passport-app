@@ -780,5 +780,16 @@
   "teamScoringSumNote": "All members' points in each team are added up.",
   "sumNote": "Sum of the points of all active members.",
   "pointsEditingFor": "Values for:",
-  "slugAuto": "made from the title"
+  "slugAuto": "made from the title",
+  "addLocation": "Add a location",
+  "locationAdded": "Location added",
+  "directions": "Directions",
+  "mapSearch": "Search a place or address",
+  "mapNoResults": "Nothing found — try another word or tap the map",
+  "mapNoLocation": "Couldn't find your location — allow location access or tap the map",
+  "mapTapHint": "Tap the map to drop the pin; drag it to adjust.",
+  "mapMyLocation": "My location",
+  "mapLabel": "Place name",
+  "mapLabelPh": "e.g. Troodos campsite",
+  "mapInsert": "Add to the page"
 }
