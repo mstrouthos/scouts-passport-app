@@ -792,5 +792,11 @@
   "mapLabel": "Place name",
   "mapLabelPh": "e.g. Troodos campsite",
   "mapInsert": "Add to the page",
-  "previewPage": "Preview"
+  "previewPage": "Preview",
+  "mapCoords": "Coordinates",
+  "mapFromLink": "From the link",
+  "mapPlusCode": "Plus code",
+  "mapSearchHint": "A place, an address, a plus code (e.g. WJ99+FPV Larnaca), coordinates or a Google Maps link.",
+  "mapSearching": "Searching…",
+  "mapPlaces": "Places on this page"
 }

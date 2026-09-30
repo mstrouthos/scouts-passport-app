@@ -792,5 +792,11 @@
   "mapLabel": "Όνομα τοποθεσίας",
   "mapLabelPh": "π.χ. Κατασκήνωση Τροόδους",
   "mapInsert": "Προσθήκη στη σελίδα",
-  "previewPage": "Προεπισκόπηση"
+  "previewPage": "Προεπισκόπηση",
+  "mapCoords": "Συντεταγμένες",
+  "mapFromLink": "Από τον σύνδεσμο",
+  "mapPlusCode": "Plus code",
+  "mapSearchHint": "Μέρος, διεύθυνση, plus code (π.χ. WJ99+FPV Λάρνακα), συντεταγμένες ή σύνδεσμος Google Maps.",
+  "mapSearching": "Αναζήτηση…",
+  "mapPlaces": "Τοποθεσίες στη σελίδα"
 }

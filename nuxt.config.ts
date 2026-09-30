@@ -73,6 +73,9 @@ export default defineNuxtConfig({
     passcodePepper: 'dev-pepper-change-me',
     cronToken: 'dev-cron-token',
     vapidPrivateKey: '',
+    // optional: Google Maps text search for places (Places API) — without it,
+    // OpenStreetMap is searched
+    googleMapsKey: '',
     vapidSubject: 'mailto:admin@example.org',
     resendApiKey: '',
     emailFrom: '',

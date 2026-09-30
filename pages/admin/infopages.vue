@@ -128,6 +128,11 @@ const previewing = ref(false)
 /* A place: picked on a map, and placed in the text as a line of its own —
    "📍 name (lat, lng)" — where the cursor was; shown to readers as a map. */
 const pickingPlace = ref(false)
+/* the places the text has, shown as maps right under it — not just the
+   line of coordinates */
+const pagePlaces = computed(() => (editing.value?.bodyEl || '').split('\n')
+  .map((l: string) => l.trim().match(PIN_LINE)).filter(Boolean)
+  .map((m: any) => ({ label: m[1], lat: Number(m[2]), lng: Number(m[3]) })))
 function insertLine(line: string) {
   const ta = bodyEl.value, text = editing.value.bodyEl || ''
   const at = ta ? ta.selectionStart : text.length
@@ -214,6 +219,12 @@ async function save() {
             </label>
             <button class="chip" style="display:inline-flex;margin:7px 0 0 6px" @click="pickingPlace = true">📍 {{ t('addLocation') }}</button>
             <div class="tiny muted" style="margin-top:4px">{{ t('addImageHint') }}</div>
+            <template v-if="pagePlaces.length">
+              <div class="lab" style="margin-top:10px">{{ t('mapPlaces') }}</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <InfoMap v-for="(pl, i) in pagePlaces" :key="i + ':' + pl.lat + ',' + pl.lng" :lat="pl.lat" :lng="pl.lng" :label="pl.label" />
+              </div>
+            </template>
           </div>
           <div><label class="lab">{{ t('bodyEn') }}</label><textarea v-model="editing.bodyEn" class="in" rows="4" :placeholder="t('enOptional')" /></div>
           <template v-if="!readOnly">
