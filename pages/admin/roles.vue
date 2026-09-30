@@ -169,7 +169,6 @@ function appoint(r: any) { appointing.value = false; open({ ...r, role: 'leader'
           <span class="chev">›</span>
         </button>
       </div>
-      <PushTestLeaders />
       <button class="srow" @click="appointing = true">
         <div class="ico">➕</div><div class="txt"><b>{{ t('makeLeader') }}</b><span>{{ t('pickFromList') }}</span></div><span class="chev">›</span>
       </button>

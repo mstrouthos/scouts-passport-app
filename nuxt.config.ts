@@ -56,7 +56,7 @@ export default defineNuxtConfig({
       globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
       // versioned, so phones fetch the new push handler with the next update
       // instead of keeping a cached copy
-      importScripts: ['/push-sw.js?v=4']
+      importScripts: ['/push-sw.js?v=5']
     },
     client: { installPrompt: true }
   },
