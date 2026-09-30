@@ -764,5 +764,6 @@
   "infoPublishedAdminOnly": "This page is published — only administrators can change it.",
   "infoWaitingNote": "Waiting for your approval. Check it, fix anything needed, and tap “Approve and publish”.",
   "submitForApprovalSub": "An administrator will check it and publish it",
-  "approveAndPublish": "Approve and publish"
+  "approveAndPublish": "Approve and publish",
+  "nextAction": "Next activity"
 }

@@ -89,7 +89,7 @@ function sub(e: any) {
     </NuxtLink>
 
     <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>{{ t('upcoming') }}</span>
+      <span>{{ t('nextAction') }}</span>
       <NuxtLink to="/app/calendar" class="tiny" style="color:var(--accent-deep);font-weight:650">{{ t('calendar') }} ›</NuxtLink>
     </div>
     <div v-if="upcomingEvents.length" class="card" style="display:flex;flex-direction:column;gap:13px">
