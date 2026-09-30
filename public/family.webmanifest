@@ -1,0 +1,30 @@
+{
+  "id": "/family",
+  "name": "Γονείς · Πύλη Προσκόπων",
+  "short_name": "Γονείς",
+  "description": "Πρόγραμμα, ανακοινώσεις και πληροφορίες για τους γονείς",
+  "start_url": "/family",
+  "scope": "/family",
+  "display": "standalone",
+  "background_color": "#E8F1FA",
+  "theme_color": "#E8F1FA",
+  "lang": "el",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

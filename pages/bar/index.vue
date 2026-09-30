@@ -77,7 +77,7 @@ async function enablePush() {
   try {
     if (!('Notification' in window) || !('serviceWorker' in navigator) || !cfg.public.vapidPublicKey) { push.value = 'no'; return }
     if (await Notification.requestPermission() !== 'granted') { push.value = 'no'; return }
-    const reg = await navigator.serviceWorker.ready
+    const reg = await pushRegistration()
     const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(cfg.public.vapidPublicKey) })
     await $fetch('/api/bar/subscribe', { method: 'POST', body: sub.toJSON() })
     push.value = 'on'

@@ -35,6 +35,9 @@ export default defineNuxtConfig({
   pwa: {
     registerType: 'autoUpdate',
     manifest: {
+      id: '/',
+      start_url: '/',
+      scope: '/',
       name: 'Πύλη Προσκόπων',
       short_name: 'Πύλη Προσκόπων',
       description: 'Η ψηφιακή πλατφόρμα διαχείρισης του 30ού Συστήματος',
@@ -53,7 +56,7 @@ export default defineNuxtConfig({
       globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
       // versioned, so phones fetch the new push handler with the next update
       // instead of keeping a cached copy
-      importScripts: ['/push-sw.js?v=3']
+      importScripts: ['/push-sw.js?v=4']
     },
     client: { installPrompt: true }
   },

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { now } from '../../utils/passcode'
 import { requireBarStaff } from '../../utils/bar'
@@ -13,6 +13,10 @@ export default defineEventHandler(async (event) => {
   if (!endpoint || !p256dh || !auth) throw createError({ statusCode: 400, message: 'Bad subscription' })
   const db = await useDb()
   await db.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.endpoint, endpoint))
+  // this phone's older bar endpoint, from before the bar had a worker of its own
+  const ua = getHeader(event, 'user-agent') || null
+  if (ua) await db.delete(s.pushSubscriptions).where(and(eq(s.pushSubscriptions.barStaffId, me.id),
+    eq(s.pushSubscriptions.surfaces, 'bar'), eq(s.pushSubscriptions.userAgent, ua)))
   await db.insert(s.pushSubscriptions).values({
     scoutId: null, parentId: null, barStaffId: me.id, sectionId: null, surfaces: 'bar', endpoint, p256dh, auth,
     userAgent: getHeader(event, 'user-agent') || null, createdAt: now()

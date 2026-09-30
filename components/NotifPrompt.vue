@@ -29,7 +29,7 @@ async function enable() {
   busy.value = true
   try {
     if (await Notification.requestPermission() !== 'granted') { seen(); return }
-    const reg = await navigator.serviceWorker.ready
+    const reg = await pushRegistration()
     const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(cfg.public.vapidPublicKey) })
     if (props.kind === 'family')
       await $fetch('/api/family/subscribe', { method: 'POST', body: { section: props.section, ...sub.toJSON() } })

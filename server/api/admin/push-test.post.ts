@@ -19,9 +19,11 @@ export default defineEventHandler(async (event) => {
     .filter(x => x.scoutId != null && ids.has(x.scoutId) && onSurface(x, 'scouts'))
   for (const x of subs) test.devices.push({ subId: x.id, scoutId: x.scoutId!, label: deviceLabel(x.userAgent), sent: null, error: null, receivedMs: null })
   await deliverEach(subs, JSON.stringify({
-    title: '🔔 Δοκιμή ειδοποιήσεων',
-    body: `Από ${me.firstName} ${me.lastName}: αν το βλέπεις, οι ειδοποιήσεις δουλεύουν σε αυτό το κινητό.`,
-    url: '/', testId: id
+    title: '🔔 Δοκιμή ειδοποιήσεων — πάτησέ με',
+    body: `Από ${me.firstName} ${me.lastName}: πάτησε εδώ για να επιβεβαιώσεις ότι την έλαβες.`,
+    // opening it confirms too, through the app itself — so even a phone
+    // still on the previous service worker is counted
+    url: `/?pushAck=${id}`, testId: id
   }), (sub, ok, why) => {
     const d = test.devices.find(x => x.subId === sub.id)
     if (d) { d.sent = ok; d.error = ok ? null : (why || 'failed') }

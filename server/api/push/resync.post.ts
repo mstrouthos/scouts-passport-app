@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, and, ne } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { now } from '../../utils/passcode'
 
@@ -26,11 +26,17 @@ export default defineEventHandler(async (event) => {
   // which installed app is asking — a phone may hold both, each with its own
   // endpoint, and each should hear only its own news
   const surface = b?.surface === 'bar' ? 'bar' : 'scouts'
+  const ua = getHeader(event, 'user-agent') || null
   const existing = (await db.select().from(s.pushSubscriptions).where(eq(s.pushSubscriptions.endpoint, endpoint)))[0]
-  if (existing) {
-    // one endpoint, one browser: if the same one serves both apps, it keeps both
-    const surfaces = [...new Set([...(existing.surfaces || '').split(',').filter(Boolean), surface])].join(',')
-    await db.update(s.pushSubscriptions).set({ ...who, p256dh, auth, surfaces }).where(eq(s.pushSubscriptions.id, existing.id))
-  } else await db.insert(s.pushSubscriptions).values({ ...who, surfaces: surface, endpoint, p256dh, auth, userAgent: getHeader(event, 'user-agent') || null, createdAt: now() })
+  // each installed app now has its own service worker and so its own
+  // endpoint: an endpoint belongs to the one app that reports it. (Before,
+  // the bar shared the members' worker, and one endpoint served both.)
+  if (existing) await db.update(s.pushSubscriptions).set({ ...who, p256dh, auth, surfaces: surface }).where(eq(s.pushSubscriptions.id, existing.id))
+  else await db.insert(s.pushSubscriptions).values({ ...who, surfaces: surface, endpoint, p256dh, auth, userAgent: ua, createdAt: now() })
+  // the bar's old endpoint on this same phone, from when it shared the members'
+  // worker, would otherwise keep buzzing orders into the members' app
+  if (surface === 'bar' && barStaffId && ua)
+    await db.delete(s.pushSubscriptions).where(and(eq(s.pushSubscriptions.barStaffId, barStaffId),
+      eq(s.pushSubscriptions.surfaces, 'bar'), eq(s.pushSubscriptions.userAgent, ua), ne(s.pushSubscriptions.endpoint, endpoint)))
   return { ok: true }
 })

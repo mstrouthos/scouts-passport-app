@@ -15,7 +15,7 @@ export function usePushResync() {
   async function current(): Promise<PushSubscription | null> {
     if (!('Notification' in window) || !('serviceWorker' in navigator) || !cfg.public.vapidPublicKey) return null
     if (Notification.permission !== 'granted') return null
-    const reg = await navigator.serviceWorker.ready
+    const reg = await pushRegistration()
     return (await reg.pushManager.getSubscription())
       || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(cfg.public.vapidPublicKey) })
   }

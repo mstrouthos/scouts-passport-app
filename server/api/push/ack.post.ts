@@ -11,5 +11,6 @@ export default defineEventHandler(async (event) => {
   const db = await useDb()
   const sub = (await db.select().from(s.pushSubscriptions).where(eq(s.pushSubscriptions.endpoint, String(b.endpoint))))[0]
   if (sub) ackTest(String(b.testId), sub.id)
+  else console.warn('[push-test] ack from an endpoint we do not know', String(b.endpoint).slice(0, 48))
   return { ok: true }
 })

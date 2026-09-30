@@ -125,7 +125,7 @@ async function enableNotifs() {
   try {
     if (!('Notification' in window) || !('serviceWorker' in navigator) || !cfg.public.vapidPublicKey) { subState.value = 'no'; return }
     if (await Notification.requestPermission() !== 'granted') { subState.value = 'no'; return }
-    const reg = await navigator.serviceWorker.ready
+    const reg = await pushRegistration()
     const s = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(cfg.public.vapidPublicKey) })
     await $fetch('/api/family/subscribe', { method: 'POST', body: { section: childSection.value?.slug, ...s.toJSON() } })
     subState.value = 'ok'
