@@ -759,5 +759,13 @@
   "streakDays": "day streak",
   "streakStarted": "Streak started! Come back tomorrow to keep the flame alive.",
   "streakKeep": "Come back tomorrow so the flame doesn't go out!",
-  "streakContinue": "Continue"
+  "streakContinue": "Continue",
+  "testAllLeaders": "Test notifications for everyone",
+  "testAllLeadersSub": "Sends a test to every leader's phone and shows who receives it",
+  "pushTestTitle": "Who got the test",
+  "pushReceivedOf": "{n} of {total} received it",
+  "pushReceived": "arrived",
+  "pushWaiting": "sent, waiting for confirmation",
+  "pushNoDevice": "No device with notifications on",
+  "pushTestNote": "Updates by itself for two minutes. “Waiting” that never turns ✓ means the phone didn't show it — usually battery saving or notifications off for the browser. A phone that hasn't opened the app since the last update may not confirm yet, even if it shows it."
 }

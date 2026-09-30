@@ -25,6 +25,9 @@ export const onSurface = (x: Sub, want: 'scouts' | 'bar') =>
 
 /** Exposed for the test push, which targets one known row. */
 export const deliverTo = (subs: Array<typeof s.pushSubscriptions.$inferSelect>, payload: string) => deliver(subs, payload)
+/** The same, reporting each device's outcome — for the group test. */
+export const deliverEach = (subs: Array<typeof s.pushSubscriptions.$inferSelect>, payload: string,
+  onResult: (sub: Sub, ok: boolean, why?: string) => void) => deliver(subs, payload, onResult)
 
 /* How each push travels. `urgency: high` is what gets it through at once on
    Android: at the default, normal, the phone's push service holds messages

@@ -2,7 +2,14 @@
 self.addEventListener('push', (event) => {
   let data = { title: 'Διαβατήριο Προσκόπου', body: '' }
   try { data = { ...data, ...event.data.json() } } catch {}
-  event.waitUntil(self.registration.showNotification(data.title, {
+  // a test push: tell the server this phone really received it
+  const ack = data.testId
+    ? self.registration.pushManager.getSubscription().then((sub) => sub && fetch('/api/push/ack', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ testId: data.testId, endpoint: sub.endpoint })
+      })).catch(() => {})
+    : Promise.resolve()
+  event.waitUntil(Promise.all([ack, self.registration.showNotification(data.title, {
     body: data.body,
     icon: '/icons/icon-192.png',
     // the small status-bar icon: Android draws only its shape, in white, so
@@ -12,7 +19,7 @@ self.addEventListener('push', (event) => {
     lang: 'el',
     // carried through to the click handler so an award opens itself
     data: { url: data.url || '/' }
-  }))
+  })]))
 })
 /* Android replaces subscriptions now and then; re-create ours and tell the
    server, using the same key, so nobody has to switch anything back on. */

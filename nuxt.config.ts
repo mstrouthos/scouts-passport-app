@@ -51,7 +51,9 @@ export default defineNuxtConfig({
     workbox: {
       navigateFallback: '/',
       globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
-      importScripts: ['/push-sw.js']
+      // versioned, so phones fetch the new push handler with the next update
+      // instead of keeping a cached copy
+      importScripts: ['/push-sw.js?v=3']
     },
     client: { installPrompt: true }
   },
