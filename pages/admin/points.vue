@@ -9,14 +9,24 @@ const lx = useLx()
 const { show } = useToast()
 const { data, refresh } = await useFetch<any>('/api/admin/settings/points')
 
-/* which rules are open: a section's id, or null for the whole troop's */
-const target = ref<number | null>(null)
+/* Which rules are open: a section's id, or null for the whole troop's. Kept
+   in the address, so a reload reopens the same section — reopening on
+   another one showed its values instead, and a save looked undone. */
+const route = useRoute()
+const router = useRouter()
+const fromQuery = () => route.query.for === 'troop' ? null : Number(route.query.for) || undefined
+const target = ref<number | null>(fromQuery() ?? null)
 watch(data, v => {
   if (!v) return
   const ids = (v.sections || []).map((x: any) => x.id)
-  if (target.value === null ? !v.canEditTroop : !ids.includes(target.value)) target.value = ids[0] ?? null
+  const wanted = fromQuery()
+  if (wanted !== undefined && (wanted === null ? v.canEditTroop : ids.includes(wanted))) target.value = wanted
+  else if (target.value === null ? !v.canEditTroop : !ids.includes(target.value)) target.value = ids[0] ?? null
 }, { immediate: true })
+watch(target, v => { router.replace({ query: { ...route.query, for: v === null ? 'troop' : String(v) } }) })
+const targetName = computed(() => section.value ? lx(section.value, 'name') : t('troopDefaults'))
 const section = computed(() => (data.value?.sections || []).find((x: any) => x.id === target.value) || null)
+
 const canEdit = computed(() => section.value ? section.value.canEdit : !!data.value?.canEditTroop)
 
 const form = reactive({ present: 5, excused: 0, absent: 0, uniformFull: 5, uniformPartial: 0, uniformNone: 0 })
@@ -55,11 +65,12 @@ const UNIFORM = [
 <template>
   <AppShell :title="t('pointRules')" :sub="t('pointRulesSub')" back="/admin/more">
     <div class="chips">
-      <button v-for="sec in data?.sections" :key="sec.id" class="chip" :class="{ on: target === sec.id }"
-              @click="target = sec.id">{{ lx(sec, 'name') }}</button>
       <button v-if="data?.canEditTroop" class="chip" :class="{ on: target === null }"
               @click="target = null">🏕️ {{ t('troopDefaults') }}</button>
+      <button v-for="sec in data?.sections" :key="sec.id" class="chip" :class="{ on: target === sec.id }"
+              @click="target = sec.id">{{ lx(sec, 'name') }}</button>
     </div>
+    <div class="note"><b>{{ t('pointsEditingFor') }} {{ targetName }}</b></div>
     <div class="tiny muted">
       <template v-if="!section">{{ t('troopDefaultsNote') }}</template>
       <template v-else-if="section.own">{{ t('pointsOwnNote') }}</template>
