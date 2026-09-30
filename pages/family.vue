@@ -319,7 +319,10 @@ async function enableNotifs() {
         <div class="sheet" style="max-height:86dvh;overflow:auto;display:flex;flex-direction:column;gap:13px">
           <div style="text-align:center;font-size:32px">{{ openInfo.icon }}</div>
           <h3 style="margin:0;font-size:17px;text-align:center">{{ lx(openInfo) }}</h3>
-          <p style="font-size:13.5px;line-height:1.6;white-space:pre-wrap;margin:0">{{ lx(openInfo, 'body') }}</p>
+          <!-- the same page the members see: its drawings, and its headings and lists laid out -->
+          <UniformArt v-if="openInfo.illustration === 'uniforms'" kind="formal" />
+          <InfoBody :text="lx(openInfo, 'body')" />
+          <UniformArt v-if="openInfo.illustration === 'uniforms'" kind="work" />
           <button class="btn ghost" @click="openInfo = null">{{ t('close') }}</button>
         </div>
       </div>

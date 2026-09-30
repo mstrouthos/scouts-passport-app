@@ -313,7 +313,10 @@ export const infoPages = pgTable('info_pages', {
   // the uniform (and much else) differs between Αγέλη and Ομάδα
   sectionId: integer('section_id').references(() => sections.id),
   sortOrder: integer('sort_order').notNull().default(0),
-  isPublished: boolean('is_published').notNull().default(false)
+  isPublished: boolean('is_published').notNull().default(false),
+  // written by a Βαθμοφόρος and waiting for an administrator to publish it
+  pendingApproval: boolean('pending_approval').notNull().default(false),
+  createdBy: integer('created_by')
 }, t => [uniqueIndex('info_slug_uq').on(t.slug)])
 
 export const pushSubscriptions = pgTable('push_subscriptions', {
