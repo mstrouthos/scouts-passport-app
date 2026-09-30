@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { requireScout, pointTotals, sectionOf, sectionOfWith } from '../utils/guard'
+import { getTeamScoring, teamScore } from '../utils/settings'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
@@ -13,6 +14,8 @@ export default defineEventHandler(async (event) => {
   const actives = (await db.select().from(s.scouts).where(eq(s.scouts.role, 'scout')))
     .filter(r => r.isActive && !r.isHidden && sectionOfWith(r, allPatrols) === mySection)
   const patrols = allPatrols.filter(p => p.sectionId === mySection)
+  // the section's own choice: the sum of the members' points, or the average
+  const mode = await getTeamScoring(mySection)
 
   const individual = actives.map(r => ({
     id: r.id, me: r.id === me.id,
@@ -25,13 +28,14 @@ export default defineEventHandler(async (event) => {
     const sum = members.reduce((acc, r) => acc + (totals.get(r.id) || 0), 0)
     return {
       id: p.id, nameEl: p.nameEl, nameEn: p.nameEn, emblem: p.emblem,
-      members: members.length, avg: members.length ? Math.round(sum / members.length) : 0
+      members: members.length, score: teamScore(sum, members.length, mode)
     }
-  }).sort((a, b) => b.avg - a.avg)
+  }).sort((a, b) => b.score - a.score)
 
   return {
     individual,
     patrols: patrolBoard,
+    teamScoring: mode,
     patrolNames: Object.fromEntries(patrols.map(p => [p.id, { nameEl: p.nameEl, nameEn: p.nameEn, emblem: p.emblem }]))
   }
 })

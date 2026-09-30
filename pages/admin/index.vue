@@ -74,7 +74,7 @@ async function saveDetails() {
           <div v-for="(p, i) in st.patrols" :key="p.id" class="it" style="cursor:default">
             <div class="rank">{{ i + 1 }}</div>
             <div style="flex:1;min-width:0"><b>{{ p.emblem }} {{ p.nameEl }}</b><span>{{ p.size }} {{ t('members') }}</span></div>
-            <span class="amt">{{ p.points }}</span>
+            <span class="amt">{{ p.points }}<small v-if="st.teamScoring === 'average'" class="tiny muted" style="font-weight:500"> {{ t('avg') }}</small></span>
           </div>
         </div>
       </template>

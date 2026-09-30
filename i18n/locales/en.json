@@ -765,5 +765,18 @@
   "infoWaitingNote": "Waiting for your approval. Check it, fix anything needed, and tap “Approve and publish”.",
   "submitForApprovalSub": "An administrator will check it and publish it",
   "approveAndPublish": "Approve and publish",
-  "nextAction": "Next activity"
+  "nextAction": "Next activity",
+  "troopDefaults": "Whole troop (default)",
+  "troopDefaultsNote": "The values for every section that has not set its own.",
+  "pointsOwnNote": "This section has its own values.",
+  "pointsTroopNote": "This section uses the troop's values. If you change them, they apply to this section only.",
+  "pointsResetToTroop": "Back to the troop's values",
+  "pointsResetConfirm": "Return this section to the whole troop's values?",
+  "pointsReadOnly": "The section's Αρχηγός or an administrator can change these.",
+  "teamScoring": "Team points (patrols, sixes, groups)",
+  "teamScoringAvg": "Average",
+  "teamScoringSum": "Sum",
+  "teamScoringAvgNote": "The members' points are divided by each team's number of members — a big team doesn't win just for being big.",
+  "teamScoringSumNote": "All members' points in each team are added up.",
+  "sumNote": "Sum of the points of all active members."
 }

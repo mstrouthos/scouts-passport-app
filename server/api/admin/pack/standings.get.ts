@@ -1,6 +1,7 @@
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, scopedSectionIds, pointTotals, sectionOfWith } from '../../../utils/guard'
 import { packSections } from '../../../utils/pack'
+import { getTeamScoring, teamScore } from '../../../utils/settings'
 
 /** The Αγέλη's and Μικρή Αγέλη's standings, for their own Βαθμοφόροι's
     dashboard. Never leaves this side of the app: families read the weekly
@@ -17,7 +18,9 @@ export default defineEventHandler(async (event) => {
   const scouts = (await db.select().from(s.scouts)).filter(r => r.role === 'scout' && r.isActive && !r.isHidden)
   const totals = await pointTotals()
 
+  const modes = new Map(await Promise.all(mine.map(async x => [x.id, await getTeamScoring(x.id)] as const)))
   return mine.map(section => {
+    const mode = modes.get(section.id)!
     const members = scouts.filter(r => sectionOfWith(r as any, allPatrols) === section.id)
     const patrols = allPatrols
       .filter(p => p.sectionId === section.id)
@@ -26,12 +29,12 @@ export default defineEventHandler(async (event) => {
         return {
           id: p.id, nameEl: p.nameEl, nameEn: p.nameEn, emblem: p.emblem,
           size: its.length,
-          points: its.reduce((n, r) => n + (totals.get(r.id) || 0), 0)
+          points: teamScore(its.reduce((n, r) => n + (totals.get(r.id) || 0), 0), its.length, mode)
         }
       })
       .sort((a, b) => b.points - a.points)
     return {
-      sectionId: section.id, nameEl: section.nameEl, nameEn: section.nameEn, slug: section.slug,
+      sectionId: section.id, nameEl: section.nameEl, nameEn: section.nameEn, slug: section.slug, teamScoring: mode,
       patrols,
       members: members
         .map(r => ({

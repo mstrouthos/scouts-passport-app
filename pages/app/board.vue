@@ -5,7 +5,9 @@ const name = useName()
 const { words: sectorWords } = useSectorWords()
 const { data } = await useFetch('/api/board')
 const tab = ref<'ind' | 'pat'>('ind')
-const maxAvg = computed(() => Math.max(1, ...(data.value?.patrols || []).map((p: any) => p.avg)))
+const maxAvg = computed(() => Math.max(1, ...(data.value?.patrols || []).map((p: any) => p.score)))
+/* the section's rule: the average per member, or the sum */
+const isSum = computed(() => data.value?.teamScoring === 'sum')
 function rankOf(i: number) {
   const list = data.value?.individual || []
   return 1 + list.filter((r: any, j: number) => j < i && r.points > list[i].points).length
@@ -34,11 +36,11 @@ function rankOf(i: number) {
       <div v-for="p in data?.patrols" :key="p.id">
         <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:650">
           <span>{{ p.emblem }} {{ lx(p, 'name') }} <span class="tiny muted" style="font-weight:400">· {{ p.members }} {{ t('members') }}</span></span>
-          <span style="color:var(--blue-deep)">{{ p.avg }} <span class="tiny muted" style="font-weight:400">{{ t('avg') }}</span></span>
+          <span style="color:var(--blue-deep)">{{ p.score }} <span class="tiny muted" style="font-weight:400">{{ isSum ? t('pts') : t('avg') }}</span></span>
         </div>
-        <div class="bar"><i :style="{ width: Math.round(p.avg / maxAvg * 100) + '%' }" /></div>
+        <div class="bar"><i :style="{ width: Math.round(p.score / maxAvg * 100) + '%' }" /></div>
       </div>
-      <div class="tiny muted">{{ t('avgNote') }}</div>
+      <div class="tiny muted">{{ isSum ? t('sumNote') : t('avgNote') }}</div>
     </div>
   </AppShell>
 </template>

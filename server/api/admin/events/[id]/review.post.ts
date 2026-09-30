@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
-import { requireLeader, assertScoutInScope, idParam, scopedSectionIds } from '../../../../utils/guard'
+import { requireLeader, assertScoutInScope, idParam, scopedSectionIds, sectionOf } from '../../../../utils/guard'
 import { now } from '../../../../utils/passcode'
 import { getPointRules } from '../../../../utils/settings'
 import { assertCan } from '../../../../utils/permissions'
@@ -57,8 +57,10 @@ export default defineEventHandler(async (event) => {
   const auto = (await db.select().from(s.pointAwards).where(eq(s.pointAwards.eventId, eventId)))
     .filter(a => a.scoutId === scoutId && (a.kind === 'attendance' || a.kind === 'uniform'))
   for (const a of auto) await db.delete(s.pointAwards).where(eq(s.pointAwards.id, a.id))
-  // point values are configured troop-wide; absence may be worth 0 or negative
-  const rules = await getPointRules()
+  // the scout's own section's rules (or the troop's, where it has set none) —
+  // at a troop-wide meeting too; absence may be worth 0 or negative
+  const member = (await db.select().from(s.scouts).where(eq(s.scouts.id, scoutId)).limit(1))[0]
+  const rules = await getPointRules(member ? await sectionOf(member) : null)
   const attendPoints =
     attendance === 'present' ? rules.present :
     attendance === 'excused' ? rules.excused :
