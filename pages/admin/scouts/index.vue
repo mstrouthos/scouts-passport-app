@@ -232,6 +232,8 @@ async function deletePatrol() {
           <span class="chev" :class="{ open: openSectors.has('leaders') }">›</span>
         </div>
         <div v-if="openSectors.has('leaders')" style="display:flex;flex-direction:column;gap:11px">
+          <!-- does every Βαθμοφόρος's phone get notifications? (administrators) -->
+          <PushTestLeaders v-if="me?.role === 'troop_leader'" />
           <template v-for="g in leaderGroups" :key="g.key">
             <div class="lgrp-hdr">{{ g.emoji }} {{ g.label }}</div>
             <div class="adm">
