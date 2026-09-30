@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { requireLeader } from '../../utils/guard'
 import { sendPushTo } from '../../utils/push'
+import { tellAuthorPublished, administratorIds } from '../../utils/infoNotify'
 
 /* A page's identifier, made from its Greek title, since nobody should have to
    invent one: "Κόμποι για αρχάριους" → "kompoi-gia-archarious". */
@@ -64,10 +65,12 @@ export default defineEventHandler(async (event) => {
   if (existing) await db.update(s.infoPages).set({ ...set, sectionId }).where(eq(s.infoPages.id, existing.id))
   else id = (await db.insert(s.infoPages).values({ slug, sectionId, ...set, sortOrder, createdBy: me.id }).returning())[0].id
 
+  // published now by an administrator, written by someone else: tell them
+  if (existing && set.isPublished && !existing.isPublished) await tellAuthorPublished(existing, me)
   // newly waiting for approval: tell the administrators
   if (set.pendingApproval && !existing?.pendingApproval) {
     try {
-      const admins = (await db.select().from(s.scouts)).filter(r => r.role === 'troop_leader' && r.isActive && !r.deletedAt).map(r => r.id)
+      const admins = await administratorIds()
       await sendPushTo(admins, {
         title: 'Πληροφορίες: προς έγκριση', body: `📄 ${set.titleEl} — από ${me.firstName} ${me.lastName}`,
         kind: 'infoApproval', refId: id!
