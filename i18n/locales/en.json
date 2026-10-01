@@ -799,5 +799,11 @@
   "mapSearchHint": "A place, an address, a plus code (e.g. WJ99+FPV Larnaca), coordinates or a Google Maps link.",
   "mapSearching": "Searching…",
   "mapPlaces": "Places on this page",
-  "googleRefused": "Google Maps didn't accept the key, so the OpenStreetMap map is shown. In Google Cloud, check that \"Maps JavaScript API\" and \"Places API (New)\" are enabled and that the key allows the app's address."
+  "googleRefused": "Google Maps didn't accept the key, so the OpenStreetMap map is shown. In Google Cloud, check that \"Maps JavaScript API\" and \"Places API (New)\" are enabled and that the key allows the app's address.",
+  "confirmRevokeBadge": "Remove the «{badge}» badge from {name}?",
+  "badgeRevoked": "Badge removed",
+  "revokeBadgeHint": "Tap a badge awarded by mistake to remove it.",
+  "hasBadge": "Already has it",
+  "revokeBadge": "Remove",
+  "noPatrolYet": "Not in a patrol yet"
 }

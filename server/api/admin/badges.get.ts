@@ -13,6 +13,8 @@ export default defineEventHandler(async (event) => {
     category: b.category, slug: b.slug,
     descriptionEl: b.descriptionEl, descriptionEn: b.descriptionEn,
     awarded: all.filter(a => a.achievementId === b.id && mine.has(a.scoutId)).length,
+    // who already has it — marked on the award page, where it can be taken back
+    holders: all.filter(a => a.achievementId === b.id && mine.has(a.scoutId)).map(a => a.scoutId),
     total: mine.size
   }))
 })

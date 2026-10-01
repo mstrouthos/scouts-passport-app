@@ -799,5 +799,11 @@
   "mapSearchHint": "Μέρος, διεύθυνση, plus code (π.χ. WJ99+FPV Λάρνακα), συντεταγμένες ή σύνδεσμος Google Maps.",
   "mapSearching": "Αναζήτηση…",
   "mapPlaces": "Τοποθεσίες στη σελίδα",
-  "googleRefused": "Το Google Maps δεν δέχτηκε το κλειδί, γι' αυτό φαίνεται ο χάρτης OpenStreetMap. Έλεγξε στο Google Cloud ότι είναι ενεργά τα «Maps JavaScript API» και «Places API (New)» και ότι το κλειδί επιτρέπει τη διεύθυνση της εφαρμογής."
+  "googleRefused": "Το Google Maps δεν δέχτηκε το κλειδί, γι' αυτό φαίνεται ο χάρτης OpenStreetMap. Έλεγξε στο Google Cloud ότι είναι ενεργά τα «Maps JavaScript API» και «Places API (New)» και ότι το κλειδί επιτρέπει τη διεύθυνση της εφαρμογής.",
+  "confirmRevokeBadge": "Να αφαιρεθεί το πτυχίο «{badge}» από {name};",
+  "badgeRevoked": "Το πτυχίο αφαιρέθηκε",
+  "revokeBadgeHint": "Πάτα ένα πτυχίο που απονεμήθηκε κατά λάθος για να το αφαιρέσεις.",
+  "hasBadge": "Το έχει ήδη",
+  "revokeBadge": "Αφαίρεση",
+  "noPatrolYet": "Χωρίς ενωμοτία ακόμη"
 }

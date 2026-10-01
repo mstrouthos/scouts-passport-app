@@ -165,6 +165,15 @@ async function toggleActive() {
   await $fetch(`/api/admin/scouts/${id}`, { method: 'PATCH', body: { isActive: !data.value.isActive } })
   await refresh(); show(t('saved'))
 }
+/* a πτυχίο awarded by mistake: tap it to take it back */
+async function revoke(b: any) {
+  if (!b.earned || me.value?.can?.badges === false) return
+  if (!confirm(t('confirmRevokeBadge', { badge: lx(b), name: `${data.value.firstName} ${data.value.lastName}` }))) return
+  try {
+    await $fetch(`/api/admin/badges/${b.id}/award`, { method: 'DELETE', query: { scoutId: Number(id) } })
+    await refresh(); show('🗑️ ' + t('badgeRevoked'))
+  } catch (e: any) { show(e?.data?.message || t('error')) }
+}
 async function award(badgeId: number) {
   await $fetch(`/api/admin/badges/${badgeId}/award`, {
     method: 'POST', body: { scoutIds: [Number(id)], completedOn: awardDate.value }
@@ -392,10 +401,14 @@ async function deleteScout() {
         <template v-if="data.hasBadges">
         <div class="sec-title">{{ t('earnedBadges') }}</div>
         <div class="badge-grid">
-          <div v-for="b in data.badges" :key="b.id" class="btile" :class="{ off: !b.earned }" style="cursor:default">
+          <component :is="b.earned && me?.can?.badges !== false ? 'button' : 'div'" v-for="b in data.badges" :key="b.id"
+                     class="btile" :class="{ off: !b.earned }" :style="b.earned && me?.can?.badges !== false ? 'position:relative' : 'cursor:default'"
+                     @click="revoke(b)">
             <span class="disc">{{ b.icon }}</span><span class="lbl">{{ lx(b) }}</span>
-          </div>
+            <span v-if="b.earned && me?.can?.badges !== false" class="revoke" aria-hidden="true">✕</span>
+          </component>
         </div>
+        <div v-if="data.badges.some((b: any) => b.earned) && me?.can?.badges !== false" class="tiny muted" style="margin-top:-6px">{{ t('revokeBadgeHint') }}</div>
         <button v-if="data.hasBadges && me?.can?.badges !== false" class="srow" @click="awarding = true">
           <div class="ico">🏅</div>
           <div class="txt"><b>{{ t('awardBadge') }}</b><span>{{ t('pickFromList') }}</span></div>
@@ -433,6 +446,8 @@ async function deleteScout() {
 </template>
 
 <style scoped>
+.revoke{position:absolute; top:4px; right:6px; width:18px; height:18px; border-radius:50%; display:grid; place-items:center;
+  font-size:10px; font-weight:800; color:var(--danger); background:var(--danger-soft)}
 .prow{display:flex; align-items:flex-start; gap:10px; padding-bottom:10px; border-bottom:1px solid var(--line)}
 .prow:last-of-type{border-bottom:0; padding-bottom:0}
 </style>
