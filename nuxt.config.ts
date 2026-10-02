@@ -76,6 +76,9 @@ export default defineNuxtConfig({
     // optional: Google Maps text search for places (Places API) — without it,
     // OpenStreetMap is searched
     googleMapsKey: '',
+    // optional: a Discord channel's webhook, for a report of what each
+    // notification reached
+    discordWebhookUrl: '',
     vapidSubject: 'mailto:admin@example.org',
     resendApiKey: '',
     emailFrom: '',

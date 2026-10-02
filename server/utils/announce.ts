@@ -6,6 +6,7 @@ import { sendSms } from './sms'
 import { sectionOfWith } from './guard'
 import { parentsOfScouts } from './parents'
 import { now } from './passcode'
+import { logNote } from './deliveryLog'
 
 /** Deliver an approved announcement over the channels it was created with:
     in-app/push always, SMS only when the sender asked for it (it costs money).
@@ -64,6 +65,14 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
     ])]
     smsSent = await sendSms(numbers, `Πύλη Προσκόπων: ${a.textEl}`)
   }
+
+  // for the delivery report: who sent it, to whom, and the other channels
+  const author = scouts.find(r => r.id === a.createdBy)
+  const audience = a.audience === 'troop' ? 'Όλο το Σύστημα' : a.audience === 'leaders' ? 'Βαθμοφόροι'
+    : a.audience === 'group' ? 'Ομάδα ειδοποιήσεων' : (await db.select().from(s.sections)).find(x => x.id === a.sectionId)?.nameEl || 'Τομέας'
+  logNote(msg, `Από: ${author ? `${author.firstName} ${author.lastName}` : '—'} · Προς: ${audience}${toParents ? ' + γονείς' : ''}`)
+  if (a.viaSms) logNote(msg, `SMS: ${smsSent}`)
+  if (addresses.length) logNote(msg, `Email: ${emailed} από ${addresses.length}`)
 
   await db.update(s.announcements)
     .set({ status: 'sent', approvedBy, sentAt: now() })

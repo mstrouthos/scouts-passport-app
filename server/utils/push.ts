@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { now } from './passcode'
 import { linkForNotification } from './notifyLinks'
+import { logMembers, logParents, logAnonymousParents } from './deliveryLog'
 
 let configured: boolean | null = null
 function ensureConfigured(): boolean {
@@ -102,13 +103,12 @@ export async function sendPushTo(scoutIds: number[], msg: { title: string, body:
     const p = per.get(sub.scoutId!)!
     if (ok) p.delivered++; else p.errors.push(why || 'failed')
   })
-  if (trace) {
-    for (const p of per.values()) {
-      if (p.devices && !p.delivered && !p.errors.length) p.errors.push('push is not configured on the server (VAPID keys)')
-      p.outcome = !p.devices ? 'no-device' : p.delivered ? 'delivered' : 'failed'
-      trace.push(p)
-    }
+  for (const p of per.values()) {
+    if (p.devices && !p.delivered && !p.errors.length) p.errors.push('push is not configured on the server (VAPID keys)')
+    p.outcome = !p.devices ? 'no-device' : p.delivered ? 'delivered' : 'failed'
+    trace?.push(p)
   }
+  logMembers(msg, [...per.values()].map(p => ({ id: p.scoutId, outcome: p.outcome as any, errors: p.errors })))
   return sent
 }
 
@@ -151,9 +151,16 @@ export async function sendPushToParentIds(parentIds: number[], msg: { title: str
   })))
   const subs = (await db.select().from(s.pushSubscriptions))
     .filter(x => x.parentId != null && fresh.includes(x.parentId) && onSurface(x, 'scouts'))
-  if (!subs.length) return 0
+  const per = new Map(fresh.map(id => [id, { id, devices: 0, delivered: 0, errors: [] as string[] }]))
+  for (const x of subs) per.get(x.parentId!)!.devices++
   const url = linkForNotification(msg.kind, msg.refId) || '/family'
-  return deliver(subs, JSON.stringify({ title: msg.title, body: msg.body, url }))
+  const sent = subs.length ? await deliver(subs, JSON.stringify({ title: msg.title, body: msg.body, url }), (sub, ok, why) => {
+    const p = per.get(sub.parentId!)!
+    if (ok) p.delivered++; else p.errors.push(why || 'failed')
+  }) : 0
+  logParents(msg, [...per.values()].map(p => ({ id: p.id, errors: p.errors,
+    outcome: !p.devices ? 'no-device' as const : p.delivered ? 'delivered' as const : 'failed' as const })))
+  return sent
 }
 
 /** Push to anonymous parent subscriptions. sectionIds null = every parent sub.
@@ -175,5 +182,8 @@ export async function sendPushToParents(sectionIds: number[] | null, msg: { titl
   }
   if (!fresh.length) return 0
   const url = linkForNotification(msg.kind, msg.refId) || '/family'
-  return deliver(subs.filter(x => fresh.includes(x.sectionId!)), JSON.stringify({ title: msg.title, body: msg.body, url }))
+  const to = subs.filter(x => fresh.includes(x.sectionId!))
+  const sent = await deliver(to, JSON.stringify({ title: msg.title, body: msg.body, url }))
+  logAnonymousParents(msg, sent, to.length)
+  return sent
 }
