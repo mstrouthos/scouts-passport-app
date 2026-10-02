@@ -40,8 +40,11 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
   }
 
   const msg = { title: 'Πύλη Προσκόπων', body: a.textEl, kind: 'announcement', refId: a.id }
-  // the in-app inbox is always written; push delivery rides along with it
-  const pushed = await sendPushTo(memberIds, msg, trace)
+  // the in-app inbox is always written; push delivery rides along with it —
+  // and the one who wrote it gets it too, to see it went out and what it says,
+  // though they are not counted among those it was for
+  const sender = a.createdBy != null && scouts.some(r => r.id === a.createdBy) ? a.createdBy : null
+  const pushed = await sendPushTo(sender != null && !memberIds.includes(sender) ? [...memberIds, sender] : memberIds, msg, trace)
 
   // parents of the scouts this went to — this is what makes "tell the parents
   // of the band" work, without anyone keeping a second list of families
