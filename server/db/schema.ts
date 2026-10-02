@@ -417,7 +417,10 @@ export const pollVotes = pgTable('poll_votes', {
 
 export const announcements = pgTable('announcements', {
   id: serial('id').primaryKey(),
-  audience: text('audience', { enum: ['troop', 'section', 'leaders', 'group'] }).notNull(),
+  // one target in the columns below, or 'multi' with all of them in `targets`
+  audience: text('audience', { enum: ['troop', 'section', 'leaders', 'group', 'multi'] }).notNull(),
+  // every target, as JSON: 'troop', 'leaders', 's:<section id>', 'g:<group id>'
+  targets: text('targets'),
   sectionId: integer('section_id').references(() => sections.id),
   groupId: integer('group_id').references(() => notifyGroups.id),
   textEl: text('text_el').notNull(),

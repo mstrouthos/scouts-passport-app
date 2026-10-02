@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 import { requireLeader, scopedSectionIds, rankOf, idParam } from '../../../../utils/guard'
 import { dispatchAnnouncement } from '../../../../utils/announce'
+import { targetsOf, withinSections } from '../../../../utils/announceTargets'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -13,8 +14,8 @@ export default defineEventHandler(async (event) => {
 
   const rank = await rankOf(me)
   const secs = await scopedSectionIds(me)
-  const allowed = rank === 'admin' ||
-    (rank === 'archigos' && a.sectionId != null && (secs === null || secs.includes(a.sectionId)))
+  const groups = await db.select().from(s.notifyGroups)
+  const allowed = rank === 'admin' || (rank === 'archigos' && withinSections(targetsOf(a), secs, groups))
   if (!allowed) throw createError({ statusCode: 403, message: 'Only the Αρχηγός of this sector can approve' })
 
   const result = await dispatchAnnouncement(a, me.id)

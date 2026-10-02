@@ -110,7 +110,7 @@ export default defineEventHandler(async (event) => {
     // as history, so the list shows what went out and what is still to come
     if (a.repeat) {
       await db.insert(s.announcements).values({
-        audience: a.audience, sectionId: a.sectionId, groupId: a.groupId,
+        audience: a.audience, sectionId: a.sectionId, groupId: a.groupId, targets: a.targets,
         textEl: a.textEl, textEn: a.textEn, status: 'scheduled',
         viaPush: a.viaPush, viaSms: a.viaSms, toParents: a.toParents, parentsOnly: a.parentsOnly,
         scheduledAt: nextOccurrence(a.scheduledAt, a.repeat as any), repeat: a.repeat,

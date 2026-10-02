@@ -9,59 +9,70 @@ const { data: roster } = await useFetch<any>('/api/admin/contacts')   // section
 const { data: list, refresh } = await useFetch<any>('/api/admin/announcements')
 const { data: groups } = await useFetch<any>('/api/admin/groups')
 
-// a number = that section; 'g:<id>' = a notification group
-const audience = ref<'troop' | 'leaders' | number | string>(isAdmin.value ? 'troop' : (roster.value?.[0]?.id ?? 'troop'))
+/* Who it is for: any number of targets at once — 'troop', 'leaders',
+   's:<id>' a section, 'g:<id>' a notification group. Tapping one adds it or
+   takes it away; the whole system already holds everyone, so it stands alone. */
+const targets = ref<string[]>(isAdmin.value ? ['troop'] : (roster.value?.[0] ? [`s:${roster.value[0].id}`] : []))
+function toggleTarget(x: string) {
+  const on = targets.value.includes(x)
+  if (x === 'troop') targets.value = on ? [] : ['troop']
+  else targets.value = on ? targets.value.filter(y => y !== x) : [...targets.value.filter(y => y !== 'troop'), x]
+}
+const picked = (x: string) => targets.value.includes(x)
 const text = ref('')
 const busy = ref(false)
 const viaSms = ref(false)
-/* Parents are reached through their children, so whoever the message is aimed
-   at, their parents are the ones who hear it. Off unless asked for: telling a
-   scout something is not the same as telling their family. */
+/* Who hears it: the members, their parents, or both — each toggled on its
+   own. Parents are reached through their children, and only the parents of
+   scouts: the Βαθμοφόροι alone have none to tell. */
+const toMembers = ref(true)
 const toParents = ref(false)
-/* …or the parents alone: a note for the families that the scouts themselves
-   need not get. */
-const parentsOnly = ref(false)
-const reach = computed<'members' | 'both' | 'parents'>({
-  get: () => parentsOnly.value ? 'parents' : toParents.value ? 'both' : 'members',
-  set: v => { toParents.value = v !== 'members'; parentsOnly.value = v === 'parents' }
-})
+const onlyLeaders = computed(() => targets.value.length > 0 && targets.value.every(x => x === 'leaders'))
+watch(onlyLeaders, v => { if (v) { toParents.value = false; toMembers.value = true } })
+/* one of the two always stays on — a message for no one is not a message */
+function toggleReach(which: 'members' | 'parents') {
+  if (which === 'members') { if (toMembers.value && !toParents.value) return; toMembers.value = !toMembers.value }
+  else { if (toParents.value && !toMembers.value) return; toParents.value = !toParents.value }
+}
 const whenMode = ref<'now' | 'later'>('now')
 const scheduledAt = ref('')
 const repeat = ref<'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('none')
 
-/** How many people this will actually reach, and how many can get an SMS. */
-const target = computed(() => {
-  const a = audience.value
-  if (typeof a === 'string' && a.startsWith('g:')) {
-    const g = (groups.value || []).find((x: any) => String(x.id) === a.slice(2))
-    return { n: g?.members.length ?? 0, sms: (g?.members || []).filter((m: any) => m.phone).length }
+/** Each target's name, for the chips' summary and the list. */
+function targetName(x: string) {
+  if (x === 'troop') return t('wholeTroop')
+  if (x === 'leaders') return t('vathmoforoi')
+  if (x.startsWith('g:')) {
+    const g = (groups.value || []).find((y: any) => String(y.id) === x.slice(2))
+    return g ? `${g.emoji} ${g.nameEl}` : ''
   }
-  return null
-})
+  return lx((roster.value || []).find((y: any) => String(y.id) === x.slice(2)) || {}, 'name')
+}
+/** Who the message is aimed at, named — parents follow the same targets, so
+    the note says whose parents will hear it. */
+const targetLabel = computed(() => targets.value.map(targetName).join(' + '))
 
-/** Who the message is aimed at, named — parents follow the same audience, so
-    the chip says whose parents will hear it. */
-const targetLabel = computed(() => {
-  const a = audience.value
-  if (a === 'troop') return t('wholeTroop')
-  if (a === 'leaders') return t('vathmoforoi')
-  if (typeof a === 'string' && a.startsWith('g:'))
-    return (groups.value || []).find((x: any) => String(x.id) === a.slice(2))?.nameEl ?? ''
-  return lx((roster.value || []).find((x: any) => x.id === a) || {}, 'name')
+/** For groups alone, how many people that is, and how many can get an SMS. */
+const target = computed(() => {
+  if (!targets.value.length || !targets.value.every(x => x.startsWith('g:'))) return null
+  const people = new Map<number, any>()
+  for (const g of groups.value || [])
+    if (targets.value.includes('g:' + g.id)) for (const m of g.members) people.set(m.id, m)
+  return { n: people.size, sms: [...people.values()].filter(m => m.phone).length }
 })
 
 async function send() {
   busy.value = true
   try {
-    const a = audience.value
-    const base: any = { textEl: text.value, viaSms: viaSms.value, toParents: toParents.value, parentsOnly: parentsOnly.value }
-    if (whenMode.value === 'later' && scheduledAt.value) {
-      base.scheduledAt = new Date(scheduledAt.value).toISOString()
-      if (repeat.value !== 'none') base.repeat = repeat.value
+    const parents = toParents.value && !onlyLeaders.value
+    const body: any = {
+      textEl: text.value, viaSms: viaSms.value, targets: targets.value,
+      toParents: parents, parentsOnly: parents && !toMembers.value
     }
-    const body = typeof a === 'number' ? { ...base, audience: 'section', sectionId: a }
-      : typeof a === 'string' && a.startsWith('g:') ? { ...base, audience: 'group', groupId: Number(a.slice(2)) }
-      : { ...base, audience: a }
+    if (whenMode.value === 'later' && scheduledAt.value) {
+      body.scheduledAt = new Date(scheduledAt.value).toISOString()
+      if (repeat.value !== 'none') body.repeat = repeat.value
+    }
     const res = await $fetch<any>('/api/admin/announcements', { method: 'POST', body })
     show(res.status === 'sent' ? '📣 ' + t('sent')
       : res.status === 'scheduled' ? '🕒 ' + t('scheduledOk')
@@ -77,15 +88,9 @@ async function approve(id: number) {
     await refresh()
   } catch (e: any) { show(e?.data?.message || t('error')) }
 }
-function audLabel(a: any) {
-  if (a.audience === 'troop') return t('wholeTroop')
-  if (a.audience === 'leaders') return t('vathmoforoi')
-  if (a.audience === 'group') {
-    const g = (groups.value || []).find((x: any) => x.id === a.groupId)
-    return g ? `${g.emoji} ${g.nameEl}` : t('groups')
-  }
-  return lx(a, 'section')
-}
+/** A sent one's targets, named by the server — it knows sections outside mine. */
+const audLabel = (a: any) => (a.targetNames || [])
+  .map((x: any) => `${x.emoji ? x.emoji + ' ' : ''}${lx(x, 'name')}`).join(' + ')
 /* The list, five at a time, newest first. */
 const PER_PAGE = 5
 const page = ref(0)
@@ -138,18 +143,35 @@ function channels(a: any) {
     <div>
       <label class="lab">{{ t('audience') }}</label>
       <div class="chips">
-        <button v-if="isAdmin" class="chip" :class="{ on: audience === 'troop' }" @click="audience = 'troop'">{{ t('wholeTroop') }}</button>
-        <button v-for="sec in roster" :key="sec.id" class="chip" :class="{ on: audience === sec.id }"
-                @click="audience = sec.id">{{ lx(sec, 'name') }}</button>
-        <button v-if="isAdmin" class="chip" :class="{ on: audience === 'leaders' }" @click="audience = 'leaders'">{{ t('vathmoforoi') }}</button>
-        <button v-for="g in groups" :key="'g' + g.id" class="chip" :class="{ on: audience === 'g:' + g.id }"
-                @click="audience = 'g:' + g.id">{{ g.emoji }} {{ g.nameEl }}</button>
+        <button v-if="isAdmin" class="chip" :class="{ on: picked('troop') }" @click="toggleTarget('troop')">{{ t('wholeTroop') }}</button>
+        <button v-for="sec in roster" :key="sec.id" class="chip" :class="{ on: picked('s:' + sec.id) }"
+                @click="toggleTarget('s:' + sec.id)">{{ lx(sec, 'name') }}</button>
+        <button v-if="isAdmin" class="chip" :class="{ on: picked('leaders') }" @click="toggleTarget('leaders')">{{ t('vathmoforoi') }}</button>
       </div>
+      <template v-if="groups?.length">
+        <label class="lab" style="margin-top:10px">{{ t('groups') }}</label>
+        <div class="chips">
+          <button v-for="g in groups" :key="'g' + g.id" class="chip" :class="{ on: picked('g:' + g.id) }"
+                  @click="toggleTarget('g:' + g.id)">{{ g.emoji }} {{ g.nameEl }}</button>
+        </div>
+      </template>
       <NuxtLink to="/admin/groups" class="tiny" style="color:var(--accent-deep);font-weight:650">
         {{ t('manageGroups') }} ›
       </NuxtLink>
     </div>
     <div><label class="lab">{{ t('message') }}</label><textarea v-model="text" class="in" rows="3" /></div>
+
+    <div>
+      <label class="lab">{{ t('reachWho') }}</label>
+      <div class="chips">
+        <button class="chip" :class="{ on: toMembers || onlyLeaders }" :disabled="onlyLeaders" @click="toggleReach('members')">👤 {{ t('reachMembers') }}</button>
+        <button v-if="!onlyLeaders" class="chip" :class="{ on: toParents }" @click="toggleReach('parents')">👪 {{ t('parents') }}</button>
+      </div>
+      <div v-if="targets.length" class="tiny muted" style="margin-top:5px">
+        {{ onlyLeaders || !toParents ? t('reachMembersNote')
+          : !toMembers ? t('reachParentsNote', { who: targetLabel }) : t('chParentsOn', { who: targetLabel }) }}
+      </div>
+    </div>
 
     <div>
       <label class="lab">{{ t('channels') }}</label>
@@ -159,20 +181,7 @@ function channels(a: any) {
       </div>
       <div class="tiny muted" style="margin-top:5px">
         {{ viaSms ? t('chSmsOn') : t('chPushOnly') }}
-        <template v-if="target && !(parentsOnly && audience !== 'leaders')"> · {{ target.n }} {{ t('members') }}<template v-if="viaSms">, {{ target.sms }} {{ t('withPhone') }}</template></template>
-      </div>
-    </div>
-
-    <div v-if="audience !== 'leaders'">
-      <label class="lab">👪 {{ t('reachWho') }}</label>
-      <div class="seg">
-        <button :class="{ on: reach === 'members' }" @click="reach = 'members'">{{ t('reachMembers') }}</button>
-        <button :class="{ on: reach === 'both' }" @click="reach = 'both'">{{ t('reachBoth') }}</button>
-        <button :class="{ on: reach === 'parents' }" @click="reach = 'parents'">{{ t('reachParents') }}</button>
-      </div>
-      <div class="tiny muted" style="margin-top:5px">
-        {{ reach === 'parents' ? t('reachParentsNote', { who: targetLabel })
-          : reach === 'both' ? t('chParentsOn', { who: targetLabel }) : t('reachMembersNote') }}
+        <template v-if="target && toMembers"> · {{ target.n }} {{ t('members') }}<template v-if="viaSms">, {{ target.sms }} {{ t('withPhone') }}</template></template>
       </div>
     </div>
 
@@ -193,7 +202,7 @@ function channels(a: any) {
       <div v-if="whenMode === 'later' && isYparch" class="tiny muted" style="margin-top:5px">{{ t('scheduleNeedsApproval') }}</div>
     </div>
 
-    <button class="btn" :disabled="!text.trim() || busy || (whenMode === 'later' && !scheduledAt)" @click="send">
+    <button class="btn" :disabled="!text.trim() || !targets.length || busy || (whenMode === 'later' && !scheduledAt)" @click="send">
       {{ isYparch ? t('submitForApproval') : (whenMode === 'later' ? t('scheduleIt') : t('sendNow')) }}
     </button>
 

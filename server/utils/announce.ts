@@ -7,6 +7,7 @@ import { sectionOfWith } from './guard'
 import { parentsOfScouts } from './parents'
 import { now } from './passcode'
 import { logNote } from './deliveryLog'
+import { targetsOf, sectionTargets, groupTargets, onlyLeaders, targetNames } from './announceTargets'
 
 /** Deliver an approved announcement over the channels it was created with:
     in-app/push always, SMS only when the sender asked for it (it costs money).
@@ -22,23 +23,28 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
   const hidden = new Set(scouts.filter(r => r.isHidden).map(r => r.id))
   const patrols = (await db.select().from(s.patrols))
 
-  let memberIds: number[] = []
+  // everyone in any of its targets, once each
+  const targets = targetsOf(a)
+  const ids = new Set<number>()
   let parentSections: number[] | null = []
-  if (a.audience === 'troop') {
+  if (targets.includes('troop')) {
     // everyone: the scouts and every Βαθμοφόρος alike
-    memberIds = scouts.map(r => r.id)
+    for (const r of scouts) ids.add(r.id)
     parentSections = null // all parent subscriptions
-  } else if (a.audience === 'leaders') {
-    memberIds = scouts.filter(r => r.role !== 'scout').map(r => r.id)
-  } else if (a.audience === 'group' && a.groupId != null) {
-    const members = (await db.select().from(s.notifyGroupMembers))
-      .filter(m => m.groupId === a.groupId).map(m => m.scoutId)
-    const live = new Set(scouts.map(r => r.id))
-    memberIds = members.filter(id => live.has(id))
-  } else {
-    memberIds = scouts.filter(r => r.role === 'scout' && sectionOfWith(r as any, patrols) === a.sectionId).map(r => r.id)
-    parentSections = a.sectionId != null ? [a.sectionId] : []
   }
+  if (targets.includes('leaders')) for (const r of scouts) if (r.role !== 'scout') ids.add(r.id)
+  const wantSections = sectionTargets(targets)
+  for (const r of scouts) {
+    if (r.role === 'scout' && wantSections.includes(sectionOfWith(r as any, patrols) as number)) ids.add(r.id)
+  }
+  if (parentSections !== null) parentSections = wantSections
+  const wantGroups = groupTargets(targets)
+  if (wantGroups.length) {
+    const live = new Set(scouts.map(r => r.id))
+    for (const m of await db.select().from(s.notifyGroupMembers))
+      if (wantGroups.includes(m.groupId) && live.has(m.scoutId)) ids.add(m.scoutId)
+  }
+  const memberIds = [...ids]
 
   const msg = { title: 'Πύλη Προσκόπων', body: a.textEl, kind: 'announcement', refId: a.id }
   // the in-app inbox is always written; push delivery rides along with it —
@@ -46,14 +52,14 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
   // though they are not counted among those it was for
   // one meant for the parents alone still finds them through these members,
   // but the members themselves are not told
-  const parentsOnly = a.parentsOnly === true && a.audience !== 'leaders'
+  const parentsOnly = a.parentsOnly === true && !onlyLeaders(targets)
   const told = parentsOnly ? [] : memberIds
   const sender = a.createdBy != null && scouts.some(r => r.id === a.createdBy) ? a.createdBy : null
   const pushed = await sendPushTo(sender != null && !told.includes(sender) ? [...told, sender] : told, msg, trace)
 
   // parents of the scouts this went to — this is what makes "tell the parents
   // of the band" work, without anyone keeping a second list of families
-  const toParents = (a.toParents === true || parentsOnly) && a.audience !== 'leaders'
+  const toParents = (a.toParents === true || parentsOnly) && !onlyLeaders(targets)
   // only scouts have parents to tell, even when the message went to everyone
   const parents = toParents
     ? await parentsOfScouts(memberIds.filter(id => scouts.find(r => r.id === id)?.role === 'scout'))
@@ -79,8 +85,8 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
 
   // for the delivery report: who sent it, to whom, and the other channels
   const author = scouts.find(r => r.id === a.createdBy)
-  const audience = a.audience === 'troop' ? 'Όλο το Σύστημα' : a.audience === 'leaders' ? 'Βαθμοφόροι'
-    : a.audience === 'group' ? 'Ομάδα ειδοποιήσεων' : (await db.select().from(s.sections)).find(x => x.id === a.sectionId)?.nameEl || 'Τομέας'
+  const audience = targetNames(targets, await db.select().from(s.sections), await db.select().from(s.notifyGroups))
+    .map(x => `${x.emoji ? x.emoji + ' ' : ''}${x.nameEl}`).join(' + ')
   logNote(msg, `Από: ${author ? `${author.firstName} ${author.lastName}` : '—'} · Προς: ${parentsOnly ? `μόνο γονείς — ${audience}` : `${audience}${toParents ? ' + γονείς' : ''}`}`)
   if (a.viaSms) logNote(msg, `SMS: ${smsSent}`)
   if (addresses.length) logNote(msg, `Email: ${emailed} από ${addresses.length}`)

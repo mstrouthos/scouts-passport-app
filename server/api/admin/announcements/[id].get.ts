@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, scopedSectionIds, idParam, sectionOfWith } from '../../../utils/guard'
 import { childIdsOfParent } from '../../../utils/parents'
+import { targetsOf, touchesSections, targetNames } from '../../../utils/announceTargets'
 
 /** One announcement in full: who sent it and when, and everyone it went to —
     whether the push reached their phone, and whether they have opened it.
@@ -17,7 +18,8 @@ export default defineEventHandler(async (event) => {
   const a = (await db.select().from(s.announcements).where(eq(s.announcements.id, id)).limit(1))[0]
   if (!a) throw createError({ statusCode: 404, message: 'Not found' })
   const secs = await scopedSectionIds(me)
-  if (!(secs === null || a.createdBy === me.id || (a.sectionId != null && secs.includes(a.sectionId))))
+  const groups = await db.select().from(s.notifyGroups)
+  if (!(secs === null || a.createdBy === me.id || touchesSections(targetsOf(a), secs, groups)))
     throw createError({ statusCode: 403, message: 'Out of your sector' })
 
   const [log, bells, parentBells, scouts, patrols, sections, parents, links] = await Promise.all([
@@ -65,10 +67,9 @@ export default defineEventHandler(async (event) => {
 
   const by = person.get(a.createdBy)
   const approver = a.approvedBy != null && a.approvedBy !== a.createdBy ? person.get(a.approvedBy) : null
-  const sec = a.sectionId != null ? section.get(a.sectionId) : null
+  const t = targetsOf(a)
   return {
-    id: a.id, textEl: a.textEl, audience: a.audience, groupId: a.groupId,
-    sectionEl: sec?.nameEl ?? null, sectionEn: sec?.nameEn ?? null,
+    id: a.id, textEl: a.textEl, targets: t, targetNames: targetNames(t, sections, groups),
     status: a.status, viaSms: a.viaSms, toParents: a.toParents, parentsOnly: a.parentsOnly,
     createdAt: a.createdAt, sentAt: a.sentAt, scheduledAt: a.scheduledAt, repeat: a.repeat,
     by: by ? `${by.firstName} ${by.lastName}` : '',

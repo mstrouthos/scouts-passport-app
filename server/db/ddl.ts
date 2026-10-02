@@ -475,6 +475,7 @@ export const MIGRATIONS = [
   "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS to_parents BOOLEAN NOT NULL DEFAULT TRUE",
   "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS parents_only BOOLEAN NOT NULL DEFAULT FALSE",
   "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS stats TEXT",
+  "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS targets TEXT",
   "ALTER TABLE notification_log ADD COLUMN IF NOT EXISTS outcome TEXT",
   "ALTER TABLE notification_log ADD COLUMN IF NOT EXISTS error TEXT",
   "ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES parents(id)",
