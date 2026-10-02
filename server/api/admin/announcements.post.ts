@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const b = await readBody<{
     audience?: string, sectionId?: number, groupId?: number,
     textEl?: string, textEn?: string,
-    viaSms?: boolean, toParents?: boolean, scheduledAt?: string, repeat?: string
+    viaSms?: boolean, toParents?: boolean, parentsOnly?: boolean, scheduledAt?: string, repeat?: string
   }>(event)
   const text = String(b?.textEl || '').trim()
   if (!text) throw createError({ statusCode: 400, message: 'Message required' })
@@ -50,12 +50,15 @@ export default defineEventHandler(async (event) => {
   }
   const viaSms = !!b?.viaSms
   // opt-in: an announcement reaches parents only when the sender asked
-  const toParents = b?.toParents === true
+  // or the parents alone, without the members themselves — never for the
+  // Βαθμοφόροι, who have no parents in the app
+  const parentsOnly = b?.parentsOnly === true && audience !== 'leaders'
+  const toParents = b?.toParents === true || parentsOnly
 
   const canSendWithoutApproval = rank === 'admin' || rank === 'archigos'
   const [row] = (await db.insert(s.announcements).values({
     audience, sectionId, groupId, textEl: text, textEn: b?.textEn || null, repeat,
-    viaPush: true, viaSms, toParents, scheduledAt,
+    viaPush: true, viaSms, toParents, parentsOnly, scheduledAt,
     // scheduled only counts once it is allowed to go out unattended
     status: canSendWithoutApproval && scheduledAt ? 'scheduled' : 'pending',
     createdBy: me.id, createdAt: now()

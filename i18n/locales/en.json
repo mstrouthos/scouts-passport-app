@@ -805,5 +805,11 @@
   "revokeBadgeHint": "Tap a badge awarded by mistake to remove it.",
   "hasBadge": "Already has it",
   "revokeBadge": "Remove",
-  "noPatrolYet": "Not in a patrol yet"
+  "noPatrolYet": "Not in a patrol yet",
+  "reachWho": "Who hears it",
+  "reachMembers": "Members",
+  "reachBoth": "Members + parents",
+  "reachParents": "Parents only",
+  "reachMembersNote": "Only the members themselves — parents are not told.",
+  "reachParentsNote": "Only the parents ({who}) — the members themselves do not get it."
 }

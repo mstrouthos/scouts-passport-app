@@ -18,6 +18,13 @@ const viaSms = ref(false)
    at, their parents are the ones who hear it. Off unless asked for: telling a
    scout something is not the same as telling their family. */
 const toParents = ref(false)
+/* …or the parents alone: a note for the families that the scouts themselves
+   need not get. */
+const parentsOnly = ref(false)
+const reach = computed<'members' | 'both' | 'parents'>({
+  get: () => parentsOnly.value ? 'parents' : toParents.value ? 'both' : 'members',
+  set: v => { toParents.value = v !== 'members'; parentsOnly.value = v === 'parents' }
+})
 const whenMode = ref<'now' | 'later'>('now')
 const scheduledAt = ref('')
 const repeat = ref<'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('none')
@@ -47,7 +54,7 @@ async function send() {
   busy.value = true
   try {
     const a = audience.value
-    const base: any = { textEl: text.value, viaSms: viaSms.value, toParents: toParents.value }
+    const base: any = { textEl: text.value, viaSms: viaSms.value, toParents: toParents.value, parentsOnly: parentsOnly.value }
     if (whenMode.value === 'later' && scheduledAt.value) {
       base.scheduledAt = new Date(scheduledAt.value).toISOString()
       if (repeat.value !== 'none') base.repeat = repeat.value
@@ -81,7 +88,8 @@ function audLabel(a: any) {
 }
 /** Channel badges, so it is obvious whether an SMS was involved. */
 function channels(a: any) {
-  return a.viaSms ? '🔔 + 📱' : '🔔'
+  const who = a.parentsOnly ? ' 👪 ' + t('reachParents') + ' ·' : a.toParents ? ' + 👪' : ''
+  return (a.viaSms ? '🔔 + 📱' : '🔔') + who
 }
 </script>
 
@@ -108,13 +116,23 @@ function channels(a: any) {
       <div class="chips">
         <button class="chip on" disabled>🔔 {{ t('chPush') }}</button>
         <button class="chip" :class="{ on: viaSms }" @click="viaSms = !viaSms">📱 {{ t('chSms') }}</button>
-        <button v-if="audience !== 'leaders'" class="chip" :class="{ on: toParents }"
-                @click="toParents = !toParents">👪 {{ t('chParents') }}</button>
       </div>
       <div class="tiny muted" style="margin-top:5px">
         {{ viaSms ? t('chSmsOn') : t('chPushOnly') }}
-        <template v-if="toParents && audience !== 'leaders'"> · {{ t('chParentsOn', { who: targetLabel }) }}</template>
-        <template v-if="target"> · {{ target.n }} {{ t('members') }}<template v-if="viaSms">, {{ target.sms }} {{ t('withPhone') }}</template></template>
+        <template v-if="target && !(parentsOnly && audience !== 'leaders')"> · {{ target.n }} {{ t('members') }}<template v-if="viaSms">, {{ target.sms }} {{ t('withPhone') }}</template></template>
+      </div>
+    </div>
+
+    <div v-if="audience !== 'leaders'">
+      <label class="lab">👪 {{ t('reachWho') }}</label>
+      <div class="seg">
+        <button :class="{ on: reach === 'members' }" @click="reach = 'members'">{{ t('reachMembers') }}</button>
+        <button :class="{ on: reach === 'both' }" @click="reach = 'both'">{{ t('reachBoth') }}</button>
+        <button :class="{ on: reach === 'parents' }" @click="reach = 'parents'">{{ t('reachParents') }}</button>
+      </div>
+      <div class="tiny muted" style="margin-top:5px">
+        {{ reach === 'parents' ? t('reachParentsNote', { who: targetLabel })
+          : reach === 'both' ? t('chParentsOn', { who: targetLabel }) : t('reachMembersNote') }}
       </div>
     </div>
 

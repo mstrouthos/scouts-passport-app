@@ -44,12 +44,16 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
   // the in-app inbox is always written; push delivery rides along with it —
   // and the one who wrote it gets it too, to see it went out and what it says,
   // though they are not counted among those it was for
+  // one meant for the parents alone still finds them through these members,
+  // but the members themselves are not told
+  const parentsOnly = a.parentsOnly === true && a.audience !== 'leaders'
+  const told = parentsOnly ? [] : memberIds
   const sender = a.createdBy != null && scouts.some(r => r.id === a.createdBy) ? a.createdBy : null
-  const pushed = await sendPushTo(sender != null && !memberIds.includes(sender) ? [...memberIds, sender] : memberIds, msg, trace)
+  const pushed = await sendPushTo(sender != null && !told.includes(sender) ? [...told, sender] : told, msg, trace)
 
   // parents of the scouts this went to — this is what makes "tell the parents
   // of the band" work, without anyone keeping a second list of families
-  const toParents = a.toParents === true && a.audience !== 'leaders'
+  const toParents = (a.toParents === true || parentsOnly) && a.audience !== 'leaders'
   // only scouts have parents to tell, even when the message went to everyone
   const parents = toParents
     ? await parentsOfScouts(memberIds.filter(id => scouts.find(r => r.id === id)?.role === 'scout'))
@@ -67,7 +71,7 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
   let smsSent = 0
   if (a.viaSms) {
     const numbers = [...new Set([
-      ...scouts.filter(r => memberIds.includes(r.id) && r.phone).map(r => r.phone!),
+      ...scouts.filter(r => told.includes(r.id) && r.phone).map(r => r.phone!),
       ...(toParents ? parents.map(p => p.phone).filter(Boolean) as string[] : [])
     ])]
     smsSent = await sendSms(numbers, `Πύλη Προσκόπων: ${a.textEl}`)
@@ -77,12 +81,12 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
   const author = scouts.find(r => r.id === a.createdBy)
   const audience = a.audience === 'troop' ? 'Όλο το Σύστημα' : a.audience === 'leaders' ? 'Βαθμοφόροι'
     : a.audience === 'group' ? 'Ομάδα ειδοποιήσεων' : (await db.select().from(s.sections)).find(x => x.id === a.sectionId)?.nameEl || 'Τομέας'
-  logNote(msg, `Από: ${author ? `${author.firstName} ${author.lastName}` : '—'} · Προς: ${audience}${toParents ? ' + γονείς' : ''}`)
+  logNote(msg, `Από: ${author ? `${author.firstName} ${author.lastName}` : '—'} · Προς: ${parentsOnly ? `μόνο γονείς — ${audience}` : `${audience}${toParents ? ' + γονείς' : ''}`}`)
   if (a.viaSms) logNote(msg, `SMS: ${smsSent}`)
   if (addresses.length) logNote(msg, `Email: ${emailed} από ${addresses.length}`)
 
   await db.update(s.announcements)
     .set({ status: 'sent', approvedBy, sentAt: now() })
     .where(eq(s.announcements.id, a.id))
-  return { recipients: memberIds.filter(id => !hidden.has(id)).length, parents: parents.length, pushed: pushed + parentPushed, emailed, smsSent }
+  return { recipients: told.filter(id => !hidden.has(id)).length, parents: parents.length, pushed: pushed + parentPushed, emailed, smsSent }
 }

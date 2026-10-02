@@ -428,6 +428,8 @@ export const announcements = pgTable('announcements', {
   viaSms: boolean('via_sms').notNull().default(false),
   // whether the parents of the recipients hear about it too
   toParents: boolean('to_parents').notNull().default(true),
+  // for the parents alone: the members it is aimed at are not told themselves
+  parentsOnly: boolean('parents_only').notNull().default(false),
   scheduledAt: text('scheduled_at'),
   // a scheduled one may come round again: every day, week, month, or year
   repeat: text('repeat', { enum: ['daily', 'weekly', 'monthly', 'yearly'] }),

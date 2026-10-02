@@ -473,6 +473,7 @@ export const MIGRATIONS = [
   "ALTER TABLE achievements ADD COLUMN IF NOT EXISTS category TEXT",
   "ALTER TABLE achievements ADD COLUMN IF NOT EXISTS slug TEXT",
   "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS to_parents BOOLEAN NOT NULL DEFAULT TRUE",
+  "ALTER TABLE announcements ADD COLUMN IF NOT EXISTS parents_only BOOLEAN NOT NULL DEFAULT FALSE",
   "ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES parents(id)",
   "ALTER TABLE parents ADD COLUMN IF NOT EXISTS scout_id INTEGER REFERENCES scouts(id)",
   "UPDATE challenges SET points = 10 WHERE points <> 10",

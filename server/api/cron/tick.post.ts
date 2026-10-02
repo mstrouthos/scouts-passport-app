@@ -112,7 +112,7 @@ export default defineEventHandler(async (event) => {
       await db.insert(s.announcements).values({
         audience: a.audience, sectionId: a.sectionId, groupId: a.groupId,
         textEl: a.textEl, textEn: a.textEn, status: 'scheduled',
-        viaPush: a.viaPush, viaSms: a.viaSms, toParents: a.toParents,
+        viaPush: a.viaPush, viaSms: a.viaSms, toParents: a.toParents, parentsOnly: a.parentsOnly,
         scheduledAt: nextOccurrence(a.scheduledAt, a.repeat as any), repeat: a.repeat,
         createdBy: a.createdBy, createdAt: t, approvedBy: a.approvedBy
       })
