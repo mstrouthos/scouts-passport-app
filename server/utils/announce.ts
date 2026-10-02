@@ -25,7 +25,8 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
   let memberIds: number[] = []
   let parentSections: number[] | null = []
   if (a.audience === 'troop') {
-    memberIds = scouts.filter(r => r.role === 'scout').map(r => r.id)
+    // everyone: the scouts and every Βαθμοφόρος alike
+    memberIds = scouts.map(r => r.id)
     parentSections = null // all parent subscriptions
   } else if (a.audience === 'leaders') {
     memberIds = scouts.filter(r => r.role !== 'scout').map(r => r.id)
@@ -49,7 +50,10 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
   // parents of the scouts this went to — this is what makes "tell the parents
   // of the band" work, without anyone keeping a second list of families
   const toParents = a.toParents === true && a.audience !== 'leaders'
-  const parents = toParents ? await parentsOfScouts(memberIds) : []
+  // only scouts have parents to tell, even when the message went to everyone
+  const parents = toParents
+    ? await parentsOfScouts(memberIds.filter(id => scouts.find(r => r.id === id)?.role === 'scout'))
+    : []
   const parentPushed = toParents
     ? await sendPushToParentIds(parents.map(p => p.id), msg)
       // parents who never signed in still have a section-wide subscription
