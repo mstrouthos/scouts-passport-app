@@ -436,7 +436,9 @@ export const announcements = pgTable('announcements', {
   createdBy: integer('created_by').notNull(),
   createdAt: text('created_at').notNull(),
   approvedBy: integer('approved_by'),
-  sentAt: text('sent_at')
+  sentAt: text('sent_at'),
+  // what the send came to, as JSON: { recipients, parents, pushed, emailed, smsSent }
+  stats: text('stats')
 })
 
 /** Uploaded files (parent announcements as PDF). Stored IN the database on
@@ -534,7 +536,10 @@ export const notificationLog = pgTable('notification_log', {
   scoutId: integer('scout_id').notNull(),
   kind: text('kind').notNull(),
   refId: integer('ref_id'),
-  sentAt: text('sent_at').notNull()
+  sentAt: text('sent_at').notNull(),
+  // how the push went: delivered, failed, or no-device; error says why it failed
+  outcome: text('outcome'),
+  error: text('error')
 }, t => [uniqueIndex('notification_uq').on(t.scoutId, t.kind, t.refId)])
 
 /* Το μπαρ — a night's ordering system, kept per event so it can be reused. */

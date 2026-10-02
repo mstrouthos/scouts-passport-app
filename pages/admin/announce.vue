@@ -86,6 +86,46 @@ function audLabel(a: any) {
   }
   return lx(a, 'section')
 }
+/* The list, five at a time, newest first. */
+const PER_PAGE = 5
+const page = ref(0)
+const pages = computed(() => Math.max(1, Math.ceil((list.value?.length || 0) / PER_PAGE)))
+const shown = computed(() => (list.value || []).slice(page.value * PER_PAGE, (page.value + 1) * PER_PAGE))
+watch(pages, n => { if (page.value >= n) page.value = n - 1 })
+/** When it went out, or was written if it has not yet: date and time. */
+const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}`
+
+/* One announcement opened up: everyone it went to, whether the push reached
+   their phone, and whether they have opened it since. */
+const detail = ref<any>(null)
+const detailLoading = ref(false)
+async function openDetail(a: any) {
+  detail.value = { ...a, members: null }
+  detailLoading.value = true
+  try { detail.value = await $fetch<any>(`/api/admin/announcements/${a.id}`) }
+  catch (e: any) { show(e?.data?.message || t('error')); detail.value = null }
+  finally { detailLoading.value = false }
+}
+const name = useName()
+const OUTCOME: Record<string, string> = { delivered: '📲', failed: '❌', 'no-device': '🔕' }
+/** The counts at the top of the sheet: phone, failed, no phone, opened. */
+const tally = computed(() => {
+  const d = detail.value
+  if (!d?.members) return null
+  const all = [...d.members.filter((m: any) => !m.isSender || !d.parentsOnly), ...d.parents]
+  const n = (o: string) => all.filter((x: any) => x.outcome === o).length
+  return { total: all.length, delivered: n('delivered'), failed: n('failed'), none: n('no-device'),
+    opened: all.filter((x: any) => x.opened).length, recorded: all.some((x: any) => x.outcome) }
+})
+/** Why a push failed, in words a leader can act on where it is a known case. */
+const why = (e: string) => e.startsWith('subscription expired') ? t('annErrExpired')
+  : e.includes('VAPID') ? t('annErrServer') : e
+
+/* failed first — those are the ones worth a look — then no phone, then the rest */
+const ORDER: Record<string, number> = { failed: 0, 'no-device': 1, delivered: 2 }
+const sorted = (rows: any[]) => [...rows].sort((a, b) =>
+  (ORDER[a.outcome] ?? 3) - (ORDER[b.outcome] ?? 3) || (a.firstName || a.name).localeCompare(b.firstName || b.name, 'el'))
+
 /** Channel badges, so it is obvious whether an SMS was involved. */
 function channels(a: any) {
   const who = a.parentsOnly ? ' 👪 ' + t('reachParents') + ' ·' : a.toParents ? ' + 👪' : ''
@@ -160,20 +200,119 @@ function channels(a: any) {
     <template v-if="list?.length">
       <div class="sec-title">{{ t('recent') }}</div>
       <div class="adm">
-        <div v-for="a in list" :key="a.id" class="it" style="align-items:flex-start">
-          <div style="flex:1">
+        <div v-for="a in shown" :key="a.id" class="it" role="button" tabindex="0" style="align-items:flex-start;cursor:pointer"
+             @click="openDetail(a)" @keydown.enter="openDetail(a)">
+          <div style="flex:1;min-width:0">
             <b>{{ a.textEl }}</b>
             <span>{{ channels(a) }} {{ audLabel(a) }} · {{ a.byFirst }} {{ a.byLast }} ·
-              <template v-if="a.status === 'scheduled' && a.scheduledAt">{{ t('scheduledFor') }} {{ fmtDate(a.scheduledAt, locale) }}<template v-if="a.repeat"> · 🔁 {{ t('repeat_' + a.repeat) }}</template></template>
-              <template v-else>{{ fmtDate(a.createdAt, locale) }}</template>
+              <template v-if="a.status === 'scheduled' && a.scheduledAt">{{ t('scheduledFor') }} {{ stamp(a.scheduledAt) }}<template v-if="a.repeat"> · 🔁 {{ t('repeat_' + a.repeat) }}</template></template>
+              <template v-else>{{ stamp(a.sentAt || a.createdAt) }}</template>
             </span>
           </div>
-          <button v-if="a.canApprove" class="chip on" style="flex:none" @click="approve(a.id)">✓ {{ t('approveSend') }}</button>
+          <button v-if="a.canApprove" class="chip on" style="flex:none" @click.stop="approve(a.id)">✓ {{ t('approveSend') }}</button>
           <span v-else class="pill" :class="a.status === 'sent' ? 'ok' : 'sched'">
             {{ a.status === 'sent' ? t('sent2') : a.status === 'scheduled' ? t('scheduledShort') : t('pendingShort') }}
           </span>
         </div>
       </div>
+      <div v-if="pages > 1" class="pager">
+        <button class="chip" :disabled="page === 0" @click="page--">‹ {{ t('newer') }}</button>
+        <span class="tiny muted">{{ page + 1 }} / {{ pages }}</span>
+        <button class="chip" :disabled="page >= pages - 1" @click="page++">{{ t('older') }} ›</button>
+      </div>
     </template>
+
+    <Teleport to="body">
+      <div v-if="detail" class="sheet-backdrop" @click.self="detail = null">
+        <div class="sheet ann" style="max-height:88dvh;overflow:auto">
+          <p class="msg">{{ detail.textEl }}</p>
+          <dl class="meta">
+            <dt>{{ t('audience') }}</dt>
+            <dd>{{ audLabel(detail) }}<template v-if="detail.parentsOnly"> · 👪 {{ t('reachParents') }}</template><template v-else-if="detail.toParents"> · 👪 {{ t('reachBoth') }}</template></dd>
+            <dt>{{ t('annFrom') }}</dt><dd>{{ detail.by || `${detail.byFirst} ${detail.byLast}` }}</dd>
+            <template v-if="detail.approvedBy"><dt>{{ t('annApprovedBy') }}</dt><dd>{{ detail.approvedBy }}</dd></template>
+            <dt>{{ detail.status === 'sent' ? t('annSentAt') : t('annWrittenAt') }}</dt>
+            <dd>{{ stamp(detail.sentAt || detail.createdAt) }}</dd>
+            <template v-if="detail.status === 'scheduled' && detail.scheduledAt"><dt>{{ t('scheduledFor') }}</dt><dd>{{ stamp(detail.scheduledAt) }}</dd></template>
+            <template v-if="detail.stats?.smsSent || detail.viaSms"><dt>SMS</dt><dd>{{ detail.stats?.smsSent ?? 0 }}</dd></template>
+            <template v-if="detail.stats?.emailed"><dt>Email</dt><dd>{{ detail.stats.emailed }}</dd></template>
+          </dl>
+
+          <div v-if="detailLoading" class="tiny muted" style="text-align:center">{{ t('loading') }}</div>
+          <template v-else-if="detail.status !== 'sent'">
+            <div class="tiny muted" style="text-align:center">{{ t('annNotSentYet') }}</div>
+          </template>
+          <template v-else-if="tally">
+            <div class="tally">
+              <span><b>{{ tally.total }}</b>{{ t('annTotal') }}</span>
+              <span v-if="tally.recorded"><b>📲 {{ tally.delivered }}</b>{{ t('annDelivered') }}</span>
+              <span v-if="tally.recorded"><b>❌ {{ tally.failed }}</b>{{ t('annFailed') }}</span>
+              <span v-if="tally.recorded"><b>🔕 {{ tally.none }}</b>{{ t('annNoDevice') }}</span>
+              <span><b>👁 {{ tally.opened }}</b>{{ t('annOpened') }}</span>
+            </div>
+            <div v-if="!tally.recorded" class="tiny muted">{{ t('annNotRecorded') }}</div>
+
+            <template v-if="detail.members.length">
+              <div class="sec-title">{{ t('reachMembers') }} · {{ detail.members.length }}</div>
+              <div class="who">
+                <div v-for="m in sorted(detail.members)" :key="m.id" class="row">
+                  <span class="o">{{ OUTCOME[m.outcome] || '·' }}</span>
+                  <div style="flex:1;min-width:0">
+                    <b>{{ name(m) }}</b>
+                    <small v-if="m.isSender"> · {{ t('annYouSender') }}</small>
+                    <small v-if="m.isHidden"> · 🧪</small>
+                    <small v-if="m.sectionEl"> · {{ lx({ nameEl: m.sectionEl, nameEn: m.sectionEn }, 'name') }}</small>
+                    <div v-if="m.outcome === 'failed' && m.error" class="err">{{ why(m.error) }}</div>
+                  </div>
+                  <span class="seen" :class="{ on: m.opened }" :title="m.opened ? t('annOpened') : t('annNotOpened')">👁</span>
+                </div>
+              </div>
+            </template>
+            <template v-if="detail.parents.length">
+              <div class="sec-title">{{ t('parents') }} · {{ detail.parents.length }}</div>
+              <div class="who">
+                <div v-for="p in sorted(detail.parents)" :key="p.id" class="row">
+                  <span class="o">{{ OUTCOME[p.outcome] || '·' }}</span>
+                  <div style="flex:1;min-width:0">
+                    <b>{{ p.name }}</b>
+                    <small v-if="p.children.length"> · {{ p.children.join(', ') }}</small>
+                    <div v-if="p.outcome === 'failed' && p.error" class="err">{{ why(p.error) }}</div>
+                  </div>
+                  <span class="seen" :class="{ on: p.opened }" :title="p.opened ? t('annOpened') : t('annNotOpened')">👁</span>
+                </div>
+              </div>
+            </template>
+            <div v-if="detail.unnamedSections?.length" class="tiny muted">
+              {{ t('annUnnamedParents') }}: {{ detail.unnamedSections.map((x: any) => lx(x, 'name')).join(', ') }}
+            </div>
+            <div class="tiny muted">{{ t('annLegend') }}</div>
+          </template>
+          <button class="btn ghost" @click="detail = null">{{ t('close') }}</button>
+        </div>
+      </div>
+    </Teleport>
   </AppShell>
 </template>
+
+<style scoped>
+.pager{display:flex; align-items:center; justify-content:space-between; gap:8px}
+.ann{display:flex; flex-direction:column; gap:12px}
+.ann .msg{margin:0; font-size:15px; font-weight:700; line-height:1.4; white-space:pre-wrap}
+.meta{display:grid; grid-template-columns:auto 1fr; gap:4px 12px; margin:0; font-size:12.5px}
+.meta dt{color:var(--muted)}
+.meta dd{margin:0; font-weight:600}
+.tally{display:flex; flex-wrap:wrap; gap:6px}
+.tally span{flex:1 1 0; min-width:56px; background:var(--accent-soft); border-radius:12px; padding:7px 6px;
+  display:flex; flex-direction:column; align-items:center; font-size:10.5px; color:var(--muted); text-align:center}
+.tally b{font-size:14px; color:var(--ink)}
+.ann .sec-title{margin:4px 0 0}
+.who{display:flex; flex-direction:column}
+.who .row{display:flex; align-items:center; gap:9px; padding:7px 2px; border-top:1px solid var(--hair); font-size:13px}
+.who .row:first-child{border-top:0}
+.who b{font-weight:650}
+.who small{color:var(--muted); font-size:11px}
+.who .o{flex:none; width:20px; text-align:center}
+.who .err{font-size:11px; color:var(--danger); margin-top:2px; overflow-wrap:anywhere}
+.seen{flex:none; opacity:.18; filter:grayscale(1)}
+.seen.on{opacity:1; filter:none}
+</style>

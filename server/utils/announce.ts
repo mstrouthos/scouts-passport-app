@@ -85,8 +85,9 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
   if (a.viaSms) logNote(msg, `SMS: ${smsSent}`)
   if (addresses.length) logNote(msg, `Email: ${emailed} από ${addresses.length}`)
 
+  const result = { recipients: told.filter(id => !hidden.has(id)).length, parents: parents.length, pushed: pushed + parentPushed, emailed, smsSent }
   await db.update(s.announcements)
-    .set({ status: 'sent', approvedBy, sentAt: now() })
+    .set({ status: 'sent', approvedBy, sentAt: now(), stats: JSON.stringify(result) })
     .where(eq(s.announcements.id, a.id))
-  return { recipients: told.filter(id => !hidden.has(id)).length, parents: parents.length, pushed: pushed + parentPushed, emailed, smsSent }
+  return result
 }

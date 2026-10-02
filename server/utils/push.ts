@@ -1,5 +1,5 @@
 import webpush from 'web-push'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { now } from './passcode'
 import { linkForNotification } from './notifyLinks'
@@ -23,6 +23,14 @@ type Sub = typeof s.pushSubscriptions.$inferSelect
     before surfaces were recorded belongs to everything it is filed under. */
 export const onSurface = (x: Sub, want: 'scouts' | 'bar') =>
   !x.surfaces || x.surfaces.split(',').includes(want)
+
+/** Keep how one recipient's push went with the record of sending it, so the
+    sender can see later who got it on their phone and who did not. */
+async function recordOutcome(key: number, msg: { kind: string, refId: number }, outcome: string, errors: string[]) {
+  const db = (await useDb())
+  await db.update(s.notificationLog).set({ outcome, error: errors.length ? errors.join('; ').slice(0, 300) : null })
+    .where(and(eq(s.notificationLog.scoutId, key), eq(s.notificationLog.kind, msg.kind), eq(s.notificationLog.refId, msg.refId)))
+}
 
 /** Exposed for the test push, which targets one known row. */
 export const deliverTo = (subs: Array<typeof s.pushSubscriptions.$inferSelect>, payload: string) => deliver(subs, payload)
@@ -107,6 +115,7 @@ export async function sendPushTo(scoutIds: number[], msg: { title: string, body:
     if (p.devices && !p.delivered && !p.errors.length) p.errors.push('push is not configured on the server (VAPID keys)')
     p.outcome = !p.devices ? 'no-device' : p.delivered ? 'delivered' : 'failed'
     trace?.push(p)
+    await recordOutcome(p.scoutId, msg, p.outcome, p.errors)
   }
   logMembers(msg, [...per.values()].map(p => ({ id: p.scoutId, outcome: p.outcome as any, errors: p.errors })))
   return sent
@@ -158,8 +167,10 @@ export async function sendPushToParentIds(parentIds: number[], msg: { title: str
     const p = per.get(sub.parentId!)!
     if (ok) p.delivered++; else p.errors.push(why || 'failed')
   }) : 0
-  logParents(msg, [...per.values()].map(p => ({ id: p.id, errors: p.errors,
-    outcome: !p.devices ? 'no-device' as const : p.delivered ? 'delivered' as const : 'failed' as const })))
+  const outcomes = [...per.values()].map(p => ({ id: p.id, errors: p.errors,
+    outcome: !p.devices ? 'no-device' as const : p.delivered ? 'delivered' as const : 'failed' as const }))
+  for (const o of outcomes) await recordOutcome(-1_000_000 - o.id, msg, o.outcome, o.errors)
+  logParents(msg, outcomes)
   return sent
 }
 
