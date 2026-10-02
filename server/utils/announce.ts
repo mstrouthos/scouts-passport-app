@@ -15,7 +15,10 @@ import { now } from './passcode'
     come along unless the sender turned that off. */
 export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelect, approvedBy: number | null, trace?: PushTrace[]) {
   const db = (await useDb())
-  const scouts = ((await db.select().from(s.scouts)).filter(r => !r.isHidden)).filter(r => r.isActive)
+  // a hidden test account hears everything a real one would — that is what it
+  // is for — though it is not counted among the people a message reached
+  const scouts = (await db.select().from(s.scouts)).filter(r => r.isActive)
+  const hidden = new Set(scouts.filter(r => r.isHidden).map(r => r.id))
   const patrols = (await db.select().from(s.patrols))
 
   let memberIds: number[] = []
@@ -65,5 +68,5 @@ export async function dispatchAnnouncement(a: typeof s.announcements.$inferSelec
   await db.update(s.announcements)
     .set({ status: 'sent', approvedBy, sentAt: now() })
     .where(eq(s.announcements.id, a.id))
-  return { recipients: memberIds.length, parents: parents.length, pushed: pushed + parentPushed, emailed, smsSent }
+  return { recipients: memberIds.filter(id => !hidden.has(id)).length, parents: parents.length, pushed: pushed + parentPushed, emailed, smsSent }
 }
