@@ -852,8 +852,6 @@
   "formQuestionPh": "e.g. Child's full name",
   "formAnswerType": "Answer type",
   "formOptions": "Options",
-  "formOptionsPh": "One option per line",
-  "formOptionsNote": "Write one option per line.",
   "formHelp": "Help text",
   "formHelpPh": "Optional — shown under the question",
   "formRequired": "Required",
@@ -929,5 +927,7 @@
   "formCondStale": "No longer options: {list}",
   "formCondGone": "The condition’s question is no longer before this — choose another.",
   "formCondSummary": "if “{q}” = {a}",
-  "ftype_yesno": "Yes / No"
+  "ftype_yesno": "Yes / No",
+  "formOption": "Choice",
+  "formAddOption": "Add choice"
 }

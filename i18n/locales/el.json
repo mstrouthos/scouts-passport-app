@@ -852,8 +852,6 @@
   "formQuestionPh": "π.χ. Ονοματεπώνυμο παιδιού",
   "formAnswerType": "Τύπος απάντησης",
   "formOptions": "Επιλογές",
-  "formOptionsPh": "Μία επιλογή σε κάθε γραμμή",
-  "formOptionsNote": "Γράψτε μία επιλογή σε κάθε γραμμή.",
   "formHelp": "Βοηθητικό κείμενο",
   "formHelpPh": "Προαιρετικό — εμφανίζεται κάτω από την ερώτηση",
   "formRequired": "Υποχρεωτικό",
@@ -929,5 +927,7 @@
   "formCondStale": "Δεν υπάρχουν πια ως επιλογές: {list}",
   "formCondGone": "Η ερώτηση του όρου δεν είναι πλέον πριν από εδώ — επιλέξτε άλλη.",
   "formCondSummary": "αν «{q}» = {a}",
-  "ftype_yesno": "Ναι / Όχι"
+  "ftype_yesno": "Ναι / Όχι",
+  "formOption": "Επιλογή",
+  "formAddOption": "Νέα επιλογή"
 }

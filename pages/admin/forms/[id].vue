@@ -16,9 +16,6 @@ watch(tab, v => navigateTo({ query: { ...route.query, tab: v } }, { replace: tru
 const { data: form, refresh } = await useFetch<any>(`/api/admin/forms/${id}`)
 const spec = ref<FormSpec>({ modules: [], ticks: [], signature: { enabled: false, required: true, label: '' } })
 const settings = reactive({ titleEl: '', slug: '', introEl: '', thanksEl: '', isOpen: false, closesAt: '' })
-/* the options of each list question, as typed — one per line — kept apart
-   so an empty line being typed is not swallowed */
-const optText = reactive<Record<string, string>>({})
 const open = ref<string | null>(null)    // the question being edited
 let saved = ''
 const snapshot = () => JSON.stringify({ s: spec.value, x: settings })
@@ -27,7 +24,6 @@ const dirty = ref(false)
 function fill(f: any) {
   if (!f) return
   spec.value = JSON.parse(JSON.stringify(f.spec))
-  for (const m of spec.value.modules) for (const q of m.questions) optText[q.id] = q.options.join('\n')
   Object.assign(settings, {
     titleEl: f.titleEl, slug: f.slug, introEl: f.introEl || '', thanksEl: f.thanksEl || '',
     isOpen: f.isOpen, closesAt: f.closesAt ? toLocalInput(f.closesAt) : ''
@@ -52,7 +48,7 @@ async function save() {
   busy.value = true
   try {
     for (const m of spec.value.modules) for (const q of m.questions)
-      q.options = q.type === 'yesno' ? [...YES_NO] : WITH_OPTIONS.includes(q.type) ? (optText[q.id] || '').split('\n').map(x => x.trim()).filter(Boolean) : []
+      q.options = q.type === 'yesno' ? [...YES_NO] : WITH_OPTIONS.includes(q.type) ? cleanOptions(q.options) : []
     await $fetch(`/api/admin/forms/${id}`, {
       method: 'PATCH',
       body: { ...settings, closesAt: settings.closesAt ? new Date(settings.closesAt).toISOString() : null, spec: spec.value }
@@ -72,14 +68,12 @@ function addModule() {
 function addQuestion(mi: number) {
   const q: FormQuestion = { id: newId(), type: 'text', label: '', required: false, options: [] }
   spec.value.modules[mi].questions.push(q)
-  optText[q.id] = ''
   open.value = q.id
 }
 function duplicate(mi: number, qi: number) {
   const src = spec.value.modules[mi].questions[qi]
   const q = { ...JSON.parse(JSON.stringify(src)), id: newId() }
   spec.value.modules[mi].questions.splice(qi + 1, 0, q)
-  optText[q.id] = optText[src.id] || ''
   open.value = q.id
 }
 function move<T>(list: T[], i: number, by: number) {
@@ -96,7 +90,7 @@ function removeModule(mi: number) {
 /* what a condition can depend on: the choice questions before it, with their
    options as currently typed */
 type Source = { id: string, label: string, options: string[] }
-const liveOptions = (q: FormQuestion) => q.type === 'yesno' ? [...YES_NO] : (optText[q.id] || '').split('\n').map(x => x.trim()).filter(Boolean)
+const liveOptions = (q: FormQuestion) => q.type === 'yesno' ? [...YES_NO] : cleanOptions(q.options)
 const asSource = (q: FormQuestion): Source => ({ id: q.id, label: q.label, options: liveOptions(q) })
 function sourcesBefore(mi: number, qi?: number): Source[] {
   const out: Source[] = []
@@ -115,6 +109,21 @@ function condLabel(c?: { q: string, anyOf: string[] }) {
   const src = spec.value.modules.flatMap(m => m.questions).find(q => q.id === c.q)
   return t('formCondSummary', { q: src?.label || '?', a: c.anyOf.join(' / ') || '…' })
 }
+/* a list question's choices, one box each: add, remove, reorder. Enter in a
+   box starts the next one, as typing a list naturally goes. */
+const cleanOptions = (list: string[]) => [...new Set(list.map(x => x.trim()).filter(Boolean))]
+async function addOption(q: FormQuestion, at = q.options.length) {
+  q.options.splice(at, 0, '')
+  await nextTick()
+  ;(document.querySelector(`[data-opt="${q.id}-${at}"]`) as HTMLInputElement | null)?.focus()
+}
+function removeOption(q: FormQuestion, i: number) { q.options.splice(i, 1) }
+/* a question turned into a list starts with two empty choices to fill in */
+watch(() => spec.value.modules.flatMap(m => m.questions.map(q => q.type)), () => {
+  for (const m of spec.value.modules) for (const q of m.questions)
+    if (WITH_OPTIONS.includes(q.type) && !q.options.length) q.options.push('', '')
+    else if (q.type === 'yesno' && q.options.join() !== YES_NO.join()) q.options = [...YES_NO]
+})
 function addTick() { spec.value.ticks.push({ id: newId(), label: '', required: true }) }
 
 const link = computed(() => `https://forms.scouts30.org/${form.value?.slug || settings.slug}`)
@@ -192,8 +201,16 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
             </div>
             <div v-if="WITH_OPTIONS.includes(q.type)">
               <label class="lab">{{ t('formOptions') }}</label>
-              <textarea v-model="optText[q.id]" class="in" rows="4" :placeholder="t('formOptionsPh')" />
-              <div class="tiny muted">{{ t('formOptionsNote') }}</div>
+              <div class="optlist">
+                <div v-for="(o, oi) in q.options" :key="oi" class="optrow">
+                  <span class="mark">{{ q.type === 'checkbox' ? '☐' : q.type === 'select' ? (oi + 1) + '.' : '○' }}</span>
+                  <input v-model="q.options[oi]" class="in" :data-opt="`${q.id}-${oi}`" :placeholder="`${t('formOption')} ${oi + 1}`"
+                         @keydown.enter.prevent="addOption(q, oi + 1)">
+                  <button class="ib" :disabled="oi === 0" :aria-label="t('moveUp')" @click="move(q.options, oi, -1)">↑</button>
+                  <button class="ib del" :aria-label="t('delete')" @click="removeOption(q, oi)">✕</button>
+                </div>
+              </div>
+              <button class="chip" style="margin-top:7px" @click="addOption(q)">+ {{ t('formAddOption') }}</button>
             </div>
             <div><label class="lab">{{ t('formHelp') }}</label><input v-model="q.help" class="in" :placeholder="t('formHelpPh')"></div>
             <label class="tog"><input v-model="q.required" type="checkbox"> {{ t('formRequired') }}</label>
@@ -311,6 +328,10 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
 .qtools{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
 .tog{display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer}
 .tog input{width:18px; height:18px; accent-color:var(--accent)}
+.optlist{display:flex; flex-direction:column; gap:6px}
+.optrow{display:flex; align-items:center; gap:6px}
+.optrow .in{flex:1; min-width:0}
+.optrow .mark{flex:none; width:20px; text-align:center; color:var(--muted); font-size:13px}
 .tickrow{display:flex; flex-direction:column; gap:6px; padding-bottom:10px; border-bottom:1px solid var(--hair)}
 select.in{appearance:auto}
 .slug{display:flex; align-items:center; gap:4px}
