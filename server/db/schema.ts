@@ -671,3 +671,42 @@ export const barOrderItems = pgTable('bar_order_items', {
   // coupons per unit at the time, so the count stays right if the menu changes
   couponCost: integer('coupon_cost').notNull().default(1)
 })
+
+/* Φόρμες — forms the administrators build (registration and the like) and
+   anyone with the link fills in, on forms.scouts30.org. The questions live in
+   `spec` as JSON: modules of questions, the tickboxes at the end, a signature.
+   A response is kept sealed (encrypted) with a copy of the spec it answered,
+   so editing a form later does not scramble what was already sent. */
+export const forms = pgTable('forms', {
+  id: serial('id').primaryKey(),
+  slug: text('slug').notNull().unique(),
+  titleEl: text('title_el').notNull(),
+  introEl: text('intro_el'),
+  thanksEl: text('thanks_el'),
+  spec: text('spec').notNull().default('{}'),
+  isOpen: boolean('is_open').notNull().default(false),
+  closesAt: text('closes_at'),
+  createdBy: integer('created_by'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at')
+})
+export const formResponses = pgTable('form_responses', {
+  id: serial('id').primaryKey(),
+  formId: integer('form_id').notNull().references(() => forms.id),
+  // the answers, ticks and signature, encrypted together (see utils/seal.ts)
+  sealed: text('sealed').notNull(),
+  spec: text('spec').notNull(),
+  // a one-way hash of the sender's address, for the rate limit — never the address
+  ipHash: text('ip_hash'),
+  isRead: boolean('is_read').notNull().default(false),
+  createdAt: text('created_at').notNull()
+})
+/** Which administrator opened or exported what, and when. */
+export const formAccessLog = pgTable('form_access_log', {
+  id: serial('id').primaryKey(),
+  formId: integer('form_id').notNull(),
+  responseId: integer('response_id'),
+  scoutId: integer('scout_id').notNull(),
+  action: text('action').notNull(),
+  at: text('at').notNull()
+})

@@ -7,7 +7,9 @@ const { locale } = useI18n()
 const route = useRoute()
 const manifest = computed(() => route.path.startsWith('/bar') ? '/bar.webmanifest'
   : route.path.startsWith('/family') ? '/family.webmanifest' : '/manifest.webmanifest')
-useHead({ htmlAttrs: { lang: locale }, link: [{ rel: 'manifest', href: manifest, key: 'manifest' }] })
+/* a form, on its own address, is a web page and not an app to install */
+const isForm = import.meta.client && /^forms\./i.test(window.location.hostname)
+useHead({ htmlAttrs: { lang: locale }, link: isForm ? [] : [{ rel: 'manifest', href: manifest, key: 'manifest' }] })
 </script>
 
 <template>

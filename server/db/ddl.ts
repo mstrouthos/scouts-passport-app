@@ -446,6 +446,36 @@ CREATE TABLE IF NOT EXISTS bar_order_items (
   coupon_qty INTEGER NOT NULL DEFAULT 0,
   coupon_cost INTEGER NOT NULL DEFAULT 1
 );
+CREATE TABLE IF NOT EXISTS forms (
+  id SERIAL PRIMARY KEY,
+  slug TEXT NOT NULL UNIQUE,
+  title_el TEXT NOT NULL,
+  intro_el TEXT,
+  thanks_el TEXT,
+  spec TEXT NOT NULL DEFAULT '{}',
+  is_open BOOLEAN NOT NULL DEFAULT FALSE,
+  closes_at TEXT,
+  created_by INTEGER,
+  created_at TEXT NOT NULL,
+  updated_at TEXT
+);
+CREATE TABLE IF NOT EXISTS form_responses (
+  id SERIAL PRIMARY KEY,
+  form_id INTEGER NOT NULL REFERENCES forms(id),
+  sealed TEXT NOT NULL,
+  spec TEXT NOT NULL,
+  ip_hash TEXT,
+  is_read BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS form_access_log (
+  id SERIAL PRIMARY KEY,
+  form_id INTEGER NOT NULL,
+  response_id INTEGER,
+  scout_id INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  at TEXT NOT NULL
+);
 `
 
 /* Best-effort column adds for databases created before these fields existed. */

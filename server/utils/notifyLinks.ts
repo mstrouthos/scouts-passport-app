@@ -15,5 +15,6 @@ export function linkForNotification(kind: string, refId: number | null): string 
   if (kind === 'poll') return '/admin/polls'
   if (kind === 'infoApproval' || kind === 'infoPublished') return `/admin/infopages?open=${refId}`
   if (kind === 'eventRsvp') return `/admin/events/${refId}`
+  if (kind === 'formResponse') return `/admin/forms/response/${refId}`
   return null
 }

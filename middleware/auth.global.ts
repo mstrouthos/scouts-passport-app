@@ -1,5 +1,8 @@
 export default defineNuxtRouteMiddleware(async (to) => {
   if (import.meta.server) return
+  // a form is filled in by anyone with its link, signed in or not; on the
+  // forms address nothing else exists to protect
+  if (to.path.startsWith('/forms/') || /^forms\./i.test(window.location.hostname)) return
   // /install is linked from the SMS that carries someone's code, so it has to
   // be readable before they can sign in
   const open = to.path === '/' || to.path === '/login' || to.path === '/install'

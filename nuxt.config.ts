@@ -71,6 +71,8 @@ export default defineNuxtConfig({
       cookie: { sameSite: 'lax', path: '/' }
     },
     passcodePepper: 'dev-pepper-change-me',
+    // encrypts form responses (server/utils/seal.ts) — set once, never change
+    formsKey: '',
     cronToken: 'dev-cron-token',
     vapidPrivateKey: '',
     // optional: Google Maps text search for places (Places API) — without it,
