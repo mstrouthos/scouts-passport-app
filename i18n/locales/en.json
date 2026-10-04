@@ -928,5 +928,6 @@
   "formCondPickA": "Choose at least one answer — otherwise the condition is not saved.",
   "formCondStale": "No longer options: {list}",
   "formCondGone": "The condition’s question is no longer before this — choose another.",
-  "formCondSummary": "if “{q}” = {a}"
+  "formCondSummary": "if “{q}” = {a}",
+  "ftype_yesno": "Yes / No"
 }

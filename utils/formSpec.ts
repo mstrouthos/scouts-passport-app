@@ -4,10 +4,14 @@
    questions; then the tickboxes at the end (consents, declarations); then,
    if asked for, a signature. */
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'phone' | 'date' | 'radio' | 'checkbox' | 'select'
-export const FIELD_TYPES: FieldType[] = ['text', 'textarea', 'number', 'email', 'phone', 'date', 'radio', 'checkbox', 'select']
+export type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'phone' | 'date' | 'yesno' | 'radio' | 'checkbox' | 'select'
+export const FIELD_TYPES: FieldType[] = ['text', 'textarea', 'number', 'email', 'phone', 'date', 'yesno', 'radio', 'checkbox', 'select']
 /** The types whose answer is picked from a list the administrator writes. */
 export const WITH_OPTIONS: FieldType[] = ['radio', 'checkbox', 'select']
+/** A yes/no question: a choice whose two answers are always these. */
+export const YES_NO = ['Ναι', 'Όχι']
+/** Every type answered by picking — what a condition can depend on. */
+export const CHOICE_TYPES: FieldType[] = [...WITH_OPTIONS, 'yesno']
 
 /** Shown only when an earlier choice question has one of these answers —
     so a family registering again skips what is only asked the first time. */
@@ -54,7 +58,7 @@ export function normalizeSpec(raw: any): FormSpec {
         label: str(q?.label, 500),
         help: str(q?.help, 1000) || undefined,
         required: !!q?.required,
-        options: WITH_OPTIONS.includes(q.type)
+        options: q.type === 'yesno' ? [...YES_NO] : WITH_OPTIONS.includes(q.type)
           ? [...new Set((Array.isArray(q?.options) ? q.options : []).map((o: any) => str(o, 200)).filter(Boolean))].slice(0, 60) as string[]
           : []
       }, q?.showIf))
@@ -65,7 +69,7 @@ export function normalizeSpec(raw: any): FormSpec {
   const before: FormQuestion[] = []
   const cond = (c: any, pool: FormQuestion[]): FormCondition | undefined => {
     const src = pool.find(q => q.id === c?.q)
-    if (!src || !WITH_OPTIONS.includes(src.type)) return undefined
+    if (!src || !CHOICE_TYPES.includes(src.type)) return undefined
     const anyOf = (Array.isArray(c?.anyOf) ? c.anyOf : []).map((x: any) => String(x)).filter((x: string) => src.options.includes(x))
     return anyOf.length ? { q: src.id, anyOf } : undefined
   }
@@ -99,7 +103,7 @@ export function questionError(q: FormQuestion, v: unknown): string | null {
     return null
   }
   const s = String(v).trim()
-  if ((q.type === 'radio' || q.type === 'select') && !q.options.includes(s)) return 'invalid'
+  if ((q.type === 'radio' || q.type === 'select' || q.type === 'yesno') && !q.options.includes(s)) return 'invalid'
   if (q.type === 'email' && !EMAIL.test(s)) return 'email'
   if (q.type === 'phone' && !PHONE.test(s)) return 'phone'
   if (q.type === 'number' && Number.isNaN(Number(s.replace(',', '.')))) return 'number'

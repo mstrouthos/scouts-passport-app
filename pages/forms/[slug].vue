@@ -106,6 +106,11 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
                 <option value="" disabled>{{ t('formChoose') }}</option>
                 <option v-for="o in q.options" :key="o" :value="o">{{ o }}</option>
               </select>
+              <div v-else-if="q.type === 'yesno'" class="yn">
+                <label v-for="o in q.options" :key="o" class="opt" :class="{ on: answers[q.id] === o }">
+                  <input v-model="answers[q.id]" type="radio" :name="'q' + q.id" :value="o"><span>{{ o }}</span>
+                </label>
+              </div>
               <div v-else-if="q.type === 'radio'" class="opts">
                 <label v-for="o in q.options" :key="o" class="opt" :class="{ on: answers[q.id] === o }">
                   <input v-model="answers[q.id]" type="radio" :name="'q' + q.id" :value="o"><span>{{ o }}</span>
@@ -164,6 +169,8 @@ h2{margin:0; font-size:16px; color:var(--accent-deep)}
 .req{color:var(--danger); margin-left:3px}
 .help{font-size:12px; color:var(--muted); margin-top:-3px; line-height:1.4}
 .opts{display:flex; flex-direction:column; gap:7px}
+.yn{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.yn .opt{justify-content:center; font-weight:650}
 .opt{display:flex; align-items:center; gap:10px; border:1.5px solid var(--line); border-radius:12px; padding:11px 12px; font-size:14px; cursor:pointer; background:#fff}
 .opt.on{border-color:var(--accent); background:var(--accent-soft)}
 .opt input, .tick input{width:19px; height:19px; accent-color:var(--accent); flex:none; margin:0}

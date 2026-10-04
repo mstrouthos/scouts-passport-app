@@ -2,7 +2,7 @@
 /* One form: building it (modules of questions, the tickboxes at the end, the
    signature), its settings (link, texts, open or closed), and what has come
    back. Nothing is saved until Save — the page says when there are changes. */
-import { FIELD_TYPES, WITH_OPTIONS, newId, type FormSpec, type FormQuestion, type FieldType } from '~/utils/formSpec'
+import { FIELD_TYPES, WITH_OPTIONS, CHOICE_TYPES, YES_NO, newId, type FormSpec, type FormQuestion, type FieldType } from '~/utils/formSpec'
 const { t, locale } = useI18n()
 const me = useMe()
 const { show } = useToast()
@@ -52,7 +52,7 @@ async function save() {
   busy.value = true
   try {
     for (const m of spec.value.modules) for (const q of m.questions)
-      q.options = WITH_OPTIONS.includes(q.type) ? (optText[q.id] || '').split('\n').map(x => x.trim()).filter(Boolean) : []
+      q.options = q.type === 'yesno' ? [...YES_NO] : WITH_OPTIONS.includes(q.type) ? (optText[q.id] || '').split('\n').map(x => x.trim()).filter(Boolean) : []
     await $fetch(`/api/admin/forms/${id}`, {
       method: 'PATCH',
       body: { ...settings, closesAt: settings.closesAt ? new Date(settings.closesAt).toISOString() : null, spec: spec.value }
@@ -64,7 +64,7 @@ async function save() {
 
 /* building */
 const TYPE_ICON: Record<FieldType, string> = {
-  text: '✏️', textarea: '📝', number: '🔢', email: '✉️', phone: '📞', date: '📅', radio: '🔘', checkbox: '☑️', select: '🔽'
+  text: '✏️', textarea: '📝', number: '🔢', email: '✉️', phone: '📞', date: '📅', yesno: '👍', radio: '🔘', checkbox: '☑️', select: '🔽'
 }
 function addModule() {
   spec.value.modules.push({ id: newId(), title: '', questions: [] })
@@ -96,7 +96,7 @@ function removeModule(mi: number) {
 /* what a condition can depend on: the choice questions before it, with their
    options as currently typed */
 type Source = { id: string, label: string, options: string[] }
-const liveOptions = (q: FormQuestion) => (optText[q.id] || '').split('\n').map(x => x.trim()).filter(Boolean)
+const liveOptions = (q: FormQuestion) => q.type === 'yesno' ? [...YES_NO] : (optText[q.id] || '').split('\n').map(x => x.trim()).filter(Boolean)
 const asSource = (q: FormQuestion): Source => ({ id: q.id, label: q.label, options: liveOptions(q) })
 function sourcesBefore(mi: number, qi?: number): Source[] {
   const out: Source[] = []
@@ -104,7 +104,7 @@ function sourcesBefore(mi: number, qi?: number): Source[] {
     if (i > mi) return
     m.questions.forEach((q, j) => {
       if (i === mi && (qi === undefined || j >= qi)) return
-      if (WITH_OPTIONS.includes(q.type)) out.push(asSource(q))
+      if (CHOICE_TYPES.includes(q.type)) out.push(asSource(q))
     })
   })
   return out
