@@ -918,5 +918,15 @@
   "ftype_checkbox": "Several choices",
   "ftype_select": "Dropdown list",
   "moveUp": "Up",
-  "moveDown": "Down"
+  "moveDown": "Down",
+  "formCondModule": "Show this section only if…",
+  "formCondQuestion": "Show this question only if…",
+  "formCondNoSources": "Needs an earlier choice question (one choice, several choices or dropdown).",
+  "formCondPickQ": "Choose a question…",
+  "formCondAnswerIs": "…the answer is one of:",
+  "formCondNoOptions": "That question has no options yet.",
+  "formCondPickA": "Choose at least one answer — otherwise the condition is not saved.",
+  "formCondStale": "No longer options: {list}",
+  "formCondGone": "The condition’s question is no longer before this — choose another.",
+  "formCondSummary": "if “{q}” = {a}"
 }

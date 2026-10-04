@@ -93,6 +93,28 @@ function removeModule(mi: number) {
   if (m.questions.length && !confirm(t('formRemoveModuleQ', { n: m.questions.length }))) return
   spec.value.modules.splice(mi, 1)
 }
+/* what a condition can depend on: the choice questions before it, with their
+   options as currently typed */
+type Source = { id: string, label: string, options: string[] }
+const liveOptions = (q: FormQuestion) => (optText[q.id] || '').split('\n').map(x => x.trim()).filter(Boolean)
+const asSource = (q: FormQuestion): Source => ({ id: q.id, label: q.label, options: liveOptions(q) })
+function sourcesBefore(mi: number, qi?: number): Source[] {
+  const out: Source[] = []
+  spec.value.modules.forEach((m, i) => {
+    if (i > mi) return
+    m.questions.forEach((q, j) => {
+      if (i === mi && (qi === undefined || j >= qi)) return
+      if (WITH_OPTIONS.includes(q.type)) out.push(asSource(q))
+    })
+  })
+  return out
+}
+/** "if «Πρώτη εγγραφή;» is Ναι" — for the module's and the question's heading. */
+function condLabel(c?: { q: string, anyOf: string[] }) {
+  if (!c) return ''
+  const src = spec.value.modules.flatMap(m => m.questions).find(q => q.id === c.q)
+  return t('formCondSummary', { q: src?.label || '?', a: c.anyOf.join(' / ') || '…' })
+}
 function addTick() { spec.value.ticks.push({ id: newId(), label: '', required: true }) }
 
 const link = computed(() => `https://forms.scouts30.org/${form.value?.slug || settings.slug}`)
@@ -150,11 +172,13 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
           <button class="ib del" :aria-label="t('delete')" @click="removeModule(mi)">🗑</button>
         </div>
         <textarea v-model="m.description" class="in" rows="2" :placeholder="t('formModuleDescPh')" />
+        <FormConditionEdit v-if="mi > 0 || m.showIf" v-model="m.showIf" :sources="sourcesBefore(mi)" what="module" />
 
         <div v-for="(q, qi) in m.questions" :key="q.id" class="qq" :class="{ editing: open === q.id }">
           <button class="qrow" @click="open = open === q.id ? null : q.id">
             <span class="qi">{{ TYPE_ICON[q.type] }}</span>
-            <span class="ql">{{ q.label || t('formUntitledQ') }}<span v-if="q.required" class="req">*</span></span>
+            <span class="ql">{{ q.label || t('formUntitledQ') }}<span v-if="q.required" class="req">*</span>
+              <small v-if="q.showIf" class="cl">🔀 {{ condLabel(q.showIf) }}</small></span>
             <span class="tiny muted">{{ t('ftype_' + q.type) }}</span>
             <span class="chev">{{ open === q.id ? '▾' : '›' }}</span>
           </button>
@@ -173,6 +197,7 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
             </div>
             <div><label class="lab">{{ t('formHelp') }}</label><input v-model="q.help" class="in" :placeholder="t('formHelpPh')"></div>
             <label class="tog"><input v-model="q.required" type="checkbox"> {{ t('formRequired') }}</label>
+            <FormConditionEdit v-model="q.showIf" :sources="sourcesBefore(mi, qi)" what="question" />
             <div class="qtools">
               <button class="chip" :disabled="qi === 0" @click="move(m.questions, qi, -1)">↑</button>
               <button class="chip" :disabled="qi === m.questions.length - 1" @click="move(m.questions, qi, 1)">↓</button>
@@ -280,6 +305,7 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
 .qrow{display:flex; align-items:center; gap:9px; width:100%; border:0; background:none; padding:11px 12px; text-align:left; font:inherit; color:inherit}
 .qi{flex:none}
 .ql{flex:1; min-width:0; font-size:13.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.cl{display:block; font-size:11px; font-weight:600; color:#8A6614; overflow:hidden; text-overflow:ellipsis}
 .req{color:var(--danger); margin-left:3px}
 .qedit{display:flex; flex-direction:column; gap:10px; padding:4px 12px 12px; border-top:1px solid var(--hair)}
 .qtools{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
@@ -294,6 +320,9 @@ select.in{appearance:auto}
 .dot{flex:none; width:8px; height:8px; border-radius:50%; background:transparent}
 .dot.on{background:var(--accent)}
 .savebar{position:sticky; bottom:calc(84px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:8px; background:var(--glass); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border:1px solid var(--glass-brd); border-radius:18px; padding:10px; box-shadow:var(--shadow); z-index:5}
+/* no tab bar on a wide screen: the bar sits at the bottom, inside the page's
+   own padding, so at the end of the page it no longer covers the last card */
+@media (min-width:820px){ .savebar{bottom:16px} }
 .linkrow{display:flex; align-items:center; gap:6px}
 .linkrow .tiny{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--accent-deep); font-weight:600}
 .linkrow a.chip{text-decoration:none}

@@ -9,8 +9,11 @@ export const FIELD_TYPES: FieldType[] = ['text', 'textarea', 'number', 'email', 
 /** The types whose answer is picked from a list the administrator writes. */
 export const WITH_OPTIONS: FieldType[] = ['radio', 'checkbox', 'select']
 
-export type FormQuestion = { id: string, type: FieldType, label: string, help?: string, required: boolean, options: string[] }
-export type FormModule = { id: string, title: string, description?: string, questions: FormQuestion[] }
+/** Shown only when an earlier choice question has one of these answers —
+    so a family registering again skips what is only asked the first time. */
+export type FormCondition = { q: string, anyOf: string[] }
+export type FormQuestion = { id: string, type: FieldType, label: string, help?: string, required: boolean, options: string[], showIf?: FormCondition }
+export type FormModule = { id: string, title: string, description?: string, questions: FormQuestion[], showIf?: FormCondition }
 export type FormTick = { id: string, label: string, required: boolean }
 export type FormSpec = {
   modules: FormModule[]
@@ -38,13 +41,14 @@ export function normalizeSpec(raw: any): FormSpec {
     seen.add(v)
     return v
   }
-  const modules = (Array.isArray(raw?.modules) ? raw.modules : []).slice(0, 40).map((m: any) => ({
+  const raws = new Map<object, any>()   // each module or question → its condition as sent
+  const modules: FormModule[] = (Array.isArray(raw?.modules) ? raw.modules : []).slice(0, 40).map((m: any) => keep({
     id: id(m?.id),
     title: str(m?.title, 200),
     description: str(m?.description, 2000) || undefined,
     questions: (Array.isArray(m?.questions) ? m.questions : []).slice(0, 100)
       .filter((q: any) => FIELD_TYPES.includes(q?.type))
-      .map((q: any) => ({
+      .map((q: any) => keep({
         id: id(q?.id),
         type: q.type as FieldType,
         label: str(q?.label, 500),
@@ -53,8 +57,27 @@ export function normalizeSpec(raw: any): FormSpec {
         options: WITH_OPTIONS.includes(q.type)
           ? [...new Set((Array.isArray(q?.options) ? q.options : []).map((o: any) => str(o, 200)).filter(Boolean))].slice(0, 60) as string[]
           : []
-      }))
-  }))
+      }, q?.showIf))
+  }, m?.showIf))
+  function keep<T extends object>(x: T, showIf: any): T { raws.set(x, showIf); return x }
+  // a condition must name a choice question that comes before it, and some
+  // of that question's options; anything else is dropped, never guessed at
+  const before: FormQuestion[] = []
+  const cond = (c: any, pool: FormQuestion[]): FormCondition | undefined => {
+    const src = pool.find(q => q.id === c?.q)
+    if (!src || !WITH_OPTIONS.includes(src.type)) return undefined
+    const anyOf = (Array.isArray(c?.anyOf) ? c.anyOf : []).map((x: any) => String(x)).filter((x: string) => src.options.includes(x))
+    return anyOf.length ? { q: src.id, anyOf } : undefined
+  }
+  for (const m of modules) {
+    const c = cond(raws.get(m), before)
+    if (c) m.showIf = c
+    for (const q of m.questions) {
+      const qc = cond(raws.get(q), before)
+      if (qc) q.showIf = qc
+      before.push(q)
+    }
+  }
   const ticks = (Array.isArray(raw?.ticks) ? raw.ticks : []).slice(0, 30)
     .map((x: any) => ({ id: id(x?.id), label: str(x?.label, 2000), required: !!x?.required }))
   const sig = raw?.signature || {}
@@ -84,11 +107,34 @@ export function questionError(q: FormQuestion, v: unknown): string | null {
   return null
 }
 
-/** The answers kept, cleaned, plus every problem by question id. */
+/** Which modules and questions this set of answers shows. In form order, so
+    a condition on a question that is itself hidden counts as not met. */
+export function visibleParts(spec: FormSpec, answers: Record<string, any>) {
+  const modules = new Set<string>()
+  const questions = new Set<string>()
+  const met = (c?: FormCondition) => {
+    if (!c) return true
+    if (!questions.has(c.q)) return false
+    const v = answers?.[c.q]
+    return Array.isArray(v) ? v.some(x => c.anyOf.includes(String(x))) : c.anyOf.includes(String(v ?? ''))
+  }
+  for (const m of spec.modules) {
+    if (!met(m.showIf)) continue
+    modules.add(m.id)
+    for (const q of m.questions) if (met(q.showIf)) questions.add(q.id)
+  }
+  return { modules, questions }
+}
+
+/** The answers kept, cleaned, plus every problem by question id. Only what
+    the answers show is checked or kept: a hidden question is never required,
+    and anything typed into it before it was hidden is let go. */
 export function checkAnswers(spec: FormSpec, body: any): { clean: FormAnswers, errors: Record<string, string> } {
   const errors: Record<string, string> = {}
   const answers: Record<string, string | string[]> = {}
+  const shown = visibleParts(spec, body?.answers || {}).questions
   for (const m of spec.modules) for (const q of m.questions) {
+    if (!shown.has(q.id)) continue
     let v = body?.answers?.[q.id]
     if (q.type === 'checkbox') v = Array.isArray(v) ? v.map(x => String(x)) : []
     else v = String(v ?? '').slice(0, q.type === 'textarea' ? 5000 : 500)

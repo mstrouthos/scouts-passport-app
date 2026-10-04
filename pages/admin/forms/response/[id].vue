@@ -2,7 +2,7 @@
 /* One form response in full, as it was sent: every module's questions and
    answers, the tickboxes, the signature. Printable, so a paper copy can go
    in the file. Opening it is recorded. */
-import { answerText } from '~/utils/formSpec'
+import { answerText, visibleParts } from '~/utils/formSpec'
 const { t, locale } = useI18n()
 const me = useMe()
 const { show } = useToast()
@@ -20,6 +20,8 @@ async function remove() {
 }
 const shown = (v: unknown, type?: any) => answerText(v, type).trim()
 const print = () => window.print()
+/* only what this person was asked: sections their answers skipped are left out */
+const seen = computed(() => r.value ? visibleParts(r.value.spec, r.value.data.answers || {}) : null)
 </script>
 
 <template>
@@ -37,9 +39,9 @@ const print = () => window.print()
         <span>#{{ r.id }} · {{ stamp(r.createdAt) }}</span>
       </div>
 
-      <section v-for="m in r.spec.modules" :key="m.id" class="card mod">
+      <section v-for="m in r.spec.modules.filter((x: any) => seen?.modules.has(x.id))" :key="m.id" class="card mod">
         <h2 v-if="m.title">{{ m.title }}</h2>
-        <div v-for="q in m.questions" :key="q.id" class="qa">
+        <div v-for="q in m.questions.filter((x: any) => seen?.questions.has(x.id))" :key="q.id" class="qa">
           <div class="q">{{ q.label }}</div>
           <div class="a" :class="{ none: !shown(r.data.answers?.[q.id]) }">{{ shown(r.data.answers?.[q.id], q.type) || '—' }}</div>
         </div>

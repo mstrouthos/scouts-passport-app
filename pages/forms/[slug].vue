@@ -3,7 +3,7 @@
    /forms/<link> in the app, where an administrator can also preview one that
    is still closed. One page: the modules in order, the tickboxes, the
    signature, and a single send. */
-import { questionError, checkAnswers, type FormSpec } from '~/utils/formSpec'
+import { checkAnswers, visibleParts, type FormSpec } from '~/utils/formSpec'
 const { t } = useI18n()
 const route = useRoute()
 const slug = computed(() => String(route.params.slug || ''))
@@ -29,6 +29,9 @@ watch(spec, sp => {
   for (const x of sp?.ticks || []) if (!(x.id in ticks)) ticks[x.id] = false
 }, { immediate: true })
 
+/* what these answers show: a module or question with a condition appears
+   the moment the answer it depends on is given, and goes again if it changes */
+const shown = computed(() => spec.value ? visibleParts(spec.value, answers) : { modules: new Set<string>(), questions: new Set<string>() })
 const errors = ref<Record<string, string>>({})
 const tried = ref(false)
 const busy = ref(false)
@@ -91,10 +94,10 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
         <template v-else-if="spec">
           <p v-if="data.introEl" class="intro">{{ data.introEl }}</p>
 
-          <section v-for="m in spec.modules" :key="m.id" class="card mod">
+          <section v-for="m in spec.modules.filter(x => shown.modules.has(x.id))" :key="m.id" class="card mod">
             <h2 v-if="m.title">{{ m.title }}</h2>
             <p v-if="m.description" class="desc">{{ m.description }}</p>
-            <div v-for="q in m.questions" :key="q.id" class="q" :class="{ bad: errors[q.id] }">
+            <div v-for="q in m.questions.filter(x => shown.questions.has(x.id))" :key="q.id" class="q" :class="{ bad: errors[q.id] }">
               <label class="ql" :for="'q' + q.id">{{ q.label }}<span v-if="q.required" class="req">*</span></label>
               <div v-if="q.help" class="help">{{ q.help }}</div>
 
