@@ -33,7 +33,7 @@ const waitingMin = computed(() => data.value?.calledAt ? Math.max(0, Math.round(
   <div class="guest">
     <header>
       <img src="/images/logo-256.png" alt="">
-      <div><b>{{ data?.event?.name || 'Πύλη Προσκόπων' }}</b><span>30ό Σύστημα Προσκόπων Αμμοχώστου</span></div>
+      <div><b>{{ data?.event?.name || 'Πύλη Προσκόπων' }}</b><span>30ον Σύστημα Ελλήνων Προσκόπων Αμμοχώστου</span></div>
     </header>
     <main>
       <div class="tbl">Τραπέζι <b>{{ table }}</b></div>

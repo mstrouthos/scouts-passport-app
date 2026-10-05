@@ -22,7 +22,7 @@ async function load() {
   } catch (e: any) { loadError.value = e?.statusCode === 404 ? t('formNotFound') : (errMsg(e)) }
 }
 onMounted(load)
-useHead(() => ({ title: data.value?.titleEl ? `${data.value.titleEl} · 30ό Σύστημα Προσκόπων` : '30ό Σύστημα Προσκόπων' }))
+useHead(() => ({ title: data.value?.titleEl ? `${data.value.titleEl} · 30ον Σύστημα Ελλήνων Προσκόπων Αμμοχώστου` : '30ον Σύστημα Ελλήνων Προσκόπων Αμμοχώστου' }))
 
 const spec = computed<FormSpec | null>(() => data.value?.spec || null)
 const answers = reactive<Record<string, any>>({})
@@ -196,7 +196,7 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
   <div class="pform" :class="{ finished: !!done }">
     <header>
       <img src="/images/logo-256.png" alt="">
-      <div><b>30ό Σύστημα Προσκόπων</b><span>Αμμοχώστου</span></div>
+      <div><b>30ον Σύστημα Ελλήνων Προσκόπων</b><span>Αμμοχώστου</span></div>
     </header>
     <main>
       <div v-if="loadError" class="card msg">{{ loadError }}</div>

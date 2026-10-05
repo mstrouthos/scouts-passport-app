@@ -58,7 +58,7 @@ export async function sendResponseCopy(responseId: number, to: string) {
       '',
       `Υποβολή #${r.id} · ${when}`,
       '',
-      '30ό Σύστημα Προσκόπων Αμμοχώστου'
+      '30ον Σύστημα Ελλήνων Προσκόπων Αμμοχώστου'
     ].join('\n')
     await sendEmailWithFiles(to, `Αντίγραφο: ${title}`, text, attach)
   } catch (e) {

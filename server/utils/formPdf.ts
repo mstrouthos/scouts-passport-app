@@ -104,7 +104,7 @@ export async function responsePdf(p: {
   }
 
   // the heading
-  text('30ό Σύστημα Προσκόπων Αμμοχώστου', { size: 9, color: MUTED, gap: 2 })
+  text('30ον Σύστημα Ελλήνων Προσκόπων Αμμοχώστου', { size: 9, color: MUTED, gap: 2 })
   text(p.formTitle, { font: bold, size: 18, gap: 2 })
   text(`Υποβολή #${p.responseId} · ${when(p.createdAt)}`, { size: 9.5, color: MUTED })
   rule(12)

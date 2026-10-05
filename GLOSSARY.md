@@ -10,7 +10,7 @@ Taken from the app's translations (`i18n/locales/el.json`, `en.json`) and from w
 
 | Ελληνικά | English | Σημείωση |
 |---|---|---|
-| Σύστημα (30ό Σύστημα Προσκόπων Αμμοχώστου) | Troop (30th Famagusta Scout Group) | The whole group: every section, leader and family |
+| Σύστημα (30ον Σύστημα Ελλήνων Προσκόπων Αμμοχώστου) | Troop (30th Greek Scout System of Famagusta) | The whole group: every section, leader and family |
 | Όλο το Σύστημα | Whole troop | Audience for notifications: everyone |
 | Τομέας / Τμήμα | Section / Sector | One age section; "Τομέας ευθύνης" = area of responsibility |
 | Μικρή Αγέλη | Little Pack | Youngest section |

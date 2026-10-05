@@ -18,7 +18,7 @@ function flip() {
   <div class="coin-stage" :style="{ width: props.size + 'px', height: props.size + 'px', '--s': props.size + 'px' }" @click="flip">
     <div class="coin" :class="{ spin: props.spin, turning }">
       <i v-for="k in RIM" :key="k" class="rim" :style="{ transform: `translateZ(${k - RIM / 2 - 0.5}px)` }" />
-      <div class="face front"><img src="/images/logo-256.png" alt="30ό Σύστημα Ελλήνων Προσκόπων Αμμοχώστου"></div>
+      <div class="face front"><img src="/images/logo-256.png" alt="30ον Σύστημα Ελλήνων Προσκόπων Αμμοχώστου"></div>
       <div class="face back"><span>30</span><small>1945</small></div>
       <div class="shine" />
     </div>

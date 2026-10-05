@@ -93,7 +93,7 @@ const roleLabel = computed(() => ({ waiter: 'Σερβιτόρος', bartender: '
       <div>
         <b>🍻 {{ me?.event?.name || 'Μπαρ' }}</b>
         <span v-if="me">{{ roleLabel }} · {{ me.name }}<template v-if="me.bartender"> · Bartender: {{ me.bartender }}</template></span>
-        <span v-else>30ό Σύστημα Προσκόπων Αμμοχώστου</span>
+        <span v-else>30ον Σύστημα Ελλήνων Προσκόπων Αμμοχώστου</span>
       </div>
       <button v-if="me" class="out" @click="settingsOpen = true">⚙︎ Ρυθμίσεις</button>
     </header>
