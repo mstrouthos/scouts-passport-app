@@ -1084,5 +1084,20 @@
   "formRepeatMaxLabel": "Maximum number",
   "formRepeatPart": "Part of the “{label}” repeat",
   "formRepeatNote": "The parent fills in the sections for “{label} 1” and is then asked whether to add another. The Excel export has one row per {label}.",
-  "formRepeatSoFar": "So far"
+  "formRepeatSoFar": "So far",
+  "avs_eyeShape": "Eye shape",
+  "avs_brows": "Eyebrows",
+  "avs_nose": "Nose",
+  "avs_facialHairColor": "Beard colour",
+  "avo_eyeShape_round": "Round",
+  "avo_eyeShape_almond": "Almond",
+  "avo_eyeShape_small": "Small",
+  "avo_brows_normal": "Normal",
+  "avo_brows_thin": "Thin",
+  "avo_brows_thick": "Thick",
+  "avo_nose_button": "Button",
+  "avo_nose_round": "Round",
+  "avo_nose_long": "Long",
+  "avo_nose_wide": "Wide",
+  "avo_hair_receding": "Receding"
 }

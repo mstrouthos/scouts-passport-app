@@ -13,9 +13,13 @@ export const AVATAR_OPTIONS = {
   head: ['square', 'round', 'tall', 'wide'],
   clothes: ['uniform', 'tee', 'hoodie', 'sweater'],
   clothesColor: ['#C9B48A', '#2E5E8C', '#3B6452', '#B23A48', '#5B4A8B', '#E08A2E', '#2B2B33', '#E9EEF4'],
-  hair: ['none', 'buzz', 'crew', 'short', 'side', 'wavyShort', 'curly', 'afroShort', 'afro', 'locs', 'cornrows', 'bob', 'long', 'wavy', 'curlyLong', 'ponytail', 'pigtails', 'bun', 'braids'],
+  hair: ['none', 'buzz', 'crew', 'receding', 'short', 'side', 'wavyShort', 'curly', 'afroShort', 'afro', 'locs', 'cornrows', 'bob', 'long', 'wavy', 'curlyLong', 'ponytail', 'pigtails', 'bun', 'braids'],
   hairColor: ['#2A1E1A', '#4A3125', '#7B4A2A', '#B6763A', '#E3BC62', '#B5482A', '#9AA0A6', '#8E5BD6', '#3B82D6', '#E35D9A'],
   eyeColor: ['#2A2330', '#6B3E1F', '#8A6B2E', '#3E8A3A', '#2F79B8', '#1D8A8A'],
+  eyeShape: ['round', 'almond', 'small'],
+  brows: ['normal', 'thin', 'thick'],
+  nose: ['button', 'round', 'long', 'wide'],
+  facialHairColor: ['#2A1E1A', '#4A3125', '#7B4A2A', '#B6763A', '#E3BC62', '#B5482A', '#9AA0A6', '#8E5BD6', '#3B82D6', '#E35D9A'],
   expression: ['smile', 'grin', 'laugh', 'cool', 'surprised', 'silly', 'calm', 'determined'],
   extras: ['none', 'freckles', 'blush', 'plaster'],
   earrings: ['none', 'studs', 'hoops'],
@@ -33,7 +37,7 @@ export const AVATAR_OPTIONS = {
    offered to girls, beards and moustaches to men. */
 export const FOR_GENDER: Record<string, Partial<Record<string, readonly string[]>>> = {
   boy: {
-    hair: ['none', 'buzz', 'crew', 'short', 'side', 'wavyShort', 'curly', 'afroShort', 'afro', 'locs', 'cornrows'],
+    hair: ['none', 'buzz', 'crew', 'receding', 'short', 'side', 'wavyShort', 'curly', 'afroShort', 'afro', 'locs', 'cornrows'],
     headwear: ['none', 'scout', 'beret', 'cap', 'beanie']
   },
   girl: {
@@ -53,6 +57,7 @@ type K = keyof O
 export const DEFAULT_AVATAR: Avatar = {
   gender: 'boy', skin: '#F9CBA7', head: 'square', clothes: 'uniform', clothesColor: '#C9B48A',
   hair: 'short', hairColor: '#4A3125', eyeColor: '#2A2330', expression: 'smile', extras: 'none',
+  eyeShape: 'round', brows: 'normal', nose: 'button', facialHairColor: '#4A3125',
   facialHair: 'none', glasses: 'none', glassesColor: '#2A2330', headwear: 'none', headwearColor: '#7A1F2B', bg: '#D9E8FD',
   earrings: 'none', gear: 'none'
 }
@@ -77,6 +82,8 @@ export function normalizeAvatar(raw: any): Avatar {
     const v = raw?.[k]
     if ((AVATAR_OPTIONS[k] as readonly string[]).includes(v)) out[k] = v
   }
+  // a beard without a colour of its own takes the hair's
+  if (!(AVATAR_OPTIONS.facialHairColor as readonly string[]).includes(raw?.facialHairColor)) out.facialHairColor = out.hairColor
   return out
 }
 
@@ -127,7 +134,7 @@ function crest(x: number, y: number, r = 8) {
 export type Crop = 'full' | 'face' | 'head' | 'body'
 const VIEW: Record<Crop, string> = {
   // the whole avatar, framed so the face fills it and the woggle still shows
-  full: '14 4 172 172', face: '46 26 108 108', head: '22 -4 156 156', body: '20 100 160 100'
+  full: '10 4 180 180', face: '46 26 108 108', head: '22 -4 156 156', body: '20 100 160 100'
 }
 
 /** The SVG, as markup. `id` keeps its patterns apart from another avatar's
@@ -174,10 +181,10 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
      neck is drawn before the neck, the rest after, so the neck goes through. */
   const SC = `fill="url(#st-${id})" stroke="${SCARF_BLUE}" stroke-width="2.4" stroke-linejoin="round"`
   const scarfBack = `<path d="M77 144 Q76 131 100 130 Q124 131 123 144 L114 142 Q112 138 100 138 Q88 138 86 142 Z" ${SC}/>`
-  const scarfFront = `<path d="M77 144 Q84 154 97 159 L103 159 Q116 154 123 144 L114 142 Q109 151 100 153 Q91 151 86 142 Z" ${SC}/>`
-    + `<path d="M84 147 Q92 154 100 155 Q108 154 116 147" fill="none" stroke="${SCARF_SHADE}" stroke-width="2" opacity=".35"/>`
-    + `<path d="M95 162 L91 174 L99.5 167 Z M105 162 L109 174 L100.5 167 Z" ${SC}/>`
-    + `<rect x="91" y="152" width="18" height="12" rx="5" fill="${WOGGLE}"/><rect x="91" y="158" width="18" height="6" rx="3" fill="${WOGGLE_D}"/>`
+  const scarfFront = `<path d="M77 144 Q84 158 96 166 L104 166 Q116 158 123 144 L114 142 Q109 155 100 158 Q91 155 86 142 Z" ${SC}/>`
+    + `<path d="M84 148 Q92 157 100 159 Q108 157 116 148" fill="none" stroke="${SCARF_SHADE}" stroke-width="2" opacity=".35"/>`
+    + `<path d="M95.5 170 L88 189 L99.5 179 Z M104.5 170 L112 189 L100.5 179 Z" ${SC}/>`
+    + `<rect x="90.5" y="159" width="19" height="13" rx="5.5" fill="${WOGGLE}"/><rect x="90.5" y="165.5" width="19" height="6.5" rx="3.2" fill="${WOGGLE_D}"/>`
 
   /* ---- hair: what falls behind the head, and what sits on it ---- */
   const back: Record<string, string> = {
@@ -215,6 +222,8 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     none: '',
     buzz: `<path d="M${x0} ${y0 + h * 0.28} L${x0} ${y0 + hb.r * 0.7} Q${x0} ${y0 - 2} ${x0 + hb.r} ${y0 - 2} L${x1 - hb.r} ${y0 - 2} Q${x1} ${y0 - 2} ${x1} ${y0 + hb.r * 0.7} L${x1} ${y0 + h * 0.28} Q${cx} ${y0 + h * 0.16} ${x0} ${y0 + h * 0.28} Z" fill="${hairC}" opacity=".9"/>`,
     // a neat short cut, the hairline set back so more of the forehead shows
+    // short, the hairline receding at the temples, a little lower in the middle
+    receding: `<path d="M${x0 - 3} ${y0 + h * 0.34} L${x0 - 3} ${y0 + hb.r * 0.8} Q${x0 - 3} ${y0 - 6} ${x0 + hb.r} ${y0 - 6} L${x1 - hb.r} ${y0 - 6} Q${x1 + 3} ${y0 - 6} ${x1 + 3} ${y0 + hb.r * 0.8} L${x1 + 3} ${y0 + h * 0.34} L${x1 - 5} ${y0 + h * 0.34} L${x1 - 6} ${y0 + h * 0.15} Q${x1 - 12} ${y0 + h * 0.03} ${cx + 11} ${y0 + h * 0.07} Q${cx} ${y0 + h * 0.13} ${cx - 11} ${y0 + h * 0.07} Q${x0 + 12} ${y0 + h * 0.03} ${x0 + 6} ${y0 + h * 0.15} L${x0 + 5} ${y0 + h * 0.34} Z" fill="${hairC}"/>`,
     crew: cap(0.28, 0, 0.1) + `<rect x="${x0 - 3}" y="${y0 + 12}" width="8" height="${h * 0.2}" rx="4" fill="${hairC}"/><rect x="${x1 - 5}" y="${y0 + 12}" width="8" height="${h * 0.2}" rx="4" fill="${hairC}"/>`,
     short: cap(0.36) + sideburns + `<path d="M${cx - 22} ${y0 + h * 0.18} Q${cx - 4} ${y0 + h * 0.34} ${cx + 12} ${y0 + h * 0.16} Z" fill="${hairC}"/>`,
     side: cap(0.4) + sideburns + `<path d="M${x0 - 3} ${y0 + h * 0.4} Q${x0 + 4} ${y0 + h * 0.1} ${cx + 24} ${y0 + h * 0.12} Q${cx - 6} ${y0 + h * 0.2} ${x0 + 10} ${y0 + h * 0.42} Z" fill="${hairC}"/>`
@@ -286,10 +295,15 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   const eye = (x: number, s: number) => {
     const kind = xp.eyes === 'wink' ? (s > 0 ? 'happy' : 'open') : xp.eyes
     if (kind === 'happy') return `<path d="M${x - 8} ${ey + 2} Q${x} ${ey - 8} ${x + 8} ${ey + 2}" fill="none" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>`
-    const ry = kind === 'wide' ? 12 : 10.5, rx = kind === 'wide' ? 10 : 9
+    // the eye's shape: round (big and friendly), almond (longer, narrower), small
+    const sh = a.eyeShape
+    const ry = kind === 'wide' ? 12 : sh === 'almond' ? 7.2 : sh === 'small' ? 7.8 : 10.5
+    const rx = kind === 'wide' ? 10 : sh === 'almond' ? 9.6 : sh === 'small' ? 7 : 9
+    const ir = kind === 'wide' ? 6.5 : sh === 'round' ? 6 : 5.2
+    const iy = ey + (sh === 'round' ? 1.5 : 0.8)
     const whites = `<ellipse cx="${x}" cy="${ey}" rx="${rx}" ry="${ry}" fill="#fff"/>`
-      + `<circle cx="${x + 1}" cy="${ey + 1.5}" r="${kind === 'wide' ? 6.5 : 6}" fill="${iris}"/>`
-      + `<circle cx="${x + 1}" cy="${ey + 1.5}" r="3" fill="${INK}"/><circle cx="${x + 3}" cy="${ey - 1.5}" r="2" fill="#fff"/>`
+      + `<circle cx="${x + 1}" cy="${iy}" r="${ir}" fill="${iris}"/>`
+      + `<circle cx="${x + 1}" cy="${iy}" r="${ir / 2}" fill="${INK}"/><circle cx="${x + 3}" cy="${ey - 1.5}" r="${ir / 3}" fill="#fff"/>`
     const lid = kind === 'half'
       ? `<path d="M${x - rx - 1} ${ey - 1} Q${x} ${ey - ry - 6} ${x + rx + 1} ${ey - 1} Z" fill="${skinD}"/><path d="M${x - rx} ${ey - 1} L${x + rx} ${ey - 1}" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`
       : ''
@@ -300,11 +314,18 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     const b = xp.brows, by = ey - 17
     const tilt = b === 'angry' ? s * 12 : b === 'tilt' ? (s > 0 ? -10 : 4) : b === 'soft' ? -s * 4 : 0
     const lift = b === 'up' ? -4 : 0
-    return `<rect x="${x - 9}" y="${by + lift}" width="18" height="5.5" rx="2.75" fill="${browC}" transform="rotate(${tilt} ${x} ${by + lift + 3})"/>`
+    const th = a.brows === 'thin' ? 3.4 : a.brows === 'thick' ? 8 : 5.5, bw = a.brows === 'thick' ? 21 : 18
+    return `<rect x="${x - bw / 2}" y="${by + lift - (th - 5.5) / 2}" width="${bw}" height="${th}" rx="${th / 2}" fill="${browC}" transform="rotate(${tilt} ${x} ${by + lift + 3})"/>`
   }
   const eyes = eye(eyeL, -1) + eye(eyeR, 1) + brow(eyeL, -1) + brow(eyeR, 1)
   const ny = ey + 14
-  const nose = `<path d="M${cx - 5} ${ny + 4} Q${cx} ${ny - 6} ${cx + 5} ${ny + 4} Q${cx} ${ny + 7} ${cx - 5} ${ny + 4} Z" fill="${skinDD}"/>`
+  const NOSE: Record<string, string> = {
+    button: `<path d="M${cx - 5} ${ny + 4} Q${cx} ${ny - 6} ${cx + 5} ${ny + 4} Q${cx} ${ny + 7} ${cx - 5} ${ny + 4} Z" fill="${skinDD}"/>`,
+    round: `<ellipse cx="${cx}" cy="${ny + 2}" rx="6.5" ry="5.5" fill="${skinDD}"/>`,
+    long: `<path d="M${cx - 2} ${ny - 11} Q${cx + 1} ${ny - 11} ${cx + 2} ${ny - 1} Q${cx + 8} ${ny + 4} ${cx + 1} ${ny + 6.5} Q${cx - 6} ${ny + 6.5} ${cx - 4.5} ${ny + 2} Q${cx - 2.5} ${ny - 2} ${cx - 2} ${ny - 11} Z" fill="${skinDD}"/>`,
+    wide: `<path d="M${cx - 9} ${ny + 4} Q${cx - 6} ${ny - 5} ${cx} ${ny - 3} Q${cx + 6} ${ny - 5} ${cx + 9} ${ny + 4} Q${cx} ${ny + 8.5} ${cx - 9} ${ny + 4} Z" fill="${skinDD}"/>`
+  }
+  const nose = NOSE[a.nose] || NOSE.button
   // with a moustache the mouth sits a little lower, so the two do not meet
   const my = y0 + h * 0.8 + (['moustache', 'goatee', 'beard', 'denseShort', 'shortBeard'].includes(a.facialHair) ? 4 : 0)
   const MOUTH: Record<string, string> = {
@@ -332,10 +353,10 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   }
   /* facial hair, kept to the face: everything is clipped to the head's own
      shape, let down a little below the chin for a beard's fullness */
-  const fh = shade(hairC, 0.92)
+  const fh = shade(a.facialHairColor, 0.92)
   const ms = ny + 8                                   // the moustache's line, under the nose
   const tache = `<path d="M${cx - 17} ${ms + 4} C${cx - 15} ${ms - 4} ${cx - 5} ${ms - 4} ${cx} ${ms - 1} C${cx + 5} ${ms - 4} ${cx + 15} ${ms - 4} ${cx + 17} ${ms + 4} C${cx + 11} ${ms + 2} ${cx + 5} ${ms + 3} ${cx} ${ms + 2} C${cx - 5} ${ms + 3} ${cx - 11} ${ms + 2} ${cx - 17} ${ms + 4} Z" fill="${fh}"/>`
-  const jaw = ey + 6                                  // where the beard starts on the cheeks
+  const jaw = ey + 11                                 // where the beard starts on the cheeks, below the cheekbone
   // the beard: the lower face, its mouth left open, joined to the hair at the temples
   // its upper edge runs from the sideburns down the cheeks to the moustache's
   // ends, so the cheeks above stay clear
@@ -439,7 +460,9 @@ export const AVATAR_TABS: ReadonlyArray<{ key: string, icon: string, sections: R
   { key: 'body', icon: 'body', sections: [{ field: 'skin' }, { field: 'head', crop: 'head' }] },
   { key: 'hair', icon: 'hair', sections: [{ field: 'hair', crop: 'head', color: 'hairColor' }] },
   { key: 'face', icon: 'face', sections: [
-    { field: 'expression', crop: 'face', color: 'eyeColor' }, { field: 'extras', crop: 'face' }, { field: 'earrings', crop: 'face' }, { field: 'facialHair', crop: 'face' }
+    { field: 'expression', crop: 'face', color: 'eyeColor' }, { field: 'eyeShape', crop: 'face' }, { field: 'brows', crop: 'face' },
+    { field: 'nose', crop: 'face' }, { field: 'extras', crop: 'face' }, { field: 'earrings', crop: 'face' },
+    { field: 'facialHair', crop: 'face', color: 'facialHairColor' }
   ] },
   { key: 'clothes', icon: 'clothes', sections: [{ field: 'clothes', crop: 'body', color: 'clothesColor' }, { field: 'gear', crop: 'body' }] },
   { key: 'glasses', icon: 'glasses', sections: [{ field: 'glasses', crop: 'face', color: 'glassesColor' }] },

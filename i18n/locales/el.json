@@ -1084,5 +1084,20 @@
   "formRepeatMaxLabel": "Μέγιστος αριθμός",
   "formRepeatPart": "Μέρος της επανάληψης «{label}»",
   "formRepeatNote": "Ο γονέας συμπληρώνει τις ενότητες για «{label} 1» και στο τέλος ερωτάται αν θέλει να προσθέσει κι άλλο. Στο Excel βγαίνει μία γραμμή για κάθε {label}.",
-  "formRepeatSoFar": "Μέχρι τώρα"
+  "formRepeatSoFar": "Μέχρι τώρα",
+  "avs_eyeShape": "Σχήμα ματιών",
+  "avs_brows": "Φρύδια",
+  "avs_nose": "Μύτη",
+  "avs_facialHairColor": "Χρώμα γενιών",
+  "avo_eyeShape_round": "Στρογγυλά",
+  "avo_eyeShape_almond": "Αμυγδαλωτά",
+  "avo_eyeShape_small": "Μικρά",
+  "avo_brows_normal": "Κανονικά",
+  "avo_brows_thin": "Λεπτά",
+  "avo_brows_thick": "Πυκνά",
+  "avo_nose_button": "Μικρή",
+  "avo_nose_round": "Στρογγυλή",
+  "avo_nose_long": "Μακριά",
+  "avo_nose_wide": "Φαρδιά",
+  "avo_hair_receding": "Ψηλό μέτωπο"
 }

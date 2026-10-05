@@ -71,7 +71,8 @@ const label = (field: string, v: string) => v.startsWith('#') ? v : t(`avo_${fie
 const needs: Record<string, () => boolean> = {
   glassesColor: () => cfg.value.glasses !== 'none',
   headwearColor: () => !['none', 'scout'].includes(cfg.value.headwear),
-  hairColor: () => cfg.value.hair !== 'none' || cfg.value.facialHair !== 'none'
+  hairColor: () => cfg.value.hair !== 'none',
+  facialHairColor: () => cfg.value.facialHair !== 'none'
 }
 
 function resetToSaved() { cfg.value = normalizeAvatar(JSON.parse(saved)) }
@@ -137,13 +138,6 @@ const ICONS: Record<string, string> = {
         </button>
       </div>
       <template v-else>
-        <div class="tiles">
-          <button v-for="v in values(s.field)" :key="v" class="tile" :class="{ on: cfg[s.field] === v }"
-                  :aria-label="label(s.field, v)" :title="label(s.field, v)" @click="choose(s.field, v)">
-            <span class="art" v-html="tile(s.field, v, s.crop)" />
-            <span v-if="v === 'none'" class="none">∅</span>
-          </button>
-        </div>
         <template v-if="s.color && (!needs[s.color] || needs[s.color]())">
           <div class="lab sub">{{ t('avs_' + s.color) }}</div>
           <div class="swatches">
@@ -153,6 +147,13 @@ const ICONS: Record<string, string> = {
             </button>
           </div>
         </template>
+        <div class="tiles">
+          <button v-for="v in values(s.field)" :key="v" class="tile" :class="{ on: cfg[s.field] === v }"
+                  :aria-label="label(s.field, v)" :title="label(s.field, v)" @click="choose(s.field, v)">
+            <span class="art" v-html="tile(s.field, v, s.crop)" />
+            <span v-if="v === 'none'" class="none">∅</span>
+          </button>
+        </div>
       </template>
     </div>
     <div class="tiny muted" style="text-align:center">💛💙 {{ t('avatarScarfNote') }}</div>
@@ -188,7 +189,8 @@ const ICONS: Record<string, string> = {
 .tabs button.on{color:var(--accent-deep)}
 .opts{display:flex; flex-direction:column; gap:10px}
 .opts .lab{margin:0}
-.opts .lab.sub{margin-top:6px}
+.opts .lab.sub{margin-top:0}
+.opts .swatches + .tiles{margin-top:4px}
 .swatches{display:flex; flex-wrap:wrap; gap:9px}
 .swatch{width:42px; height:42px; border-radius:50%; border:3px solid #fff; padding:0; box-shadow:0 0 0 1.5px var(--line)}
 .swatch span{display:block; width:100%; height:100%; border-radius:50%}
