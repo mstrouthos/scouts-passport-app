@@ -32,6 +32,21 @@ export function unseal<T = any>(sealed: string): T {
   return JSON.parse(Buffer.concat([d.update(raw.subarray(28)), d.final()]).toString('utf8'))
 }
 
+/** The same, for a file's bytes: uploads and exports of form data are
+    stored this way, in the bucket or the database alike. */
+export function sealBytes(buf: Buffer): Buffer {
+  const iv = randomBytes(12)
+  const c = createCipheriv('aes-256-gcm', theKey(), iv)
+  const body = Buffer.concat([c.update(buf), c.final()])
+  return Buffer.concat([Buffer.from('SB1'), iv, c.getAuthTag(), body])
+}
+export function unsealBytes(raw: Buffer): Buffer {
+  if (raw.subarray(0, 3).toString() !== 'SB1') throw new Error('Unknown sealed format')
+  const d = createDecipheriv('aes-256-gcm', theKey(), raw.subarray(3, 15))
+  d.setAuthTag(raw.subarray(15, 31))
+  return Buffer.concat([d.update(raw.subarray(31)), d.final()])
+}
+
 /** A one-way fingerprint of the sender's address, for the rate limit only. */
 export function ipHash(ip: string): string {
   return createHash('sha256').update(`ip:${ip}:${(useRuntimeConfig() as any).passcodePepper}`).digest('hex').slice(0, 32)

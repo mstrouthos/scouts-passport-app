@@ -60,7 +60,7 @@ async function save() {
 
 /* building */
 const TYPE_ICON: Record<FieldType, string> = {
-  text: '✏️', textarea: '📝', number: '🔢', email: '✉️', phone: '📞', date: '📅', yesno: '👍', radio: '🔘', checkbox: '☑️', select: '🔽'
+  text: '✏️', textarea: '📝', number: '🔢', email: '✉️', phone: '📞', date: '📅', yesno: '👍', radio: '🔘', checkbox: '☑️', select: '🔽', file: '📎'
 }
 function addModule() {
   spec.value.modules.push({ id: newId(), title: '', questions: [] })
@@ -151,12 +151,8 @@ const exporting = ref(false)
 async function exportCsv() {
   exporting.value = true
   try {
-    const csv = await $fetch<string>(`/api/admin/forms/${id}/export`, { responseType: 'text' })
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
-    const a = document.createElement('a')
-    a.href = url; a.download = `${form.value?.slug || 'forma'}.csv`
-    document.body.appendChild(a); a.click(); a.remove()
-    setTimeout(() => URL.revokeObjectURL(url), 5000)
+    const f = await $fetch<{ fileId: number, name: string }>(`/api/admin/forms/${id}/export`, { method: 'POST' })
+    await downloadFormFile(f.fileId, f.name)
   } catch (e: any) { show(e?.data?.message || t('error')) } finally { exporting.value = false }
 }
 const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}`
@@ -212,6 +208,7 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
               </div>
               <button class="chip" style="margin-top:7px" @click="addOption(q)">+ {{ t('formAddOption') }}</button>
             </div>
+            <div v-if="q.type === 'file'" class="tiny muted">📎 {{ t('formFileBuilderNote') }}</div>
             <div><label class="lab">{{ t('formHelp') }}</label><input v-model="q.help" class="in" :placeholder="t('formHelpPh')"></div>
             <label class="tog"><input v-model="q.required" type="checkbox"> {{ t('formRequired') }}</label>
             <FormConditionEdit v-model="q.showIf" :sources="sourcesBefore(mi, qi)" what="question" />
@@ -248,6 +245,7 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
       <div class="sec-title">✍️ {{ t('formSignature') }}</div>
       <div class="card mod">
         <label class="tog"><input v-model="spec.signature.enabled" type="checkbox"> {{ t('formSignatureOn') }}</label>
+        <div v-if="spec.signature.enabled" class="tiny muted">{{ t('formSignatureAuto') }}</div>
         <template v-if="spec.signature.enabled">
           <div><label class="lab">{{ t('formSignatureLabel') }}</label><input v-model="spec.signature.label" class="in" :placeholder="t('formSignatureLabelPh')"></div>
           <label class="tog"><input v-model="spec.signature.required" type="checkbox"> {{ t('formRequired') }}</label>

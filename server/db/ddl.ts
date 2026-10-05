@@ -468,6 +468,21 @@ CREATE TABLE IF NOT EXISTS form_responses (
   is_read BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS form_files (
+  id SERIAL PRIMARY KEY,
+  form_id INTEGER NOT NULL,
+  response_id INTEGER,
+  kind TEXT NOT NULL,
+  question_id TEXT,
+  token TEXT UNIQUE,
+  name TEXT NOT NULL,
+  mime TEXT NOT NULL,
+  size INTEGER NOT NULL,
+  data TEXT NOT NULL,
+  ip_hash TEXT,
+  created_by INTEGER,
+  created_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS form_access_log (
   id SERIAL PRIMARY KEY,
   form_id INTEGER NOT NULL,

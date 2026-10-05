@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
       const spec = normalizeSpec(JSON.parse(r.spec))
       const data = unseal(r.sealed)
       summary = spec.modules.flatMap(m => m.questions)
-        .filter(q => q.type !== 'textarea' && data.answers?.[q.id] != null)
+        .filter(q => q.type !== 'textarea' && q.type !== 'file' && data.answers?.[q.id] != null)
         .slice(0, 3).map(q => answerText(data.answers[q.id], q.type))
     } catch { summary = ['⚠️'] }
     return { id: r.id, createdAt: r.createdAt, isRead: r.isRead, summary }

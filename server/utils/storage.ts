@@ -25,12 +25,13 @@ function client(): { s3: S3Client, bucket: string } | null {
 
 export const isS3Ref = (data: string) => data.startsWith('s3:')
 
-/** Store bytes; returns what to keep in files.data. */
-export async function storeFile(buf: Buffer, mime: string, name: string): Promise<string> {
+/** Store bytes; returns what to keep in files.data. `folder` groups them in
+    the bucket — attachments, form uploads, exports. */
+export async function storeFile(buf: Buffer, mime: string, name: string, folder = 'attachments'): Promise<string> {
   const c = client()
   if (!c) return buf.toString('base64')
   const safe = name.replace(/[^\w.\-]+/g, '_').slice(0, 80)
-  const key = `attachments/${new Date().toISOString().slice(0, 10)}/${randomBytes(8).toString('hex')}-${safe}`
+  const key = `${folder}/${new Date().toISOString().slice(0, 10)}/${randomBytes(8).toString('hex')}-${safe}`
   await c.s3.send(new PutObjectCommand({ Bucket: c.bucket, Key: key, Body: buf, ContentType: mime }))
   return `s3:${key}`
 }
@@ -45,6 +46,18 @@ export async function signedReadUrl(data: string, name: string, download: boolea
     Bucket: c.bucket, Key: data.slice(3), ResponseContentDisposition: disposition
   }), { expiresIn: 300 })
 }
+
+/** The bytes back, from the bucket or the row — for files the app itself
+    must open (an encrypted upload, to decrypt and hand over). */
+export async function readStored(data: string): Promise<Buffer> {
+  if (!isS3Ref(data)) return Buffer.from(data, 'base64')
+  const c = client()
+  if (!c) throw createError({ statusCode: 500, message: 'Bucket not configured' })
+  const r = await c.s3.send(new GetObjectCommand({ Bucket: c.bucket, Key: data.slice(3) }))
+  return Buffer.from(await r.Body!.transformToByteArray())
+}
+
+export const bucketConfigured = () => client() !== null
 
 export async function deleteStored(data: string): Promise<void> {
   const c = client()

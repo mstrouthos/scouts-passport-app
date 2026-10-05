@@ -9,6 +9,7 @@ import { purgeTrashedScouts } from '../../utils/deleteScout'
 import { READ_TTL_MS } from '../../utils/notifyRetention'
 import { cyprusTimeOnDayOf } from '../../utils/cyprusTime'
 import { localDay, bonusEarned } from '../../utils/streak'
+import { deleteFormFiles } from '../../utils/formFiles'
 
 /** Hit by host cron every few minutes with the token:
     curl -X POST -H "x-cron-token: $TOKEN" https://.../api/cron/tick */
@@ -121,6 +122,13 @@ export default defineEventHandler(async (event) => {
 
   // members trashed 30 days ago go for good, with everything that referenced them
   const purgedWho = await purgeTrashedScouts(t)
+
+  // form files no one needs any more: uploads whose form was never sent,
+  // after a day; spreadsheets and PDFs made for download, after a week
+  const dayAgo = new Date(Date.now() - 24 * 3600_000).toISOString()
+  const weekAgo = new Date(Date.now() - 7 * 24 * 3600_000).toISOString()
+  await deleteFormFiles((await db.select().from(s.formFiles)).filter(f =>
+    (f.kind === 'upload' && !f.responseId && f.createdAt < dayAgo) || (f.kind === 'export' && f.createdAt < weekAgo)))
 
   // opened notifications, a day old: swept out so the bell stays the news
   const cutoff = new Date(Date.now() - READ_TTL_MS).toISOString()

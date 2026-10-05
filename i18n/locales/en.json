@@ -932,5 +932,19 @@
   "formAddOption": "Add choice",
   "formNext": "Next",
   "formBack": "Back",
-  "formStepOf": "Step {n} of {of}"
+  "formStepOf": "Step {n} of {of}",
+  "formSignerName": "Full name of the signer",
+  "formSignedOn": "Date",
+  "formSignatureAuto": "Under the signature the signer’s full name is required, and the date is filled in automatically.",
+  "formPdf": "Download PDF",
+  "formFileAdd": "Add a photo or PDF",
+  "formFileAddMore": "Add another",
+  "formFileHint": "Photos or PDFs, up to {n} files, 10 MB each.",
+  "formFileUploading": "Uploading…",
+  "formFileTooMany": "Up to {n} files for this question.",
+  "formFileTooBig": "“{name}” is larger than 10 MB.",
+  "formFileNotImage": "“{name}” is not a photo or PDF that can be opened.",
+  "formErr_upload": "A file did not upload properly — remove it and upload it again.",
+  "formFileBuilderNote": "Takes photos and PDFs, up to 5 files of 10 MB. Stored encrypted.",
+  "ftype_file": "Files (photos / PDF)"
 }

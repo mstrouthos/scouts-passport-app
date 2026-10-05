@@ -4,8 +4,15 @@
    questions; then the tickboxes at the end (consents, declarations); then,
    if asked for, a signature. */
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'phone' | 'date' | 'yesno' | 'radio' | 'checkbox' | 'select'
-export const FIELD_TYPES: FieldType[] = ['text', 'textarea', 'number', 'email', 'phone', 'date', 'yesno', 'radio', 'checkbox', 'select']
+export type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'phone' | 'date' | 'yesno' | 'radio' | 'checkbox' | 'select' | 'file'
+export const FIELD_TYPES: FieldType[] = ['text', 'textarea', 'number', 'email', 'phone', 'date', 'yesno', 'radio', 'checkbox', 'select', 'file']
+/** An upload question takes pictures and PDFs, a few to a question. Photos
+    are made smaller on the phone before they are sent. */
+// pictures arrive as JPEG whatever the phone took (the page converts them),
+// so the PDF of a response can show every one of them
+export const FILE_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
+export const FILE_MAX_COUNT = 5
+export const FILE_MAX_BYTES = 10 * 1024 * 1024
 /** The types whose answer is picked from a list the administrator writes. */
 export const WITH_OPTIONS: FieldType[] = ['radio', 'checkbox', 'select']
 /** A yes/no question: a choice whose two answers are always these. */
@@ -29,6 +36,9 @@ export type FormAnswers = {
   answers: Record<string, string | string[]>
   ticks: Record<string, boolean>
   signature?: string | null
+  /** who signed, written under the signature, and when — the moment it was sent */
+  signerName?: string | null
+  signedAt?: string | null
 }
 
 export const newId = () => Math.random().toString(36).slice(2, 10)
@@ -102,6 +112,10 @@ export function questionError(q: FormQuestion, v: unknown): string | null {
     if (!Array.isArray(v) || v.some(x => !q.options.includes(String(x)))) return 'invalid'
     return null
   }
+  if (q.type === 'file') {
+    if (!Array.isArray(v) || v.length > FILE_MAX_COUNT || v.some(x => !/^[a-z0-9:]{4,80}$/i.test(String(x)))) return 'invalid'
+    return null
+  }
   const s = String(v).trim()
   if ((q.type === 'radio' || q.type === 'select' || q.type === 'yesno') && !q.options.includes(s)) return 'invalid'
   if (q.type === 'email' && !EMAIL.test(s)) return 'email'
@@ -140,7 +154,7 @@ export function checkAnswers(spec: FormSpec, body: any): { clean: FormAnswers, e
   for (const m of spec.modules) for (const q of m.questions) {
     if (!shown.has(q.id)) continue
     let v = body?.answers?.[q.id]
-    if (q.type === 'checkbox') v = Array.isArray(v) ? v.map(x => String(x)) : []
+    if (q.type === 'checkbox' || q.type === 'file') v = Array.isArray(v) ? v.map(x => String(x)) : []
     else v = String(v ?? '').slice(0, q.type === 'textarea' ? 5000 : 500)
     const e = questionError(q, v)
     if (e) errors[q.id] = e
@@ -158,11 +172,18 @@ export function checkAnswers(spec: FormSpec, body: any): { clean: FormAnswers, e
     else if (sig) errors.signature = 'invalid'
     if (!signature && spec.signature.required) errors.signature = 'required'
   }
-  return { clean: { answers, ticks, signature }, errors }
+  // whoever signs writes their name under it
+  let signerName: string | null = null
+  if (spec.signature.enabled) {
+    signerName = String(body?.signerName ?? '').trim().slice(0, 120) || null
+    if (!signerName && (signature || spec.signature.required)) errors.signerName = 'required'
+  }
+  return { clean: { answers, ticks, signature, signerName }, errors }
 }
 
 /** An answer as text, for tables and the export — a date the Greek way. */
-export function answerText(v: unknown, type?: FieldType): string {
+export function answerText(v: unknown, type?: FieldType, fileNames?: Record<string, string>): string {
+  if (type === 'file' && Array.isArray(v)) return v.map(x => fileNames?.[x] ?? '📎').join(', ')
   if (Array.isArray(v)) return v.join(', ')
   const s = String(v ?? '')
   const d = type === 'date' && s.match(/^(\d{4})-(\d{2})-(\d{2})$/)

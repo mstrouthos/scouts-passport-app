@@ -24,10 +24,22 @@ const spec = computed<FormSpec | null>(() => data.value?.spec || null)
 const answers = reactive<Record<string, any>>({})
 const ticks = reactive<Record<string, boolean>>({})
 const signature = ref<string | null>(null)
+const signerName = ref('')
+/* the date under the signature: today's, shown as it is signed; the one kept
+   is the moment the form is sent, by the server's clock */
+const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 const website = ref('') // only a bot fills this in
+/* each upload question's files as uploaded; the answer holds their tokens */
+const uploads = reactive<Record<string, Array<{ token: string, name: string, mime: string, size: number }>>>({})
+function setUploads(id: string, list: typeof uploads[string]) {
+  uploads[id] = list
+  answers[id] = list.map(x => x.token)
+}
 watch(spec, sp => {
-  for (const m of sp?.modules || []) for (const q of m.questions)
-    if (!(q.id in answers)) answers[q.id] = q.type === 'checkbox' ? [] : ''
+  for (const m of sp?.modules || []) for (const q of m.questions) {
+    if (!(q.id in answers)) answers[q.id] = q.type === 'checkbox' || q.type === 'file' ? [] : ''
+    if (q.type === 'file' && !(q.id in uploads)) uploads[q.id] = []
+  }
   for (const x of sp?.ticks || []) if (!(x.id in ticks)) ticks[x.id] = false
 }, { immediate: true })
 
@@ -40,10 +52,10 @@ const done = ref<{ thanks?: string } | null>(null)
 const sendError = ref('')
 const errText = (code: string) => t('formErr_' + code)
 
-const payload = () => ({ answers: { ...answers }, ticks: { ...ticks }, signature: signature.value, website: website.value })
+const payload = () => ({ answers: { ...answers }, ticks: { ...ticks }, signature: signature.value, signerName: signerName.value, website: website.value })
 /* a problem shown clears the moment it is put right; none new appear until
    the next Επόμενο */
-watch([answers, ticks, signature], () => {
+watch([answers, ticks, signature, signerName], () => {
   if (!spec.value || !Object.keys(errors.value).length) return
   const now = checkAnswers(spec.value, payload()).errors
   errors.value = Object.fromEntries(Object.entries(now).filter(([k]) => k in errors.value))
@@ -61,7 +73,7 @@ const pages = computed<Page[]>(() => {
 })
 const idsOf = (p: Page) => p.kind === 'module'
   ? p.m.questions.filter(q => shown.value.questions.has(q.id)).map(q => q.id)
-  : [...(spec.value?.ticks || []).map(x => x.id), 'signature']
+  : [...(spec.value?.ticks || []).map(x => x.id), 'signature', 'signerName']
 
 /* which page is open lives in the address (?s=2), so the back button steps
    back; a reload starts over from the first, as the answers are not kept */
@@ -180,6 +192,8 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
                   <input type="checkbox" :checked="answers[q.id].includes(o)" @change="toggleOption(q.id, o)"><span>{{ o }}</span>
                 </label>
               </div>
+              <FormFileUpload v-else-if="q.type === 'file'" :model-value="uploads[q.id] || []" :slug="slug" :question-id="q.id"
+                              :invalid="!!errors[q.id]" @update:model-value="setUploads(q.id, $event)" />
               <input v-else :id="'q' + q.id" v-model="answers[q.id]" class="in" :type="INPUT_TYPE[q.type]"
                      :inputmode="INPUT_MODE[q.type] as any" :autocomplete="q.type === 'email' ? 'email' : q.type === 'phone' ? 'tel' : 'off'">
               <div v-if="errors[q.id]" class="err">{{ errText(errors[q.id]) }}</div>
@@ -195,6 +209,12 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
               <label class="ql">{{ spec.signature.label || t('formSignature') }}<span v-if="spec.signature.required" class="req">*</span></label>
               <SignaturePad v-model="signature" :invalid="!!errors.signature" />
               <div v-if="errors.signature" class="err">{{ errText(errors.signature) }}</div>
+            </div>
+            <div v-if="spec.signature.enabled" class="q" :class="{ bad: errors.signerName }">
+              <label class="ql" for="signer">{{ t('formSignerName') }}<span class="req">*</span></label>
+              <input id="signer" v-model="signerName" class="in" autocomplete="name">
+              <div v-if="errors.signerName" class="err">{{ errText(errors.signerName) }}</div>
+              <div class="help">{{ t('formSignedOn') }}: <b>{{ today }}</b></div>
             </div>
           </section>
 

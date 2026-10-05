@@ -4,6 +4,7 @@ import { requireTroopLeader, idParam } from '../../../../utils/guard'
 import { logAccess } from '../../../../utils/forms'
 import { unseal } from '../../../../utils/seal'
 import { normalizeSpec } from '../../../../../utils/formSpec'
+import { filesOfResponse } from '../../../../utils/formFiles'
 
 /** One answer in full, with the questions as they were when it was sent.
     Opening it marks it read, and is recorded. */
@@ -24,6 +25,8 @@ export default defineEventHandler(async (event) => {
   return {
     id: r.id, formId: r.formId, formTitle: f?.titleEl ?? '', createdAt: r.createdAt,
     spec: normalizeSpec(JSON.parse(r.spec)), data: unseal(r.sealed),
+    files: Object.fromEntries(Object.entries(await filesOfResponse(id))
+      .map(([k, f]) => [k, { id: f.id, name: f.name, mime: f.mime, size: f.size }])),
     newer: at > 0 ? ids[at - 1] : null, older: at >= 0 && at < ids.length - 1 ? ids[at + 1] : null,
     position: at + 1, total: ids.length
   }

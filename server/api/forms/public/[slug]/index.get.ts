@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
-import { useDb, schema as s } from '../../../db'
-import { specOf, isAccepting } from '../../../utils/forms'
+import { useDb, schema as s } from '../../../../db'
+import { specOf, isAccepting } from '../../../../utils/forms'
 
 /** A form as the public sees it: its questions while it takes answers, only
     its title once it has closed. An administrator previewing it from the app

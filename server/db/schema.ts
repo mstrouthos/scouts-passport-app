@@ -701,6 +701,27 @@ export const formResponses = pgTable('form_responses', {
   isRead: boolean('is_read').notNull().default(false),
   createdAt: text('created_at').notNull()
 })
+/** Files that belong to forms: what someone uploaded with their answers, and
+    the exports (spreadsheets, PDFs) administrators make. Always encrypted
+    (utils/seal.ts) before they are stored — in the bucket, or in `data` as
+    base64 where there is none. An upload is made before the form is sent, so
+    it waits unattached, known by its token, until the send claims it; one
+    never claimed is cleared after a day. */
+export const formFiles = pgTable('form_files', {
+  id: serial('id').primaryKey(),
+  formId: integer('form_id').notNull(),
+  responseId: integer('response_id'),
+  kind: text('kind', { enum: ['upload', 'export'] }).notNull(),
+  questionId: text('question_id'),
+  token: text('token').unique(),
+  name: text('name').notNull(),
+  mime: text('mime').notNull(),
+  size: integer('size').notNull(),
+  data: text('data').notNull(),
+  ipHash: text('ip_hash'),
+  createdBy: integer('created_by'),
+  createdAt: text('created_at').notNull()
+})
 /** Which administrator opened or exported what, and when. */
 export const formAccessLog = pgTable('form_access_log', {
   id: serial('id').primaryKey(),

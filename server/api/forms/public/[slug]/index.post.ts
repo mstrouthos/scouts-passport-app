@@ -1,11 +1,11 @@
-import { and, eq, gt } from 'drizzle-orm'
-import { useDb, schema as s } from '../../../db'
-import { specOf, isAccepting } from '../../../utils/forms'
-import { seal, ipHash } from '../../../utils/seal'
-import { checkAnswers } from '../../../../utils/formSpec'
-import { now } from '../../../utils/passcode'
-import { sendPushTo } from '../../../utils/push'
-import { administratorIds } from '../../../utils/infoNotify'
+import { and, eq, gt, inArray, isNull } from 'drizzle-orm'
+import { useDb, schema as s } from '../../../../db'
+import { specOf, isAccepting } from '../../../../utils/forms'
+import { seal, ipHash } from '../../../../utils/seal'
+import { checkAnswers } from '../../../../../utils/formSpec'
+import { now } from '../../../../utils/passcode'
+import { sendPushTo } from '../../../../utils/push'
+import { administratorIds } from '../../../../utils/infoNotify'
 
 /** Someone sends a form. Checked against the form's own questions, kept
     encrypted with a copy of them, and the administrators are told. */
@@ -30,9 +30,31 @@ export default defineEventHandler(async (event) => {
   const { clean, errors } = checkAnswers(spec, body)
   if (Object.keys(errors).length) throw createError({ statusCode: 422, message: 'Λείπουν ή είναι λάθος κάποιες απαντήσεις', data: { errors } })
 
+  // uploads were sent ahead, each known by a token; the answer claims them —
+  // only files uploaded to this form, for this question, and not yet claimed
+  const fileQs = spec.modules.flatMap(m => m.questions).filter(q => q.type === 'file' && Array.isArray(clean.answers[q.id]))
+  const tokens = fileQs.flatMap(q => clean.answers[q.id] as string[])
+  const waiting = tokens.length
+    ? await db.select().from(s.formFiles).where(and(inArray(s.formFiles.token, tokens), eq(s.formFiles.formId, f.id), isNull(s.formFiles.responseId)))
+    : []
+  const bad: Record<string, string> = {}
+  for (const q of fileQs) {
+    const mine = (clean.answers[q.id] as string[]).map(tk => waiting.find(w => w.token === tk && w.questionId === q.id))
+    if (mine.some(x => !x)) bad[q.id] = 'upload'
+    else clean.answers[q.id] = mine.map(x => `f:${x!.id}`)
+  }
+  if (Object.keys(bad).length) throw createError({ statusCode: 422, message: 'Κάποιο αρχείο δεν ανέβηκε σωστά — ανεβάστε το ξανά', data: { errors: bad } })
+  // the date it was signed is the moment it was sent, by the server's clock
+  const sent = now()
+  const data = { ...clean, signedAt: clean.signature ? sent : null }
+
   const [row] = await db.insert(s.formResponses).values({
-    formId: f.id, sealed: seal(clean), spec: JSON.stringify(spec), ipHash: who, createdAt: now()
+    formId: f.id, sealed: seal(data), spec: JSON.stringify(spec), ipHash: who, createdAt: sent
   }).returning({ id: s.formResponses.id })
+  if (waiting.length) {
+    await db.update(s.formFiles).set({ responseId: row.id, token: null })
+      .where(inArray(s.formFiles.id, waiting.map(w => w.id)))
+  }
 
   // the administrators hear of it; the bell names the form, never the answers
   try {
