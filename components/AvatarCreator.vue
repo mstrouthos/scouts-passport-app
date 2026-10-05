@@ -50,8 +50,7 @@ function pick(key: string) {
   })
 }
 /* changing gender changes the look: a boy's hairstyle becomes long hair for
-   a girl, a girl's becomes short for a boy; a hijab or a beard that no longer
-   fits goes */
+   a girl, a girl's becomes short for a boy; a beard that no longer fits goes */
 function applied(field: string, v: string): Avatar {
   const next: any = { ...cfg.value, [field]: v }
   if (field === 'gender' && v !== cfg.value.gender) {

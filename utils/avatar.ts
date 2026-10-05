@@ -27,18 +27,17 @@ export const AVATAR_OPTIONS = {
   facialHair: ['none', 'stubble', 'shortBeard', 'denseShort', 'beard', 'moustache', 'goatee', 'chinPatch'],
   glasses: ['none', 'round', 'square', 'cateye', 'sunglasses'],
   glassesColor: ['#2A2330', '#B23A48', '#2F79B8', '#3E8A3A', '#C99A18', '#E35D9A'],
-  headwear: ['none', 'scout', 'beret', 'cap', 'beanie', 'hijab'],
+  headwear: ['none', 'scout', 'beret', 'cap', 'beanie'],
   headwearColor: ['#7A1F2B', '#2E5E8C', '#3B6452', '#2B2B33', '#E08A2E', '#E35D9A', '#E9EEF4'],
   bg: ['#D9E8FD', '#CDEFE0', '#FCEFC7', '#FBDCE2', '#E6DDF7', '#FFE1C7', '#D4F1F7', '#E3E7EE']
 } as const
 
 /* What each gender is offered: a boy picks among short styles, a girl among
-   long and tied ones as well as the short ones many girls wear; the hijab is
-   offered to girls, beards and moustaches to men. */
+   long and tied ones as well as the short ones many girls wear; beards and
+   moustaches to men. */
 export const FOR_GENDER: Record<string, Partial<Record<string, readonly string[]>>> = {
   boy: {
-    hair: ['none', 'buzz', 'crew', 'receding', 'short', 'side', 'wavyShort', 'curly', 'afroShort', 'afro', 'locs', 'cornrows'],
-    headwear: ['none', 'scout', 'beret', 'cap', 'beanie']
+    hair: ['none', 'buzz', 'crew', 'receding', 'short', 'side', 'wavyShort', 'curly', 'afroShort', 'afro', 'locs', 'cornrows']
   },
   girl: {
     hair: ['long', 'wavy', 'curlyLong', 'ponytail', 'pigtails', 'bun', 'braids', 'bob', 'short', 'side', 'curly', 'afroShort', 'afro', 'locs', 'cornrows'],
@@ -102,7 +101,7 @@ export function randomAvatar(): Avatar {
     gear: Math.random() < 0.3 ? pick(AVATAR_OPTIONS.gear.slice(1)) : 'none',
     glasses: Math.random() < 0.3 ? pick(AVATAR_OPTIONS.glasses.slice(1)) : 'none',
     glassesColor: pick(AVATAR_OPTIONS.glassesColor),
-    headwear: Math.random() < 0.35 ? pick(optionsFor('headwear', gender).filter(h => h !== 'none' && h !== 'hijab')) : 'none',
+    headwear: Math.random() < 0.35 ? pick(optionsFor('headwear', gender).filter(h => h !== 'none')) : 'none',
     headwearColor: pick(AVATAR_OPTIONS.headwearColor), bg: pick(AVATAR_OPTIONS.bg)
   })
 }
@@ -152,7 +151,6 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   const hb = HB[a.head]
   const x0 = cx - hb.w / 2, y0 = 124 - hb.h, w = hb.w, h = hb.h, x1 = x0 + w, y1 = y0 + h
   const ey = y0 + h * 0.5, ex = w * 0.2, eyeL = cx - ex, eyeR = cx + ex
-  const hide = a.headwear === 'hijab'
 
   /* ---- body, clothes, neck ---- */
   const cc = a.clothesColor, ccD = shade(cc, 0.82), ccL = shade(cc, 1.25)
@@ -286,13 +284,13 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   }
 
   /* ---- ears and head ---- */
-  const ears = hide ? '' : `<rect x="${x0 - 9}" y="${ey - 8}" width="16" height="20" rx="8" fill="${skinD}"/><rect x="${x1 - 7}" y="${ey - 8}" width="16" height="20" rx="8" fill="${skinD}"/>`
-  // earrings, at the lobes (none under a hijab, which covers the ears)
+  const ears = `<rect x="${x0 - 9}" y="${ey - 8}" width="16" height="20" rx="8" fill="${skinD}"/><rect x="${x1 - 7}" y="${ey - 8}" width="16" height="20" rx="8" fill="${skinD}"/>`
+  // earrings, at the lobes
   const GOLD = '#F2C230', GOLD_D = '#C99A18'
   const earrings: Record<string, string> = {
     none: '',
-    studs: hide ? '' : `<circle cx="${x0 - 1}" cy="${ey + 11}" r="3" fill="${GOLD}" stroke="${GOLD_D}" stroke-width="1"/><circle cx="${x1 + 1}" cy="${ey + 11}" r="3" fill="${GOLD}" stroke="${GOLD_D}" stroke-width="1"/>`,
-    hoops: hide ? '' : `<circle cx="${x0 - 1}" cy="${ey + 16}" r="5.5" fill="none" stroke="${GOLD}" stroke-width="2.4"/><circle cx="${x1 + 1}" cy="${ey + 16}" r="5.5" fill="none" stroke="${GOLD}" stroke-width="2.4"/>`
+    studs: `<circle cx="${x0 - 1}" cy="${ey + 11}" r="3" fill="${GOLD}" stroke="${GOLD_D}" stroke-width="1"/><circle cx="${x1 + 1}" cy="${ey + 11}" r="3" fill="${GOLD}" stroke="${GOLD_D}" stroke-width="1"/>`,
+    hoops: `<circle cx="${x0 - 1}" cy="${ey + 16}" r="5.5" fill="none" stroke="${GOLD}" stroke-width="2.4"/><circle cx="${x1 + 1}" cy="${ey + 16}" r="5.5" fill="none" stroke="${GOLD}" stroke-width="2.4"/>`
   }
 
   /* a scout's kit, over the shirt: a whistle or a compass on a lanyard, or
@@ -339,7 +337,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       : ''
     return whites + lid + lash(x, s)
   }
-  const browC = hide || a.hair === 'none' ? shade(skin, 0.55) : shade(hairC, 0.85)
+  const browC = a.hair === 'none' ? shade(skin, 0.55) : shade(hairC, 0.85)
   const brow = (x: number, s: number) => {
     const b = xp.brows, by = ey - 17
     const tilt = b === 'angry' ? s * 12 : b === 'tilt' ? (s > 0 ? -10 : 4) : b === 'soft' ? -s * 4 : 0
@@ -450,19 +448,12 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       + `<rect x="${x0 - 6}" y="${y0 + 2}" width="${w + 12}" height="18" rx="7" fill="${hwD}"/>`
       + [...Array(7)].map((_, i) => `<rect x="${x0 + 2 + i * (w - 4) / 7}" y="${y0 + 4}" width="3" height="14" rx="1.5" fill="${hw}" opacity=".55"/>`).join('')
       + `<circle cx="${cx}" cy="${top - 28}" r="10" fill="${hwL}"/>`
-      + crest(cx, y0 + 11, 7.5),
-    hijab: ''
+      + crest(cx, y0 + 11, 7.5)
   }
-  // the hijab is drawn around the face: behind the head, and as a frame
-  const hijabBack = hide ? `<path d="M${x0 - 16} ${y0 + 30} Q${x0 - 18} ${y0 - 14} ${cx} ${y0 - 16} Q${x1 + 18} ${y0 - 14} ${x1 + 16} ${y0 + 30} L${x1 + 22} ${y1 + 36} Q${cx} ${y1 + 54} ${x0 - 22} ${y1 + 36} Z" fill="${hw}"/>` : ''
-  const hijabFront = hide
-    ? `<path d="M${x0 + 4} ${y0 + h * 0.3} Q${x0 + 4} ${y0 + 2} ${cx} ${y0 + 2} Q${x1 - 4} ${y0 + 2} ${x1 - 4} ${y0 + h * 0.3} L${x1 + 4} ${y0 + h * 0.3} Q${x1 + 6} ${y0 - 10} ${cx} ${y0 - 10} Q${x0 - 6} ${y0 - 10} ${x0 - 4} ${y0 + h * 0.3} Z" fill="${hw}"/>`
-    : ''
-
   // a hat covers the top of the hair; long hair still shows at the sides
   const coversTop = ['scout', 'beret', 'cap', 'beanie'].includes(a.headwear)
-  const hairFront = hide ? '' : coversTop ? `<g clip-path="url(#under-${id})">${front[a.hair] || ''}</g>` : (front[a.hair] || '')
-  const hairBack = hide || (coversTop && a.hair === 'bun') ? '' : (back[a.hair] || '')
+  const hairFront = coversTop ? `<g clip-path="url(#under-${id})">${front[a.hair] || ''}</g>` : (front[a.hair] || '')
+  const hairBack = coversTop && a.hair === 'bun' ? '' : (back[a.hair] || '')
   const hatTop = a.headwear === 'scout' ? y0 + 6 : y0 + 14
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEW[crop]}">`
@@ -474,9 +465,9 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     + `<clipPath id="face-${id}"><rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${hb.r}"/></clipPath>`
     + `</defs>`
     + `<rect x="-40" y="-40" width="280" height="280" fill="${a.bg}"/>`
-    + hijabBack + hairBack + clothes[a.clothes] + scarfBack + neck + scarfFront + gear[a.gear]
+    + hairBack + clothes[a.clothes] + scarfBack + neck + scarfFront + gear[a.gear]
     + ears + head + earrings[a.earrings] + extras[a.extras] + eyes + nose + facialHair[a.facialHair] + (MOUTH[xp.mouth] || '')
-    + hairFront + hijabFront + glasses[a.glasses] + headwear[a.headwear]
+    + hairFront + glasses[a.glasses] + headwear[a.headwear]
     + `</svg>`
 }
 
