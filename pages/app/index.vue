@@ -34,8 +34,18 @@ function sub(e: any) {
   <AppShell :title="t('myPassport')" :sub="me?.patrol ? `${me.patrol.emblem} ${lx(me.patrol, 'name')}` : ''">
 
     <div class="pcard">
-      <div class="name">{{ me?.firstName }} {{ me?.lastName }}</div>
-      <div class="meta">{{ lx(me?.section, 'name') }} · {{ lx(me?.patrol, 'name') }}</div>
+      <div class="who">
+        <!-- their own avatar, made in the creator; tapping it opens the creator -->
+        <NuxtLink to="/app/avatar" class="me-av" :aria-label="t('avatarEdit')">
+          <Avatar :name="`${me?.firstName || ''} ${me?.lastName || ''}`" :avatar="me?.avatar" :size="64" tone="gold" />
+          <span class="pen">✎</span>
+        </NuxtLink>
+        <div style="min-width:0">
+          <div class="name">{{ me?.firstName }} {{ me?.lastName }}</div>
+          <div class="meta">{{ lx(me?.section, 'name') }} · {{ lx(me?.patrol, 'name') }}</div>
+          <NuxtLink v-if="!me?.avatar" to="/app/avatar" class="make">✨ {{ t('avatarMake') }} ›</NuxtLink>
+        </div>
+      </div>
       <div class="stats">
         <NuxtLink to="/app/points" class="stat tappable">
           <b>{{ data?.points ?? 0 }}</b><span>{{ t('points') }} ›</span>
@@ -103,6 +113,10 @@ function sub(e: any) {
 </template>
 
 <style scoped>
+.who{display:flex; align-items:center; gap:14px}
+.me-av{position:relative; flex:none; border-radius:50%; text-decoration:none; box-shadow:0 0 0 3px rgba(255,255,255,.55)}
+.pen{position:absolute; right:-4px; bottom:-4px; width:24px; height:24px; border-radius:50%; background:#fff; color:var(--accent-deep); display:grid; place-items:center; font-size:12px; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.make{display:inline-block; margin-top:6px; font-size:12px; font-weight:700; color:#fff; text-decoration:none; background:rgba(255,255,255,.2); border-radius:999px; padding:4px 10px}
 /* the points tile leads to the breakdown, so it reads as something to press —
    but it is a tile on a coloured card, not a run of body text, so it must not
    inherit the default link colour and underline */

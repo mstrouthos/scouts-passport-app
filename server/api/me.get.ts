@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { requireScout, scopeKind, visibleSectionIds, rankOf, sectionOf } from '../utils/guard'
 import { can } from '../utils/permissions'
+import { faceOf } from '../utils/face'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
@@ -24,6 +25,7 @@ export default defineEventHandler(async (event) => {
     id: me.id, firstName: me.firstName, lastName: me.lastName,
     firstNameEn: me.firstNameEn, lastNameEn: me.lastNameEn,
     role: me.role, locale: me.locale,
+    ...faceOf(me),
     phone: me.phone, email: me.email, birthday: me.birthday,
     rank: isLeader ? await rankOf(me) : null,
     isChief: !!me.isChief,

@@ -56,6 +56,10 @@ export const scouts = pgTable('scouts', {
      take it away from one member who keeps changing theirs. */
   canEditSelf: boolean('can_edit_self').notNull().default(true),
   isHidden: boolean('is_hidden').notNull().default(false),
+  // a member's own cartoon avatar, as its choices in JSON (utils/avatar.ts)
+  avatar: text('avatar'),
+  // a Βαθμοφόρος's photo: a row in files (in the bucket when one is set)
+  photoFileId: integer('photo_file_id'),
   deletedAt: text('deleted_at'),
   deletedBy: integer('deleted_by'),
   locale: text('locale').notNull().default('el'),

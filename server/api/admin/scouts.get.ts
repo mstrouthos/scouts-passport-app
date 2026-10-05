@@ -1,6 +1,7 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds, visibleSectionIds, pointTotals, sectionOf, sectionOfWith, canSeeHidden } from '../../utils/guard'
 import { unitNames } from '../../utils/unitNames'
+import { faceOf } from '../../utils/face'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -25,7 +26,7 @@ export default defineEventHandler(async (event) => {
 
   const memberRow = (r: any) => ({
     id: r.id, firstName: r.firstName, lastName: r.lastName,
-    firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn,
+    firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, ...faceOf(r),
     isActive: r.isActive, points: totals.get(r.id) || 0, badges: badgeCounts.get(r.id) || 0,
     patrolRole: r.patrolRole ?? null,
     activated: !!r.firstLoginAt, lastLoginAt: r.lastLoginAt ?? null,
@@ -57,7 +58,7 @@ export default defineEventHandler(async (event) => {
     leaders: me.role === 'troop_leader'
       ? all.filter(r => r.role !== 'scout').map(r => ({
           id: r.id, firstName: r.firstName, lastName: r.lastName,
-          firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, role: r.role, isChief: !!r.isChief,
+          firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, role: r.role, isChief: !!r.isChief, ...faceOf(r),
           scopes: scopes.filter(x => x.scoutId === r.id).map(x => ({ scope: x.scope, sectionId: x.sectionId, patrolId: x.patrolId, rank: x.rank }))
         }))
       : null

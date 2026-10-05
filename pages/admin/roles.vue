@@ -163,7 +163,7 @@ function appoint(r: any) { appointing.value = false; open({ ...r, role: 'leader'
       <div class="adm">
         <div class="hdr">{{ t('vathmoforoi') }} · {{ data?.leaders?.length || 0 }}</div>
         <button v-for="l in data?.leaders" :key="l.id" class="it" :disabled="l.id === me?.id" @click="open(l)">
-          <Avatar :name="name(l)" :tone="avatarTone(l)" />
+          <Avatar :name="name(l)" :tone="avatarTone(l)" :photo="l.photo" :avatar="l.avatar" />
           <div style="flex:1;min-width:0"><b>{{ name(l) }}</b><span>{{ summaryLabel(l) }}</span></div>
           <span v-if="l.scopes?.length > 1" class="pill live">{{ l.scopes.length }}×</span>
           <span class="chev">›</span>

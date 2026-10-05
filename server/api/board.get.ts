@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { requireScout, pointTotals, sectionOf, sectionOfWith } from '../utils/guard'
 import { getTeamScoring, teamScore } from '../utils/settings'
+import { faceOf } from '../utils/face'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
@@ -20,7 +21,7 @@ export default defineEventHandler(async (event) => {
   const individual = actives.map(r => ({
     id: r.id, me: r.id === me.id,
     firstName: r.firstName, lastName: r.lastName, firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn,
-    patrolId: r.patrolId, points: totals.get(r.id) || 0
+    patrolId: r.patrolId, points: totals.get(r.id) || 0, avatar: faceOf(r).avatar
   })).sort((a, b) => b.points - a.points)
 
   const patrolBoard = patrols.map(p => {

@@ -1,5 +1,6 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds, scopedScouts } from '../../utils/guard'
+import { faceOf } from '../../utils/face'
 
 /** Troop Leader: full roster of Βαθμοφόροι, any section. Section leader (Αρχηγός/
     Υπαρχηγός of one section): only the patrol-level leaders within their own
@@ -22,7 +23,7 @@ export default defineEventHandler(async (event) => {
       isTroopLeader: true,
       leaders: allLeaders.map(r => ({
         id: r.id, firstName: r.firstName, lastName: r.lastName,
-        firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, role: r.role, isChief: !!r.isChief,
+        firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, role: r.role, isChief: !!r.isChief, ...faceOf(r),
         isActive: r.isActive, phone: r.phone, email: r.email, birthday: r.birthday, idNumber: r.idNumber,
         scopes: scopes.filter(x => x.scoutId === r.id).map(x => ({ id: x.id, scope: x.scope, sectionId: x.sectionId, patrolId: x.patrolId, rank: x.rank }))
       })),

@@ -24,6 +24,7 @@ function rankOf(i: number) {
     <div v-if="tab === 'ind'" class="card" style="padding:0">
       <div v-for="(r, i) in data?.individual" :key="r.id" class="lb" :class="{ me: r.me }">
         <div class="rk" :class="{ m1: rankOf(i) === 1 }">{{ rankOf(i) }}</div>
+        <Avatar :name="name(r)" :avatar="r.avatar" :size="32" />
         <div class="nm">
           <b v-if="r.me">{{ name(r) }}</b><template v-else>{{ name(r) }}</template>
           <span>{{ lx(data?.patrolNames?.[r.patrolId], 'name') }}{{ r.me ? ' · ' + t('you') : '' }}</span>

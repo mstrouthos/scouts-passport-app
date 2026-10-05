@@ -44,14 +44,57 @@ async function saveDetails() {
     await loadMe(); editingDetails.value = false; show('✅ ' + t('saved'))
   } catch (e: any) { show(e?.data?.message || t('error')) }
 }
+
+/* A Βαθμοφόρος's photo: chosen on the phone, cropped to a square around its
+   middle and made small (512 px) before it is sent. */
+const photoInput = ref<HTMLInputElement | null>(null)
+const photoMenu = ref(false)
+const photoBusy = ref(false)
+async function squareJpeg(file: File): Promise<string> {
+  const url = URL.createObjectURL(file)
+  try {
+    const img = new Image(); img.src = url; await img.decode()
+    const side = Math.min(img.naturalWidth, img.naturalHeight)
+    const c = document.createElement('canvas'); c.width = c.height = 512
+    c.getContext('2d')!.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, 512, 512)
+    return c.toDataURL('image/jpeg', 0.86).split(',')[1]
+  } finally { URL.revokeObjectURL(url) }
+}
+async function pickPhoto(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  ;(e.target as HTMLInputElement).value = ''
+  photoMenu.value = false
+  if (!file) return
+  photoBusy.value = true
+  try {
+    let data: string
+    try { data = await squareJpeg(file) } catch { throw new Error(t('photoNotImage')) }
+    await $fetch('/api/me/photo', { method: 'POST', body: { mime: 'image/jpeg', dataBase64: data } })
+    await loadMe(); show('✅ ' + t('saved'))
+  } catch (e: any) { show(e?.data?.message || e?.message || t('error')) } finally { photoBusy.value = false }
+}
+async function removePhoto() {
+  photoMenu.value = false
+  await $fetch('/api/me/photo', { method: 'DELETE' })
+  await loadMe(); show('🗑️ ' + t('deleted'))
+}
 </script>
 
 <template>
   <AppShell :title="t('profile')" :sub="roleLabel">
 
     <div class="pcard">
-      <div class="name">{{ me?.firstName }} {{ me?.lastName }}</div>
-      <div class="meta">{{ me?.role === 'troop_leader' && me?.isChief ? '👑 ' + t('troopLeader') : roleLabel }}</div>
+      <div class="who">
+        <button class="me-photo" :aria-label="t('profilePhoto')" :disabled="photoBusy" @click="me?.photo ? (photoMenu = true) : photoInput?.click()">
+          <Avatar :name="`${me?.firstName || ''} ${me?.lastName || ''}`" :photo="me?.photo" :size="64" tone="gold" />
+          <span class="cam">{{ photoBusy ? '…' : '📷' }}</span>
+        </button>
+        <input ref="photoInput" type="file" accept="image/*" hidden @change="pickPhoto">
+        <div style="min-width:0">
+          <div class="name">{{ me?.firstName }} {{ me?.lastName }}</div>
+          <div class="meta">{{ me?.role === 'troop_leader' && me?.isChief ? '👑 ' + t('troopLeader') : roleLabel }}</div>
+        </div>
+      </div>
       <div class="stats"><div class="stat" style="flex:1">
         <b style="font-size:14px;font-weight:600">{{ scopeLabel }}</b>
         <span>{{ t('scopeOf') }}</span>
@@ -118,10 +161,23 @@ async function saveDetails() {
       <span class="chev">›</span>
     </button>
 
+    <Teleport to="body">
+      <div v-if="photoMenu" class="sheet-backdrop" @click.self="photoMenu = false">
+        <div class="sheet" style="display:flex;flex-direction:column;gap:10px">
+          <h3 style="margin:0;font-size:17px;text-align:center">{{ t('profilePhoto') }}</h3>
+          <button class="btn" @click="photoInput?.click()">📷 {{ t('photoChange') }}</button>
+          <button class="btn danger" @click="removePhoto">🗑 {{ t('photoRemove') }}</button>
+          <button class="btn ghost" @click="photoMenu = false">{{ t('close') }}</button>
+        </div>
+      </div>
+    </Teleport>
   </AppShell>
 </template>
 
 <style scoped>
+.who{display:flex; align-items:center; gap:14px}
+.me-photo{position:relative; flex:none; border:0; padding:0; background:none; border-radius:50%; box-shadow:0 0 0 3px rgba(255,255,255,.55)}
+.cam{position:absolute; right:-4px; bottom:-4px; width:26px; height:26px; border-radius:50%; background:#fff; display:grid; place-items:center; font-size:13px; box-shadow:0 2px 6px rgba(0,0,0,.2)}
 .rank{
   flex:none; width:24px; height:24px; border-radius:8px; background:#EEF2F6;
   display:grid; place-items:center; font-size:11px; font-weight:800; color:var(--muted);

@@ -193,7 +193,7 @@ async function deletePatrol() {
                       @click="editPatrol(p, sec.id)">✎ {{ t('edit') }}</button>
             </div>
             <NuxtLink v-for="r in p.scouts" :key="r.id" :to="`/admin/scouts/${r.id}`" class="it">
-              <Avatar :name="name(r)" :tone="r.isActive ? 'accent' : 'blue'" />
+              <Avatar :name="name(r)" :tone="r.isActive ? 'accent' : 'blue'" :avatar="r.avatar" />
               <div style="flex:1;min-width:0">
                 <b>{{ name(r) }}</b>
                 <span>
@@ -214,7 +214,7 @@ async function deletePatrol() {
           <div v-if="sec.loose.length" class="adm">
             <div class="hdr">{{ t('members') }}</div>
             <NuxtLink v-for="r in sec.loose" :key="r.id" :to="`/admin/scouts/${r.id}`" class="it">
-              <Avatar :name="name(r)" :tone="r.isActive ? 'accent' : 'blue'" />
+              <Avatar :name="name(r)" :tone="r.isActive ? 'accent' : 'blue'" :avatar="r.avatar" />
               <div style="flex:1;min-width:0"><b>{{ name(r) }}</b><span>{{ r.points }} {{ t('pts') }}</span></div>
               <span class="pill" :class="r.isActive ? 'ok' : 'draft'">{{ r.isActive ? t('active') : t('inactive') }}</span>
             </NuxtLink>
@@ -236,7 +236,7 @@ async function deletePatrol() {
             <div class="lgrp-hdr">{{ g.emoji }} {{ g.label }}</div>
             <div class="adm">
               <NuxtLink v-for="r in g.people" :key="g.key + '-' + r.id" :to="`/admin/roles?open=${r.id}`" class="it">
-                <Avatar :name="name(r)" :tone="r.role === 'troop_leader' ? 'gold' : 'green'" />
+                <Avatar :name="name(r)" :tone="r.role === 'troop_leader' ? 'gold' : 'green'" :photo="r.photo" />
                 <div style="flex:1;min-width:0"><b>{{ name(r) }}</b><span>{{ leaderSub(r) }}</span></div>
                 <span class="pill" :class="r.role === 'troop_leader' ? 'sched' : 'live'">{{ rankLabel(r) }}</span>
                 <span class="chev">›</span>
