@@ -196,7 +196,8 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
   <div class="pform" :class="{ finished: !!done }">
     <header>
       <img src="/images/logo-256.png" alt="">
-      <div><b>30ον Σύστημα Ελλήνων Προσκόπων</b><span>Αμμοχώστου</span></div>
+      <!-- one name in one face; when it does not fit, "Προσκόπων Αμμοχώστου" goes to the second line together -->
+      <b class="troop">30ον Σύστημα Ελλήνων <span class="nb">Προσκόπων Αμμοχώστου</span></b>
     </header>
     <main>
       <div v-if="loadError" class="card msg">{{ loadError }}</div>
@@ -324,8 +325,8 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
 .pform{min-height:100dvh; background:var(--bg); color:var(--ink); font-family:var(--font); --accent:var(--logo-green); --accent-deep:#27473A; --accent-soft:#E2EEE7; --btn-shadow:rgba(59,100,82,.3); --note-border:#A9C9B8}
 header{display:flex; align-items:center; gap:12px; padding:calc(14px + env(safe-area-inset-top)) 18px 14px; background:var(--grad-auth); color:#fff}
 header img{width:44px; height:44px; object-fit:contain}
-header b{display:block; font-size:16px}
-header span{font-size:12px; opacity:.8}
+header .troop{display:block; font-size:16px; line-height:1.3}
+header .troop .nb{white-space:nowrap}
 main{max-width:640px; margin:0 auto; padding:18px 16px 48px; display:flex; flex-direction:column; gap:14px}
 h1{margin:4px 0 0; font-size:22px; line-height:1.25}
 .intro{margin:0; font-size:14px; line-height:1.55; white-space:pre-wrap}
