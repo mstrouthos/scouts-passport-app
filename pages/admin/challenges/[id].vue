@@ -120,6 +120,7 @@ async function remove() {
           <div class="sec-title">{{ t('scoutAnswers') }}</div>
           <div class="adm">
             <div v-for="r in data.responses" :key="r.id" class="it">
+              <Avatar :name="name(r)" :avatar="r.avatar" :size="34" />
               <div style="flex:1;min-width:0">
                 <b>{{ name(r) }}</b>
                 <span>{{ [lx(r, 'patrol'), when(r.answeredAt), took(r.tookMs)].filter(Boolean).join(' · ') }}</span>
@@ -136,6 +137,7 @@ async function remove() {
         <div class="sec-title">{{ t('notAnswered') }}</div>
         <div class="adm">
           <div v-for="r in data.missing" :key="r.id" class="it">
+            <Avatar :name="name(r)" :avatar="r.avatar" :size="34" />
             <div style="flex:1"><b>{{ name(r) }}</b><span>{{ lx(r, 'patrol') }}</span></div>
             <span class="bell" :title="r.push ? t('pushOn') : t('pushOff')">{{ r.push ? '🔔' : '🔕' }}</span>
           </div>

@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../../../../db'
 import { requireLeader, scopedScouts, idParam, sectionOfWith } from '../../../../utils/guard'
 import { challengeInScope } from '../../../../utils/challengeScope'
 import { onSurface } from '../../../../utils/push'
+import { faceOf } from '../../../../utils/face'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -48,7 +49,7 @@ export default defineEventHandler(async (event) => {
         const r = byId.get(a.scoutId)!
         const shown = reveals.get(a.scoutId)
         return {
-          id: r.id, firstName: r.firstName, lastName: r.lastName, firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn,
+          id: r.id, firstName: r.firstName, lastName: r.lastName, firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, avatar: faceOf(r).avatar,
           ...patrolOf(r),
           optionIndex: opts.findIndex(o => o.id === a.optionId),
           isCorrect: a.isCorrect, points: a.pointsAwarded, answeredAt: a.answeredAt,
@@ -67,7 +68,7 @@ export default defineEventHandler(async (event) => {
     answered: ans.length, eligible: eligible.length, responses,
     missing: eligible.filter(r => !answeredIds.has(r.id)).map(r => ({
       id: r.id, firstName: r.firstName, lastName: r.lastName,
-      firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, ...patrolOf(r)
+      firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, avatar: faceOf(r).avatar, ...patrolOf(r)
     }))
   }
 })
