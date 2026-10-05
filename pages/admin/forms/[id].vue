@@ -106,9 +106,16 @@ function removeModule(mi: number) {
 }
 /* what a condition can depend on: the choice questions before it, with their
    options as currently typed */
-type Source = { id: string, label: string, options: string[] }
+type Source = { id: string, num: string, label: string, options: string[] }
+/* every question numbered by its section and place in it — 2.3 is the third
+   question of the second section — so a condition can name it briefly */
+const numbers = computed(() => {
+  const m = new Map<string, string>()
+  spec.value.modules.forEach((mod, i) => mod.questions.forEach((q, j) => m.set(q.id, `${i + 1}.${j + 1}`)))
+  return m
+})
 const liveOptions = (q: FormQuestion) => q.type === 'yesno' ? [...YES_NO] : cleanOptions(q.options)
-const asSource = (q: FormQuestion): Source => ({ id: q.id, label: q.label, options: liveOptions(q) })
+const asSource = (q: FormQuestion): Source => ({ id: q.id, num: numbers.value.get(q.id) || '?', label: q.label, options: liveOptions(q) })
 function sourcesBefore(mi: number, qi?: number): Source[] {
   const out: Source[] = []
   spec.value.modules.forEach((m, i) => {
@@ -123,8 +130,7 @@ function sourcesBefore(mi: number, qi?: number): Source[] {
 /** "if «Πρώτη εγγραφή;» is Ναι" — for the module's and the question's heading. */
 function condLabel(c?: { q: string, anyOf: string[] }) {
   if (!c) return ''
-  const src = spec.value.modules.flatMap(m => m.questions).find(q => q.id === c.q)
-  return t('formCondSummary', { q: src?.label || '?', a: c.anyOf.join(' / ') || '…' })
+  return t('formCondSummary', { q: numbers.value.get(c.q) || '?', a: c.anyOf.join(' / ') || '…' })
 }
 /* a list question's choices, one box each: add, remove, reorder. Enter in a
    box starts the next one, as typing a list naturally goes. */
@@ -199,6 +205,7 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
 
         <div v-for="(q, qi) in m.questions" :key="q.id" class="qq" :class="{ editing: open === q.id }">
           <button class="qrow" @click="open = open === q.id ? null : q.id">
+            <span class="qn">{{ numbers.get(q.id) }}</span>
             <span class="qi">{{ TYPE_ICON[q.type] }}</span>
             <span class="ql">{{ q.label || t('formUntitledQ') }}<span v-if="q.required" class="req">*</span>
               <small v-if="q.showIf" class="cl">🔀 {{ condLabel(q.showIf) }}</small></span>
@@ -337,6 +344,7 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
 .qq.editing{border-color:var(--accent)}
 .qrow{display:flex; align-items:center; gap:9px; width:100%; border:0; background:none; padding:11px 12px; text-align:left; font:inherit; color:inherit}
 .qi{flex:none}
+.qn{flex:none; min-width:28px; height:22px; padding:0 6px; border-radius:7px; background:var(--accent-soft); color:var(--accent-deep); font-size:11px; font-weight:800; display:grid; place-items:center}
 .ql{flex:1; min-width:0; font-size:13.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .cl{display:block; font-size:11px; font-weight:600; color:#8A6614; overflow:hidden; text-overflow:ellipsis}
 .req{color:var(--danger); margin-left:3px}

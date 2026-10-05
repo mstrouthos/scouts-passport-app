@@ -2,7 +2,7 @@
 /* "Show this only if…": pick an earlier choice question, then the answers
    that show it. Off, it is shown to everyone. */
 import type { FormCondition } from '~/utils/formSpec'
-type Source = { id: string, label: string, options: string[] }
+type Source = { id: string, num: string, label: string, options: string[] }
 const props = defineProps<{ modelValue?: FormCondition, sources: Source[], what: 'module' | 'question' }>()
 const emit = defineEmits<{ 'update:modelValue': [FormCondition | undefined] }>()
 const { t } = useI18n()
@@ -21,6 +21,8 @@ function toggle(o: string) {
   if (!c) return
   emit('update:modelValue', { q: c.q, anyOf: c.anyOf.includes(o) ? c.anyOf.filter(x => x !== o) : [...c.anyOf, o] })
 }
+/* the number names the question; a few words of it are enough to be sure */
+const short = (s: string) => s.length > 28 ? s.slice(0, 27).trimEnd() + '…' : s
 /* answers chosen once but since renamed or removed from the question */
 const stale = computed(() => (props.modelValue?.anyOf || []).filter(o => !src.value?.options.includes(o)))
 </script>
@@ -35,7 +37,7 @@ const stale = computed(() => (props.modelValue?.anyOf || []).filter(o => !src.va
     <template v-if="on">
       <select class="in" :value="modelValue?.q || ''" @change="pickSource(($event.target as HTMLSelectElement).value)">
         <option value="" disabled>{{ t('formCondPickQ') }}</option>
-        <option v-for="s in sources" :key="s.id" :value="s.id">{{ s.label || t('formUntitledQ') }}</option>
+        <option v-for="s in sources" :key="s.id" :value="s.id">{{ s.num }} · {{ short(s.label) || t('formUntitledQ') }}</option>
       </select>
       <template v-if="src">
         <div class="tiny muted">{{ t('formCondAnswerIs') }}</div>
