@@ -23,6 +23,15 @@ const mine = computed(() => {
 })
 const myPatrol = computed(() => mine.value?.row?.patrolId ?? null)
 
+/* the podium: the first three, by first name, with their points */
+const firstName = (r: any) => name(r).split(' ')[0]
+const indPodium = computed(() => (data.value?.individual || []).slice(0, 3).map((r: any, i: number) => ({
+  key: r.id, name: firstName(r), sub: `${r.points} ${t('pts')}`, place: indPlaces.value[i], avatar: r.avatar, me: r.me
+})))
+const patPodium = computed(() => (data.value?.patrols || []).slice(0, 3).map((p: any, i: number) => ({
+  key: p.id, name: lx(p, 'name'), sub: `${p.score} ${isSum.value ? t('pts') : t('avg')}`, place: patPlaces.value[i], emblem: p.emblem || '⚜️', me: p.id === myPatrol.value
+})))
+
 const MEDAL: Record<number, { face: string, rim: string, ribbon: string, ink: string }> = {
   1: { face: '#FFC800', rim: '#E5A400', ribbon: '#F2A900', ink: '#8A5A00' },
   2: { face: '#DCE4EE', rim: '#AEBBCB', ribbon: '#B7C3D2', ink: '#5F6F84' },
@@ -38,6 +47,7 @@ const MEDAL: Record<number, { face: string, rim: string, ribbon: string, ink: st
     </div>
 
     <template v-if="tab === 'ind'">
+      <Podium v-if="indPodium.length" :key="'ind'" :items="indPodium" />
       <div v-if="mine" class="where">
         <span class="cup">{{ mine.place === 1 ? '🏆' : mine.place <= 3 ? '🏅' : '⚜️' }}</span>
         <b>{{ t('boardYouAre', { n: mine.place }) }}</b>
@@ -64,6 +74,7 @@ const MEDAL: Record<number, { face: string, rim: string, ribbon: string, ink: st
     </template>
 
     <template v-else>
+      <Podium v-if="patPodium.length" :key="'pat'" :items="patPodium" />
       <div class="league">
         <div v-for="(p, i) in data?.patrols" :key="p.id" class="row" :class="{ me: p.id === myPatrol }">
           <div class="place">
