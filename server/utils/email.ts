@@ -40,7 +40,7 @@ export async function sendEmailWithFiles(to: string, subject: string, text: stri
     headers: { Authorization: `Bearer ${cfg.resendApiKey}` },
     body: {
       from: cfg.emailFrom, to: [to], subject, text,
-      attachments: files.map(f => ({ filename: f.name, content: f.bytes.toString('base64') }))
+      ...(files.length ? { attachments: files.map(f => ({ filename: f.name, content: f.bytes.toString('base64') })) } : {})
     },
     timeout: 60_000
   })

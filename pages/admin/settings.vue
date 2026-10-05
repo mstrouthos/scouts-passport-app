@@ -21,6 +21,18 @@ async function testNotif() {
   finally { testBusy.value = false; setTimeout(() => { testMsg.value = '' }, 5000) }
 }
 
+/* administrators: does email go out? one message to the address typed */
+const emailTo = ref(me.value?.email || '')
+const emailBusy = ref(false)
+const emailMsg = ref('')
+async function testEmail() {
+  emailBusy.value = true; emailMsg.value = '…'
+  try {
+    const r = await $fetch<{ ok: boolean, why?: string }>('/api/admin/email-test', { method: 'POST', body: { to: emailTo.value } })
+    emailMsg.value = r.ok ? t('emailTestSent', { to: emailTo.value.trim() }) : t('emailTest_' + r.why)
+  } catch { emailMsg.value = t('emailTest_failed') }
+  finally { emailBusy.value = false }
+}
 
 onMounted(() => {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) notifState.value = 'unsupported'
@@ -87,6 +99,18 @@ async function rotateOwn() {
       <div class="txt"><b>{{ t('notifTest') }}</b><span>{{ testMsg || t('notifTestSub') }}</span></div>
     </button>
 
+    <template v-if="me?.role === 'troop_leader'">
+      <div class="sec-title">{{ t('emailTest') }}</div>
+      <form class="card etest" @submit.prevent="testEmail">
+        <div class="tiny muted">{{ t('emailTestSub') }}</div>
+        <div class="erow">
+          <input v-model="emailTo" class="in" type="email" inputmode="email" autocomplete="email" :placeholder="t('emailTestPh')">
+          <button class="btn" :disabled="emailBusy || !emailTo.trim()">✉️ {{ t('emailTestSend') }}</button>
+        </div>
+        <div v-if="emailMsg" class="tiny" :class="emailMsg.startsWith('✅') ? 'okc' : 'muted'">{{ emailMsg }}</div>
+      </form>
+    </template>
+
     <div class="sec-title">{{ t('loginCard') }}</div>
     <div v-if="newPass" class="note" style="text-align:center">
       <b>{{ t('passcodeIs') }} <span style="font-variant-numeric:tabular-nums">{{ newPass }}</span></b>
@@ -99,3 +123,11 @@ async function rotateOwn() {
     </button>
   </AppShell>
 </template>
+
+<style scoped>
+.etest{display:flex; flex-direction:column; gap:10px; padding:14px}
+.erow{display:flex; gap:8px}
+.erow .in{flex:1; min-width:0}
+.erow .btn{flex:none; width:auto; padding:0 16px}
+.okc{color:#1F9D57; font-weight:600}
+</style>

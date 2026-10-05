@@ -1114,5 +1114,13 @@
   "formGapsText": "Text with gaps",
   "formGapsPh": "e.g. I, [full name], parent of [child's name], declare that…",
   "formGapsHow": "Write ___ (three underscores) for a gap, or [hint] for a gap with a hint inside it.",
-  "formGapsNone": "No gaps yet — add ___ or [hint]."
+  "formGapsNone": "No gaps yet — add ___ or [hint].",
+  "emailTest": "Test email",
+  "emailTestSub": "Send a test message to check that email sending works.",
+  "emailTestPh": "email{'@'}example.com",
+  "emailTestSend": "Send",
+  "emailTestSent": "✅ Sent to {to} — check the spam folder too.",
+  "emailTest_address": "Type a valid email address.",
+  "emailTest_setup": "⚠️ Email is not set up on the server (NUXT_RESEND_API_KEY and NUXT_EMAIL_FROM).",
+  "emailTest_failed": "❌ Not sent. The details went to Discord."
 }
