@@ -236,7 +236,7 @@ async function deletePatrol() {
             <div class="lgrp-hdr">{{ g.emoji }} {{ g.label }}</div>
             <div class="adm">
               <NuxtLink v-for="r in g.people" :key="g.key + '-' + r.id" :to="`/admin/roles?open=${r.id}`" class="it">
-                <Avatar :name="name(r)" :tone="r.role === 'troop_leader' ? 'gold' : 'green'" :photo="r.photo" />
+                <Avatar :name="name(r)" :tone="r.role === 'troop_leader' ? 'gold' : 'green'" :photo="r.photo" :avatar="r.avatar" />
                 <div style="flex:1;min-width:0"><b>{{ name(r) }}</b><span>{{ leaderSub(r) }}</span></div>
                 <span class="pill" :class="r.role === 'troop_leader' ? 'sched' : 'live'">{{ rankLabel(r) }}</span>
                 <span class="chev">›</span>

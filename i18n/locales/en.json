@@ -1007,5 +1007,10 @@
   "profilePhoto": "Profile photo",
   "photoChange": "Change photo",
   "photoRemove": "Remove photo",
-  "photoNotImage": "That image cannot be opened — try another."
+  "photoNotImage": "That image cannot be opened — try another.",
+  "avatarReplacesPhoto": "Saving an avatar will replace your photo.",
+  "profilePicture": "Profile picture",
+  "profilePictureNote": "Choose a photo or an avatar — one of the two is shown.",
+  "photoUpload": "Upload a photo",
+  "avatarUseInstead": "Avatar instead of a photo"
 }

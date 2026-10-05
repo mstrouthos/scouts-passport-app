@@ -85,8 +85,8 @@ async function removePhoto() {
 
     <div class="pcard">
       <div class="who">
-        <button class="me-photo" :aria-label="t('profilePhoto')" :disabled="photoBusy" @click="me?.photo ? (photoMenu = true) : photoInput?.click()">
-          <Avatar :name="`${me?.firstName || ''} ${me?.lastName || ''}`" :photo="me?.photo" :size="64" tone="gold" />
+        <button class="me-photo" :aria-label="t('profilePicture')" :disabled="photoBusy" @click="photoMenu = true">
+          <Avatar :name="`${me?.firstName || ''} ${me?.lastName || ''}`" :photo="me?.photo" :avatar="me?.avatar" :size="64" tone="gold" />
           <span class="cam">{{ photoBusy ? '…' : '📷' }}</span>
         </button>
         <input ref="photoInput" type="file" accept="image/*" hidden @change="pickPhoto">
@@ -164,9 +164,11 @@ async function removePhoto() {
     <Teleport to="body">
       <div v-if="photoMenu" class="sheet-backdrop" @click.self="photoMenu = false">
         <div class="sheet" style="display:flex;flex-direction:column;gap:10px">
-          <h3 style="margin:0;font-size:17px;text-align:center">{{ t('profilePhoto') }}</h3>
-          <button class="btn" @click="photoInput?.click()">📷 {{ t('photoChange') }}</button>
-          <button class="btn danger" @click="removePhoto">🗑 {{ t('photoRemove') }}</button>
+          <h3 style="margin:0;font-size:17px;text-align:center">{{ t('profilePicture') }}</h3>
+          <div class="tiny muted" style="text-align:center">{{ t('profilePictureNote') }}</div>
+          <button class="btn" @click="photoInput?.click()">📷 {{ me?.photo ? t('photoChange') : t('photoUpload') }}</button>
+          <NuxtLink to="/admin/avatar" class="btn ghost" style="text-align:center;text-decoration:none" @click="photoMenu = false">🎨 {{ me?.avatar && !me?.photo ? t('avatarEdit') : t('avatarUseInstead') }}</NuxtLink>
+          <button v-if="me?.photo" class="btn danger" @click="removePhoto">🗑 {{ t('photoRemove') }}</button>
           <button class="btn ghost" @click="photoMenu = false">{{ t('close') }}</button>
         </div>
       </div>
