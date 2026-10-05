@@ -122,8 +122,10 @@ function sub(c: any) {
 
 <template>
   <AppShell :title="isTroop ? t('challenges') : t('myChallenges')">
-    <div v-if="data?.length" style="display:flex;justify-content:flex-end;gap:8px;align-items:center">
-      <button v-if="!selecting" class="chip" @click="toggleSelect">☑︎ {{ t('selectMode') }}</button>
+    <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center">
+      <!-- the quiz's league table, as the members see it -->
+      <NuxtLink v-if="!selecting && secs?.length" to="/admin/board" class="chip" style="text-decoration:none">🏆 {{ t('board') }}</NuxtLink>
+      <button v-if="data?.length && !selecting" class="chip" @click="toggleSelect">☑︎ {{ t('selectMode') }}</button>
     </div>
 
     <!-- while selecting, the bar follows you down a long list -->
