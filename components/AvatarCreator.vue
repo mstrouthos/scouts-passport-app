@@ -77,6 +77,7 @@ const ICONS: Record<string, string> = {
   face: '<rect x="4" y="3" width="16" height="18" rx="6"/><circle cx="9.5" cy="11" r="1.4"/><circle cx="14.5" cy="11" r="1.4"/><path d="M9 15.5c1.8 1.4 4.2 1.4 6 0"/>',
   glasses: '<circle cx="7" cy="13" r="3.6"/><circle cx="17" cy="13" r="3.6"/><path d="M10.6 12.5c.9-.7 1.9-.7 2.8 0M3.4 12 2 9M20.6 12 22 9"/>',
   hat: '<path d="M5 16c0-6 3-10 7-10s7 4 7 10"/><path d="M2 16h20v2.5H2z"/>',
+  clothes: '<path d="M8 3 4 5.5 2 10l3.5 1.5L7 9.5V21h10V9.5l1.5 2L22 10l-2-4.5L16 3c-.5 1.6-2.1 2.6-4 2.6S8.5 4.6 8 3Z"/>',
   frame: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="9" r="1.6"/>'
 }
 </script>
@@ -100,24 +101,34 @@ const ICONS: Record<string, string> = {
 
     <div v-if="me?.photo" class="note">📷 {{ t('avatarReplacesPhoto') }}</div>
 
-    <template v-for="s in current.sections" :key="tab + s.field">
-      <div v-if="!needs[s.field] || needs[s.field]()" class="card opts">
-        <div class="lab">{{ t('avs_' + s.field) }}</div>
-        <div v-if="s.swatch" class="swatches">
-          <button v-for="v in values(s.field)" :key="v" class="swatch" :class="{ on: cfg[s.field] === v }"
-                  :aria-label="label(s.field, v)" @click="choose(s.field, v)">
-            <span :style="{ background: v }" />
-          </button>
-        </div>
-        <div v-else class="tiles">
+    <!-- one card per choice: its tiles, then its own colours; or colours alone -->
+    <div v-for="s in current.sections" :key="tab + s.field" class="card opts">
+      <div class="lab">{{ t('avs_' + s.field) }}</div>
+      <div v-if="!s.crop" class="swatches">
+        <button v-for="v in values(s.field)" :key="v" class="swatch" :class="{ on: cfg[s.field] === v }"
+                :aria-label="label(s.field, v)" @click="choose(s.field, v)">
+          <span :style="{ background: v }" />
+        </button>
+      </div>
+      <template v-else>
+        <div class="tiles">
           <button v-for="v in values(s.field)" :key="v" class="tile" :class="{ on: cfg[s.field] === v }"
                   :aria-label="label(s.field, v)" :title="label(s.field, v)" @click="choose(s.field, v)">
             <span class="art" v-html="tile(s.field, v, s.crop)" />
             <span v-if="v === 'none'" class="none">∅</span>
           </button>
         </div>
-      </div>
-    </template>
+        <template v-if="s.color && (!needs[s.color] || needs[s.color]())">
+          <div class="lab sub">{{ t('avs_' + s.color) }}</div>
+          <div class="swatches">
+            <button v-for="v in values(s.color)" :key="v" class="swatch" :class="{ on: cfg[s.color] === v }"
+                    :aria-label="v" @click="choose(s.color, v)">
+              <span :style="{ background: v }" />
+            </button>
+          </div>
+        </template>
+      </template>
+    </div>
     <div class="tiny muted" style="text-align:center">💛💙 {{ t('avatarScarfNote') }}</div>
 
     <div class="savebar">
@@ -139,12 +150,14 @@ const ICONS: Record<string, string> = {
 .big :deep(svg > rect:first-of-type){fill:transparent}
 .dice{position:absolute; right:10px; bottom:10px; width:42px; height:42px; border-radius:50%; border:0; background:#fff; font-size:20px; box-shadow:var(--shadow-sm)}
 .dice:active{transform:rotate(25deg) scale(.95)}
-.tabs button{display:flex; flex-direction:column; align-items:center; gap:2px; padding:7px 0 6px; min-width:0}
+.tabs button{display:flex; flex-direction:column; align-items:center; gap:2px; padding:7px 0 6px; min-width:0; overflow:hidden}
 .tabs svg{width:22px; height:22px}
-.tabs span{font-size:10px; font-weight:650; line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%}
+.tabs{gap:2px}
+.tabs span{font-size:9.5px; font-weight:650; letter-spacing:-.15px; line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%}
 .tabs button.on{color:var(--accent-deep)}
 .opts{display:flex; flex-direction:column; gap:10px}
 .opts .lab{margin:0}
+.opts .lab.sub{margin-top:6px}
 .swatches{display:flex; flex-wrap:wrap; gap:9px}
 .swatch{width:42px; height:42px; border-radius:50%; border:3px solid #fff; padding:0; box-shadow:0 0 0 1.5px var(--line)}
 .swatch span{display:block; width:100%; height:100%; border-radius:50%}

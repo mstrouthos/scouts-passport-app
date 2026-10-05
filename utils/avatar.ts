@@ -329,18 +329,19 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     + `</svg>`
 }
 
-/* The builder's tabs, in order: each a list of sections — a row of colours,
-   or a grid of tiles zoomed in on what the choice changes. */
-export const AVATAR_TABS: ReadonlyArray<{ key: string, icon: string, sections: ReadonlyArray<{ field: K, swatch?: boolean, crop?: Crop }> }> = [
-  { key: 'body', icon: 'body', sections: [
-    { field: 'skin', swatch: true }, { field: 'gender', crop: 'face' }, { field: 'head', crop: 'head' },
-    { field: 'clothesColor', swatch: true }, { field: 'clothes', crop: 'body' }
-  ] },
-  { key: 'hair', icon: 'hair', sections: [{ field: 'hairColor', swatch: true }, { field: 'hair', crop: 'head' }] },
+/* The builder's tabs, in order. Each is a list of cards: one choice, shown
+   as tiles zoomed in on what it changes, with its own colours under it — the
+   clothes and their colour together, the hairstyle and its colour… — or a
+   card of colours alone (skin, background). */
+export type AvatarSection = { field: K, crop?: Crop, color?: K }
+export const AVATAR_TABS: ReadonlyArray<{ key: string, icon: string, sections: ReadonlyArray<AvatarSection> }> = [
+  { key: 'body', icon: 'body', sections: [{ field: 'skin' }, { field: 'gender', crop: 'face' }, { field: 'head', crop: 'head' }] },
+  { key: 'hair', icon: 'hair', sections: [{ field: 'hair', crop: 'head', color: 'hairColor' }] },
   { key: 'face', icon: 'face', sections: [
-    { field: 'eyeColor', swatch: true }, { field: 'expression', crop: 'face' }, { field: 'extras', crop: 'face' }, { field: 'facialHair', crop: 'face' }
+    { field: 'expression', crop: 'face', color: 'eyeColor' }, { field: 'extras', crop: 'face' }, { field: 'facialHair', crop: 'face' }
   ] },
-  { key: 'glasses', icon: 'glasses', sections: [{ field: 'glassesColor', swatch: true }, { field: 'glasses', crop: 'face' }] },
-  { key: 'headwear', icon: 'hat', sections: [{ field: 'headwearColor', swatch: true }, { field: 'headwear', crop: 'head' }] },
-  { key: 'bg', icon: 'frame', sections: [{ field: 'bg', swatch: true }] }
+  { key: 'clothes', icon: 'clothes', sections: [{ field: 'clothes', crop: 'body', color: 'clothesColor' }] },
+  { key: 'glasses', icon: 'glasses', sections: [{ field: 'glasses', crop: 'face', color: 'glassesColor' }] },
+  { key: 'headwear', icon: 'hat', sections: [{ field: 'headwear', crop: 'head', color: 'headwearColor' }] },
+  { key: 'bg', icon: 'frame', sections: [{ field: 'bg' }] }
 ]
