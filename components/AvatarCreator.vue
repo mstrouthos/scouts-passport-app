@@ -27,7 +27,8 @@ const tabs = computed(() => AVATAR_TABS.map(tb => ({
 const tab = ref(me.value?.avatar ? 'body' : 'gender')
 const current = computed(() => tabs.value.find(x => x.key === tab.value)!)
 
-const big = computed(() => avatarSvg(cfg.value, 'big'))
+// while choosing hair, the hat comes off so the hair can be seen
+const big = computed(() => avatarSvg(tab.value === 'hair' ? { ...cfg.value, headwear: 'none' } : cfg.value, 'big'))
 /* a hat would hide what the hair, face and glasses tiles are there to show,
    so only the hats tab draws one */
 // each tile shows what choosing it gives — the girl tile with the long hair

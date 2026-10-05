@@ -209,43 +209,73 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
         + `<rect x="${bx - 5}" y="${y0 + 106}" width="10" height="7" rx="3" fill="${SCARF_YELLOW}"/>`
     }).join('')
   }
-  // the cap of hair on the top of the head, down to `d` of its height at the sides
-  // the cap of hair on the top of the head: down to `d` of its height at the
-  // sides, its hairline at `line` of the height in the middle of the forehead
-  const cap = (d: number, extra = 0, line = 0.2) => {
-    const l = x0 - 3 - extra, r = x1 + 3 + extra, t = y0 - 6 - extra
-    return `<path d="M${l} ${y0 + h * d} L${l} ${y0 + hb.r * 0.8} Q${l} ${t} ${x0 + hb.r} ${t} L${x1 - hb.r} ${t} Q${r} ${t} ${r} ${y0 + hb.r * 0.8} L${r} ${y0 + h * d} Q${x1 - 6} ${y0 + h * (line + 0.02)} ${cx} ${y0 + h * line} Q${x0 + 6} ${y0 + h * (line + 0.02)} ${l} ${y0 + h * d} Z" fill="${hairC}"/>`
+  /* Hair that sits on the head is cut from the head's own outline, a little
+     enlarged, so it follows any head shape — square, round, tall, wide — with
+     no gap at the temples or over the crown. `above` is the part of that
+     outline kept: everything over a hairline. */
+  const extraDefs: string[] = []
+  let clipN = 0
+  const clipTo = (d: string) => {
+    const c = `hc${clipN++}-${id}`
+    extraDefs.push(`<clipPath id="${c}"><path d="${d}"/></clipPath>`)
+    return c
   }
-  const sideburns = `<rect x="${x0 - 3}" y="${y0 + 14}" width="9" height="${h * 0.32}" rx="4" fill="${hairC}"/><rect x="${x1 - 6}" y="${y0 + 14}" width="9" height="${h * 0.32}" rx="4" fill="${hairC}"/>`
+  // the head's outline grown by `e` (and by `top` over the crown)
+  const headShape = (e: number, top = e, fill = hairC) =>
+    `<rect x="${x0 - e}" y="${y0 - top}" width="${w + 2 * e}" height="${h + e + top}" rx="${hb.r + e}" fill="${fill}"/>`
+  // everything above a hairline: down to `d` of the head's height at the
+  // sides, at `line` of it in the middle of the forehead
+  const above = (d: number, line: number) =>
+    `M-60 -60 H260 V${y0 + h * d} H${x1 + 20} Q${x1 - 6} ${y0 + h * (line + 0.02)} ${cx} ${y0 + h * line} Q${x0 + 6} ${y0 + h * (line + 0.02)} ${x0 - 20} ${y0 + h * d} H-60 Z`
+  const cap = (d: number, extra = 0, line = 0.2) =>
+    `<g clip-path="url(#${clipTo(above(d, line))})">${headShape(3 + extra, 6 + extra)}</g>`
+  // sideburns: the head's own edge, from the temple down to `to` of its height
+  const sideburnsTo = (to: number, from = 14) =>
+    `<g clip-path="url(#${clipTo(`M${x0 - 20} ${y0 + from} H${x0 + 6} V${y0 + h * to} H${x0 - 20} Z M${x1 - 6} ${y0 + from} H${x1 + 20} V${y0 + h * to} H${x1 - 6} Z`)})">${headShape(3)}</g>`
+  const sideburns = sideburnsTo(0.46)
+  // where the top of the head is, at a given x — for curls and rows that
+  // follow its curve
+  const headTop = (x: number) => {
+    const r = hb.r
+    const dx = x < x0 + r ? x0 + r - x : x > x1 - r ? x - (x1 - r) : 0
+    return dx > 0 ? y0 + r - Math.sqrt(Math.max(0, r * r - dx * dx)) : y0
+  }
+  const along = (n: number, inset: number) => [...Array(n)].map((_, i) => x0 + inset + i * (w - 2 * inset) / (n - 1))
+  const curls = (n: number, inset: number, r: number, lift: number, wobble = 0) =>
+    along(n, inset).map((x, i) => `<circle cx="${x}" cy="${headTop(x) - lift + (i % 2) * wobble}" r="${r}" fill="${hairC}"/>`).join('')
   const curtains = `<path d="M${cx} ${y0 + 2} Q${cx - 26} ${y0 + h * 0.06} ${x0 + 6} ${y0 + h * 0.32} L${x0 - 6} ${y0 + h * 0.66} Z M${cx} ${y0 + 2} Q${cx + 26} ${y0 + h * 0.06} ${x1 - 6} ${y0 + h * 0.32} L${x1 + 6} ${y0 + h * 0.66} Z" fill="${hairC}"/>`
   const front: Record<string, string> = {
     none: '',
-    buzz: `<path d="M${x0} ${y0 + h * 0.28} L${x0} ${y0 + hb.r * 0.7} Q${x0} ${y0 - 2} ${x0 + hb.r} ${y0 - 2} L${x1 - hb.r} ${y0 - 2} Q${x1} ${y0 - 2} ${x1} ${y0 + hb.r * 0.7} L${x1} ${y0 + h * 0.28} Q${cx} ${y0 + h * 0.16} ${x0} ${y0 + h * 0.28} Z" fill="${hairC}" opacity=".9"/>`,
+    buzz: `<g opacity=".9" clip-path="url(#${clipTo(above(0.28, 0.16))})">${headShape(1, 2)}</g>`,
     // a neat short cut, the hairline set back so more of the forehead shows
+    crew: cap(0.28, 0, 0.1) + sideburnsTo(0.34, 12),
     // short, the hairline receding at the temples, a little lower in the middle
-    receding: `<path d="M${x0 - 3} ${y0 + h * 0.34} L${x0 - 3} ${y0 + hb.r * 0.8} Q${x0 - 3} ${y0 - 6} ${x0 + hb.r} ${y0 - 6} L${x1 - hb.r} ${y0 - 6} Q${x1 + 3} ${y0 - 6} ${x1 + 3} ${y0 + hb.r * 0.8} L${x1 + 3} ${y0 + h * 0.34} L${x1 - 5} ${y0 + h * 0.34} L${x1 - 6} ${y0 + h * 0.15} Q${x1 - 12} ${y0 + h * 0.03} ${cx + 11} ${y0 + h * 0.07} Q${cx} ${y0 + h * 0.13} ${cx - 11} ${y0 + h * 0.07} Q${x0 + 12} ${y0 + h * 0.03} ${x0 + 6} ${y0 + h * 0.15} L${x0 + 5} ${y0 + h * 0.34} Z" fill="${hairC}"/>`,
-    crew: cap(0.28, 0, 0.1) + `<rect x="${x0 - 3}" y="${y0 + 12}" width="8" height="${h * 0.2}" rx="4" fill="${hairC}"/><rect x="${x1 - 5}" y="${y0 + 12}" width="8" height="${h * 0.2}" rx="4" fill="${hairC}"/>`,
+    receding: `<g clip-path="url(#${clipTo(`M-60 -60 H260 V${y0 + h * 0.36} H${x1 - 5} L${x1 - 6} ${y0 + h * 0.15} Q${x1 - 12} ${y0 + h * 0.03} ${cx + 11} ${y0 + h * 0.07} Q${cx} ${y0 + h * 0.13} ${cx - 11} ${y0 + h * 0.07} Q${x0 + 12} ${y0 + h * 0.03} ${x0 + 6} ${y0 + h * 0.15} L${x0 + 5} ${y0 + h * 0.36} H-60 Z`)})">${headShape(3, 6)}</g>`,
     short: cap(0.36) + sideburns + `<path d="M${cx - 22} ${y0 + h * 0.18} Q${cx - 4} ${y0 + h * 0.34} ${cx + 12} ${y0 + h * 0.16} Z" fill="${hairC}"/>`,
     side: cap(0.4) + sideburns + `<path d="M${x0 - 3} ${y0 + h * 0.4} Q${x0 + 4} ${y0 + h * 0.1} ${cx + 24} ${y0 + h * 0.12} Q${cx - 6} ${y0 + h * 0.2} ${x0 + 10} ${y0 + h * 0.42} Z" fill="${hairC}"/>`
       + `<path d="M${cx + 24} ${y0 + h * 0.12} Q${cx - 6} ${y0 + h * 0.2} ${x0 + 10} ${y0 + h * 0.42}" fill="none" stroke="${hairD}" stroke-width="3" stroke-linecap="round"/>`,
-    curly: [...Array(9)].map((_, i) => `<circle cx="${x0 + 2 + i * (w - 4) / 8}" cy="${y0 + 2 + (i % 2) * 5}" r="12" fill="${hairC}"/>`).join('')
-      + `<circle cx="${x0 - 2}" cy="${y0 + 22}" r="10" fill="${hairC}"/><circle cx="${x1 + 2}" cy="${y0 + 22}" r="10" fill="${hairC}"/>`
-      + cap(0.26),
+    // curls along the curve of the head, down to the temples
+    curly: cap(0.3, 2) + curls(9, 2, 12, -2, 5) + sideburnsTo(0.36),
     afro: [...Array(7)].map((_, i) => `<circle cx="${x0 + 6 + i * (w - 12) / 6}" cy="${y0 + 8}" r="11" fill="${hairC}"/>`).join(''),
     // a short, rounded afro: a little fuller than the head, its edge in small curls
-    afroShort: `<path d="M${x0 - 6} ${y0 + h * 0.34} Q${x0 - 8} ${y0 - 12} ${cx} ${y0 - 12} Q${x1 + 8} ${y0 - 12} ${x1 + 6} ${y0 + h * 0.34} Q${x1 - 6} ${y0 + h * 0.2} ${cx} ${y0 + h * 0.19} Q${x0 + 6} ${y0 + h * 0.2} ${x0 - 6} ${y0 + h * 0.34} Z" fill="${hairC}"/>`
-      + [...Array(9)].map((_, i) => `<circle cx="${x0 - 4 + i * (w + 8) / 8}" cy="${y0 - 8 + Math.abs(i - 4) * 2.4}" r="6" fill="${hairC}"/>`).join(''),
+    afroShort: cap(0.34, 6, 0.19) + curls(9, 6, 6, 7),
     // short and wavy: the fringe in soft waves
     wavyShort: cap(0.34, 1) + [...Array(5)].map((_, i) => `<circle cx="${x0 + 10 + i * (w - 20) / 4}" cy="${y0 + h * 0.2}" r="${8 - Math.abs(i - 2)}" fill="${hairC}"/>`).join('') + sideburns,
-    curlyLong: [...Array(9)].map((_, i) => `<circle cx="${x0 + 2 + i * (w - 4) / 8}" cy="${y0 + 2 + (i % 2) * 5}" r="12" fill="${hairC}"/>`).join('') + cap(0.4, 2),
+    curlyLong: cap(0.4, 2) + curls(9, 2, 12, -2, 5),
     // locs: the top in ropes, with their ends hanging down the sides
-    locs: cap(0.36, 2) + [...Array(7)].map((_, i) => `<path d="M${x0 + 4 + i * (w - 8) / 6} ${y0 - 4} L${x0 + 4 + i * (w - 8) / 6} ${y0 + h * 0.2}" stroke="${hairD}" stroke-width="2.4" stroke-linecap="round"/>`).join('')
-      + `<rect x="${x0 - 6}" y="${y0 + 10}" width="9" height="${h * 0.5}" rx="4.5" fill="${hairC}"/><rect x="${x1 - 3}" y="${y0 + 10}" width="9" height="${h * 0.5}" rx="4.5" fill="${hairC}"/>`,
+    locs: (() => {
+      const c = clipTo(above(0.36, 0.2))
+      return `<g clip-path="url(#${c})">${headShape(5, 8)}`
+        + along(7, 4).map(x => `<path d="M${x} ${headTop(x) - 4} L${x} ${y0 + h * 0.22}" stroke="${hairD}" stroke-width="2.4" stroke-linecap="round"/>`).join('')
+        + `</g>` + sideburnsTo(0.6, 10)
+    })(),
     // cornrows: close to the head, in rows running back from the hairline
-    cornrows: cap(0.24, -1, 0.14) + [...Array(5)].map((_, i) => {
-      const x = x0 + 10 + i * (w - 20) / 4
-      return `<path d="M${x} ${y0 + h * 0.15} Q${x + (x - cx) * 0.1} ${y0 + 2} ${x + (x - cx) * 0.2} ${y0 - 4}" fill="none" stroke="${hairD}" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="3 2.4"/>`
-    }).join(''),
+    cornrows: (() => {
+      const c = clipTo(above(0.24, 0.14))
+      return `<g clip-path="url(#${c})">${headShape(1, 2)}`
+        + along(5, 10).map(x => `<path d="M${x} ${y0 + h * 0.15} L${x + (x - cx) * 0.15} ${headTop(x + (x - cx) * 0.15) + 2}" stroke="${hairD}" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="3 2.4"/>`).join('')
+        + `</g>`
+    })(),
     bob: cap(0.5, 4) + `<rect x="${x0 + 2}" y="${y0 + 2}" width="${w - 4}" height="${h * 0.24}" rx="10" fill="${hairC}"/>`,
     long: cap(0.62, 4) + curtains,
     wavy: cap(0.62, 4) + curtains,
@@ -440,6 +470,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     + `<pattern id="st-${id}" patternUnits="userSpaceOnUse" width="9" height="9" patternTransform="rotate(-35)"><rect width="9" height="9" fill="${SCARF_BLUE}"/><rect width="4" height="9" fill="${SCARF_YELLOW}"/></pattern>`
     + `<clipPath id="under-${id}"><rect x="0" y="${hatTop}" width="200" height="200"/></clipPath>`
     + `<clipPath id="chin-${id}"><rect x="${x0 - 1}" y="${y0}" width="${w + 2}" height="${h + 10}" rx="${hb.r}"/></clipPath>`
+    + extraDefs.join('')
     + `<clipPath id="face-${id}"><rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${hb.r}"/></clipPath>`
     + `</defs>`
     + `<rect x="-40" y="-40" width="280" height="280" fill="${a.bg}"/>`
