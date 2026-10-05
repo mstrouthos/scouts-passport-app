@@ -1108,7 +1108,7 @@
   "formCopyTo": "To the address given in",
   "formCopyNote": "Once the form is sent, they receive a PDF with every answer and the signature, along with the photos and PDFs they uploaded.",
   "formCopyNeedsEmail": "Add an Email question first (outside any repeated section).",
-  "formCopyNotReady": "Email is not set up on the server (NUXT_RESEND_API_KEY and NUXT_EMAIL_FROM) — no copy is sent until it is.",
+  "formCopyNotReady": "Email is not set up on the server (NUXT_RESEND_API_KEY and NUXT_EMAIL_FROM_ADDRESS) — no copy is sent until it is.",
   "formCopySent": "A copy is on its way to",
   "ftype_gaps": "Fill the gaps",
   "formGapsText": "Text with gaps",
@@ -1121,6 +1121,6 @@
   "emailTestSend": "Send",
   "emailTestSent": "✅ Sent to {to} — check the spam folder too.",
   "emailTest_address": "Type a valid email address.",
-  "emailTest_setup": "⚠️ Email is not set up on the server (NUXT_RESEND_API_KEY and NUXT_EMAIL_FROM).",
+  "emailTest_setup": "⚠️ Email is not set up on the server (NUXT_RESEND_API_KEY and NUXT_EMAIL_FROM_ADDRESS).",
   "emailTest_failed": "❌ Not sent. The details went to Discord."
 }

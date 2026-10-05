@@ -1108,7 +1108,7 @@
   "formCopyTo": "Στο email που δίνεται στην ερώτηση",
   "formCopyNote": "Μόλις σταλεί η φόρμα, λαμβάνει ένα PDF με όλες τις απαντήσεις και την υπογραφή, μαζί με τις φωτογραφίες και τα PDF που ανέβασε.",
   "formCopyNeedsEmail": "Προσθέστε πρώτα μια ερώτηση τύπου Email (εκτός ενότητας που επαναλαμβάνεται).",
-  "formCopyNotReady": "Η αποστολή email δεν είναι ρυθμισμένη στον server (NUXT_RESEND_API_KEY και NUXT_EMAIL_FROM) — δεν θα σταλεί αντίγραφο μέχρι να ρυθμιστεί.",
+  "formCopyNotReady": "Η αποστολή email δεν είναι ρυθμισμένη στον server (NUXT_RESEND_API_KEY και NUXT_EMAIL_FROM_ADDRESS) — δεν θα σταλεί αντίγραφο μέχρι να ρυθμιστεί.",
   "formCopySent": "Θα λάβετε αντίγραφο στο",
   "ftype_gaps": "Συμπλήρωση κενών",
   "formGapsText": "Κείμενο με κενά",
@@ -1121,6 +1121,6 @@
   "emailTestSend": "Αποστολή",
   "emailTestSent": "✅ Στάλθηκε στο {to} — ελέγξτε και τα ανεπιθύμητα.",
   "emailTest_address": "Γράψτε μια σωστή διεύθυνση email.",
-  "emailTest_setup": "⚠️ Η αποστολή email δεν είναι ρυθμισμένη στον server (NUXT_RESEND_API_KEY και NUXT_EMAIL_FROM).",
+  "emailTest_setup": "⚠️ Η αποστολή email δεν είναι ρυθμισμένη στον server (NUXT_RESEND_API_KEY και NUXT_EMAIL_FROM_ADDRESS).",
   "emailTest_failed": "❌ Δεν στάλθηκε. Οι λεπτομέρειες στάλθηκαν στο Discord."
 }

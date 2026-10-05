@@ -85,7 +85,11 @@ export default defineNuxtConfig({
     discordErrorsWebhookUrl: '',
     vapidSubject: 'mailto:admin@example.org',
     resendApiKey: '',
+    // the sender: its name and its address, set apart (NUXT_EMAIL_FROM, the
+    // two together as "Name <address>", still works)
     emailFrom: '',
+    emailFromName: '',
+    emailFromAddress: '',
     smsToApiKey: '',
     smsSenderId: '',
     databaseUrl: '',
