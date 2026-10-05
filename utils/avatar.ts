@@ -26,6 +26,24 @@ export const AVATAR_OPTIONS = {
   bg: ['#D9E8FD', '#CDEFE0', '#FCEFC7', '#FBDCE2', '#E6DDF7', '#FFE1C7', '#D4F1F7', '#E3E7EE']
 } as const
 
+/* What each gender is offered: a boy picks among short styles, a girl among
+   long and tied ones as well as the short ones many girls wear; the hijab is
+   offered to girls, beards and moustaches to men. */
+export const FOR_GENDER: Record<string, Partial<Record<string, readonly string[]>>> = {
+  boy: {
+    hair: ['none', 'buzz', 'short', 'side', 'spiky', 'curly', 'mohawk', 'afro'],
+    headwear: ['none', 'scout', 'beret', 'cap', 'beanie', 'bandana', 'headband']
+  },
+  girl: {
+    hair: ['long', 'wavy', 'ponytail', 'pigtails', 'bun', 'braids', 'bob', 'short', 'side', 'curly', 'afro'],
+    facialHair: ['none']
+  }
+}
+/** The choices offered for this field to this gender. */
+export function optionsFor(field: string, gender: string): readonly string[] {
+  return FOR_GENDER[gender]?.[field] ?? (AVATAR_OPTIONS as any)[field]
+}
+
 type O = typeof AVATAR_OPTIONS
 export type Avatar = { [K in keyof O]: O[K][number] }
 type K = keyof O
@@ -62,9 +80,7 @@ export function normalizeAvatar(raw: any): Avatar {
 export function randomAvatar(): Avatar {
   const pick = <T>(a: readonly T[]) => a[Math.floor(Math.random() * a.length)]
   const gender = pick(AVATAR_OPTIONS.gender)
-  const hair = gender === 'girl'
-    ? pick(['long', 'wavy', 'ponytail', 'pigtails', 'bun', 'braids', 'bob', 'curly', 'afro'] as const)
-    : pick(['buzz', 'short', 'side', 'spiky', 'curly', 'mohawk', 'afro'] as const)
+  const hair = pick(optionsFor('hair', gender).filter(h => h !== 'none'))
   return normalizeAvatar({
     gender, hair,
     skin: pick(AVATAR_OPTIONS.skin), head: pick(AVATAR_OPTIONS.head),
@@ -74,7 +90,7 @@ export function randomAvatar(): Avatar {
     extras: Math.random() < 0.35 ? pick(AVATAR_OPTIONS.extras.slice(1)) : 'none',
     glasses: Math.random() < 0.3 ? pick(AVATAR_OPTIONS.glasses.slice(1)) : 'none',
     glassesColor: pick(AVATAR_OPTIONS.glassesColor),
-    headwear: Math.random() < 0.35 ? pick(['scout', 'beret', 'cap', 'beanie', 'bandana', 'headband'] as const) : 'none',
+    headwear: Math.random() < 0.35 ? pick(optionsFor('headwear', gender).filter(h => h !== 'none' && h !== 'hijab')) : 'none',
     headwearColor: pick(AVATAR_OPTIONS.headwearColor), bg: pick(AVATAR_OPTIONS.bg)
   })
 }

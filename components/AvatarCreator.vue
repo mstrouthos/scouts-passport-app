@@ -7,7 +7,7 @@
    Members make one here; so may a Βαθμοφόρος, instead of a photo — saving an
    avatar takes their photo down, as only one of the two is shown. Beards and
    moustaches are offered to Βαθμοφόροι only. */
-import { AVATAR_OPTIONS, AVATAR_TABS, DEFAULT_AVATAR, avatarSvg, normalizeAvatar, randomAvatar, type Avatar } from '~/utils/avatar'
+import { AVATAR_OPTIONS, AVATAR_TABS, optionsFor, DEFAULT_AVATAR, avatarSvg, normalizeAvatar, randomAvatar, type Avatar } from '~/utils/avatar'
 const props = defineProps<{ back: string }>()
 const { t } = useI18n()
 const me = useMe()
@@ -20,7 +20,8 @@ watch(() => me.value?.avatar, v => { if (v && !dirty.value) { cfg.value = normal
 
 const isLeader = computed(() => me.value?.role && me.value.role !== 'scout')
 const tabs = computed(() => AVATAR_TABS.map(tb => ({
-  ...tb, sections: tb.sections.filter(s => s.field !== 'facialHair' || isLeader.value)
+  // beards for Βαθμοφόροι, and only for a man's avatar
+  ...tb, sections: tb.sections.filter(s => s.field !== 'facialHair' || (isLeader.value && cfg.value.gender === 'boy'))
 })))
 const tab = ref('body')
 const current = computed(() => tabs.value.find(x => x.key === tab.value)!)
@@ -44,8 +45,22 @@ function pick(key: string) {
     if (pinned) window.scrollTo({ top: d.offsetTop, behavior: 'smooth' })
   })
 }
-function choose(field: string, v: string) { cfg.value = { ...cfg.value, [field]: v } as Avatar }
-const values = (field: string) => AVATAR_OPTIONS[field as keyof typeof AVATAR_OPTIONS] as readonly string[]
+/* changing gender changes the look: a boy's hairstyle becomes long hair for
+   a girl, a girl's becomes short for a boy; a hijab or a beard that no longer
+   fits goes */
+function choose(field: string, v: string) {
+  const next: any = { ...cfg.value, [field]: v }
+  if (field === 'gender' && v !== cfg.value.gender) {
+    const boys = optionsFor('hair', 'boy')
+    if (v === 'girl' && boys.includes(next.hair)) next.hair = 'long'
+    if (v === 'boy' && !boys.includes(next.hair)) next.hair = 'short'
+    for (const f of ['headwear', 'facialHair']) if (!optionsFor(f, v).includes(next[f])) next[f] = 'none'
+  }
+  cfg.value = next
+}
+const values = (field: string) => field === 'gender' || !(field in AVATAR_OPTIONS)
+  ? AVATAR_OPTIONS[field as keyof typeof AVATAR_OPTIONS] as readonly string[]
+  : optionsFor(field, cfg.value.gender)
 const label = (field: string, v: string) => v.startsWith('#') ? v : t(`avo_${field}_${v}`)
 /* a colour for a choice only matters once the choice is made: the glasses'
    colour row waits until there are glasses */
@@ -55,7 +70,10 @@ const needs: Record<string, () => boolean> = {
   hairColor: () => cfg.value.hair !== 'none' || cfg.value.facialHair !== 'none'
 }
 
-function shuffle() { cfg.value = { ...randomAvatar(), facialHair: isLeader.value ? cfg.value.facialHair : 'none' } }
+function shuffle() {
+  const r = randomAvatar()
+  cfg.value = { ...r, facialHair: isLeader.value && r.gender === 'boy' ? cfg.value.facialHair : 'none' }
+}
 
 const busy = ref(false)
 async function save() {
