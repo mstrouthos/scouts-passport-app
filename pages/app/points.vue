@@ -15,7 +15,7 @@ const SOURCES: Record<string, { emoji: string, key: string, tone: string }> = {
 }
 const meta = (s: string) => SOURCES[s] || SOURCES.manual
 /* the unit is named in the member's own sector's words */
-const label = (s: string) => s === 'patrol' ? sectorWords.value.unit : label(s)
+const label = (s: string) => s === 'patrol' ? sectorWords.value.unit : t(meta(s).key)
 const filter = ref<string | null>(null)
 const shown = computed<any[]>(() => (data.value?.items || [])
   .filter((i: any) => !filter.value || (i.source === 'patrol' ? 'patrol' : i.source) === filter.value))
