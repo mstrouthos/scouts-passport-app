@@ -21,7 +21,7 @@ export const AVATAR_OPTIONS = {
   facialHair: ['none', 'stubble', 'moustache', 'goatee', 'beard'],
   glasses: ['none', 'round', 'square', 'cateye', 'sunglasses'],
   glassesColor: ['#2A2330', '#B23A48', '#2F79B8', '#3E8A3A', '#C99A18', '#E35D9A'],
-  headwear: ['none', 'scout', 'beret', 'cap', 'beanie', 'bandana', 'hijab'],
+  headwear: ['none', 'scout', 'beret', 'cap', 'beanie', 'hijab'],
   headwearColor: ['#7A1F2B', '#2E5E8C', '#3B6452', '#2B2B33', '#E08A2E', '#E35D9A', '#E9EEF4'],
   bg: ['#D9E8FD', '#CDEFE0', '#FCEFC7', '#FBDCE2', '#E6DDF7', '#FFE1C7', '#D4F1F7', '#E3E7EE']
 } as const
@@ -32,7 +32,7 @@ export const AVATAR_OPTIONS = {
 export const FOR_GENDER: Record<string, Partial<Record<string, readonly string[]>>> = {
   boy: {
     hair: ['none', 'buzz', 'short', 'side', 'spiky', 'curly', 'mohawk', 'afro'],
-    headwear: ['none', 'scout', 'beret', 'cap', 'beanie', 'bandana']
+    headwear: ['none', 'scout', 'beret', 'cap', 'beanie']
   },
   girl: {
     hair: ['long', 'wavy', 'ponytail', 'pigtails', 'bun', 'braids', 'bob', 'short', 'side', 'curly', 'afro'],
@@ -328,9 +328,6 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       + [...Array(7)].map((_, i) => `<rect x="${x0 + 2 + i * (w - 4) / 7}" y="${y0 + 4}" width="3" height="14" rx="1.5" fill="${hw}" opacity=".55"/>`).join('')
       + `<circle cx="${cx}" cy="${top - 28}" r="10" fill="${hwL}"/>`
       + crest(cx, y0 + 11, 7.5),
-    bandana: `<path d="M${x0 - 3} ${y0 + 24} Q${x0 - 4} ${top - 10} ${cx} ${top - 12} Q${x1 + 4} ${top - 10} ${x1 + 3} ${y0 + 24} Q${cx} ${y0 + 14} ${x0 - 3} ${y0 + 24} Z" fill="${hw}"/>`
-      + `<path d="M${x1} ${y0 + 14} l18 4 l-6 14 Z M${x1} ${y0 + 18} l14 16 l-12 4 Z" fill="${hwD}"/>`
-      + crest(cx, y0 + 4, 8),
     hijab: ''
   }
   // the hijab is drawn around the face: behind the head, and as a frame
@@ -340,10 +337,10 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     : ''
 
   // a hat covers the top of the hair; long hair still shows at the sides
-  const coversTop = ['scout', 'beret', 'cap', 'beanie', 'bandana'].includes(a.headwear)
+  const coversTop = ['scout', 'beret', 'cap', 'beanie'].includes(a.headwear)
   const hairFront = hide ? '' : coversTop ? `<g clip-path="url(#under-${id})">${front[a.hair] || ''}</g>` : (front[a.hair] || '')
   const hairBack = hide || (coversTop && a.hair === 'bun') ? '' : (back[a.hair] || '')
-  const hatTop = a.headwear === 'scout' ? y0 + 6 : a.headwear === 'bandana' ? y0 + 18 : y0 + 14
+  const hatTop = a.headwear === 'scout' ? y0 + 6 : y0 + 14
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEW[crop]}">`
     + `<defs>`
