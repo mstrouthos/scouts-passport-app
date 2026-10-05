@@ -21,9 +21,6 @@ const seesBar = computed(() => me.value?.role === 'troop_leader'
     <NuxtLink v-if="seesBar" to="/admin/bar" class="srow">
       <div class="ico">🍻</div><div class="txt"><b>{{ t('barTitle') }}</b><span>{{ t('barSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>
-    <NuxtLink v-if="me?.can?.rosterEdit !== false" to="/admin/trash" class="srow">
-      <div class="ico">🗑️</div><div class="txt"><b>{{ t('trash') }}</b><span>{{ t('trashSub') }}</span></div><span class="chev">›</span>
-    </NuxtLink>
     <NuxtLink v-if="me?.role === 'troop_leader'" to="/admin/launch" class="srow">
       <div class="ico">🚀</div><div class="txt"><b>{{ t('launch') }}</b><span>{{ t('launchSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>
@@ -50,6 +47,9 @@ const seesBar = computed(() => me.value?.role === 'troop_leader'
     </NuxtLink>
     <NuxtLink v-if="canSeeRoles && me?.can?.rosterEdit !== false" to="/admin/roles" class="srow">
       <div class="ico">👥</div><div class="txt"><b>{{ t('roles') }}</b><span>{{ t('rolesSub') }}</span></div><span class="chev">›</span>
+    </NuxtLink>
+    <NuxtLink v-if="me?.can?.rosterEdit !== false" to="/admin/trash" class="srow">
+      <div class="ico">🗑️</div><div class="txt"><b>{{ t('trash') }}</b><span>{{ t('trashSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>
   </AppShell>
 </template>

@@ -898,7 +898,7 @@
   "formSignHere": "Υπογράψτε εδώ",
   "formSignClear": "Καθαρισμός",
   "formSend": "Υποβολή",
-  "formFixErrors": "Συμπληρώστε τα πεδία που λείπουν πριν την υποβολή.",
+  "formFixErrors": "Συμπληρώστε τα πεδία που λείπουν.",
   "formPrivacy": "Τα στοιχεία σας αποθηκεύονται με ασφάλεια και τα βλέπουν μόνο οι υπεύθυνοι του Συστήματος.",
   "formErr_required": "Υποχρεωτικό πεδίο",
   "formErr_invalid": "Μη έγκυρη επιλογή",
@@ -929,5 +929,8 @@
   "formCondSummary": "αν «{q}» = {a}",
   "ftype_yesno": "Ναι / Όχι",
   "formOption": "Επιλογή",
-  "formAddOption": "Νέα επιλογή"
+  "formAddOption": "Νέα επιλογή",
+  "formNext": "Επόμενο",
+  "formBack": "Πίσω",
+  "formStepOf": "Βήμα {n} από {of}"
 }

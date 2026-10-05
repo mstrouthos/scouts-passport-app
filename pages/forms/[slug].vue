@@ -1,8 +1,10 @@
 <script setup lang="ts">
 /* A form, as anyone with its link fills it in — on forms.scouts30.org, or at
    /forms/<link> in the app, where an administrator can also preview one that
-   is still closed. One page: the modules in order, the tickboxes, the
-   signature, and a single send. */
+   is still closed. One section per page, as Google Forms does it: Επόμενο
+   checks only that page, conditions decide which sections are in the run,
+   and the last page holds the tickboxes, the signature and the send. The
+   phone's back button steps back a page rather than leaving the form. */
 import { checkAnswers, visibleParts, type FormSpec } from '~/utils/formSpec'
 const { t } = useI18n()
 const route = useRoute()
@@ -33,25 +35,72 @@ watch(spec, sp => {
    the moment the answer it depends on is given, and goes again if it changes */
 const shown = computed(() => spec.value ? visibleParts(spec.value, answers) : { modules: new Set<string>(), questions: new Set<string>() })
 const errors = ref<Record<string, string>>({})
-const tried = ref(false)
 const busy = ref(false)
 const done = ref<{ thanks?: string } | null>(null)
 const sendError = ref('')
 const errText = (code: string) => t('formErr_' + code)
 
-/* problems show once a send was tried, and clear as each is put right */
-watch([answers, ticks, signature], () => { if (tried.value && spec.value) errors.value = checkAnswers(spec.value, payload()).errors }, { deep: true })
 const payload = () => ({ answers: { ...answers }, ticks: { ...ticks }, signature: signature.value, website: website.value })
+/* a problem shown clears the moment it is put right; none new appear until
+   the next Επόμενο */
+watch([answers, ticks, signature], () => {
+  if (!spec.value || !Object.keys(errors.value).length) return
+  const now = checkAnswers(spec.value, payload()).errors
+  errors.value = Object.fromEntries(Object.entries(now).filter(([k]) => k in errors.value))
+}, { deep: true })
+
+/* the pages: each section the answers so far lead to, then the end — the
+   tickboxes and the signature — if the form has any */
+type Page = { kind: 'module', m: FormSpec['modules'][number] } | { kind: 'end' }
+const pages = computed<Page[]>(() => {
+  const sp = spec.value
+  if (!sp) return []
+  const list: Page[] = sp.modules.filter(m => shown.value.modules.has(m.id)).map(m => ({ kind: 'module' as const, m }))
+  if (sp.ticks.length || sp.signature.enabled || !list.length) list.push({ kind: 'end' })
+  return list
+})
+const idsOf = (p: Page) => p.kind === 'module'
+  ? p.m.questions.filter(q => shown.value.questions.has(q.id)).map(q => q.id)
+  : [...(spec.value?.ticks || []).map(x => x.id), 'signature']
+
+/* which page is open lives in the address (?s=2), so the back button steps
+   back; a reload starts over from the first, as the answers are not kept */
+const router = useRouter()
+const step = computed(() => Math.max(0, Math.min(Number(route.query.s) || 0, pages.value.length - 1)))
+const page = computed(() => pages.value[step.value])
+const isLast = computed(() => step.value === pages.value.length - 1)
+onMounted(() => { if (route.query.s) router.replace({ query: { ...route.query, s: undefined } }) })
+function go(n: number) {
+  errors.value = {}
+  router.push({ query: { ...route.query, s: n > 0 ? String(n) : undefined } })
+  window.scrollTo({ top: 0 })
+}
+async function showErrors(errs: Record<string, string>) {
+  errors.value = errs
+  await nextTick()
+  document.querySelector('.bad')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+function next() {
+  if (!spec.value || !page.value) return
+  const ids = idsOf(page.value)
+  const all = checkAnswers(spec.value, payload()).errors
+  const here = Object.fromEntries(Object.entries(all).filter(([k]) => ids.includes(k)))
+  if (Object.keys(here).length) return showErrors(here)
+  go(step.value + 1)
+}
+const back = () => { errors.value = {}; router.back() }
 
 async function send() {
   if (!spec.value || busy.value) return
-  tried.value = true
   sendError.value = ''
-  errors.value = checkAnswers(spec.value, payload()).errors
-  if (Object.keys(errors.value).length) {
+  const all = checkAnswers(spec.value, payload()).errors
+  if (Object.keys(all).length) {
+    // the first page with something missing — normally this one
+    const at = pages.value.findIndex(p => idsOf(p).some(id => id in all))
+    if (at >= 0 && at !== step.value) go(at)
     await nextTick()
-    document.querySelector('.bad')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    return
+    const ids = idsOf(pages.value[at >= 0 ? at : step.value])
+    return showErrors(Object.fromEntries(Object.entries(all).filter(([k]) => ids.includes(k))))
   }
   if (data.value?.preview && !data.value?.open) { sendError.value = t('formPreviewNoSend'); return }
   busy.value = true
@@ -59,7 +108,13 @@ async function send() {
     done.value = await $fetch<any>(`/api/forms/public/${encodeURIComponent(slug.value)}`, { method: 'POST', body: payload() })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (e: any) {
-    if (e?.data?.data?.errors) errors.value = e.data.data.errors
+    if (e?.data?.data?.errors) {
+      const all = e.data.data.errors
+      const at = pages.value.findIndex(p => idsOf(p).some(id => id in all))
+      if (at >= 0 && at !== step.value) go(at)
+      await nextTick()
+      errors.value = all
+    }
     sendError.value = e?.data?.message || t('error')
   } finally { busy.value = false }
 }
@@ -92,12 +147,16 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
         <h1>{{ data.titleEl }}</h1>
         <div v-if="!data.open && !data.preview" class="card msg">{{ t('formClosed') }}</div>
         <template v-else-if="spec">
-          <p v-if="data.introEl" class="intro">{{ data.introEl }}</p>
+          <p v-if="data.introEl && step === 0" class="intro">{{ data.introEl }}</p>
+          <div v-if="pages.length > 1" class="progress" :aria-label="t('formStepOf', { n: step + 1, of: pages.length })">
+            <div class="track"><i :style="{ width: ((step + 1) / pages.length * 100) + '%' }" /></div>
+            <span>{{ t('formStepOf', { n: step + 1, of: pages.length }) }}</span>
+          </div>
 
-          <section v-for="m in spec.modules.filter(x => shown.modules.has(x.id))" :key="m.id" class="card mod">
-            <h2 v-if="m.title">{{ m.title }}</h2>
-            <p v-if="m.description" class="desc">{{ m.description }}</p>
-            <div v-for="q in m.questions.filter(x => shown.questions.has(x.id))" :key="q.id" class="q" :class="{ bad: errors[q.id] }">
+          <section v-if="page?.kind === 'module'" :key="page.m.id" class="card mod">
+            <h2 v-if="page.m.title">{{ page.m.title }}</h2>
+            <p v-if="page.m.description" class="desc">{{ page.m.description }}</p>
+            <div v-for="q in page.m.questions.filter(x => shown.questions.has(x.id))" :key="q.id" class="q" :class="{ bad: errors[q.id] }">
               <label class="ql" :for="'q' + q.id">{{ q.label }}<span v-if="q.required" class="req">*</span></label>
               <div v-if="q.help" class="help">{{ q.help }}</div>
 
@@ -127,7 +186,7 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
             </div>
           </section>
 
-          <section v-if="spec.ticks.length || spec.signature.enabled" class="card mod">
+          <section v-else-if="page?.kind === 'end'" class="card mod">
             <label v-for="x in spec.ticks" :key="x.id" class="tick" :class="{ bad: errors[x.id] }">
               <input v-model="ticks[x.id]" type="checkbox">
               <span>{{ x.label }}<span v-if="x.required" class="req">*</span></span>
@@ -142,9 +201,13 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
           <!-- for bots only: people never see it -->
           <input v-model="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
 
-          <div v-if="tried && Object.keys(errors).length" class="err center">{{ t('formFixErrors') }}</div>
+          <div v-if="Object.keys(errors).length" class="err center">{{ t('formFixErrors') }}</div>
           <div v-if="sendError" class="err center">{{ sendError }}</div>
-          <button class="btn" :disabled="busy" @click="send">{{ busy ? t('loading') : t('formSend') }}</button>
+          <div class="nav">
+            <button v-if="step > 0" class="btn ghost" @click="back">‹ {{ t('formBack') }}</button>
+            <button v-if="!isLast" class="btn" @click="next">{{ t('formNext') }} ›</button>
+            <button v-else class="btn" :disabled="busy" @click="send">{{ busy ? t('loading') : t('formSend') }}</button>
+          </div>
           <p class="tiny muted center">{{ t('formPrivacy') }}</p>
         </template>
       </template>
@@ -185,5 +248,11 @@ select.in{appearance:auto}
 .msg.ok b{display:block; font-size:18px; margin:6px 0}
 .msg.ok p{margin:0; color:var(--muted); white-space:pre-wrap}
 .big{font-size:44px}
+.progress{display:flex; align-items:center; gap:10px}
+.track{flex:1; height:6px; border-radius:3px; background:rgba(59,100,82,.15); overflow:hidden}
+.track i{display:block; height:100%; background:var(--accent); border-radius:3px; transition:width .3s ease}
+.progress span{flex:none; font-size:11.5px; color:var(--muted); font-weight:600}
+.nav{display:flex; gap:10px}
+.nav .btn{flex:1}
 .hp{position:absolute; left:-9999px; width:1px; height:1px; opacity:0}
 </style>

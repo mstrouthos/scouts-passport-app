@@ -898,7 +898,7 @@
   "formSignHere": "Sign here",
   "formSignClear": "Clear",
   "formSend": "Send",
-  "formFixErrors": "Fill in the missing fields before sending.",
+  "formFixErrors": "Fill in the missing fields.",
   "formPrivacy": "Your details are stored securely and only seen by the troop leaders.",
   "formErr_required": "Required",
   "formErr_invalid": "Invalid choice",
@@ -929,5 +929,8 @@
   "formCondSummary": "if “{q}” = {a}",
   "ftype_yesno": "Yes / No",
   "formOption": "Choice",
-  "formAddOption": "Add choice"
+  "formAddOption": "Add choice",
+  "formNext": "Next",
+  "formBack": "Back",
+  "formStepOf": "Step {n} of {of}"
 }

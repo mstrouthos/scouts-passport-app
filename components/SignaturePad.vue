@@ -25,9 +25,26 @@ function size() {
   ctx.lineJoin = 'round'
   ctx.strokeStyle = '#16233B'
 }
-// a resize clears the canvas, and with it the signature: start again cleanly
-function onResize() { size(); clear() }
-onMounted(() => { size(); window.addEventListener('resize', onResize) })
+/* phones fire resize as the address bar hides and the keyboard comes and
+   goes; only a real change of width redraws the canvas, and it redraws the
+   signature with it rather than losing it */
+let lastWidth = 0
+function onResize() {
+  const w = canvas.value?.getBoundingClientRect().width || 0
+  if (Math.abs(w - lastWidth) < 1) return
+  lastWidth = w
+  size(); redraw()
+}
+/* coming back to a signature already drawn (a step back and forward in the
+   form) shows it again, rather than an empty box that still holds one */
+function redraw() {
+  if (!props.modelValue || !ctx || !canvas.value) return
+  const img = new Image()
+  const r = canvas.value.getBoundingClientRect()
+  img.onload = () => ctx?.drawImage(img, 0, 0, r.width, r.height)
+  img.src = props.modelValue
+}
+onMounted(() => { size(); lastWidth = canvas.value?.getBoundingClientRect().width || 0; redraw(); window.addEventListener('resize', onResize) })
 onUnmounted(() => window.removeEventListener('resize', onResize))
 
 function at(e: PointerEvent) {
