@@ -1068,5 +1068,21 @@
   "avo_gear_whistle": "Whistle",
   "avo_gear_compass": "Compass",
   "avo_gear_badges": "Badges",
-  "avatarReset": "Back to saved"
+  "avatarReset": "Back to saved",
+  "formRepeatRemoveQ": "Remove “{name}” and all its answers?",
+  "formRepeatAskDefault": "Would you like to add another ({label})?",
+  "formRepeatYes": "Yes, add: {label}",
+  "formRepeatNo": "No, continue",
+  "formRepeatMax": "You have reached the maximum ({n}).",
+  "formRepeat": "Repeat",
+  "formRepeatOn": "🔁 Repeat this section (e.g. for each child)",
+  "formRepeatLabel": "What each copy is called",
+  "formRepeatLabelPh": "e.g. Child",
+  "formRepeatUntil": "Repeat the sections up to and including",
+  "formRepeatAsk": "Question after each copy",
+  "formRepeatAskPh": "e.g. Would you like to register another child?",
+  "formRepeatMaxLabel": "Maximum number",
+  "formRepeatPart": "Part of the “{label}” repeat",
+  "formRepeatNote": "The parent fills in the sections for “{label} 1” and is then asked whether to add another. The Excel export has one row per {label}.",
+  "formRepeatSoFar": "So far"
 }

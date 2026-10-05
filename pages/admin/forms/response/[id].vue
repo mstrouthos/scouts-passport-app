@@ -3,7 +3,7 @@
    answers, their uploads, the tickboxes, the signature with who signed and
    when. As a PDF — to keep, or to print straight from here — with every
    photo in place and any uploaded PDFs appended. Opening it is recorded. */
-import { answerText, visibleParts } from '~/utils/formSpec'
+import { answerText, visibleParts, instanceTitle } from '~/utils/formSpec'
 const { t, locale } = useI18n()
 const me = useMe()
 const { show } = useToast()
@@ -68,7 +68,7 @@ const filesOf = (v: unknown) => (Array.isArray(v) ? v : []).map(k => r.value?.fi
 const kb = (n: number) => n > 1024 * 1024 ? (n / 1024 / 1024).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'
 const when = (iso: string) => new Date(iso).toLocaleString(locale.value === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 /* only what this person was asked: sections their answers skipped are left out */
-const seen = computed(() => r.value ? visibleParts(r.value.spec, r.value.data.answers || {}) : null)
+const seen = computed(() => r.value ? visibleParts(r.value.spec, r.value.data.answers || {}, r.value.data.repeats) : null)
 </script>
 
 <template>
@@ -86,13 +86,14 @@ const seen = computed(() => r.value ? visibleParts(r.value.spec, r.value.data.an
         <span>#{{ r.id }} · {{ stamp(r.createdAt) }}</span>
       </div>
 
-      <section v-for="m in r.spec.modules.filter((x: any) => seen?.modules.has(x.id))" :key="m.id" class="card mod">
-        <h2 v-if="m.title">{{ m.title }}</h2>
-        <div v-for="q in m.questions.filter((x: any) => seen?.questions.has(x.id))" :key="q.id" class="qa">
+      <!-- each section as it was answered: a repeated one once per child -->
+      <section v-for="inst in seen?.shown || []" :key="inst.key" class="card mod">
+        <h2 v-if="instanceTitle(inst)">{{ instanceTitle(inst) }}</h2>
+        <div v-for="q in inst.m.questions.filter((x: any) => seen?.questions.has(x.id + inst.sfx))" :key="q.id" class="qa">
           <div class="q">{{ q.label }}</div>
           <div v-if="q.type === 'file'" class="files">
-            <div v-if="!filesOf(r.data.answers?.[q.id]).length" class="a none">—</div>
-            <div v-for="f in filesOf(r.data.answers?.[q.id])" :key="f.id" class="file">
+            <div v-if="!filesOf(r.data.answers?.[q.id + inst.sfx]).length" class="a none">—</div>
+            <div v-for="f in filesOf(r.data.answers?.[q.id + inst.sfx])" :key="f.id" class="file">
               <img v-if="previews[f.id]" :src="previews[f.id]" alt="" class="thumb">
               <div class="frow">
                 <span>{{ f.mime === 'application/pdf' ? '📄' : '🖼️' }} <b>{{ f.name }}</b> <small>{{ kb(f.size) }}</small></span>
@@ -100,7 +101,7 @@ const seen = computed(() => r.value ? visibleParts(r.value.spec, r.value.data.an
               </div>
             </div>
           </div>
-          <div v-else class="a" :class="{ none: !shown(r.data.answers?.[q.id]) }">{{ shown(r.data.answers?.[q.id], q.type) || '—' }}</div>
+          <div v-else class="a" :class="{ none: !shown(r.data.answers?.[q.id + inst.sfx]) }">{{ shown(r.data.answers?.[q.id + inst.sfx], q.type) || '—' }}</div>
         </div>
       </section>
 

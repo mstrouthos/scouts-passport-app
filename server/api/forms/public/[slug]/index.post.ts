@@ -2,7 +2,7 @@ import { and, eq, gt, inArray, isNull } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 import { specOf, isAccepting } from '../../../../utils/forms'
 import { seal, ipHash } from '../../../../utils/seal'
-import { checkAnswers } from '../../../../../utils/formSpec'
+import { checkAnswers, baseId, repeatGroups, copiesOf } from '../../../../../utils/formSpec'
 import { now } from '../../../../utils/passcode'
 import { sendPushTo } from '../../../../utils/push'
 import { administratorIds } from '../../../../utils/infoNotify'
@@ -33,16 +33,18 @@ export default defineEventHandler(async (event) => {
 
   // uploads were sent ahead, each known by a token; the answer claims them —
   // only files uploaded to this form, for this question, and not yet claimed
-  const fileQs = spec.modules.flatMap(m => m.questions).filter(q => q.type === 'file' && Array.isArray(clean.answers[q.id]))
-  const tokens = fileQs.flatMap(q => clean.answers[q.id] as string[])
+  // (an answer key is the question's id, with "@2" etc. for a repeated copy)
+  const fileIds = new Set(spec.modules.flatMap(m => m.questions).filter(q => q.type === 'file').map(q => q.id))
+  const fileKeys = Object.keys(clean.answers).filter(k => fileIds.has(baseId(k)) && Array.isArray(clean.answers[k]))
+  const tokens = fileKeys.flatMap(k => clean.answers[k] as string[])
   const waiting = tokens.length
     ? await db.select().from(s.formFiles).where(and(inArray(s.formFiles.token, tokens), eq(s.formFiles.formId, f.id), isNull(s.formFiles.responseId)))
     : []
   const bad: Record<string, string> = {}
-  for (const q of fileQs) {
-    const mine = (clean.answers[q.id] as string[]).map(tk => waiting.find(w => w.token === tk && w.questionId === q.id))
-    if (mine.some(x => !x)) bad[q.id] = 'upload'
-    else clean.answers[q.id] = mine.map(x => `f:${x!.id}`)
+  for (const k of fileKeys) {
+    const mine = (clean.answers[k] as string[]).map(tk => waiting.find(w => w.token === tk && w.questionId === baseId(k)))
+    if (mine.some(x => !x)) bad[k] = 'upload'
+    else clean.answers[k] = mine.map(x => `f:${x!.id}`)
   }
   if (Object.keys(bad).length) throw createError({ statusCode: 422, message: 'Κάποιο αρχείο δεν ανέβηκε σωστά — ανεβάστε το ξανά', data: { errors: bad } })
   // the date it was signed is the moment it was sent, by the server's clock
@@ -60,7 +62,9 @@ export default defineEventHandler(async (event) => {
   // the administrators hear of it; the bell names the form, never the answers
   try {
     await sendPushTo(await administratorIds(), {
-      title: 'Νέα υποβολή φόρμας', body: f.titleEl, kind: 'formResponse', refId: row.id
+      // with the number of children (or whatever the form repeats), when it does
+      title: 'Νέα υποβολή φόρμας', kind: 'formResponse', refId: row.id,
+      body: [f.titleEl, ...repeatGroups(spec).map(g => `${copiesOf(g, clean.repeats)} × ${g.repeat.label}`)].join(' · ')
     })
   } catch (e) { noteError('Φόρμες — ειδοποίηση διαχειριστών', e, { form: f.slug }) }
   return { ok: true, thanks: f.thanksEl }

@@ -2,7 +2,7 @@
 /* One form: building it (modules of questions, the tickboxes at the end, the
    signature), its settings (link, texts, open or closed), and what has come
    back. Nothing is saved until Save — the page says when there are changes. */
-import { FIELD_TYPES, WITH_OPTIONS, CHOICE_TYPES, YES_NO, newId, type FormSpec, type FormQuestion, type FieldType } from '~/utils/formSpec'
+import { FIELD_TYPES, WITH_OPTIONS, CHOICE_TYPES, YES_NO, REPEAT_MAX, newId, type FormSpec, type FormQuestion, type FieldType } from '~/utils/formSpec'
 const { t, locale } = useI18n()
 const me = useMe()
 const { show } = useToast()
@@ -147,6 +147,29 @@ watch(() => spec.value.modules.flatMap(m => m.questions.map(q => q.type)), () =>
     if (WITH_OPTIONS.includes(q.type) && !q.options.length) q.options.push('', '')
     else if (q.type === 'yesno' && q.options.join() !== YES_NO.join()) q.options = [...YES_NO]
 })
+/* repeated runs: which run (if any) each section belongs to, and the
+   sections a run starting here may reach — up to the next run's start */
+function runOf(mi: number) {
+  for (let i = mi; i >= 0; i--) {
+    const r = spec.value.modules[i].repeat
+    if (!r) continue
+    const end = spec.value.modules.findIndex(x => x.id === r.until)
+    return mi <= Math.max(i, end) ? { start: i, end: Math.max(i, end), repeat: r } : null
+  }
+  return null
+}
+function reachOf(mi: number) {
+  const out = []
+  for (let j = mi; j < spec.value.modules.length; j++) {
+    if (j > mi && spec.value.modules[j].repeat) break
+    out.push({ id: spec.value.modules[j].id, n: j + 1, title: spec.value.modules[j].title })
+  }
+  return out
+}
+function toggleRepeat(m: any, on: boolean) {
+  if (on) m.repeat = { label: 'Παιδί', until: m.id, ask: '', max: 6 }
+  else delete m.repeat
+}
 function addTick() { spec.value.ticks.push({ id: newId(), label: '', required: true }) }
 
 const link = computed(() => `https://forms.scouts30.org/${form.value?.slug || settings.slug}`)
@@ -191,7 +214,7 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
 
     <!-- ===== building ===== -->
     <template v-if="tab === 'build'">
-      <div v-for="(m, mi) in spec.modules" :key="m.id" class="card mod">
+      <div v-for="(m, mi) in spec.modules" :key="m.id" class="card mod" :class="{ looped: !!runOf(mi) }">
         <div class="mhead">
           <span class="mnum">{{ mi + 1 }}</span>
           <input v-model="m.title" class="in" :placeholder="t('formModuleTitlePh')">
@@ -202,6 +225,24 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
         </div>
         <textarea v-model="m.description" class="in" rows="2" :placeholder="t('formModuleDescPh')" />
         <FormConditionEdit v-if="mi > 0 || m.showIf" v-model="m.showIf" :sources="sourcesBefore(mi)" what="module" />
+        <!-- a run of sections answered again for each child -->
+        <div v-if="runOf(mi) && runOf(mi)!.start < mi" class="inrun">🔁 {{ t('formRepeatPart', { label: runOf(mi)!.repeat.label }) }}</div>
+        <div v-else class="rep" :class="{ on: !!m.repeat }">
+          <label class="tog"><input type="checkbox" :checked="!!m.repeat" @change="toggleRepeat(m, ($event.target as HTMLInputElement).checked)"> {{ t('formRepeatOn') }}</label>
+          <template v-if="m.repeat">
+            <div class="rep-grid">
+              <div><label class="lab">{{ t('formRepeatLabel') }}</label><input v-model="m.repeat.label" class="in" :placeholder="t('formRepeatLabelPh')"></div>
+              <div><label class="lab">{{ t('formRepeatMaxLabel') }}</label>
+                <select v-model.number="m.repeat.max" class="in"><option v-for="n in REPEAT_MAX - 1" :key="n" :value="n + 1">{{ n + 1 }}</option></select></div>
+            </div>
+            <div><label class="lab">{{ t('formRepeatUntil') }}</label>
+              <select v-model="m.repeat.until" class="in">
+                <option v-for="o in reachOf(mi)" :key="o.id" :value="o.id">{{ o.n }}. {{ o.title || t('formModuleTitlePh') }}</option>
+              </select></div>
+            <div><label class="lab">{{ t('formRepeatAsk') }}</label><input v-model="m.repeat.ask" class="in" :placeholder="t('formRepeatAskPh')"></div>
+            <div class="tiny muted">{{ t('formRepeatNote', { label: m.repeat.label || '…' }) }}</div>
+          </template>
+        </div>
 
         <div v-for="(q, qi) in m.questions" :key="q.id" class="qq" :class="{ editing: open === q.id }">
           <button class="qrow" @click="open = open === q.id ? null : q.id">
@@ -356,6 +397,11 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
 .optrow{display:flex; align-items:center; gap:6px}
 .optrow .in{flex:1; min-width:0}
 .optrow .mark{flex:none; width:20px; text-align:center; color:var(--muted); font-size:13px}
+.rep{display:flex; flex-direction:column; gap:9px; border-radius:12px}
+.rep.on{background:#E9F1FD; padding:10px}
+.rep-grid{display:grid; grid-template-columns:1fr 110px; gap:8px}
+.inrun{font-size:12px; font-weight:700; color:#2E5E8C; background:#E9F1FD; border-radius:10px; padding:8px 10px}
+.mod.looped{box-shadow:inset 4px 0 0 #7FA8DB, var(--shadow)}
 .tickrow{display:flex; flex-direction:column; gap:6px; padding-bottom:10px; border-bottom:1px solid var(--hair)}
 select.in{appearance:auto}
 .slug{display:flex; align-items:center; gap:4px}

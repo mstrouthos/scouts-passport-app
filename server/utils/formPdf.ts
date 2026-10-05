@@ -1,6 +1,6 @@
 import { PDFDocument, rgb, type PDFFont, type PDFPage, type PDFImage } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
-import { visibleParts, answerText, type FormSpec, type FormAnswers } from '../../utils/formSpec'
+import { visibleParts, answerText, instanceTitle, type FormSpec, type FormAnswers } from '../../utils/formSpec'
 import type { FormFile } from './formFiles'
 
 /* One form response as a PDF: everything the person was asked and what they
@@ -109,16 +109,18 @@ export async function responsePdf(p: {
   text(`Υποβολή #${p.responseId} · ${when(p.createdAt)}`, { size: 9.5, color: MUTED })
   rule(12)
 
-  const seen = visibleParts(p.spec, p.data.answers || {})
+  // each section as it was met: a repeated one once per child, titled for it
+  const seen = visibleParts(p.spec, p.data.answers || {}, p.data.repeats)
   const attachedPdfs: Array<{ name: string, bytes: Buffer }> = []
-  for (const m of p.spec.modules) {
-    if (!seen.modules.has(m.id)) continue
-    if (m.title) { room(40); text(m.title, { font: bold, size: 13, color: GREEN, gap: 6 }) }
-    for (const q of m.questions) {
-      if (!seen.questions.has(q.id)) continue
+  for (const inst of seen.shown) {
+    const title = instanceTitle(inst)
+    if (title) { room(40); text(title, { font: bold, size: 13, color: GREEN, gap: 6 }) }
+    for (const q of inst.m.questions) {
+      const key = q.id + inst.sfx
+      if (!seen.questions.has(key)) continue
       room(36)
       text(q.label, { size: 9, color: MUTED, gap: 1 })
-      const v = p.data.answers?.[q.id]
+      const v = p.data.answers?.[key]
       if (q.type === 'file') {
         const list = (Array.isArray(v) ? v : []).map(k => p.files[k]).filter(Boolean)
         if (!list.length) text('—', { font: bold, size: 11, gap: 8 })

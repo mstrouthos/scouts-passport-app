@@ -4,8 +4,12 @@
    is still closed. One section per page, as Google Forms does it: Επόμενο
    checks only that page, conditions decide which sections are in the run,
    and the last page holds the tickboxes, the signature and the send. The
-   phone's back button steps back a page rather than leaving the form. */
-import { checkAnswers, visibleParts, type FormSpec } from '~/utils/formSpec'
+   phone's back button steps back a page rather than leaving the form.
+
+   A repeated run of sections (each child of a registration) is met once per
+   copy — "Παιδί 1", "Παιδί 2"… — and after the last copy a page lists them,
+   lets one be edited or taken out, and asks whether to add another. */
+import { checkAnswers, visibleParts, instanceTitle, repeatGroups, copiesOf, type FormSpec, type Instance, type RepeatGroup } from '~/utils/formSpec'
 const { t } = useI18n()
 const route = useRoute()
 const slug = computed(() => String(route.params.slug || ''))
@@ -35,24 +39,32 @@ function setUploads(id: string, list: typeof uploads[string]) {
   uploads[id] = list
   answers[id] = list.map(x => x.token)
 }
-watch(spec, sp => {
-  for (const m of sp?.modules || []) for (const q of m.questions) {
-    if (!(q.id in answers)) answers[q.id] = q.type === 'checkbox' || q.type === 'file' ? [] : ''
-    if (q.type === 'file' && !(q.id in uploads)) uploads[q.id] = []
-  }
-  for (const x of sp?.ticks || []) if (!(x.id in ticks)) ticks[x.id] = false
-}, { immediate: true })
+/* how many copies of each repeated run: one to begin with */
+const repeats = reactive<Record<string, number>>({})
+const groups = computed<RepeatGroup[]>(() => spec.value ? repeatGroups(spec.value) : [])
+watch(groups, gs => { for (const g of gs) if (!(g.id in repeats)) repeats[g.id] = 1 }, { immediate: true })
 
 /* what these answers show: a module or question with a condition appears
    the moment the answer it depends on is given, and goes again if it changes */
-const shown = computed(() => spec.value ? visibleParts(spec.value, answers) : { modules: new Set<string>(), questions: new Set<string>() })
+const shown = computed(() => spec.value
+  ? visibleParts(spec.value, answers, repeats)
+  : { modules: new Set<string>(), questions: new Set<string>(), shown: [] as Instance[] })
+/* every answer the person may meet has a place to go — a new copy's too */
+watchEffect(() => {
+  for (const inst of shown.value.shown) for (const q of inst.m.questions) {
+    const key = q.id + inst.sfx
+    if (!(key in answers)) answers[key] = q.type === 'checkbox' || q.type === 'file' ? [] : ''
+    if (q.type === 'file' && !(key in uploads)) uploads[key] = []
+  }
+  for (const x of spec.value?.ticks || []) if (!(x.id in ticks)) ticks[x.id] = false
+})
 const errors = ref<Record<string, string>>({})
 const busy = ref(false)
 const done = ref<{ thanks?: string } | null>(null)
 const sendError = ref('')
 const errText = (code: string) => t('formErr_' + code)
 
-const payload = () => ({ answers: { ...answers }, ticks: { ...ticks }, signature: signature.value, signerName: signerName.value, website: website.value })
+const payload = () => ({ answers: { ...answers }, ticks: { ...ticks }, repeats: { ...repeats }, signature: signature.value, signerName: signerName.value, website: website.value })
 /* a problem shown clears the moment it is put right; none new appear until
    the next Επόμενο */
 watch([answers, ticks, signature, signerName], () => {
@@ -61,19 +73,59 @@ watch([answers, ticks, signature, signerName], () => {
   errors.value = Object.fromEntries(Object.entries(now).filter(([k]) => k in errors.value))
 }, { deep: true })
 
-/* the pages: each section the answers so far lead to, then the end — the
-   tickboxes and the signature — if the form has any */
-type Page = { kind: 'module', m: FormSpec['modules'][number] } | { kind: 'end' }
+/* the pages: each section the answers so far lead to — a repeated run once
+   per copy, then the page that asks for another — and the end, with the
+   tickboxes and the signature, if the form has any */
+type Page = { kind: 'module', inst: Instance } | { kind: 'more', group: RepeatGroup } | { kind: 'end' }
 const pages = computed<Page[]>(() => {
   const sp = spec.value
   if (!sp) return []
-  const list: Page[] = sp.modules.filter(m => shown.value.modules.has(m.id)).map(m => ({ kind: 'module' as const, m }))
+  const list: Page[] = []
+  const vis = shown.value.shown
+  vis.forEach((inst, i) => {
+    list.push({ kind: 'module', inst })
+    if (inst.group && vis[i + 1]?.group?.id !== inst.group.id) list.push({ kind: 'more', group: inst.group })
+  })
   if (sp.ticks.length || sp.signature.enabled || !list.length) list.push({ kind: 'end' })
   return list
 })
 const idsOf = (p: Page) => p.kind === 'module'
-  ? p.m.questions.filter(q => shown.value.questions.has(q.id)).map(q => q.id)
-  : [...(spec.value?.ticks || []).map(x => x.id), 'signature', 'signerName']
+  ? p.inst.m.questions.map(q => q.id + p.inst.sfx).filter(k => shown.value.questions.has(k))
+  : p.kind === 'more' ? [] : [...(spec.value?.ticks || []).map(x => x.id), 'signature', 'signerName']
+
+/* the "another?" page: the copies so far, each named by its first answer */
+function copyName(g: RepeatGroup, n: number) {
+  for (let j = g.start; j <= g.end; j++) for (const q of spec.value!.modules[j].questions) {
+    const v = answers[`${q.id}@${n}`]
+    if (typeof v === 'string' && v.trim() && ['text', 'textarea'].includes(q.type)) return v.trim()
+  }
+  return ''
+}
+const firstPageOf = (g: RepeatGroup, n: number) =>
+  pages.value.findIndex(p => p.kind === 'module' && p.inst.group?.id === g.id && p.inst.copy === n)
+function addCopy(g: RepeatGroup) {
+  if (copiesOf(g, repeats) >= g.repeat.max) return
+  // the new copy's pages take this page's place: its first one opens here
+  repeats[g.id] = copiesOf(g, repeats) + 1
+  window.scrollTo({ top: 0 })
+}
+/* taking a copy out moves the ones after it up, answers and files alike */
+function removeCopy(g: RepeatGroup, n: number) {
+  const count = copiesOf(g, repeats)
+  if (count <= 1 || !confirm(t('formRepeatRemoveQ', { name: `${g.repeat.label} ${n}` }))) return
+  const qs = spec.value!.modules.slice(g.start, g.end + 1).flatMap(m => m.questions)
+  for (let k = n; k <= count; k++) for (const q of qs) {
+    const from = `${q.id}@${k + 1}`, to = `${q.id}@${k}`
+    if (k < count) { answers[to] = answers[from]; if (q.type === 'file') uploads[to] = uploads[from] }
+    else { delete answers[to]; delete uploads[to] }
+  }
+  repeats[g.id] = count - 1
+  // its pages are gone from in front of this one: stay on the list
+  nextTick(() => {
+    const at = pages.value.findIndex(p => p.kind === 'more' && p.group.id === g.id)
+    if (at >= 0) router.replace({ query: { ...route.query, s: at > 0 ? String(at) : undefined } })
+  })
+}
 
 /* which page is open lives in the address (?s=2), so the back button steps
    back; a reload starts over from the first, as the answers are not kept */
@@ -130,8 +182,9 @@ async function send() {
     sendError.value = errMsg(e)
   } finally { busy.value = false }
 }
+const kOf = (q: { id: string }) => q.id + (page.value?.kind === 'module' ? page.value.inst.sfx : '')
 function toggleOption(id: string, o: string) {
-  const list: string[] = answers[id]
+  const list: string[] = answers[id] || []
   answers[id] = list.includes(o) ? list.filter(x => x !== o) : [...list, o]
 }
 const INPUT_TYPE: Record<string, string> = { text: 'text', number: 'text', email: 'email', phone: 'tel', date: 'date' }
@@ -165,39 +218,61 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
             <span>{{ t('formStepOf', { n: step + 1, of: pages.length }) }}</span>
           </div>
 
-          <section v-if="page?.kind === 'module'" :key="page.m.id" class="card mod">
-            <h2 v-if="page.m.title">{{ page.m.title }}</h2>
-            <p v-if="page.m.description" class="desc">{{ page.m.description }}</p>
-            <div v-for="q in page.m.questions.filter(x => shown.questions.has(x.id))" :key="q.id" class="q" :class="{ bad: errors[q.id] }">
-              <label class="ql" :for="'q' + q.id">{{ q.label }}<span v-if="q.required" class="req">*</span></label>
+          <section v-if="page?.kind === 'module'" :key="page.inst.key" class="card mod">
+            <h2 v-if="instanceTitle(page.inst)">{{ instanceTitle(page.inst) }}</h2>
+            <p v-if="page.inst.m.description" class="desc">{{ page.inst.m.description }}</p>
+            <div v-for="q in page.inst.m.questions.filter(x => shown.questions.has(kOf(x)))" :key="q.id" class="q" :class="{ bad: errors[kOf(q)] }">
+              <label class="ql" :for="'q' + kOf(q)">{{ q.label }}<span v-if="q.required" class="req">*</span></label>
               <div v-if="q.help" class="help">{{ q.help }}</div>
 
-              <textarea v-if="q.type === 'textarea'" :id="'q' + q.id" v-model="answers[q.id]" class="in" rows="4" />
-              <select v-else-if="q.type === 'select'" :id="'q' + q.id" v-model="answers[q.id]" class="in">
+              <textarea v-if="q.type === 'textarea'" :id="'q' + kOf(q)" v-model="answers[kOf(q)]" class="in" rows="4" />
+              <select v-else-if="q.type === 'select'" :id="'q' + kOf(q)" v-model="answers[kOf(q)]" class="in">
                 <option value="" disabled>{{ t('formChoose') }}</option>
                 <option v-for="o in q.options" :key="o" :value="o">{{ o }}</option>
               </select>
               <div v-else-if="q.type === 'yesno'" class="yn">
-                <label v-for="o in q.options" :key="o" class="opt" :class="{ on: answers[q.id] === o }">
-                  <input v-model="answers[q.id]" type="radio" :name="'q' + q.id" :value="o"><span>{{ o }}</span>
+                <label v-for="o in q.options" :key="o" class="opt" :class="{ on: answers[kOf(q)] === o }">
+                  <input v-model="answers[kOf(q)]" type="radio" :name="'q' + kOf(q)" :value="o"><span>{{ o }}</span>
                 </label>
               </div>
               <div v-else-if="q.type === 'radio'" class="opts">
-                <label v-for="o in q.options" :key="o" class="opt" :class="{ on: answers[q.id] === o }">
-                  <input v-model="answers[q.id]" type="radio" :name="'q' + q.id" :value="o"><span>{{ o }}</span>
+                <label v-for="o in q.options" :key="o" class="opt" :class="{ on: answers[kOf(q)] === o }">
+                  <input v-model="answers[kOf(q)]" type="radio" :name="'q' + kOf(q)" :value="o"><span>{{ o }}</span>
                 </label>
               </div>
               <div v-else-if="q.type === 'checkbox'" class="opts">
-                <label v-for="o in q.options" :key="o" class="opt" :class="{ on: answers[q.id].includes(o) }">
-                  <input type="checkbox" :checked="answers[q.id].includes(o)" @change="toggleOption(q.id, o)"><span>{{ o }}</span>
+                <label v-for="o in q.options" :key="o" class="opt" :class="{ on: (answers[kOf(q)] || []).includes(o) }">
+                  <input type="checkbox" :checked="(answers[kOf(q)] || []).includes(o)" @change="toggleOption(kOf(q), o)"><span>{{ o }}</span>
                 </label>
               </div>
-              <FormFileUpload v-else-if="q.type === 'file'" :model-value="uploads[q.id] || []" :slug="slug" :question-id="q.id"
-                              :invalid="!!errors[q.id]" @update:model-value="setUploads(q.id, $event)" />
-              <input v-else :id="'q' + q.id" v-model="answers[q.id]" class="in" :type="INPUT_TYPE[q.type]"
+              <FormFileUpload v-else-if="q.type === 'file'" :model-value="uploads[kOf(q)] || []" :slug="slug" :question-id="q.id"
+                              :invalid="!!errors[kOf(q)]" @update:model-value="setUploads(kOf(q), $event)" />
+              <input v-else :id="'q' + kOf(q)" v-model="answers[kOf(q)]" class="in" :type="INPUT_TYPE[q.type]"
                      :inputmode="INPUT_MODE[q.type] as any" :autocomplete="q.type === 'email' ? 'email' : q.type === 'phone' ? 'tel' : 'off'">
-              <div v-if="errors[q.id]" class="err">{{ errText(errors[q.id]) }}</div>
+              <div v-if="errors[kOf(q)]" class="err">{{ errText(errors[kOf(q)]) }}</div>
             </div>
+          </section>
+
+          <!-- after the last copy of a repeated run: the copies so far, and
+               whether to add another -->
+          <section v-else-if="page?.kind === 'more'" class="card mod more">
+            <h2>{{ t('formRepeatSoFar') }}</h2>
+            <div class="copies">
+              <div v-for="n in copiesOf(page.group, repeats)" :key="n" class="copy">
+                <span class="cn">{{ n }}</span>
+                <b>{{ page.group.repeat.label }} {{ n }}<small v-if="copyName(page.group, n)"> — {{ copyName(page.group, n) }}</small></b>
+                <button type="button" class="chip" @click="go(firstPageOf(page.group, n))">{{ t('edit') }}</button>
+                <button v-if="copiesOf(page.group, repeats) > 1" type="button" class="chip x" :aria-label="t('delete')" @click="removeCopy(page.group, n)">🗑</button>
+              </div>
+            </div>
+            <p class="ask">{{ page.group.repeat.ask || t('formRepeatAskDefault', { label: page.group.repeat.label }) }}</p>
+            <div class="yn2">
+              <button type="button" class="btn ghost" :disabled="copiesOf(page.group, repeats) >= page.group.repeat.max" @click="addCopy(page.group)">
+                ＋ {{ t('formRepeatYes', { label: `${page.group.repeat.label} ${copiesOf(page.group, repeats) + 1}` }) }}
+              </button>
+              <button type="button" class="btn" @click="go(step + 1)">{{ t('formRepeatNo') }} ›</button>
+            </div>
+            <div v-if="copiesOf(page.group, repeats) >= page.group.repeat.max" class="help">{{ t('formRepeatMax', { n: page.group.repeat.max }) }}</div>
           </section>
 
           <section v-else-if="page?.kind === 'end'" class="card mod">
@@ -225,8 +300,8 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
           <div v-if="sendError" class="err center">{{ sendError }}</div>
           <div class="nav">
             <button v-if="step > 0" class="btn ghost" @click="back">‹ {{ t('formBack') }}</button>
-            <button v-if="!isLast" class="btn" @click="next">{{ t('formNext') }} ›</button>
-            <button v-else class="btn" :disabled="busy" @click="send">{{ busy ? t('loading') : t('formSend') }}</button>
+            <button v-if="!isLast && page?.kind !== 'more'" class="btn" @click="next">{{ t('formNext') }} ›</button>
+            <button v-else-if="isLast" class="btn" :disabled="busy" @click="send">{{ busy ? t('loading') : t('formSend') }}</button>
           </div>
           <p class="tiny muted center">{{ t('formPrivacy') }}</p>
         </template>
@@ -274,5 +349,14 @@ select.in{appearance:auto}
 .progress span{flex:none; font-size:11.5px; color:var(--muted); font-weight:600}
 .nav{display:flex; gap:10px}
 .nav .btn{flex:1}
+.more .copies{display:flex; flex-direction:column; gap:7px}
+.copy{display:flex; align-items:center; gap:9px; border:1.5px solid var(--line); border-radius:12px; padding:9px 11px; background:#fff}
+.copy .cn{flex:none; width:24px; height:24px; border-radius:50%; background:var(--accent-soft); color:var(--accent-deep); font-size:12px; font-weight:800; display:grid; place-items:center}
+.copy b{flex:1; min-width:0; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.copy small{font-weight:500; color:var(--muted)}
+.copy .chip{flex:none}
+.copy .x{color:var(--danger)}
+.ask{margin:4px 0 0; font-size:15px; font-weight:700; text-align:center}
+.yn2{display:flex; flex-direction:column; gap:8px}
 .hp{position:absolute; left:-9999px; width:1px; height:1px; opacity:0}
 </style>

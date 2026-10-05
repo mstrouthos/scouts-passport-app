@@ -1068,5 +1068,21 @@
   "avo_gear_whistle": "Σφυρίχτρα",
   "avo_gear_compass": "Πυξίδα",
   "avo_gear_badges": "Σήματα",
-  "avatarReset": "Επαναφορά στο αποθηκευμένο"
+  "avatarReset": "Επαναφορά στο αποθηκευμένο",
+  "formRepeatRemoveQ": "Να αφαιρεθεί το «{name}» με όλες τις απαντήσεις του;",
+  "formRepeatAskDefault": "Θέλετε να προσθέσετε κι άλλο ({label});",
+  "formRepeatYes": "Ναι, προσθήκη: {label}",
+  "formRepeatNo": "Όχι, συνέχεια",
+  "formRepeatMax": "Φτάσατε το μέγιστο ({n}).",
+  "formRepeat": "Επανάληψη",
+  "formRepeatOn": "🔁 Επανάληψη αυτής της ενότητας (π.χ. για κάθε παιδί)",
+  "formRepeatLabel": "Πώς λέγεται κάθε αντίγραφο",
+  "formRepeatLabelPh": "π.χ. Παιδί",
+  "formRepeatUntil": "Επαναλαμβάνονται οι ενότητες έως και",
+  "formRepeatAsk": "Ερώτηση μετά από κάθε αντίγραφο",
+  "formRepeatAskPh": "π.χ. Θέλετε να εγγράψετε κι άλλο παιδί;",
+  "formRepeatMaxLabel": "Μέγιστος αριθμός",
+  "formRepeatPart": "Μέρος της επανάληψης «{label}»",
+  "formRepeatNote": "Ο γονέας συμπληρώνει τις ενότητες για «{label} 1» και στο τέλος ερωτάται αν θέλει να προσθέσει κι άλλο. Στο Excel βγαίνει μία γραμμή για κάθε {label}.",
+  "formRepeatSoFar": "Μέχρι τώρα"
 }

@@ -24,7 +24,13 @@ export const CHOICE_TYPES: FieldType[] = [...WITH_OPTIONS, 'yesno']
     so a family registering again skips what is only asked the first time. */
 export type FormCondition = { q: string, anyOf: string[] }
 export type FormQuestion = { id: string, type: FieldType, label: string, help?: string, required: boolean, options: string[], showIf?: FormCondition }
-export type FormModule = { id: string, title: string, description?: string, questions: FormQuestion[], showIf?: FormCondition }
+/** A run of sections answered again for each of several — each child in a
+    registration. Set on the run's first section: what each copy is called
+    ("Παιδί" → Παιδί 1, Παιδί 2…), the section the run ends with, the question
+    asked after each copy, and how many copies at most. */
+export type FormRepeat = { label: string, until: string, ask: string, max: number }
+export type FormModule = { id: string, title: string, description?: string, questions: FormQuestion[], showIf?: FormCondition, repeat?: FormRepeat }
+export const REPEAT_MAX = 10
 export type FormTick = { id: string, label: string, required: boolean }
 export type FormSpec = {
   modules: FormModule[]
@@ -36,6 +42,8 @@ export type FormAnswers = {
   answers: Record<string, string | string[]>
   ticks: Record<string, boolean>
   signature?: string | null
+  /** how many copies of each repeated run were filled in, by its first section */
+  repeats?: Record<string, number>
   /** who signed, written under the signature, and when — the moment it was sent */
   signerName?: string | null
   signedAt?: string | null
@@ -56,6 +64,7 @@ export function normalizeSpec(raw: any): FormSpec {
     return v
   }
   const raws = new Map<object, any>()   // each module or question → its condition as sent
+  const rawRepeat = new Map<object, any>()
   const modules: FormModule[] = (Array.isArray(raw?.modules) ? raw.modules : []).slice(0, 40).map((m: any) => keep({
     id: id(m?.id),
     title: str(m?.title, 200),
@@ -72,8 +81,24 @@ export function normalizeSpec(raw: any): FormSpec {
           ? [...new Set((Array.isArray(q?.options) ? q.options : []).map((o: any) => str(o, 200)).filter(Boolean))].slice(0, 60) as string[]
           : []
       }, q?.showIf))
-  }, m?.showIf))
-  function keep<T extends object>(x: T, showIf: any): T { raws.set(x, showIf); return x }
+  }, m?.showIf, m?.repeat))
+  function keep<T extends object>(x: T, showIf: any, repeat?: any): T { raws.set(x, showIf); if (repeat) rawRepeat.set(x, repeat); return x }
+  // repeated runs: from the section that says so through the one it names,
+  // never starting inside another run
+  let insideUntil = -1
+  modules.forEach((m, i) => {
+    const r = rawRepeat.get(m)
+    if (i <= insideUntil || !r) return
+    let end = modules.findIndex(x => x.id === r.until)
+    if (end < i) end = i
+    m.repeat = {
+      label: str(r.label, 40) || 'Παιδί',
+      until: modules[end].id,
+      ask: str(r.ask, 200),
+      max: Math.min(REPEAT_MAX, Math.max(2, Number(r.max) || 6))
+    }
+    insideUntil = end
+  })
   // a condition must name a choice question that comes before it, and some
   // of that question's options; anything else is dropped, never guessed at
   const before: FormQuestion[] = []
@@ -125,23 +150,72 @@ export function questionError(q: FormQuestion, v: unknown): string | null {
   return null
 }
 
-/** Which modules and questions this set of answers shows. In form order, so
-    a condition on a question that is itself hidden counts as not met. */
-export function visibleParts(spec: FormSpec, answers: Record<string, any>) {
+/** The repeated runs of a form: where each starts and ends, and its settings. */
+export type RepeatGroup = { id: string, start: number, end: number, repeat: FormRepeat }
+export function repeatGroups(spec: FormSpec): RepeatGroup[] {
+  const out: RepeatGroup[] = []
+  spec.modules.forEach((m, i) => {
+    if (!m.repeat) return
+    const end = Math.max(i, spec.modules.findIndex(x => x.id === m.repeat!.until))
+    out.push({ id: m.id, start: i, end, repeat: m.repeat })
+  })
+  return out
+}
+/** How many copies of a run were filled in: at least one, at most its max. */
+export const copiesOf = (g: RepeatGroup, repeats?: Record<string, number>) =>
+  Math.min(g.repeat.max, Math.max(1, Math.floor(Number(repeats?.[g.id]) || 1)))
+
+/** One section as the person meets it: a plain section once, a repeated one
+    once per copy. A copy's answers are kept under the question's id with
+    "@<copy>" after it, so the second child's name is "name@2". */
+export type Instance = { m: FormModule, group: RepeatGroup | null, copy: number, sfx: string, key: string }
+export function instances(spec: FormSpec, repeats?: Record<string, number>): Instance[] {
+  const groups = repeatGroups(spec)
+  const out: Instance[] = []
+  for (let i = 0; i < spec.modules.length; i++) {
+    const g = groups.find(x => x.start === i)
+    if (!g) { out.push({ m: spec.modules[i], group: null, copy: 0, sfx: '', key: spec.modules[i].id }); continue }
+    for (let n = 1; n <= copiesOf(g, repeats); n++)
+      for (let j = g.start; j <= g.end; j++)
+        out.push({ m: spec.modules[j], group: g, copy: n, sfx: `@${n}`, key: `${spec.modules[j].id}@${n}` })
+    i = g.end
+  }
+  return out
+}
+/** A section's heading as the person meets it: "Παιδί 2 · Στοιχεία παιδιού". */
+export function instanceTitle(inst: Instance): string {
+  if (!inst.group) return inst.m.title
+  const who = `${inst.group.repeat.label} ${inst.copy}`
+  return inst.m.title ? `${who} · ${inst.m.title}` : who
+}
+/** The question an answer key belongs to: "name@2" → "name". */
+export const baseId = (key: string) => key.split('@')[0]
+
+/** Which sections (by instance key) and answers (by answer key) these answers
+    show. In form order, so a condition on a question that is itself hidden
+    counts as not met. Inside a copy, a condition on a question of the same run
+    looks at that copy's answer; outside, at the first copy's. */
+export function visibleParts(spec: FormSpec, answers: Record<string, any>, repeats?: Record<string, number>) {
   const modules = new Set<string>()
   const questions = new Set<string>()
-  const met = (c?: FormCondition) => {
+  const shown: Instance[] = []
+  const groupOf = new Map<string, string>()
+  for (const g of repeatGroups(spec)) for (let j = g.start; j <= g.end; j++) for (const q of spec.modules[j].questions) groupOf.set(q.id, g.id)
+  const met = (c: FormCondition | undefined, inst: Instance) => {
     if (!c) return true
-    if (!questions.has(c.q)) return false
-    const v = answers?.[c.q]
+    const g = groupOf.get(c.q)
+    const key = g ? c.q + (inst.group?.id === g ? inst.sfx : '@1') : c.q
+    if (!questions.has(key)) return false
+    const v = answers?.[key]
     return Array.isArray(v) ? v.some(x => c.anyOf.includes(String(x))) : c.anyOf.includes(String(v ?? ''))
   }
-  for (const m of spec.modules) {
-    if (!met(m.showIf)) continue
-    modules.add(m.id)
-    for (const q of m.questions) if (met(q.showIf)) questions.add(q.id)
+  for (const inst of instances(spec, repeats)) {
+    if (!met(inst.m.showIf, inst)) continue
+    modules.add(inst.key)
+    shown.push(inst)
+    for (const q of inst.m.questions) if (met(q.showIf, inst)) questions.add(q.id + inst.sfx)
   }
-  return { modules, questions }
+  return { modules, questions, shown }
 }
 
 /** The answers kept, cleaned, plus every problem by question id. Only what
@@ -150,15 +224,19 @@ export function visibleParts(spec: FormSpec, answers: Record<string, any>) {
 export function checkAnswers(spec: FormSpec, body: any): { clean: FormAnswers, errors: Record<string, string> } {
   const errors: Record<string, string> = {}
   const answers: Record<string, string | string[]> = {}
-  const shown = visibleParts(spec, body?.answers || {}).questions
-  for (const m of spec.modules) for (const q of m.questions) {
-    if (!shown.has(q.id)) continue
-    let v = body?.answers?.[q.id]
+  // how many copies of each run: as many as were filled in, within its limit
+  const repeats: Record<string, number> = {}
+  for (const g of repeatGroups(spec)) repeats[g.id] = copiesOf(g, body?.repeats)
+  const vis = visibleParts(spec, body?.answers || {}, repeats)
+  for (const inst of vis.shown) for (const q of inst.m.questions) {
+    const key = q.id + inst.sfx
+    if (!vis.questions.has(key)) continue
+    let v = body?.answers?.[key]
     if (q.type === 'checkbox' || q.type === 'file') v = Array.isArray(v) ? v.map(x => String(x)) : []
     else v = String(v ?? '').slice(0, q.type === 'textarea' ? 5000 : 500)
     const e = questionError(q, v)
-    if (e) errors[q.id] = e
-    if (Array.isArray(v) ? v.length : String(v).trim()) answers[q.id] = Array.isArray(v) ? v : String(v).trim()
+    if (e) errors[key] = e
+    if (Array.isArray(v) ? v.length : String(v).trim()) answers[key] = Array.isArray(v) ? v : String(v).trim()
   }
   const ticks: Record<string, boolean> = {}
   for (const x of spec.ticks) {
@@ -178,7 +256,7 @@ export function checkAnswers(spec: FormSpec, body: any): { clean: FormAnswers, e
     signerName = String(body?.signerName ?? '').trim().slice(0, 120) || null
     if (!signerName && (signature || spec.signature.required)) errors.signerName = 'required'
   }
-  return { clean: { answers, ticks, signature, signerName }, errors }
+  return { clean: { answers, ticks, signature, signerName, ...(Object.keys(repeats).length ? { repeats } : {}) }, errors }
 }
 
 /** An answer as text, for tables and the export — a date the Greek way. */
