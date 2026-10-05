@@ -256,7 +256,8 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   const eyes = eye(eyeL, -1) + eye(eyeR, 1) + brow(eyeL, -1) + brow(eyeR, 1)
   const ny = ey + 14
   const nose = `<path d="M${cx - 5} ${ny + 4} Q${cx} ${ny - 6} ${cx + 5} ${ny + 4} Q${cx} ${ny + 7} ${cx - 5} ${ny + 4} Z" fill="${skinDD}"/>`
-  const my = y0 + h * 0.8
+  // with a moustache the mouth sits a little lower, so the two do not meet
+  const my = y0 + h * 0.8 + (['moustache', 'goatee', 'beard'].includes(a.facialHair) ? 4 : 0)
   const MOUTH: Record<string, string> = {
     smile: `<path d="M${cx - 12} ${my - 2} Q${cx} ${my + 9} ${cx + 12} ${my - 2}" fill="none" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>`,
     grin: `<path d="M${cx - 16} ${my - 4} L${cx + 16} ${my - 4} Q${cx + 14} ${my + 12} ${cx} ${my + 12} Q${cx - 14} ${my + 12} ${cx - 16} ${my - 4} Z" fill="${INK}"/>`
@@ -280,14 +281,29 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     // a plaster on the cheek — every scout's badge of a good day out
     plaster: `<g transform="rotate(-24 ${eyeR + 4} ${ny + 5})"><rect x="${eyeR - 8}" y="${ny + 1}" width="24" height="9" rx="4.5" fill="#F3C9A0"/><rect x="${eyeR}" y="${ny + 1}" width="8" height="9" fill="#E7B587"/><circle cx="${eyeR + 2}" cy="${ny + 4}" r=".9" fill="#C99368"/><circle cx="${eyeR + 6}" cy="${ny + 7}" r=".9" fill="#C99368"/></g>`
   }
+  /* facial hair, kept to the face: everything is clipped to the head's own
+     shape, let down a little below the chin for a beard's fullness */
   const fh = shade(hairC, 0.92)
-  const tache = `<path d="M${cx - 16} ${my - 2} Q${cx - 10} ${my - 12} ${cx} ${my - 7} Q${cx + 10} ${my - 12} ${cx + 16} ${my - 2} Q${cx + 8} ${my - 6} ${cx} ${my - 3} Q${cx - 8} ${my - 6} ${cx - 16} ${my - 2} Z" fill="${fh}"/>`
+  const ms = ny + 8                                   // the moustache's line, under the nose
+  const tache = `<path d="M${cx - 17} ${ms + 4} C${cx - 15} ${ms - 4} ${cx - 5} ${ms - 4} ${cx} ${ms - 1} C${cx + 5} ${ms - 4} ${cx + 15} ${ms - 4} ${cx + 17} ${ms + 4} C${cx + 11} ${ms + 2} ${cx + 5} ${ms + 3} ${cx} ${ms + 2} C${cx - 5} ${ms + 3} ${cx - 11} ${ms + 2} ${cx - 17} ${ms + 4} Z" fill="${fh}"/>`
+  const jaw = ey + 6                                  // where the beard starts on the cheeks
+  // the beard: the lower face, its mouth left open, joined to the hair at the temples
+  // its upper edge runs from the sideburns down the cheeks to the moustache's
+  // ends, so the cheeks above stay clear
+  const beardShape = `<path fill-rule="evenodd" d="M${x0 - 2} ${jaw} Q${x0 + 6} ${my + 2} ${cx - 17} ${ms + 4} L${cx + 17} ${ms + 4} Q${x1 - 6} ${my + 2} ${x1 + 2} ${jaw} V${y1 + 14} H${x0 - 2} Z `
+    + `M${cx - 15} ${my - 3} Q${cx} ${my - 8} ${cx + 15} ${my - 3} Q${cx + 15} ${my + 11} ${cx} ${my + 12} Q${cx - 15} ${my + 11} ${cx - 15} ${my - 3} Z" fill="${fh}"/>`
+    + `<rect x="${x0 - 2}" y="${y0 + h * 0.3}" width="9" height="${jaw - y0 - h * 0.3 + 2}" fill="${fh}"/><rect x="${x1 - 7}" y="${y0 + h * 0.3}" width="9" height="${jaw - y0 - h * 0.3 + 2}" fill="${fh}"/>`
+  const clipped = (s: string) => `<g clip-path="url(#chin-${id})">${s}</g>`
+  const onFace = (s: string) => `<g clip-path="url(#face-${id})">${s}</g>`
   const facialHair: Record<string, string> = {
     none: '',
-    stubble: `<path d="M${x0 + 6} ${y0 + h * 0.62} Q${x0 + 8} ${y1 - 2} ${cx} ${y1 - 1} Q${x1 - 8} ${y1 - 2} ${x1 - 6} ${y0 + h * 0.62} Q${cx} ${y0 + h * 0.98} ${x0 + 6} ${y0 + h * 0.62} Z" fill="${fh}" opacity=".28"/>`,
+    // a day's growth: a soft shadow over the jaw and the upper lip
+    stubble: onFace(`<path d="M${x0} ${jaw + 2} Q${x0 + 8} ${my} ${cx - 16} ${ms + 3} Q${cx} ${ms - 2} ${cx + 16} ${ms + 3} Q${x1 - 8} ${my} ${x1} ${jaw + 2} V${y1} H${x0} Z" fill="${fh}" opacity=".24"/>`),
     moustache: tache,
-    goatee: tache + `<path d="M${cx - 8} ${my + 9} Q${cx} ${my + 7} ${cx + 8} ${my + 9} Q${cx + 6} ${y1 + 2} ${cx} ${y1 + 4} Q${cx - 6} ${y1 + 2} ${cx - 8} ${my + 9} Z" fill="${fh}"/>`,
-    beard: `<path d="M${x0 - 1} ${y0 + h * 0.48} L${x0 + 6} ${y0 + h * 0.48} Q${x0 + 10} ${my + 4} ${cx - 14} ${my + 6} Q${cx} ${my + 12} ${cx + 14} ${my + 6} Q${x1 - 10} ${my + 4} ${x1 - 6} ${y0 + h * 0.48} L${x1 + 1} ${y0 + h * 0.48} Q${x1 + 2} ${y1 + 12} ${cx} ${y1 + 16} Q${x0 - 2} ${y1 + 12} ${x0 - 1} ${y0 + h * 0.48} Z" fill="${fh}"/>` + tache
+    // a moustache joined down the corners of the mouth to a patch on the chin
+    goatee: clipped(tache
+      + `<path d="M${cx - 16} ${ms + 3} Q${cx - 18} ${my + 6} ${cx - 10} ${y1 + 2} L${cx + 10} ${y1 + 2} Q${cx + 18} ${my + 6} ${cx + 16} ${ms + 3} L${cx + 12} ${ms + 4} Q${cx + 13} ${my + 6} ${cx + 6} ${my + 10} L${cx - 6} ${my + 10} Q${cx - 13} ${my + 6} ${cx - 12} ${ms + 4} Z" fill="${fh}"/>`),
+    beard: clipped(beardShape) + tache
   }
 
   /* ---- glasses ---- */
@@ -346,6 +362,8 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     + `<defs>`
     + `<pattern id="st-${id}" patternUnits="userSpaceOnUse" width="9" height="9" patternTransform="rotate(-35)"><rect width="9" height="9" fill="${SCARF_BLUE}"/><rect width="4" height="9" fill="${SCARF_YELLOW}"/></pattern>`
     + `<clipPath id="under-${id}"><rect x="0" y="${hatTop}" width="200" height="200"/></clipPath>`
+    + `<clipPath id="chin-${id}"><rect x="${x0 - 1}" y="${y0}" width="${w + 2}" height="${h + 10}" rx="${hb.r}"/></clipPath>`
+    + `<clipPath id="face-${id}"><rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${hb.r}"/></clipPath>`
     + `</defs>`
     + `<rect x="-40" y="-40" width="280" height="280" fill="${a.bg}"/>`
     + hijabBack + hairBack + clothes[a.clothes] + neck + scarf
