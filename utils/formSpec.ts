@@ -199,15 +199,24 @@ export function visibleParts(spec: FormSpec, answers: Record<string, any>, repea
   const modules = new Set<string>()
   const questions = new Set<string>()
   const shown: Instance[] = []
-  const groupOf = new Map<string, string>()
-  for (const g of repeatGroups(spec)) for (let j = g.start; j <= g.end; j++) for (const q of spec.modules[j].questions) groupOf.set(q.id, g.id)
-  const met = (c: FormCondition | undefined, inst: Instance) => {
-    if (!c) return true
-    const g = groupOf.get(c.q)
-    const key = g ? c.q + (inst.group?.id === g ? inst.sfx : '@1') : c.q
+  const groupOf = new Map<string, RepeatGroup>()
+  for (const g of repeatGroups(spec)) for (let j = g.start; j <= g.end; j++) for (const q of spec.modules[j].questions) groupOf.set(q.id, g)
+  const holds = (c: FormCondition, key: string) => {
     if (!questions.has(key)) return false
     const v = answers?.[key]
     return Array.isArray(v) ? v.some(x => c.anyOf.includes(String(x))) : c.anyOf.includes(String(v ?? ''))
+  }
+  /* A condition on a repeated question reads the same copy: the second
+     child's section follows the second child's answer — in its own run or in
+     another one. From a section that is not repeated, any child's answer
+     counts. */
+  const met = (c: FormCondition | undefined, inst: Instance) => {
+    if (!c) return true
+    const g = groupOf.get(c.q)
+    if (!g) return holds(c, c.q)
+    if (inst.group) return holds(c, c.q + inst.sfx)
+    for (let n = 1; n <= copiesOf(g, repeats); n++) if (holds(c, `${c.q}@${n}`)) return true
+    return false
   }
   for (const inst of instances(spec, repeats)) {
     if (!met(inst.m.showIf, inst)) continue

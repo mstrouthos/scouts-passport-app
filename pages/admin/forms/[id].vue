@@ -158,13 +158,22 @@ function runOf(mi: number) {
   }
   return null
 }
+/* A run may reach over a section that repeats on its own: that section then
+   joins the run (and so does the rest of its own run) — two runs side by side
+   would ask "another child?" twice, and lose which answers are whose. */
 function reachOf(mi: number) {
-  const out = []
-  for (let j = mi; j < spec.value.modules.length; j++) {
-    if (j > mi && spec.value.modules[j].repeat) break
-    out.push({ id: spec.value.modules[j].id, n: j + 1, title: spec.value.modules[j].title })
+  return spec.value.modules.slice(mi).map((x, k) => ({ id: x.id, n: mi + k + 1, title: x.title }))
+}
+function setUntil(mi: number, id: string) {
+  const mods = spec.value.modules
+  let end = mods.findIndex(x => x.id === id)
+  for (let j = mi + 1; j <= end; j++) {
+    const r = mods[j].repeat
+    if (!r) continue
+    end = Math.max(end, mods.findIndex(x => x.id === r.until))
+    delete mods[j].repeat
   }
-  return out
+  mods[mi].repeat!.until = mods[Math.max(mi, end)].id
 }
 function toggleRepeat(m: any, on: boolean) {
   if (on) m.repeat = { label: 'Παιδί', until: m.id, ask: '', max: 6 }
@@ -236,7 +245,7 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
                 <select v-model.number="m.repeat.max" class="in"><option v-for="n in REPEAT_MAX - 1" :key="n" :value="n + 1">{{ n + 1 }}</option></select></div>
             </div>
             <div><label class="lab">{{ t('formRepeatUntil') }}</label>
-              <select v-model="m.repeat.until" class="in">
+              <select :value="m.repeat.until" class="in" @change="setUntil(mi, ($event.target as HTMLSelectElement).value)">
                 <option v-for="o in reachOf(mi)" :key="o.id" :value="o.id">{{ o.n }}. {{ o.title || t('formModuleTitlePh') }}</option>
               </select></div>
             <div><label class="lab">{{ t('formRepeatAsk') }}</label><input v-model="m.repeat.ask" class="in" :placeholder="t('formRepeatAskPh')"></div>
