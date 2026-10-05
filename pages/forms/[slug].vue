@@ -60,7 +60,8 @@ watchEffect(() => {
 })
 const errors = ref<Record<string, string>>({})
 const busy = ref(false)
-const done = ref<{ thanks?: string } | null>(null)
+const done = ref<{ thanksTitle?: string, thanks?: string, at?: string } | null>(null)
+const sentWhen = computed(() => done.value?.at ? new Date(done.value.at).toLocaleString('el-GR', { timeZone: 'Europe/Nicosia', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : '')
 const sendError = ref('')
 const errText = (code: string) => t('formErr_' + code)
 
@@ -192,7 +193,7 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
 </script>
 
 <template>
-  <div class="pform">
+  <div class="pform" :class="{ finished: !!done }">
     <header>
       <img src="/images/logo-256.png" alt="">
       <div><b>30ό Σύστημα Προσκόπων</b><span>Αμμοχώστου</span></div>
@@ -200,13 +201,17 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
     <main>
       <div v-if="loadError" class="card msg">{{ loadError }}</div>
       <div v-else-if="!data" class="card msg muted">{{ t('loading') }}</div>
-      <template v-else-if="done">
-        <div class="card msg ok">
-          <div class="big">✅</div>
-          <b>{{ t('formSentTitle') }}</b>
-          <p>{{ done.thanks || t('formSentText') }}</p>
+      <!-- sent: a calm, centred card — the form's own words when it has them -->
+      <div v-else-if="done" class="sent">
+        <div class="seal" aria-hidden="true">
+          <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" /><path d="M19 33.5 28 42 45 23" /></svg>
         </div>
-      </template>
+        <div class="form-name">{{ data.titleEl }}</div>
+        <h1>{{ done.thanksTitle || t('formSentTitle') }}</h1>
+        <p class="thanks">{{ done.thanks || t('formSentText') }}</p>
+        <div v-if="sentWhen" class="when">🕒 {{ t('formSentAt', { when: sentWhen }) }}</div>
+        <div class="close">{{ t('formSentClose') }}</div>
+      </div>
       <template v-else>
         <div v-if="data.preview" class="note">👁 {{ data.open ? t('formPreviewOpen') : t('formPreviewClosed') }}</div>
         <h1>{{ data.titleEl }}</h1>
@@ -359,4 +364,21 @@ select.in{appearance:auto}
 .ask{margin:4px 0 0; font-size:15px; font-weight:700; text-align:center}
 .yn2{display:flex; flex-direction:column; gap:8px}
 .hp{position:absolute; left:-9999px; width:1px; height:1px; opacity:0}
+/* the sent screen fills the page under the header and sits in its middle */
+.pform.finished{display:flex; flex-direction:column}
+.pform.finished main{flex:1; justify-content:center; width:100%}
+.sent{background:#fff; border-radius:24px; box-shadow:0 18px 50px -24px rgba(30,70,140,.35); padding:36px 24px 28px; text-align:center;
+  display:flex; flex-direction:column; align-items:center; gap:8px; animation:sent-in .5s cubic-bezier(.2,.9,.3,1.2) both}
+@keyframes sent-in{from{opacity:0; transform:translateY(14px) scale(.97)}}
+.seal{width:76px; height:76px; margin-bottom:8px}
+.seal svg{width:100%; height:100%; display:block}
+.seal circle{fill:var(--accent-soft); stroke:var(--accent); stroke-width:3}
+.seal path{fill:none; stroke:var(--accent-deep); stroke-width:5; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:40; stroke-dashoffset:40; animation:sent-tick .45s .35s ease-out forwards}
+@keyframes sent-tick{to{stroke-dashoffset:0}}
+.sent .form-name{font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+.sent h1{margin:0; font-size:24px; line-height:1.25; letter-spacing:-.01em; color:var(--ink)}
+.sent .thanks{margin:4px 0 0; max-width:440px; font-size:15px; line-height:1.55; color:#4A5A70; white-space:pre-line}
+.sent .when{margin-top:14px; padding:7px 14px; border-radius:999px; background:var(--accent-soft); color:var(--accent-deep); font-size:13px; font-weight:600}
+.sent .close{margin-top:10px; font-size:12px; color:var(--muted)}
+@media (prefers-reduced-motion: reduce){.sent, .seal path{animation:none; stroke-dashoffset:0}}
 </style>

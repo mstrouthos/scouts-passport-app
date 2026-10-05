@@ -452,6 +452,7 @@ CREATE TABLE IF NOT EXISTS forms (
   title_el TEXT NOT NULL,
   intro_el TEXT,
   thanks_el TEXT,
+  thanks_title_el TEXT,
   spec TEXT NOT NULL DEFAULT '{}',
   is_open BOOLEAN NOT NULL DEFAULT FALSE,
   closes_at TEXT,
@@ -559,5 +560,6 @@ export const MIGRATIONS = [
   "ALTER TABLE bar_events ADD COLUMN IF NOT EXISTS coupons_per_adult INTEGER NOT NULL DEFAULT 1",
   "ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS surfaces TEXT NOT NULL DEFAULT ''",
   "ALTER TABLE info_pages ADD COLUMN IF NOT EXISTS pending_approval BOOLEAN NOT NULL DEFAULT FALSE",
-  "ALTER TABLE info_pages ADD COLUMN IF NOT EXISTS created_by INTEGER"
+  "ALTER TABLE info_pages ADD COLUMN IF NOT EXISTS created_by INTEGER",
+  "ALTER TABLE forms ADD COLUMN IF NOT EXISTS thanks_title_el TEXT"
 ]

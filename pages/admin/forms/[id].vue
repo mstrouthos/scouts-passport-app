@@ -15,7 +15,7 @@ watch(tab, v => navigateTo({ query: { ...route.query, tab: v } }, { replace: tru
 
 const { data: form, refresh } = await useFetch<any>(`/api/admin/forms/${id}`)
 const spec = ref<FormSpec>({ modules: [], ticks: [], signature: { enabled: false, required: true, label: '' } })
-const settings = reactive({ titleEl: '', slug: '', introEl: '', thanksEl: '', isOpen: false, closesAt: '' })
+const settings = reactive({ titleEl: '', slug: '', introEl: '', thanksEl: '', thanksTitleEl: '', isOpen: false, closesAt: '' })
 const open = ref<string | null>(null)    // the question being edited
 let saved = ''
 const snapshot = () => JSON.stringify({ s: spec.value, x: settings })
@@ -25,7 +25,7 @@ function fill(f: any) {
   if (!f) return
   spec.value = JSON.parse(JSON.stringify(f.spec))
   Object.assign(settings, {
-    titleEl: f.titleEl, slug: f.slug, introEl: f.introEl || '', thanksEl: f.thanksEl || '',
+    titleEl: f.titleEl, slug: f.slug, introEl: f.introEl || '', thanksEl: f.thanksEl || '', thanksTitleEl: f.thanksTitleEl || '',
     isOpen: f.isOpen, closesAt: f.closesAt ? toLocalInput(f.closesAt) : ''
   })
   saved = snapshot(); dirty.value = false
@@ -337,7 +337,18 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
           <div class="slug"><span>forms.scouts30.org/</span><input v-model="settings.slug" class="in"></div>
         </div>
         <div><label class="lab">{{ t('formIntro') }}</label><textarea v-model="settings.introEl" class="in" rows="4" :placeholder="t('formIntroPh')" /></div>
-        <div><label class="lab">{{ t('formThanks') }}</label><textarea v-model="settings.thanksEl" class="in" rows="2" :placeholder="t('formSentText')" /></div>
+      </div>
+      <!-- what they see once it is sent: the app's own words unless these are filled in -->
+      <div class="card mod">
+        <div class="sec-title" style="margin:0">✅ {{ t('formDoneScreen') }}</div>
+        <div><label class="lab">{{ t('formThanksTitle') }}</label><input v-model="settings.thanksTitleEl" class="in" :placeholder="t('formSentTitle')"></div>
+        <div><label class="lab">{{ t('formThanks') }}</label><textarea v-model="settings.thanksEl" class="in" rows="3" :placeholder="t('formSentText')" /></div>
+        <div class="tiny muted">{{ t('formDoneNote') }}</div>
+        <div class="donePrev">
+          <div class="tick">✓</div>
+          <b>{{ settings.thanksTitleEl.trim() || t('formSentTitle') }}</b>
+          <p>{{ settings.thanksEl.trim() || t('formSentText') }}</p>
+        </div>
       </div>
       <div class="card mod">
         <label class="tog"><input v-model="settings.isOpen" type="checkbox"> <b>{{ t('formAccepting') }}</b></label>
@@ -426,4 +437,8 @@ select.in{appearance:auto}
 .linkrow{display:flex; align-items:center; gap:6px}
 .linkrow .tiny{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--accent-deep); font-weight:600}
 .linkrow a.chip{text-decoration:none}
+.donePrev{border:2px dashed var(--line, #DCE5EF); border-radius:16px; padding:18px 14px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px}
+.donePrev .tick{width:44px; height:44px; border-radius:50%; background:#27473A; color:#fff; display:grid; place-items:center; font-size:22px; font-weight:800; margin-bottom:4px}
+.donePrev b{font-size:16px}
+.donePrev p{margin:0; font-size:13px; color:var(--muted); white-space:pre-line}
 </style>

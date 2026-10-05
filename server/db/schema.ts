@@ -687,6 +687,8 @@ export const forms = pgTable('forms', {
   titleEl: text('title_el').notNull(),
   introEl: text('intro_el'),
   thanksEl: text('thanks_el'),
+  // the heading of the screen after sending; the app's own when empty
+  thanksTitleEl: text('thanks_title_el'),
   spec: text('spec').notNull().default('{}'),
   isOpen: boolean('is_open').notNull().default(false),
   closesAt: text('closes_at'),

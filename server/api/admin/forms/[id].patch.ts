@@ -22,6 +22,7 @@ export default defineEventHandler(async (event) => {
   }
   if (b?.introEl !== undefined) set.introEl = String(b.introEl || '').slice(0, 5000) || null
   if (b?.thanksEl !== undefined) set.thanksEl = String(b.thanksEl || '').slice(0, 2000) || null
+  if (b?.thanksTitleEl !== undefined) set.thanksTitleEl = String(b.thanksTitleEl || '').trim().slice(0, 200) || null
   if (b?.isOpen !== undefined) set.isOpen = !!b.isOpen
   if (b?.closesAt !== undefined) {
     const d = b.closesAt ? new Date(String(b.closesAt)) : null

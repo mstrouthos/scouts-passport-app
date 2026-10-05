@@ -872,7 +872,7 @@
   "formLink": "Link",
   "formIntro": "Introduction",
   "formIntroPh": "Shown above the questions",
-  "formThanks": "Message after sending",
+  "formThanks": "Text",
   "formAccepting": "The form accepts responses",
   "formClosesAt": "Closes automatically at",
   "formClosesAtNote": "Optional. After this time the form closes by itself.",
@@ -881,7 +881,7 @@
   "formUnsaved": "There are unsaved changes. Leave without saving?",
   "formPreview": "Preview",
   "formResponsesN": "responses",
-  "formExport": "Excel (CSV)",
+  "formExport": "Excel",
   "formNoResponses": "No responses yet.",
   "formAccessNote": "Responses are stored encrypted. Which administrator opened or exported them is recorded.",
   "formPrint": "Print",
@@ -1099,5 +1099,10 @@
   "avo_nose_round": "Round",
   "avo_nose_long": "Long",
   "avo_nose_wide": "Wide",
-  "avo_hair_receding": "Receding"
+  "avo_hair_receding": "Receding",
+  "formThanksTitle": "Title",
+  "formDoneScreen": "Message after sending",
+  "formDoneNote": "Left empty, the default message shown below appears.",
+  "formSentAt": "Sent {when}",
+  "formSentClose": "You can close this page now."
 }

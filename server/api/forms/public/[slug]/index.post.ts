@@ -67,5 +67,5 @@ export default defineEventHandler(async (event) => {
       body: [f.titleEl, ...repeatGroups(spec).map(g => `${copiesOf(g, clean.repeats)} × ${g.repeat.label}`)].join(' · ')
     })
   } catch (e) { noteError('Φόρμες — ειδοποίηση διαχειριστών', e, { form: f.slug }) }
-  return { ok: true, thanks: f.thanksEl }
+  return { ok: true, thanksTitle: f.thanksTitleEl, thanks: f.thanksEl, at: sent }
 })
