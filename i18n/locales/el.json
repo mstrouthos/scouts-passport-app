@@ -1043,7 +1043,6 @@
   "avo_headwear_cap": "Τζόκεϊ",
   "avo_headwear_beanie": "Σκουφάκι",
   "avo_headwear_bandana": "Μπαντάνα",
-  "avo_headwear_headband": "Κορδέλα",
   "avo_headwear_hijab": "Μαντίλα",
   "avatarSave": "Αποθήκευση άβαταρ",
   "errSomethingWrong": "Κάτι πήγε στραβά!",
@@ -1051,5 +1050,6 @@
   "errSendReport": "Αποστολή αναφοράς σφάλματος",
   "errReportThanks": "Η αναφορά στάλθηκε!",
   "errReportThanksBody": "Ευχαριστούμε — θα το κοιτάξουμε το συντομότερο.",
-  "avt_clothes": "Ρούχα"
+  "avt_clothes": "Ρούχα",
+  "avt_gender": "Φύλο"
 }

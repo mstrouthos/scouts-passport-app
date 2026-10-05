@@ -23,14 +23,17 @@ const tabs = computed(() => AVATAR_TABS.map(tb => ({
   // beards for Βαθμοφόροι, and only for a man's avatar
   ...tb, sections: tb.sections.filter(s => s.field !== 'facialHair' || (isLeader.value && cfg.value.gender === 'boy'))
 })))
-const tab = ref('body')
+// someone making their first avatar starts with the first question
+const tab = ref(me.value?.avatar ? 'body' : 'gender')
 const current = computed(() => tabs.value.find(x => x.key === tab.value)!)
 
 const big = computed(() => avatarSvg(cfg.value, 'big'))
 /* a hat would hide what the hair, face and glasses tiles are there to show,
    so only the hats tab draws one */
+// each tile shows what choosing it gives — the girl tile with the long hair
+// that switching brings
 const tile = (field: string, v: string, crop: any) => avatarSvg(
-  { ...cfg.value, ...(tab.value !== 'headwear' && tab.value !== 'bg' ? { headwear: 'none' } : {}), [field]: v },
+  { ...applied(field, v), ...(tab.value !== 'headwear' && tab.value !== 'bg' ? { headwear: 'none' } : {}) },
   `t-${field}-${String(v).replace(/\W/g, '')}`, crop)
 
 /* the preview and the tabs stay pinned; picking a tab brings its options
@@ -48,7 +51,7 @@ function pick(key: string) {
 /* changing gender changes the look: a boy's hairstyle becomes long hair for
    a girl, a girl's becomes short for a boy; a hijab or a beard that no longer
    fits goes */
-function choose(field: string, v: string) {
+function applied(field: string, v: string): Avatar {
   const next: any = { ...cfg.value, [field]: v }
   if (field === 'gender' && v !== cfg.value.gender) {
     const boys = optionsFor('hair', 'boy')
@@ -56,8 +59,9 @@ function choose(field: string, v: string) {
     if (v === 'boy' && !boys.includes(next.hair)) next.hair = 'short'
     for (const f of ['headwear', 'facialHair']) if (!optionsFor(f, v).includes(next[f])) next[f] = 'none'
   }
-  cfg.value = next
+  return next
 }
+function choose(field: string, v: string) { cfg.value = applied(field, v) }
 const values = (field: string) => field === 'gender' || !(field in AVATAR_OPTIONS)
   ? AVATAR_OPTIONS[field as keyof typeof AVATAR_OPTIONS] as readonly string[]
   : optionsFor(field, cfg.value.gender)
@@ -91,6 +95,7 @@ onBeforeRouteLeave(() => !dirty.value || busy.value || confirm(t('avatarUnsaved'
 /* the tab icons: line drawings, as in the app's own navigation */
 const ICONS: Record<string, string> = {
   body: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>',
+  gender: '<circle cx="7.5" cy="7" r="2.8"/><path d="M3 20v-4.5a4.5 4.5 0 0 1 9 0V20"/><circle cx="16.5" cy="7" r="2.8"/><path d="M12.5 20l1.2-6a3 3 0 0 1 5.6 0l1.2 6Z"/>',
   hair: '<rect x="3" y="5" width="18" height="5" rx="2"/><path d="M6 10v8M9 10v8M12 10v8M15 10v8M18 10v8"/>',
   face: '<rect x="4" y="3" width="16" height="18" rx="6"/><circle cx="9.5" cy="11" r="1.4"/><circle cx="14.5" cy="11" r="1.4"/><path d="M9 15.5c1.8 1.4 4.2 1.4 6 0"/>',
   glasses: '<circle cx="7" cy="13" r="3.6"/><circle cx="17" cy="13" r="3.6"/><path d="M10.6 12.5c.9-.7 1.9-.7 2.8 0M3.4 12 2 9M20.6 12 22 9"/>',
@@ -169,9 +174,12 @@ const ICONS: Record<string, string> = {
 .dice{position:absolute; right:10px; bottom:10px; width:42px; height:42px; border-radius:50%; border:0; background:#fff; font-size:20px; box-shadow:var(--shadow-sm)}
 .dice:active{transform:rotate(25deg) scale(.95)}
 .tabs button{display:flex; flex-direction:column; align-items:center; gap:2px; padding:7px 0 6px; min-width:0; overflow:hidden}
-.tabs svg{width:22px; height:22px}
+.tabs{overflow-x:auto; scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{min-width:40px}
+.tabs svg{width:21px; height:21px}
 .tabs{gap:2px}
-.tabs span{font-size:9.5px; font-weight:650; letter-spacing:-.15px; line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%}
+.tabs span{font-size:9px; font-weight:650; letter-spacing:-.15px; line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%}
 .tabs button.on{color:var(--accent-deep)}
 .opts{display:flex; flex-direction:column; gap:10px}
 .opts .lab{margin:0}

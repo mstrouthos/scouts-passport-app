@@ -1043,7 +1043,6 @@
   "avo_headwear_cap": "Cap",
   "avo_headwear_beanie": "Beanie",
   "avo_headwear_bandana": "Bandana",
-  "avo_headwear_headband": "Headband",
   "avo_headwear_hijab": "Hijab",
   "avatarSave": "Save avatar",
   "errSomethingWrong": "Something went wrong!",
@@ -1051,5 +1050,6 @@
   "errSendReport": "Send error report",
   "errReportThanks": "Report sent!",
   "errReportThanksBody": "Thank you — we will look into it as soon as we can.",
-  "avt_clothes": "Clothes"
+  "avt_clothes": "Clothes",
+  "avt_gender": "Gender"
 }

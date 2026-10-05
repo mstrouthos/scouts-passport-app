@@ -21,7 +21,7 @@ export const AVATAR_OPTIONS = {
   facialHair: ['none', 'stubble', 'moustache', 'goatee', 'beard'],
   glasses: ['none', 'round', 'square', 'cateye', 'sunglasses'],
   glassesColor: ['#2A2330', '#B23A48', '#2F79B8', '#3E8A3A', '#C99A18', '#E35D9A'],
-  headwear: ['none', 'scout', 'beret', 'cap', 'beanie', 'bandana', 'headband', 'hijab'],
+  headwear: ['none', 'scout', 'beret', 'cap', 'beanie', 'bandana', 'hijab'],
   headwearColor: ['#7A1F2B', '#2E5E8C', '#3B6452', '#2B2B33', '#E08A2E', '#E35D9A', '#E9EEF4'],
   bg: ['#D9E8FD', '#CDEFE0', '#FCEFC7', '#FBDCE2', '#E6DDF7', '#FFE1C7', '#D4F1F7', '#E3E7EE']
 } as const
@@ -32,7 +32,7 @@ export const AVATAR_OPTIONS = {
 export const FOR_GENDER: Record<string, Partial<Record<string, readonly string[]>>> = {
   boy: {
     hair: ['none', 'buzz', 'short', 'side', 'spiky', 'curly', 'mohawk', 'afro'],
-    headwear: ['none', 'scout', 'beret', 'cap', 'beanie', 'bandana', 'headband']
+    headwear: ['none', 'scout', 'beret', 'cap', 'beanie', 'bandana']
   },
   girl: {
     hair: ['long', 'wavy', 'ponytail', 'pigtails', 'bun', 'braids', 'bob', 'short', 'side', 'curly', 'afro'],
@@ -106,6 +106,16 @@ const INK = '#2A2330'
 /* the troop's neckerchief, as on the phoenix */
 const SCARF_BLUE = '#2A56A8', SCARF_YELLOW = '#FFD84A', SCARF_SHADE = '#1C3F80'
 const WOGGLE = '#8B5A2E', WOGGLE_D = '#6E4524'
+/* the troop's crest, as a badge for hats: the yellow disc of the logo with
+   its navy ring and a navy fleur-de-lis, drawn flat so it still reads small */
+const CREST_YELLOW = '#F2C230', CREST_NAVY = '#1F2C6B'
+function crest(x: number, y: number, r = 8) {
+  const k = r / 8
+  return `<g transform="translate(${x} ${y}) scale(${k})">`
+    + `<circle r="8" fill="${CREST_YELLOW}" stroke="${CREST_NAVY}" stroke-width="1.8"/>`
+    + `<path d="M0 -5.6C1.9 -3.3 2.3 -1.3 0 1.2C-2.3 -1.3 -1.9 -3.3 0 -5.6Z M-0.9 0.8C-3.6 -2.1 -5.6 0.2 -3.9 2.3C-3 1.3 -1.9 1.7 -0.9 2.1Z M0.9 0.8C3.6 -2.1 5.6 0.2 3.9 2.3C3 1.3 1.9 1.7 0.9 2.1Z M-3.2 1.9H3.2V3.3H-3.2Z M-0.9 3.3H0.9L0.5 5.6H-0.5Z" fill="${CREST_NAVY}"/>`
+    + `</g>`
+}
 
 /** The part a builder tile shows: the whole avatar, the face, the head with
     what is on it, or the body. */
@@ -303,22 +313,24 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     scout: `<ellipse cx="${cx}" cy="${y0 + 12}" rx="${w / 2 + 34}" ry="12" fill="#A88550"/><ellipse cx="${cx}" cy="${y0 + 9}" rx="${w / 2 + 34}" ry="10" fill="#C9A267"/>`
       + `<path d="M${cx - 34} ${y0 + 10} L${cx - 28} ${y0 - 28} Q${cx - 16} ${y0 - 40} ${cx - 7} ${y0 - 31} L${cx} ${y0 - 42} L${cx + 7} ${y0 - 31} Q${cx + 16} ${y0 - 40} ${cx + 28} ${y0 - 28} L${cx + 34} ${y0 + 10} Z" fill="#C9A267"/>`
       + `<path d="M${cx + 7} ${y0 - 31} Q${cx + 16} ${y0 - 40} ${cx + 28} ${y0 - 28} L${cx + 34} ${y0 + 10} L${cx + 14} ${y0 + 10} Z" fill="#B48E55"/>`
-      + `<rect x="${cx - 34}" y="${y0 - 2}" width="68" height="10" rx="3" fill="#5A3B22"/>`,
+      + `<rect x="${cx - 34}" y="${y0 - 2}" width="68" height="10" rx="3" fill="#5A3B22"/>`
+      + crest(cx, y0 + 3, 7),
     beret: `<path d="M${x0 - 6} ${y0 + 12} Q${x0 - 16} ${top - 18} ${cx - 4} ${top - 22} Q${x1 + 22} ${top - 20} ${x1 + 6} ${y0 + 10} Z" fill="${hw}"/>`
       + `<rect x="${x0 - 2}" y="${y0 + 4}" width="${w + 4}" height="10" rx="5" fill="${hwD}"/><rect x="${cx - 2}" y="${top - 30}" width="5" height="10" rx="2.5" fill="${hwD}"/>`
-      + `<circle cx="${x0 + 18}" cy="${y0 - 6}" r="6" fill="${SCARF_YELLOW}"/><circle cx="${x0 + 18}" cy="${y0 - 6}" r="3" fill="${SCARF_BLUE}"/>`,
+      + crest(x0 + 20, y0 - 6, 8),
     cap: `<path d="M${x0 - 3} ${y0 + 16} Q${x0 - 4} ${top - 22} ${cx} ${top - 22} Q${x1 + 4} ${top - 22} ${x1 + 3} ${y0 + 16} Z" fill="${hw}"/>`
       + `<path d="M${x1 - 18} ${top - 18} Q${x1 + 4} ${top - 16} ${x1 + 3} ${y0 + 16} L${x1 - 10} ${y0 + 16} Q${x1 - 8} ${top - 4} ${x1 - 18} ${top - 18} Z" fill="${hwD}"/>`
       + `<path d="M${x0 - 8} ${y0 + 18} Q${cx} ${y0 + 6} ${x1 + 8} ${y0 + 18} Q${cx} ${y0 + 30} ${x0 - 8} ${y0 + 18} Z" fill="${hwD}"/>`
-      + `<circle cx="${cx}" cy="${top - 20}" r="4" fill="${hwD}"/>`,
+      + `<circle cx="${cx}" cy="${top - 20}" r="4" fill="${hwD}"/>`
+      + crest(cx, top - 4, 8),
     beanie: `<path d="M${x0 - 4} ${y0 + 16} Q${x0 - 4} ${top - 26} ${cx} ${top - 26} Q${x1 + 4} ${top - 26} ${x1 + 4} ${y0 + 16} Z" fill="${hw}"/>`
       + `<rect x="${x0 - 6}" y="${y0 + 2}" width="${w + 12}" height="18" rx="7" fill="${hwD}"/>`
       + [...Array(7)].map((_, i) => `<rect x="${x0 + 2 + i * (w - 4) / 7}" y="${y0 + 4}" width="3" height="14" rx="1.5" fill="${hw}" opacity=".55"/>`).join('')
-      + `<circle cx="${cx}" cy="${top - 28}" r="10" fill="${hwL}"/>`,
+      + `<circle cx="${cx}" cy="${top - 28}" r="10" fill="${hwL}"/>`
+      + crest(cx, y0 + 11, 7.5),
     bandana: `<path d="M${x0 - 3} ${y0 + 24} Q${x0 - 4} ${top - 10} ${cx} ${top - 12} Q${x1 + 4} ${top - 10} ${x1 + 3} ${y0 + 24} Q${cx} ${y0 + 14} ${x0 - 3} ${y0 + 24} Z" fill="${hw}"/>`
       + `<path d="M${x1} ${y0 + 14} l18 4 l-6 14 Z M${x1} ${y0 + 18} l14 16 l-12 4 Z" fill="${hwD}"/>`
-      + [[-18, -4], [0, -8], [16, 0], [-6, 8], [24, 10]].map(([dx, dy]) => `<circle cx="${cx + dx}" cy="${y0 + 6 + dy}" r="2.4" fill="#fff" opacity=".85"/>`).join(''),
-    headband: `<rect x="${x0 - 3}" y="${y0 + 10}" width="${w + 6}" height="11" rx="5.5" fill="${hw}"/><rect x="${x0 - 3}" y="${y0 + 16}" width="${w + 6}" height="5" rx="2.5" fill="${hwD}"/>`,
+      + crest(cx, y0 + 4, 8),
     hijab: ''
   }
   // the hijab is drawn around the face: behind the head, and as a frame
@@ -351,7 +363,9 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
    card of colours alone (skin, background). */
 export type AvatarSection = { field: K, crop?: Crop, color?: K }
 export const AVATAR_TABS: ReadonlyArray<{ key: string, icon: string, sections: ReadonlyArray<AvatarSection> }> = [
-  { key: 'body', icon: 'body', sections: [{ field: 'skin' }, { field: 'gender', crop: 'face' }, { field: 'head', crop: 'head' }] },
+  // the first question, on its own: the rest of the choices follow from it
+  { key: 'gender', icon: 'gender', sections: [{ field: 'gender', crop: 'head' }] },
+  { key: 'body', icon: 'body', sections: [{ field: 'skin' }, { field: 'head', crop: 'head' }] },
   { key: 'hair', icon: 'hair', sections: [{ field: 'hair', crop: 'head', color: 'hairColor' }] },
   { key: 'face', icon: 'face', sections: [
     { field: 'expression', crop: 'face', color: 'eyeColor' }, { field: 'extras', crop: 'face' }, { field: 'facialHair', crop: 'face' }
