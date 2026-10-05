@@ -82,6 +82,23 @@ function move<T>(list: T[], i: number, by: number) {
   const [x] = list.splice(i, 1)
   list.splice(j, 0, x)
 }
+/* a whole section copied, placed right after it: every question gets a new
+   identity, and a question shown only for an answer given inside the same
+   section now follows that answer in the copy rather than in the original */
+function duplicateModule(mi: number) {
+  const src = spec.value.modules[mi]
+  const ids = new Map(src.questions.map(q => [q.id, newId()]))
+  const copy = JSON.parse(JSON.stringify(src))
+  copy.id = newId()
+  copy.title = src.title ? `${src.title} (${t('formCopy')})` : ''
+  for (const q of copy.questions) {
+    q.id = ids.get(q.id)
+    if (q.showIf && ids.has(q.showIf.q)) q.showIf.q = ids.get(q.showIf.q)
+  }
+  spec.value.modules.splice(mi + 1, 0, copy)
+  open.value = null
+  show('⧉ ' + t('formModuleCopied'))
+}
 function removeModule(mi: number) {
   const m = spec.value.modules[mi]
   if (m.questions.length && !confirm(t('formRemoveModuleQ', { n: m.questions.length }))) return
@@ -174,6 +191,7 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
           <input v-model="m.title" class="in" :placeholder="t('formModuleTitlePh')">
           <button class="ib" :disabled="mi === 0" :aria-label="t('moveUp')" @click="move(spec.modules, mi, -1)">↑</button>
           <button class="ib" :disabled="mi === spec.modules.length - 1" :aria-label="t('moveDown')" @click="move(spec.modules, mi, 1)">↓</button>
+          <button class="ib" :aria-label="t('formDuplicateModule')" :title="t('formDuplicateModule')" @click="duplicateModule(mi)">⧉</button>
           <button class="ib del" :aria-label="t('delete')" @click="removeModule(mi)">🗑</button>
         </div>
         <textarea v-model="m.description" class="in" rows="2" :placeholder="t('formModuleDescPh')" />

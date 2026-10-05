@@ -1012,5 +1012,8 @@
   "profilePicture": "Εικόνα προφίλ",
   "profilePictureNote": "Διάλεξε φωτογραφία ή άβαταρ — φαίνεται ένα από τα δύο.",
   "photoUpload": "Ανέβασμα φωτογραφίας",
-  "avatarUseInstead": "Άβαταρ αντί για φωτογραφία"
+  "avatarUseInstead": "Άβαταρ αντί για φωτογραφία",
+  "formCopy": "αντίγραφο",
+  "formDuplicateModule": "Αντιγραφή ενότητας",
+  "formModuleCopied": "Η ενότητα αντιγράφηκε από κάτω"
 }

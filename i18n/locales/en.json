@@ -1012,5 +1012,8 @@
   "profilePicture": "Profile picture",
   "profilePictureNote": "Choose a photo or an avatar — one of the two is shown.",
   "photoUpload": "Upload a photo",
-  "avatarUseInstead": "Avatar instead of a photo"
+  "avatarUseInstead": "Avatar instead of a photo",
+  "formCopy": "copy",
+  "formDuplicateModule": "Duplicate section",
+  "formModuleCopied": "Section copied below"
 }
