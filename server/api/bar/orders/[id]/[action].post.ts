@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../../../../db'
 import { requireBarStaff, acceptsOf, notifyCashiers } from '../../../../utils/bar'
 import { now } from '../../../../utils/passcode'
 import { sendPushToBarStaff } from '../../../../utils/push'
+import { noteError } from '../../../../utils/errorReport'
 
 /** One order, one step: the bartender readies it; the waiter delivers,
     cancels, or changes how the table will pay; a cashier who takes that kind
@@ -72,7 +73,7 @@ export default defineEventHandler(async (event) => {
     sendPushToBarStaff([o.waiterId], {
       title: `✅ Έτοιμη #${o.number} · Τραπέζι ${o.tableNo}`,
       body: `${items.map(i => `${i.qty}× ${i.name}`).join(', ')} — πάρ' την από τον ${me.name}`
-    }).catch(err => console.error('[bar] push failed', err))
+    }).catch(err => noteError('Μπαρ — ειδοποίηση παραγγελίας', err, {}, event))
   }
   if (tellCashiers) notifyCashiers(me.eventId, { ...o, ...set } as any, me.name)
   return { ok: true }

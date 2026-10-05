@@ -35,7 +35,7 @@ async function approve() {
     await $fetch('/api/admin/info/approve', { method: 'POST', body: { id: editing.value.id } })
     editing.value = null
     await refresh(); show('✅ ' + t('infoApproved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 /* opened from the "waiting for approval" notification */
 onMounted(() => {
@@ -72,7 +72,7 @@ async function dragEnd(pages: any[]) {
   try {
     await $fetch('/api/admin/info/order', { method: 'POST', body: { ids } })
     await refresh()
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 /* where each row sits while another is being dragged past it */
 function rowStyle(key: string, i: number) {
@@ -116,7 +116,7 @@ async function addImage(e: Event) {
     const before = text.slice(0, at), after = text.slice(at)
     editing.value.bodyEl = `${before}${before && !before.endsWith('\n') ? '\n' : ''}${line}\n${after.startsWith('\n') ? after.slice(1) : after}`
     show('🖼️ ' + t('imageAdded'))
-  } catch (err: any) { show(err?.data?.message || t('error')) }
+  } catch (err: any) { show(errMsg(err)) }
   finally { uploading.value = false }
 }
 
@@ -150,7 +150,7 @@ async function save() {
     await $fetch('/api/admin/info', { method: 'POST', body: editing.value })
     editing.value = null
     await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 </script>
 

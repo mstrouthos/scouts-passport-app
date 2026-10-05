@@ -6,6 +6,7 @@ import { unseal } from '../../../../../utils/seal'
 import { filesOfResponse, openFormFile, saveFormFile } from '../../../../../utils/formFiles'
 import { responsePdf } from '../../../../../utils/formPdf'
 import { normalizeSpec } from '../../../../../../utils/formSpec'
+import { noteError } from '../../../../../utils/errorReport'
 
 /** A response as a PDF, made now, kept encrypted with the form's files (in
     the bucket), and downloaded from there. */
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
   const rows = await filesOfResponse(id)
   const files: Record<string, any> = {}
   for (const [k, row] of Object.entries(rows)) {
-    try { files[k] = { row, bytes: await openFormFile(row) } } catch (e) { console.warn('[forms] file unreadable', row.id, e) }
+    try { files[k] = { row, bytes: await openFormFile(row) } } catch (e) { noteError('Φόρμες — αρχείο δεν ανοίγει για το PDF', e, { file: row.id, response: id }, event) }
   }
   const pdf = await responsePdf({
     formTitle: f?.titleEl ?? 'Φόρμα', responseId: r.id, createdAt: r.createdAt,

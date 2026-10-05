@@ -5,6 +5,7 @@ import { now } from '../../../../utils/passcode'
 import { assertCan } from '../../../../utils/permissions'
 import { notifyAward } from '../../../../utils/celebrate'
 import { isScoutTroop } from '../../../../utils/programme'
+import { noteError } from '../../../../utils/errorReport'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -32,7 +33,7 @@ export default defineEventHandler(async (event) => {
     // outside the insert's catch: a failure to notify is a real problem and
     // must not be mistaken for "this scout already had the badge"
     try { pushed += await notifyAward(scoutId, 'badge', badgeId, badge.titleEl) }
-    catch (err) { console.error('[award] badge notification failed', err) }
+    catch (err) { noteError('Πτυχίο — ειδοποίηση', err, {}, event) }
   }
   return { awarded, pushed }
 })

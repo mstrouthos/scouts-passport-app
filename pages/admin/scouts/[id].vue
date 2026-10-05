@@ -27,7 +27,7 @@ async function setUnit(patrolId: number | null) {
   try {
     await $fetch(`/api/admin/scouts/${id}`, { method: 'PATCH', body: { patrolId } })
     await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { unitBusy.value = false }
 }
 
@@ -37,7 +37,7 @@ async function setHidden(v: boolean) {
   try {
     await $fetch(`/api/admin/scouts/${id}`, { method: 'PATCH', body: { isHidden: v } })
     await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 
 /* Taking away, or giving back, this member's right to correct their own
@@ -46,7 +46,7 @@ async function setCanEditSelf(v: boolean) {
   try {
     await $fetch(`/api/admin/scouts/${id}`, { method: 'PATCH', body: { canEditSelf: v } })
     await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 
 const editingName = ref(false)
@@ -66,7 +66,7 @@ async function saveName() {
     await $fetch(`/api/admin/scouts/${id}`, { method: 'PATCH', body: { ...nameForm } })
     editingName.value = false
     await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { nameBusy.value = false }
 }
 async function setUnitRole(role: string | null) {
@@ -75,7 +75,7 @@ async function setUnitRole(role: string | null) {
   try {
     await $fetch(`/api/admin/scouts/${id}/unit-role`, { method: 'POST', body: { role } })
     await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { unitBusy.value = false }
 }
 
@@ -113,7 +113,7 @@ async function linkParent(m: any) {
     await $fetch(`/api/admin/parents/${m.id}/link`, { method: 'POST', body: { scoutId: Number(id) } })
     addingParent.value = false; matches.value = []
     await refreshParents(); show('✅ ' + t('parentLinked', { name: m.name }))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { pBusy.value = false }
 }
 function openAddParent() {
@@ -127,7 +127,7 @@ async function saveParent() {
     await $fetch('/api/admin/parents', { method: 'POST', body: { ...pForm, scoutId: Number(id) } })
     addingParent.value = false
     await refreshParents(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { pBusy.value = false }
 }
 /* Taking a parent off this child. When the family has another child the row
@@ -138,14 +138,14 @@ async function removeParent(p: any) {
   try {
     await $fetch(`/api/admin/scouts/${id}/parents/${p.id}`, { method: 'DELETE' })
     await refreshParents(); show(others > 0 ? '✅ ' + t('parentUnlinked') : '🗑️ ' + t('deleted'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 async function issueParentCode(p: any, via: 'sms' | 'email' | 'none') {
   try {
     const res = await $fetch<any>(`/api/admin/parents/${p.id}/code`, { method: 'POST', body: { via } })
     parentCode.value = { id: p.id, passcode: res.passcode, sent: res.sent, via }
     await refreshParents()
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 
 async function regen() {
@@ -172,7 +172,7 @@ async function revoke(b: any) {
   try {
     await $fetch(`/api/admin/badges/${b.id}/award`, { method: 'DELETE', query: { scoutId: Number(id) } })
     await refresh(); show('🗑️ ' + t('badgeRevoked'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 async function award(badgeId: number) {
   await $fetch(`/api/admin/badges/${badgeId}/award`, {
@@ -186,7 +186,7 @@ async function saveContact() {
     await $fetch(`/api/admin/scouts/${id}`, { method: 'PATCH', body: { phone: contact.phone, idNumber: contact.idNumber } })
     editingContact.value = false
     await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 /* Trash, not delete: the member goes to Διαγραμμένα for 30 days, restorable,
    and is locked out at once. */
@@ -196,7 +196,7 @@ async function deleteScout() {
     await $fetch(`/api/admin/scouts/${id}`, { method: 'DELETE' })
     show('🗑️ ' + t('trashed'))
     router.push('/admin/scouts')
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 </script>
 

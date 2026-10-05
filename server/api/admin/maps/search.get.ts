@@ -1,4 +1,5 @@
 import { requireLeader } from '../../../utils/guard'
+import { noteError } from '../../../utils/errorReport'
 
 /** Text search for a place, through Google Maps — when the server has a key
     (NUXT_GOOGLE_MAPS_KEY, with the Places API enabled). Without one it says
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
       textQuery: q, languageCode: 'el', regionCode: 'CY', maxResultCount: 8,
       locationBias: { rectangle: { low: { latitude: 34.5, longitude: 32.2 }, high: { latitude: 35.8, longitude: 34.7 } } }
     }
-  }).catch((err: any) => { console.warn('[maps] Google search failed', err?.data?.error?.message || err?.message); return null })
+  }).catch((err: any) => { noteError('Χάρτες — αναζήτηση Google', err, { google: err?.data?.error?.message }, event); return null })
   if (!res) return { google: false }
   return {
     google: true,

@@ -15,7 +15,7 @@ async function load() {
   if (!slug.value) { loadError.value = t('formNotFound'); return }
   try {
     data.value = await $fetch(`/api/forms/public/${encodeURIComponent(slug.value)}`, { query: route.query.preview ? { preview: 1 } : {} })
-  } catch (e: any) { loadError.value = e?.statusCode === 404 ? t('formNotFound') : (e?.data?.message || t('error')) }
+  } catch (e: any) { loadError.value = e?.statusCode === 404 ? t('formNotFound') : (errMsg(e)) }
 }
 onMounted(load)
 useHead(() => ({ title: data.value?.titleEl ? `${data.value.titleEl} · 30ό Σύστημα Προσκόπων` : '30ό Σύστημα Προσκόπων' }))
@@ -127,7 +127,7 @@ async function send() {
       await nextTick()
       errors.value = all
     }
-    sendError.value = e?.data?.message || t('error')
+    sendError.value = errMsg(e)
   } finally { busy.value = false }
 }
 function toggleOption(id: string, o: string) {

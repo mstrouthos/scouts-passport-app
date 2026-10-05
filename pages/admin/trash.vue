@@ -16,7 +16,7 @@ async function restore(r: any) {
     const res = await $fetch<any>(`/api/admin/scouts/${r.id}/restore`, { method: 'POST' })
     restored.value = { id: r.id, passcode: res.passcode }
     await refresh(); show('✅ ' + t('restored'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 async function emptyTrash() {
@@ -25,14 +25,14 @@ async function emptyTrash() {
   try {
     const res = await $fetch<any>('/api/admin/trash', { method: 'DELETE' })
     await refresh(); show(`🗑️ ${res.deleted} ${t('deletedN2')}`)
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 async function purgeNow(r: any) {
   if (!confirm(t('confirmPurge', { name: name(r) }))) return
   try {
     await $fetch(`/api/admin/scouts/${r.id}?permanent=1`, { method: 'DELETE' })
     await refresh(); show('🗑️ ' + t('deleted'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 </script>
 

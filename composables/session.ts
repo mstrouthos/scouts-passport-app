@@ -93,6 +93,7 @@ export function useToast() {
   const msg = useState<string | null>('toast', () => null)
   let timer: any
   const show = (text: string, ms = 2200) => {
+    if (!text) return
     msg.value = text
     clearTimeout(timer)
     timer = setTimeout(() => { msg.value = null }, ms)

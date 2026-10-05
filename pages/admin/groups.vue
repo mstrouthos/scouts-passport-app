@@ -39,7 +39,7 @@ async function save() {
     })
     editing.value = null
     await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 async function remove() {
@@ -48,7 +48,7 @@ async function remove() {
     await $fetch(`/api/admin/groups/${editing.value.id}`, { method: 'DELETE' })
     editing.value = null
     await refresh(); show('🗑️ ' + t('deleted'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 </script>
 

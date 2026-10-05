@@ -103,7 +103,7 @@ async function signIn() {
     await $fetch('/api/family/login', { method: 'POST', body: { passcode: code.value } })
     code.value = ''
     await load()
-  } catch (e: any) { err.value = e?.data?.message || t('loginBad') }
+  } catch (e: any) { const st = Number(e?.statusCode) || 0; err.value = st >= 400 && st < 500 ? (e?.data?.message || t('loginBad')) : errMsg(e) }
   finally { busy.value = false }
 }
 async function signOut() {

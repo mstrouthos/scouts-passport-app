@@ -81,6 +81,8 @@ export default defineNuxtConfig({
     // optional: a Discord channel's webhook, for a report of what each
     // notification reached
     discordWebhookUrl: '',
+    // optional: a separate channel for errors; without it they go to the one above
+    discordErrorsWebhookUrl: '',
     vapidSubject: 'mailto:admin@example.org',
     resendApiKey: '',
     emailFrom: '',

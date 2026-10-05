@@ -42,7 +42,7 @@ async function revoke(r: any) {
   try {
     await $fetch(`/api/admin/badges/${route.params.id}/award`, { method: 'DELETE', query: { scoutId: r.id } })
     await refreshBadges(); show('🗑️ ' + t('badgeRevoked'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 async function award() {
   try {
@@ -52,7 +52,7 @@ async function award() {
     show(`🏅 ${t('awardedOk')} → ${sel.value.length} ${t(sel.value.length === 1 ? 'scoutWord' : 'scoutsWord')}`)
     sel.value = []
     navigateTo('/admin/badges')
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 </script>
 

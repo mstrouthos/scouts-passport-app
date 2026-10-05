@@ -29,7 +29,7 @@ async function post(body: any) {
   try {
     await $fetch('/api/admin/pack/challenges', { method: 'POST', body: { sectionId: data.value?.sectionId, ...body } })
     await refresh()
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 async function addChallenge() {

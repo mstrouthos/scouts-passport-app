@@ -79,14 +79,14 @@ async function send() {
       : '⏳ ' + t('pendingApproval'))
     text.value = ''
     await refresh()
-  } catch (e: any) { show(e?.data?.message || t('error')) } finally { busy.value = false }
+  } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
 }
 async function approve(id: number) {
   try {
     await $fetch(`/api/admin/announcements/${id}/approve`, { method: 'POST' })
     show('✅ ' + t('sent'))
     await refresh()
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 /** A sent one's targets, named by the server — it knows sections outside mine. */
 const audLabel = (a: any) => (a.targetNames || [])
@@ -108,7 +108,7 @@ async function openDetail(a: any) {
   detail.value = { ...a, members: null }
   detailLoading.value = true
   try { detail.value = await $fetch<any>(`/api/admin/announcements/${a.id}`) }
-  catch (e: any) { show(e?.data?.message || t('error')); detail.value = null }
+  catch (e: any) { show(errMsg(e)); detail.value = null }
   finally { detailLoading.value = false }
 }
 const name = useName()

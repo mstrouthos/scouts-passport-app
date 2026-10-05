@@ -13,6 +13,10 @@ const { t } = useI18n()
 const code = computed(() => Number(props.error?.statusCode) || 0)
 const isDeploy = computed(() => [502, 503, 504].includes(code.value) || code.value === 0)
 const busy = ref(false)
+const sent = ref(false)
+/* an unexpected error on this screen is reported from the device, as the
+   server may never have seen it */
+onMounted(() => { if (!isDeploy.value && code.value !== 404) reportOnDevice(props.error, `error page ${code.value || ''}`.trim()) })
 
 async function retry() {
   busy.value = true
@@ -32,8 +36,9 @@ async function retry() {
       <p>{{ t('errNotFoundBody') }}</p>
     </template>
     <template v-else>
-      <h1>{{ t('errGenericTitle') }}</h1>
-      <p>{{ props.error?.message || t('errGenericBody') }}</p>
+      <h1>{{ sent ? t('errReportThanks') : t('errSomethingWrong') }}</h1>
+      <p>{{ sent ? t('errReportThanksBody') : t('errSomethingWrongBody') }}</p>
+      <button v-if="!sent" class="btn ghost" @click="sent = true">📨 {{ t('errSendReport') }}</button>
     </template>
     <button class="btn" :disabled="busy" @click="retry">{{ busy ? t('loading') : t('errRetry') }}</button>
   </div>

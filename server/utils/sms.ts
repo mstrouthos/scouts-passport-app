@@ -1,3 +1,4 @@
+import { noteError } from './errorReport'
 /** Optional SMS via SMS.to (https://sms.to). Silently no-ops without an API key. */
 
 /** SMS.to alphanumeric sender IDs must be pre-registered and are alphanumeric
@@ -29,9 +30,10 @@ export async function sendSms(toNumbers: string[], message: string): Promise<num
       // Log the accepted response verbatim: SMS.to can accept a request and still
       // reject the message downstream, and the body is the only place that shows up.
       console.log('[sms] response for', to, JSON.stringify(res))
-      if (res?.success === false) console.error('[sms] rejected for', to, JSON.stringify(res))
+      if (res?.success === false) { console.error('[sms] rejected for', to, JSON.stringify(res)); noteError('SMS απορρίφθηκε', new Error(String(res?.message || 'rejected')), { response: JSON.stringify(res).slice(0, 300) }) }
       else sent++
     } catch (e: any) {
+      noteError('Αποστολή SMS', e, { status: e?.response?.status ?? e?.statusCode })
       console.error('[sms] send failed for', to, JSON.stringify({
         status: e?.response?.status ?? e?.statusCode, statusText: e?.response?.statusText ?? e?.statusMessage,
         data: e?.data, message: e?.message

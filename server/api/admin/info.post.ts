@@ -4,6 +4,7 @@ import { requireLeader } from '../../utils/guard'
 import { sendPushTo } from '../../utils/push'
 import { tellAuthorPublished, administratorIds } from '../../utils/infoNotify'
 import { toSlug } from '../../utils/slug'
+import { noteError } from '../../utils/errorReport'
 
 /** Create or update an info page (upsert by slug).
 
@@ -64,7 +65,7 @@ export default defineEventHandler(async (event) => {
         title: 'Πληροφορίες: προς έγκριση', body: `📄 ${set.titleEl} — από ${me.firstName} ${me.lastName}`,
         kind: 'infoApproval', refId: id!
       })
-    } catch (err) { console.error('[info] approval notice failed', err) }
+    } catch (err) { noteError('Πληροφορίες — ειδοποίηση έγκρισης', err, {}, event) }
   }
   return { ok: true, slug, sectionId }
 })

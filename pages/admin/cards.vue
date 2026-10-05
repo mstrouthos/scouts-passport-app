@@ -15,7 +15,7 @@ function toggle(id: number) {
 async function generate() {
   try {
     cards.value = await $fetch<any[]>('/api/admin/cards', { method: 'POST', body: { scoutIds: sel.value } })
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 function printPage() { window.print() }
 </script>

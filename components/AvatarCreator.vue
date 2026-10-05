@@ -66,7 +66,7 @@ async function save() {
     await loadMe()
     show('✅ ' + t('avatarSaved'))
     await navigateTo(props.back)
-  } catch (e: any) { show(e?.data?.message || t('error')) } finally { busy.value = false }
+  } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
 }
 onBeforeRouteLeave(() => !dirty.value || busy.value || confirm(t('avatarUnsaved')))
 

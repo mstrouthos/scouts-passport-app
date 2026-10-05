@@ -36,7 +36,7 @@ async function addAccount() {
   try {
     const a = await $fetch<any>('/api/bar/accounts', { method: 'POST', body: { name } })
     accounts.value.push(a); chosen.value = a.id; newName.value = ''; adding.value = false
-  } catch (e: any) { say(e?.data?.message || 'Κάτι πήγε στραβά') }
+  } catch (e: any) { say(errMsg(e)) }
 }
 </script>
 

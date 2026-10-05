@@ -48,16 +48,16 @@ async function pick(e: Event) {
       const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name)
       let blob: Blob = file
       if (!isPdf) {
-        try { blob = await toJpeg(file) } catch { throw new Error(t('formFileNotImage', { name: file.name })) }
+        try { blob = await toJpeg(file) } catch { throw friendlyError(t('formFileNotImage', { name: file.name })) }
       }
-      if (blob.size > FILE_MAX_BYTES) throw new Error(t('formFileTooBig', { name: file.name }))
+      if (blob.size > FILE_MAX_BYTES) throw friendlyError(t('formFileTooBig', { name: file.name }))
       const up = await $fetch<Up>(`/api/forms/public/${encodeURIComponent(props.slug)}/upload`, {
         method: 'POST',
         body: { questionId: props.questionId, name: file.name, mime: isPdf ? 'application/pdf' : 'image/jpeg', dataBase64: await base64(blob) }
       })
       emit('update:modelValue', [...props.modelValue, up])
     } catch (e: any) {
-      err.value = e?.data?.message || e?.message || t('error')
+      err.value = errMsg(e)
     } finally { busy.value-- }
   }
 }

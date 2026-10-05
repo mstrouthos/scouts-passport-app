@@ -33,7 +33,7 @@ export function usePushResync() {
   /** A push to this device, to prove the chain works end to end. */
   async function test() {
     const sub = await resync(true)
-    if (!sub) throw new Error('Δεν έχουν ενεργοποιηθεί οι ειδοποιήσεις σε αυτή τη συσκευή')
+    if (!sub) throw friendlyError('Δεν έχουν ενεργοποιηθεί οι ειδοποιήσεις σε αυτή τη συσκευή')
     return $fetch<{ sent: number }>('/api/push/test', { method: 'POST', body: { endpoint: sub.endpoint } })
   }
   return { resync, test, current }

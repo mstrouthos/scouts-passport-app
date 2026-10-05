@@ -55,7 +55,7 @@ async function save() {
     })
     await refresh()
     show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) } finally { busy.value = false }
+  } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
 }
 
 /* building */
@@ -161,7 +161,7 @@ async function removeForm() {
 const responses = ref<any[] | null>(null)
 async function loadResponses() {
   try { responses.value = await $fetch<any[]>(`/api/admin/forms/${id}/responses`) }
-  catch (e: any) { show(e?.data?.message || t('error')) }
+  catch (e: any) { show(errMsg(e)) }
 }
 watch(tab, v => { if (v === 'responses') loadResponses() }, { immediate: true })
 const exporting = ref(false)
@@ -170,7 +170,7 @@ async function exportCsv() {
   try {
     const f = await $fetch<{ fileId: number, name: string }>(`/api/admin/forms/${id}/export`, { method: 'POST' })
     await downloadFormFile(f.fileId, f.name)
-  } catch (e: any) { show(e?.data?.message || t('error')) } finally { exporting.value = false }
+  } catch (e: any) { show(errMsg(e)) } finally { exporting.value = false }
 }
 const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}`
 </script>

@@ -10,7 +10,7 @@ export default defineEventHandler((event) => {
   if (!isFormsHost(host)) return
   const path = (event.path || '/').split('?')[0]
   if (path.startsWith('/api/')) {
-    if (path.startsWith('/api/forms/public/')) return
+    if (path.startsWith('/api/forms/public/') || path === '/api/client-error') return
     throw createError({ statusCode: 404, message: 'Not found' })
   }
   // the members' app is not installable from here: no service worker, no manifest

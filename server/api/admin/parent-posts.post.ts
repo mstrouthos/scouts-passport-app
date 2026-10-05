@@ -5,6 +5,7 @@ import { now } from '../../utils/passcode'
 import { assertCan } from '../../utils/permissions'
 import { parentsOfSections } from '../../utils/parents'
 import { sendPushToParentIds, sendPushToParents } from '../../utils/push'
+import { noteError } from '../../utils/errorReport'
 
 const MAX_PDF = 8 * 1024 * 1024   // 8 MB — plenty for a scanned announcement
 
@@ -59,7 +60,7 @@ export default defineEventHandler(async (event) => {
       const msg = { title: 'Πύλη Προσκόπων', body: `📣 ${titleEl}`, kind: 'parentPost', refId: row.id }
       pushed = await sendPushToParentIds((await parentsOfSections(secs)).map(p => p.id), msg)
         + await sendPushToParents(secs, msg)
-    } catch (err) { console.error('[parent-post] push failed', err) }
+    } catch (err) { noteError('Ανακοίνωση γονέων — ειδοποίηση', err, {}, event) }
   }
   return { id: row.id, pushed }
 })

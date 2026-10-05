@@ -1,5 +1,6 @@
 import { useDb, schema as s } from '../db'
 import { sendPushTo } from './push'
+import { noteError } from './errorReport'
 
 type Page = typeof s.infoPages.$inferSelect
 
@@ -14,7 +15,7 @@ export async function tellAuthorPublished(page: Page, by: { id: number, firstNam
       body: `✅ «${page.titleEl}» εγκρίθηκε από ${by.firstName} ${by.lastName} και φαίνεται πια σε όλους.`,
       kind: 'infoPublished', refId: page.id
     })
-  } catch (err) { console.error('[info] author notice failed', err) }
+  } catch (err) { noteError('Πληροφορίες — ειδοποίηση συντάκτη', err) }
 }
 
 /** Who administers: the ones told a page is waiting for approval. */

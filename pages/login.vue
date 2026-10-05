@@ -27,7 +27,8 @@ async function submit() {
     await new Promise(r => setTimeout(r, 650))
     navigateTo(res.role === 'scout' ? '/app' : '/admin', { replace: true })
   } catch (e: any) {
-    err.value = e?.statusCode === 429 ? t('loginSlow') : t('loginBad')
+    const st = Number(e?.statusCode) || 0
+    err.value = st === 429 ? t('loginSlow') : st >= 400 && st < 500 ? t('loginBad') : errMsg(e)
     shake.value = false; await nextTick(); shake.value = true
   } finally {
     busy.value = false

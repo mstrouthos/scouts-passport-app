@@ -18,7 +18,7 @@ async function saveParent() {
     await $fetch(`/api/admin/parents/${p.id}`, { method: 'PATCH', body: p })
     editing.value = null
     await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 async function removeParent() {
@@ -27,7 +27,7 @@ async function removeParent() {
     await $fetch(`/api/admin/parents/${editing.value.id}`, { method: 'DELETE' })
     editing.value = null
     await refresh(); show('🗑️ ' + t('deleted'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 /** Issue a code and optionally deliver it by SMS or email. */
 async function sendCode(via: 'sms' | 'email' | 'none') {
@@ -38,7 +38,7 @@ async function sendCode(via: 'sms' | 'email' | 'none') {
     await refresh()
     show(via === 'none' ? '🔑 ' + t('codeIssued')
       : res.sent ? '✅ ' + t('codeSent') : t('codeNotSent'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 const sectionName = (id: number) => (data.value?.sections || []).find((x: any) => x.id === id)?.nameEl ?? ''
 /* Under a sector's heading, a parent's row names only the children in that sector. */
@@ -81,7 +81,7 @@ async function savePost() {
     }
     composing.value = false
     await refreshPosts()
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 async function deletePost(id: number) {
@@ -89,7 +89,7 @@ async function deletePost(id: number) {
   try {
     await $fetch(`/api/admin/parent-posts/${id}`, { method: 'DELETE' })
     await refreshPosts(); show('🗑️ ' + t('deleted'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 </script>
 

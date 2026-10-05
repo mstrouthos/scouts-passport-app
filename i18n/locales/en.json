@@ -1045,5 +1045,10 @@
   "avo_headwear_bandana": "Bandana",
   "avo_headwear_headband": "Headband",
   "avo_headwear_hijab": "Hijab",
-  "avatarSave": "Save avatar"
+  "avatarSave": "Save avatar",
+  "errSomethingWrong": "Something went wrong!",
+  "errSomethingWrongBody": "Please try again in a moment. If it keeps happening, send us a report.",
+  "errSendReport": "Send error report",
+  "errReportThanks": "Report sent!",
+  "errReportThanksBody": "Thank you — we will look into it as soon as we can."
 }

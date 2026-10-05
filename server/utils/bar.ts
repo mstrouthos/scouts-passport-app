@@ -3,6 +3,7 @@ import { eq, and, inArray } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { requireScout, rankOf, scopedSectionIds, type SessionScout } from './guard'
 import { QUIZ_SLUG } from './quizSector'
+import { noteError } from './errorReport'
 
 export type BarStaff = typeof s.barStaff.$inferSelect
 export type BarOrder = typeof s.barOrders.$inferSelect
@@ -128,7 +129,7 @@ export async function notifyCashiers(eventId: number, o: { number: number; table
   await sendPushToBarStaff(cashiers.map(c => c.id), {
     title: `💶 Προς πληρωμή #${o.number} · Τραπέζι ${o.tableNo}`,
     body: `${kind} · ${(o.totalCents / 100).toFixed(2).replace('.', ',')} € — ${waiterName}`
-  }).catch(err => console.error('[bar] cashier push failed', err))
+  }).catch(err => noteError('Μπαρ — ειδοποίηση ταμία', err))
 }
 
 export { and, eq }

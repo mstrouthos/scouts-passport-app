@@ -64,7 +64,7 @@ async function startQuestion() {
     anchor(r)
     stopTicker()
     ticker = setInterval(tick, 200)
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 /* A question in progress holds the sheet: no close button, no tapping the
@@ -133,7 +133,7 @@ async function submit() {
       clearTimeout(streakTimer); streakTimer = setTimeout(() => { streakShow.value = true }, 2300)
     }
   } catch (e: any) {
-    show(e?.data?.message || t('error'))
+    show(errMsg(e))
     // it may have closed while open: pick up its state, which lets the sheet go
     await refresh()
     const now_ = items.value.find(x => x.id === open.value?.id)

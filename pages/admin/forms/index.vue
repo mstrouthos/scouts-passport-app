@@ -17,7 +17,7 @@ async function create() {
   try {
     const r = await $fetch<any>('/api/admin/forms', { method: 'POST', body: { titleEl: title.value } })
     await navigateTo(`/admin/forms/${r.id}`)
-  } catch (e: any) { show(e?.data?.message || t('error')) } finally { busy.value = false }
+  } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
 }
 onMounted(refresh)
 </script>

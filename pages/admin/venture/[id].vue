@@ -29,7 +29,7 @@ async function post(body: any, after?: () => void) {
   try {
     await $fetch(`/api/admin/scouts/${id}/venture`, { method: 'POST', body })
     await refresh(); after?.(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 async function sign(done: boolean) {

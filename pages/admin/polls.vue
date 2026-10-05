@@ -71,7 +71,7 @@ async function save() {
       await refresh()
       show(`🗳️ ${t('pollAsked', { n: res.asked })}`)
     }
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 
@@ -84,7 +84,7 @@ async function vote(poll: any, optionId: number) {
   try {
     await $fetch(`/api/admin/polls/${poll.id}/vote`, { method: 'POST', body: { optionIds: next } })
     await refresh()
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 async function setClosed(poll: any, isClosed: boolean) {

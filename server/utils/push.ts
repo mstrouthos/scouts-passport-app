@@ -4,6 +4,7 @@ import { useDb, schema as s } from '../db'
 import { now } from './passcode'
 import { linkForNotification } from './notifyLinks'
 import { logMembers, logParents, logAnonymousParents } from './deliveryLog'
+import { noteError } from './errorReport'
 
 let configured: boolean | null = null
 function ensureConfigured(): boolean {
@@ -60,7 +61,7 @@ async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, pay
   // say why nothing went out: a silent zero here is indistinguishable from
   // "nobody was subscribed", which is what made a broken push hard to see
   if (!subs.length) { console.log('[push] nothing sent — no subscriptions for these recipients'); return 0 }
-  if (!ensureConfigured()) { console.warn('[push] nothing sent — VAPID keys are not configured'); return 0 }
+  if (!ensureConfigured()) { noteError('Ειδοποιήσεις push', new Error('Δεν έχουν οριστεί τα κλειδιά VAPID — δεν στέλνεται καμία ειδοποίηση')); return 0 }
   const db = (await useDb())
   let sent = 0
   await Promise.all(subs.map(async (sub) => {
@@ -72,6 +73,8 @@ async function deliver(subs: Array<typeof s.pushSubscriptions.$inferSelect>, pay
     } catch (err: any) {
       console.warn(`[push] delivery failed (${err?.statusCode ?? '?'}) for ${sub.endpoint.slice(0, 48)}`, err?.body || err?.message || '')
       const gone = err?.statusCode === 404 || err?.statusCode === 410
+      // an expired phone is routine; anything else from the push service is not
+      if (!gone) noteError('Ειδοποιήσεις push — αποτυχία παράδοσης', err, { status: err?.statusCode, service: sub.endpoint.split('/')[2], body: String(err?.body || '').slice(0, 200) })
       if (gone) await db.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.id, sub.id))
       onResult?.(sub, false, gone
         ? `subscription expired (${err.statusCode}), removed — needs to enable notifications again`

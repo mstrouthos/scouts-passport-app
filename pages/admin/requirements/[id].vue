@@ -31,7 +31,7 @@ async function setDone(done: boolean) {
     const fresh = st?.items.find((x: any) => x.id === detail.value.id)
     detail.value = fresh ? { ...fresh, stage: st } : null
     show(done ? '✅ ' + t('saved') : '↩️ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 </script>

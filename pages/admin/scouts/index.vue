@@ -77,7 +77,7 @@ async function createScout() {
     created.value = { ...res, phone: form.phone }
     form.firstName = ''; form.lastName = ''; form.phone = null
     await refresh()
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 
 async function sendInviteSms() {
@@ -160,7 +160,7 @@ async function savePatrol() {
     else await $fetch('/api/admin/patrols', { method: 'POST', body: { sectionId: p.sectionId, nameEl: p.nameEl, nameEn: p.nameEn || null } })
     editingPatrol.value = null
     await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 async function deletePatrol() {
   try {
@@ -168,7 +168,7 @@ async function deletePatrol() {
     await $fetch(`/api/admin/patrols/${editingPatrol.value.id}`, { method: 'DELETE' })
     editingPatrol.value = null
     await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 </script>
 

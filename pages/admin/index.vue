@@ -42,7 +42,7 @@ async function saveDetails() {
       }
     })
     await loadMe(); editingDetails.value = false; show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 
 /* A Βαθμοφόρος's photo: chosen on the phone, cropped to a square around its
@@ -68,10 +68,10 @@ async function pickPhoto(e: Event) {
   photoBusy.value = true
   try {
     let data: string
-    try { data = await squareJpeg(file) } catch { throw new Error(t('photoNotImage')) }
+    try { data = await squareJpeg(file) } catch { throw friendlyError(t('photoNotImage')) }
     await $fetch('/api/me/photo', { method: 'POST', body: { mime: 'image/jpeg', dataBase64: data } })
     await loadMe(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || e?.message || t('error')) } finally { photoBusy.value = false }
+  } catch (e: any) { show(errMsg(e)) } finally { photoBusy.value = false }
 }
 async function removePhoto() {
   photoMenu.value = false

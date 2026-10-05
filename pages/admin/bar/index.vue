@@ -20,7 +20,7 @@ async function create() {
       copyMenuFrom: src.startsWith('e') ? Number(src.slice(1)) : undefined
     } })
     adding.value = false; await refresh(); navigateTo(`/admin/bar/${r.id}`)
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 </script>
 

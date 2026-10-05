@@ -48,7 +48,7 @@ async function publish() {
     })
     show('✅ ' + t('published'))
     navigateTo('/admin/challenges')
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 </script>
 

@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { randomBytes } from 'node:crypto'
+import { reportError } from './errorReport'
 
 /** Where attachments live.
 
@@ -32,7 +33,9 @@ export async function storeFile(buf: Buffer, mime: string, name: string, folder 
   if (!c) return buf.toString('base64')
   const safe = name.replace(/[^\w.\-]+/g, '_').slice(0, 80)
   const key = `${folder}/${new Date().toISOString().slice(0, 10)}/${randomBytes(8).toString('hex')}-${safe}`
-  await c.s3.send(new PutObjectCommand({ Bucket: c.bucket, Key: key, Body: buf, ContentType: mime }))
+  try {
+    await c.s3.send(new PutObjectCommand({ Bucket: c.bucket, Key: key, Body: buf, ContentType: mime }))
+  } catch (err) { throw await storageFailed('ανέβασμα', err, { folder, size: buf.length, mime }) }
   return `s3:${key}`
 }
 
@@ -53,7 +56,9 @@ export async function readStored(data: string): Promise<Buffer> {
   if (!isS3Ref(data)) return Buffer.from(data, 'base64')
   const c = client()
   if (!c) throw createError({ statusCode: 500, message: 'Bucket not configured' })
-  const r = await c.s3.send(new GetObjectCommand({ Bucket: c.bucket, Key: data.slice(3) }))
+  let r
+  try { r = await c.s3.send(new GetObjectCommand({ Bucket: c.bucket, Key: data.slice(3) })) }
+  catch (err) { throw await storageFailed('ανάγνωση', err, { key: data.slice(3, 60) }) }
   return Buffer.from(await r.Body!.transformToByteArray())
 }
 
@@ -63,5 +68,22 @@ export async function deleteStored(data: string): Promise<void> {
   const c = client()
   if (!c || !isS3Ref(data)) return
   try { await c.s3.send(new DeleteObjectCommand({ Bucket: c.bucket, Key: data.slice(3) })) }
-  catch (err) { console.warn('[storage] delete failed', err) }
+  catch (err) { await reportError('Αποθήκευση αρχείων (S3) — διαγραφή', err, { key: data.slice(3, 60), ...where() }) }
+}
+
+/* where the bucket is, for the report — never its keys */
+function where() {
+  const c = useRuntimeConfig()
+  let endpoint = c.s3Endpoint || '(AWS)'
+  try { if (c.s3Endpoint) endpoint = new URL(c.s3Endpoint).host } catch {}
+  return { bucket: c.s3Bucket, region: c.s3Region || '(auto)', endpoint }
+}
+/** A bucket that would not take or give a file: reported with its settings
+    and the provider's own error code, and turned into a message a person can
+    read instead of "Server Error". */
+async function storageFailed(what: string, err: unknown, ctx: Record<string, unknown>) {
+  await reportError(`Αποθήκευση αρχείων (S3) — ${what}`, err, { ...ctx, ...where() })
+  const e: any = createError({ statusCode: 502, message: 'Η αποθήκευση του αρχείου απέτυχε — δοκιμάστε ξανά σε λίγο.' })
+  e.reported = true
+  return e
 }

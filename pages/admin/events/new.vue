@@ -36,7 +36,7 @@ async function save() {
     })
     show('✅ ' + t('saved'))
     navigateTo('/admin/events')
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 </script>
 

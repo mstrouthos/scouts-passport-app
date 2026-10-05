@@ -46,7 +46,7 @@ async function save(extra: Record<string, any> = {}) {
       body: { sectionId: target.value, ...form, ...(section.value ? { teamScoring: teamScoring.value } : {}), ...extra }
     })
     await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 async function resetToTroop() {

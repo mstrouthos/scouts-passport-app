@@ -75,7 +75,7 @@ async function send(reallySend: boolean) {
     })
     picked.value = new Set()
     await refresh()
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 </script>

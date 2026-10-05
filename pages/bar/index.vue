@@ -20,7 +20,7 @@ async function signIn() {
     // the session grew a bar identity; our copy must carry it too
     writeSessionToken(null)
     await load()
-  } catch (e: any) { err.value = e?.data?.message || 'Κάτι πήγε στραβά' }
+  } catch (e: any) { err.value = errMsg(e) }
   finally { busy.value = false }
 }
 /* A real reload: drop the cached app shell so the next start is the newest
@@ -63,7 +63,7 @@ const testing = ref('')
 async function tryPush() {
   testing.value = '…'
   try { const r = await testPush(); testing.value = r.sent ? 'Στάλθηκε — κοίτα το κινητό σου' : 'Δεν έφυγε — δες τις ρυθμίσεις της συσκευής' }
-  catch (e: any) { testing.value = e?.data?.message || e?.message || 'Δεν έφυγε' }
+  catch (e: any) { testing.value = errMsg(e) }
   setTimeout(() => { testing.value = '' }, 4000)
 }
 function b64ToU8(base64: string) {

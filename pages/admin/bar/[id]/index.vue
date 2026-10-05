@@ -11,7 +11,7 @@ const canEdit = computed(() => data.value?.canEdit === true)
 const eur = (c: number) => (c / 100).toFixed(2).replace('.', ',') + ' €'
 const api = async (path: string, method: any, body?: any) => {
   try { const r = await $fetch<any>(`/api/admin/bar/events/${id}${path}`, { method, body }); await refresh(); return r }
-  catch (e: any) { show(e?.data?.message || t('error')) }
+  catch (e: any) { show(errMsg(e)) }
 }
 
 /* settings: the event's own fields, edited together */
@@ -92,12 +92,12 @@ const { data: templates, refresh: refreshTemplates } = await useFetch<any[]>('/a
 async function saveTemplate() {
   const name = prompt(t('barTemplateName'), data.value.name); if (!name || !name.trim()) return
   try { await $fetch('/api/admin/bar/templates', { method: 'POST', body: { name, fromEventId: id } }); await refreshTemplates(); show('✅ ' + t('barTemplateSaved')) }
-  catch (e: any) { show(e?.data?.message || t('error')) }
+  catch (e: any) { show(errMsg(e)) }
 }
 async function loadTemplate(tid: number) { await api('/menu/from-template', 'POST', { templateId: tid }) }
 async function deleteTemplate(tpl: any) {
   if (!confirm(t('barTemplateDelete', { name: tpl.name }))) return
-  try { await $fetch(`/api/admin/bar/templates/${tpl.id}`, { method: 'DELETE' }); await refreshTemplates() } catch (e: any) { show(e?.data?.message || t('error')) }
+  try { await $fetch(`/api/admin/bar/templates/${tpl.id}`, { method: 'DELETE' }); await refreshTemplates() } catch (e: any) { show(errMsg(e)) }
 }
 
 /* crew */

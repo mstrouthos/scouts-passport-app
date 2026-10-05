@@ -3,6 +3,7 @@ import { requireLeader, scopedSectionIds, rankOf } from '../../utils/guard'
 import { now } from '../../utils/passcode'
 import { sendPushTo } from '../../utils/push'
 import { leadersOfSections } from '../../utils/polls'
+import { noteError } from '../../utils/errorReport'
 
 /** Put a question to the Βαθμοφόροι of a sector — or of the whole troop, which
     only the Αρχηγός Συστήματος may do. */
@@ -42,7 +43,7 @@ export default defineEventHandler(async (event) => {
     asked = ids.length
     if (ids.length)
       await sendPushTo(ids, { title: 'Πύλη Προσκόπων', body: `🗳️ Νέα ψηφοφορία: ${questionEl}`, kind: 'poll', refId: row.id })
-  } catch (err) { console.error('[poll] notification failed', err) }
+  } catch (err) { noteError('Ψηφοφορία — ειδοποίηση', err, {}, event) }
 
   return { id: row.id, asked }
 })

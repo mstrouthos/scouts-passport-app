@@ -11,11 +11,11 @@ const busy = ref(false)
 const since = ref(0)
 let timer: any = null
 async function load() {
-  try { data.value = await $fetch(`/api/t/${table}`); err.value = '' } catch (e: any) { err.value = e?.data?.message || 'Κάτι πήγε στραβά' }
+  try { data.value = await $fetch(`/api/t/${table}`); err.value = '' } catch (e: any) { err.value = errMsg(e) }
 }
 async function call() {
   busy.value = true
-  try { await $fetch(`/api/t/${table}/call`, { method: 'POST' }); await load() } catch (e: any) { err.value = e?.data?.message || 'Κάτι πήγε στραβά' }
+  try { await $fetch(`/api/t/${table}/call`, { method: 'POST' }); await load() } catch (e: any) { err.value = errMsg(e) }
   finally { busy.value = false }
 }
 onMounted(() => { load(); timer = setInterval(() => { load(); since.value++ }, 5000) })

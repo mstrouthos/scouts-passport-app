@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
+import { noteError } from './errorReport'
 
 /* "Has this person ever actually used the app?" is answered by their session,
    not only by the moment they typed a passcode: someone who signed in before
@@ -24,7 +25,7 @@ export async function markSeenScout(row: { id: number, firstLoginAt: string | nu
       .where(eq(s.scouts.id, row.id))
     row.lastLoginAt = t
     if (!row.firstLoginAt) row.firstLoginAt = t
-  } catch (err) { console.error('[seen] scout stamp failed', err) }
+  } catch (err) { noteError('Καταγραφή τελευταίας εμφάνισης (μέλος)', err) }
 }
 
 export async function markSeenParent(row: { id: number, firstLoginAt: string | null, lastLoginAt: string | null }) {
@@ -37,5 +38,5 @@ export async function markSeenParent(row: { id: number, firstLoginAt: string | n
       .where(eq(s.parents.id, row.id))
     row.lastLoginAt = t
     if (!row.firstLoginAt) row.firstLoginAt = t
-  } catch (err) { console.error('[seen] parent stamp failed', err) }
+  } catch (err) { noteError('Καταγραφή τελευταίας εμφάνισης (γονέας)', err) }
 }

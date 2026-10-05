@@ -64,7 +64,7 @@ async function send() {
     table.value = null
     say(`Στάλθηκε · #${r.number}`)
     await refresh(); tab.value = 'mine'
-  } catch (e: any) { say(e?.data?.message || 'Κάτι πήγε στραβά') }
+  } catch (e: any) { say(errMsg(e)) }
   finally { sending.value = false }
 }
 /* Mine: what is still moving first, then tonight's history. */

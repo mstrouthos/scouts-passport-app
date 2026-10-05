@@ -43,7 +43,7 @@ const confirming = ref<number | null>(null)
 async function confirmCard(a: any) {
   if (!accountId.value) return say('Διάλεξε λογαριασμό')
   try { await $fetch(`/api/bar/arrivals/${a.id}/confirm`, { method: 'POST', body: { accountId: accountId.value } }); confirming.value = null; await refresh() }
-  catch (e: any) { say(e?.data?.message || 'Κάτι πήγε στραβά') }
+  catch (e: any) { say(errMsg(e)) }
 }
 const open = ref<number | null>(null)
 const count = ref(1)
@@ -55,11 +55,11 @@ async function admit() {
   try {
     const r = await $fetch<any>('/api/bar/arrivals', { method: 'POST', body: { tableNo: open.value, count: count.value, kids: kids.value, method: method.value, accountId: method.value === 'card' && takesCard.value ? accountId.value : undefined } })
     say(r.pending ? `Μπήκαν ${count.value + kids.value} · η κάρτα περιμένει το ταμείο καρτών` : `Μπήκαν ${count.value + kids.value} · Τραπέζι ${open.value}`); open.value = null; await refresh()
-  } catch (e: any) { say(e?.data?.message || 'Κάτι πήγε στραβά') }
+  } catch (e: any) { say(errMsg(e)) }
 }
 async function undo(a: any) {
   if (!confirm(`Αναίρεση: ${a.count} άτομα, Τραπέζι ${a.tableNo};`)) return
-  try { await $fetch(`/api/bar/arrivals/${a.id}`, { method: 'DELETE' }); await refresh() } catch (e: any) { say(e?.data?.message || 'Κάτι πήγε στραβά') }
+  try { await $fetch(`/api/bar/arrivals/${a.id}`, { method: 'DELETE' }); await refresh() } catch (e: any) { say(errMsg(e)) }
 }
 const clock = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })
 </script>

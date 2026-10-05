@@ -146,7 +146,7 @@ async function smart(q: string): Promise<Hit[] | null> {
   if (c) return [{ lat: Number(c[1]), lng: Number(c[2]), name: `${c[1]}, ${c[2]}`, detail: t('mapCoords'), cy: true }]
   const link = q.match(LINK)
   if (link) {
-    const r = await $fetch<any>('/api/admin/maps/resolve', { query: { url: link[0] } }).catch((e: any) => { throw new Error(e?.data?.message || t('error')) })
+    const r = await $fetch<any>('/api/admin/maps/resolve', { query: { url: link[0] } })
     if (r.query) { query.value = r.query; return null }   // a link with only words in it
     return [{ lat: r.lat, lng: r.lng, name: r.name || t('mapFromLink'), detail: 'Google Maps', cy: true }]
   }
@@ -214,7 +214,7 @@ async function search() {
     if (!results.value.length) show(t('mapNoResults'))
     // one clear answer (a link, coordinates, a full code): straight onto the map
     else if (results.value.length === 1 && (COORDS.test(q) || LINK.test(q) || PLUS_CODE.test(q))) choose(results.value[0])
-  } catch (e: any) { if (mine === searchSeq) show(e?.message || t('error')) }
+  } catch (e: any) { if (mine === searchSeq) show(errMsg(e)) }
   finally { if (mine === searchSeq) searching.value = false }
 }
 function choose(r: Hit) {

@@ -30,7 +30,7 @@ async function addLog(kind: string) {
     await $fetch('/api/venture/log', { method: 'POST', body: { kind, ...logForm } })
     Object.assign(logForm, { datesEl: '', formEl: '', placeEl: '', oeEl: '' })
     await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 async function removeLog(logId: number) {
@@ -38,7 +38,7 @@ async function removeLog(logId: number) {
   try {
     await $fetch('/api/venture/log', { method: 'POST', body: { remove: true, logId } })
     await refresh()
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 
 const route = useRoute(); const router = useRouter()

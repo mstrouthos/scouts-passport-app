@@ -17,7 +17,7 @@ export function useBarOrders(intervalMs = 3000) {
       await $fetch(`/api/bar/orders/${id}/${action}`, { method: 'POST', body })
       await refresh()
       return true
-    } catch (e: any) { say(e?.data?.message || 'Κάτι πήγε στραβά'); return false }
+    } catch (e: any) { say(errMsg(e)); return false }
   }
   onMounted(() => { refresh(); timer = setInterval(refresh, intervalMs) })
   onUnmounted(() => { clearInterval(timer); clearTimeout(toastTimer) })

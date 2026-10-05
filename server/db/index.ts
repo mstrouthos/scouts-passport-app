@@ -4,6 +4,7 @@ import * as schema from './schema'
 import { DDL, MIGRATIONS } from './ddl'
 import { seedIfEmpty } from './seed'
 import { seedPassport } from './seedPassport'
+import { noteError } from '../utils/errorReport'
 
 type Db = ReturnType<typeof drizzle<typeof schema>>
 
@@ -35,7 +36,7 @@ async function init(): Promise<Db> {
     // Coolify's internal network is plain TCP; managed providers usually need TLS.
     ssl: /[?&]sslmode=(require|verify-full)/.test(connectionString) ? { rejectUnauthorized: false } : undefined
   })
-  _pool.on('error', e => console.error('[db] idle client error', e))
+  _pool.on('error', e => noteError('Βάση δεδομένων (σύνδεση σε αναμονή)', e))
 
   const safeUrl = connectionString.replace(/:\/\/([^:]+):[^@]+@/, '://$1:***@')
   console.log(`[db] connecting to ${safeUrl}`)

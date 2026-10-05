@@ -53,7 +53,7 @@ async function save() {
       body: { scoutId: editing.value.id, role: 'leader', scope: pick.scope, sectionId: pick.sectionId, rank: pick.rank }
     })
     await refresh(); await loadMe(); editing.value = null; show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 async function demote(scoutId: number) {
   await $fetch('/api/admin/roles', { method: 'POST', body: { scoutId, role: 'scout' } })
@@ -82,7 +82,7 @@ async function saveContact() {
     })
     editingContact.value = false
     await refreshAndResync(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 async function submitAddScope() {
   try {
@@ -96,14 +96,14 @@ async function submitAddScope() {
     })
     addingScope.value = false
     await refreshAndResync(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 async function removeScope(scopeId: number) {
   if (!confirm(t('confirmRemoveScope'))) return
   try {
     await $fetch('/api/admin/roles', { method: 'POST', body: { action: 'removeScope', scopeId } })
     await refreshAndResync(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 async function setAdmin(makeAdmin: boolean) {
   if (makeAdmin && !confirm(t('confirmMakeAdmin'))) return
@@ -112,7 +112,7 @@ async function setAdmin(makeAdmin: boolean) {
       method: 'POST', body: { action: 'setAdmin', scoutId: editing.value.id, admin: makeAdmin }
     })
     await refreshAndResync(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 async function deleteLeader() {
   if (!confirm(t('confirmDeleteLeader'))) return
@@ -120,7 +120,7 @@ async function deleteLeader() {
     await $fetch('/api/admin/roles', { method: 'POST', body: { action: 'delete', scoutId: editing.value.id } })
     editing.value = null
     await refresh(); show('🗑️ ' + t('deleted'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 async function sendNotify() {
   const text = notifyText.value.trim()
@@ -129,7 +129,7 @@ async function sendNotify() {
     const res = await $fetch<any>(`/api/admin/scouts/${editing.value.id}/notify`, { method: 'POST', body: { text } })
     show(res.sent ? '📩 ' + t('notifSentOk') : t('smsNotConfigured'))
     notifyText.value = ''
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 function scopeChipLabel(sc: any) {
   if (sc.scope === 'troop') return t('wholeTroop')

@@ -35,7 +35,7 @@ async function downloadPdf() {
     a.href = url; a.download = f.name
     document.body.appendChild(a); a.click(); a.remove()
     setTimeout(() => URL.revokeObjectURL(url), 10_000)
-  } catch (e: any) { show(e?.data?.message || t('error')) } finally { making.value = '' }
+  } catch (e: any) { show(errMsg(e)) } finally { making.value = '' }
 }
 /* printing is the same PDF, handed to the browser's print dialog; where a
    browser will not print a PDF that way, the page itself is printed */
@@ -52,7 +52,7 @@ async function print() {
       setTimeout(() => { frame.remove(); URL.revokeObjectURL(url) }, 60_000)
     }
     document.body.appendChild(frame)
-  } catch (e: any) { show(e?.data?.message || t('error')); window.print() } finally { making.value = '' }
+  } catch (e: any) { show(errMsg(e)); window.print() } finally { making.value = '' }
 }
 
 /* uploaded photos shown in place, fetched with the session like the rest */

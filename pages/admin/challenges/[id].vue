@@ -81,7 +81,7 @@ async function save() {
     await $fetch(`/api/admin/challenges/${id}`, { method: 'PATCH', body })
     editing.value = false
     await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 async function remove() {
@@ -90,7 +90,7 @@ async function remove() {
     await $fetch(`/api/admin/challenges/${id}`, { method: 'DELETE' })
     show('🗑️ ' + t('deleted'))
     router.push('/admin/challenges')
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 </script>
 

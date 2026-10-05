@@ -4,6 +4,7 @@ import { assertCan } from '../../utils/permissions'
 import { canScheduleForGroup } from '../../utils/groupScope'
 import { leadersForEvent, leadersToNotify } from '../../utils/rsvp'
 import { sendPushTo } from '../../utils/push'
+import { noteError } from '../../utils/errorReport'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -91,7 +92,7 @@ export default defineEventHandler(async (event) => {
       body: `📅 Νέα δράση: ${row.titleEl} (${when}).`,
       kind: 'eventRsvp', refId: row.id
     })
-  } catch (err) { console.error('[event] rsvp notification failed', err) }
+  } catch (err) { noteError('Δράση — ειδοποίηση συμμετοχής', err, {}, event) }
 
   return { id: row.id, asked }
 })

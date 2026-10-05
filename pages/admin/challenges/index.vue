@@ -52,7 +52,7 @@ async function deletePicked() {
     const res = await $fetch<any>('/api/admin/challenges/bulk-delete', { method: 'POST', body: { ids } })
     selecting.value = false; picked.value = new Set()
     await refresh(); show(`🗑️ ${res.deleted} ${t('deletedN')}`)
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 
 // ----- bulk import -----
@@ -98,7 +98,7 @@ async function runImport() {
     })
     await refresh()
     show(`✅ ${result.value!.imported} ${t('importedN')}`)
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 const isTroop = computed(() => me.value?.role === 'troop_leader')

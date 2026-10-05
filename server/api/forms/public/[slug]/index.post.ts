@@ -6,6 +6,7 @@ import { checkAnswers } from '../../../../../utils/formSpec'
 import { now } from '../../../../utils/passcode'
 import { sendPushTo } from '../../../../utils/push'
 import { administratorIds } from '../../../../utils/infoNotify'
+import { noteError } from '../../../../utils/errorReport'
 
 /** Someone sends a form. Checked against the form's own questions, kept
     encrypted with a copy of them, and the administrators are told. */
@@ -61,6 +62,6 @@ export default defineEventHandler(async (event) => {
     await sendPushTo(await administratorIds(), {
       title: 'Νέα υποβολή φόρμας', body: f.titleEl, kind: 'formResponse', refId: row.id
     })
-  } catch (e) { console.warn('[forms] could not notify administrators', e) }
+  } catch (e) { noteError('Φόρμες — ειδοποίηση διαχειριστών', e, { form: f.slug }) }
   return { ok: true, thanks: f.thanksEl }
 })

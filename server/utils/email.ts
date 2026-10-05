@@ -1,3 +1,4 @@
+import { noteError } from './errorReport'
 /** Optional email via Resend (https://resend.com). Silently no-op without a key. */
 export async function sendEmails(to: string[], subject: string, text: string): Promise<number> {
   const cfg = useRuntimeConfig()
@@ -16,7 +17,7 @@ export async function sendEmails(to: string[], subject: string, text: string): P
       })
       sent += res?.data?.length ?? batch.length
     } catch (e) {
-      console.error('[email] batch failed', e)
+      noteError('Αποστολή email', e, { recipients: batch.length })
     }
   }
   return sent

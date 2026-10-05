@@ -14,4 +14,5 @@ useHead({ htmlAttrs: { lang: locale }, link: isForm ? [] : [{ rel: 'manifest', h
 
 <template>
   <NuxtPage />
+  <ErrorSheet />
 </template>

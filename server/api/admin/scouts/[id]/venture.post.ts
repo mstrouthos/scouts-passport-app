@@ -5,6 +5,7 @@ import { assertScoutVisible } from '../../../../utils/requirements'
 import { assertCanSign, isVenture } from '../../../../utils/venture'
 import { notifyAward } from '../../../../utils/celebrate'
 import { now } from '../../../../utils/passcode'
+import { noteError } from '../../../../utils/errorReport'
 
 /** Sign a requirement off, record a milestone date, or add a logbook entry.
     Body: { action, … } — the Α.Κ.Α. only. */
@@ -85,7 +86,7 @@ export default defineEventHandler(async (event) => {
     })
     // only a new sign-off is worth announcing
     try { await notifyAward(id, 'venture', requirementId, req.areaEl) }
-    catch (err) { console.error('[venture] notification failed', err) }
+    catch (err) { noteError('Η.Κ.Α.Δ.Ε. — ειδοποίηση', err, {}, event) }
   }
   return { ok: true, done: true, completedOn }
 })

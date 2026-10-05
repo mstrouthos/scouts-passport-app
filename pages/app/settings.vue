@@ -14,7 +14,7 @@ const testMsg = ref('')
 async function testNotif() {
   testBusy.value = true; testMsg.value = '…'
   try { const r = await testPush(); testMsg.value = r.sent ? t('notifTestSent') : t('notifTestFailed') }
-  catch (e: any) { testMsg.value = e?.data?.message || e?.message || t('notifTestFailed') }
+  catch (e: any) { testMsg.value = errMsg(e) }
   finally { testBusy.value = false; setTimeout(() => { testMsg.value = '' }, 5000) }
 }
 
@@ -49,7 +49,7 @@ async function saveMe() {
     await loadMe()
     editing.value = false
     show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 

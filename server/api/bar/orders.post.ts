@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../../db'
 import { requireBarStaff, notifyCashiers, couponBalances } from '../../utils/bar'
 import { now } from '../../utils/passcode'
 import { sendPushToBarStaff } from '../../utils/push'
+import { noteError } from '../../utils/errorReport'
 
 /** A waiter sends a table's order to their bartender. */
 export default defineEventHandler(async (event) => {
@@ -50,7 +51,7 @@ export default defineEventHandler(async (event) => {
   const what = lines.map(l => `${l.qty}× ${l.item.name}`).join(', ')
   sendPushToBarStaff([me.bartenderId], {
     title: `🍻 Νέα παραγγελία #${number} · Τραπέζι ${tableNo}`, body: `${what} — ${me.name}`
-  }).catch(err => console.error('[bar] push failed', err))
+  }).catch(err => noteError('Μπαρ — ειδοποίηση παραγγελίας', err, {}, event))
   // and the cashier who takes that kind of money knows one is on its way
   notifyCashiers(me.eventId, row, me.name)
   return { id: row.id, number }

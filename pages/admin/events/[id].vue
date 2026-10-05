@@ -97,7 +97,7 @@ async function saveEvent() {
     })
     editing.value = false
     await refresh(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { busy.value = false }
 }
 async function deleteEvent() {
@@ -106,7 +106,7 @@ async function deleteEvent() {
     await $fetch(`/api/admin/events/${id}`, { method: 'DELETE' })
     show('🗑️ ' + t('deleted'))
     router.push('/admin/events')
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
 }
 
 /* Grouped by unit, then everyone who has none — the Αγέλες often run without
@@ -150,7 +150,7 @@ async function setRsvp(answer: string) {
   try {
     await $fetch(`/api/admin/events/${id}/rsvp`, { method: 'POST', body: { answer } })
     await refresh()
-  } catch (e: any) { show(e?.data?.message || t('error')) }
+  } catch (e: any) { show(errMsg(e)) }
   finally { rsvpBusy.value = false }
 }
 const rsvpGroups = computed(() => RSVPS.map(r => ({
