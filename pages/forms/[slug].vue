@@ -53,14 +53,14 @@ const shown = computed(() => spec.value
 watchEffect(() => {
   for (const inst of shown.value.shown) for (const q of inst.m.questions) {
     const key = q.id + inst.sfx
-    if (!(key in answers)) answers[key] = q.type === 'checkbox' || q.type === 'file' ? [] : ''
+    if (!(key in answers)) answers[key] = q.type === 'checkbox' || q.type === 'file' || q.type === 'gaps' ? [] : ''
     if (q.type === 'file' && !(key in uploads)) uploads[key] = []
   }
   for (const x of spec.value?.ticks || []) if (!(x.id in ticks)) ticks[x.id] = false
 })
 const errors = ref<Record<string, string>>({})
 const busy = ref(false)
-const done = ref<{ thanksTitle?: string, thanks?: string, at?: string } | null>(null)
+const done = ref<{ thanksTitle?: string, thanks?: string, at?: string, copyTo?: string | null } | null>(null)
 const sentWhen = computed(() => done.value?.at ? new Date(done.value.at).toLocaleString('el-GR', { timeZone: 'Europe/Nicosia', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : '')
 const sendError = ref('')
 const errText = (code: string) => t('formErr_' + code)
@@ -210,6 +210,7 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
         <h1>{{ done.thanksTitle || t('formSentTitle') }}</h1>
         <p class="thanks">{{ done.thanks || t('formSentText') }}</p>
         <div v-if="sentWhen" class="when">🕒 {{ t('formSentAt', { when: sentWhen }) }}</div>
+        <div v-if="done.copyTo" class="copyto">📧 {{ t('formCopySent') }} <b>{{ done.copyTo }}</b></div>
         <div class="close">{{ t('formSentClose') }}</div>
       </div>
       <template v-else>
@@ -227,10 +228,14 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
             <h2 v-if="instanceTitle(page.inst)">{{ instanceTitle(page.inst) }}</h2>
             <p v-if="page.inst.m.description" class="desc">{{ page.inst.m.description }}</p>
             <div v-for="q in page.inst.m.questions.filter(x => shown.questions.has(kOf(x)))" :key="q.id" class="q" :class="{ bad: errors[kOf(q)] }">
-              <label class="ql" :for="'q' + kOf(q)">{{ q.label }}<span v-if="q.required" class="req">*</span></label>
+              <!-- a fill-the-gaps question is its own sentence, answered in place -->
+              <FormGaps v-if="q.type === 'gaps'" :id-prefix="'q' + kOf(q)" :label="q.label" :model-value="answers[kOf(q)] || []"
+                        :required="q.required" :invalid="!!errors[kOf(q)]" @update:model-value="answers[kOf(q)] = $event" />
+              <label v-else class="ql" :for="'q' + kOf(q)">{{ q.label }}<span v-if="q.required" class="req">*</span></label>
               <div v-if="q.help" class="help">{{ q.help }}</div>
 
-              <textarea v-if="q.type === 'textarea'" :id="'q' + kOf(q)" v-model="answers[kOf(q)]" class="in" rows="4" />
+              <template v-if="q.type === 'gaps'" />
+              <textarea v-else-if="q.type === 'textarea'" :id="'q' + kOf(q)" v-model="answers[kOf(q)]" class="in" rows="4" />
               <select v-else-if="q.type === 'select'" :id="'q' + kOf(q)" v-model="answers[kOf(q)]" class="in">
                 <option value="" disabled>{{ t('formChoose') }}</option>
                 <option v-for="o in q.options" :key="o" :value="o">{{ o }}</option>
@@ -379,6 +384,8 @@ select.in{appearance:auto}
 .sent h1{margin:0; font-size:24px; line-height:1.25; letter-spacing:-.01em; color:var(--ink)}
 .sent .thanks{margin:4px 0 0; max-width:440px; font-size:15px; line-height:1.55; color:#4A5A70; white-space:pre-line}
 .sent .when{margin-top:14px; padding:7px 14px; border-radius:999px; background:var(--accent-soft); color:var(--accent-deep); font-size:13px; font-weight:600}
+.sent .copyto{margin-top:6px; font-size:13px; color:#4A5A70; line-height:1.5; overflow-wrap:anywhere}
+.sent .copyto b{color:var(--ink)}
 .sent .close{margin-top:10px; font-size:12px; color:var(--muted)}
 @media (prefers-reduced-motion: reduce){.sent, .seal path{animation:none; stroke-dashoffset:0}}
 </style>

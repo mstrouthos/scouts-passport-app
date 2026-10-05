@@ -2,7 +2,7 @@
 /* One form: building it (modules of questions, the tickboxes at the end, the
    signature), its settings (link, texts, open or closed), and what has come
    back. Nothing is saved until Save — the page says when there are changes. */
-import { FIELD_TYPES, WITH_OPTIONS, CHOICE_TYPES, YES_NO, REPEAT_MAX, newId, type FormSpec, type FormQuestion, type FieldType } from '~/utils/formSpec'
+import { FIELD_TYPES, WITH_OPTIONS, CHOICE_TYPES, YES_NO, REPEAT_MAX, newId, emailCopySources, gapCount, type FormSpec, type FormQuestion, type FieldType } from '~/utils/formSpec'
 const { t, locale } = useI18n()
 const me = useMe()
 const { show } = useToast()
@@ -60,7 +60,7 @@ async function save() {
 
 /* building */
 const TYPE_ICON: Record<FieldType, string> = {
-  text: '✏️', textarea: '📝', number: '🔢', email: '✉️', phone: '📞', date: '📅', yesno: '👍', radio: '🔘', checkbox: '☑️', select: '🔽', file: '📎'
+  text: '✏️', textarea: '📝', number: '🔢', email: '✉️', phone: '📞', date: '📅', yesno: '👍', radio: '🔘', checkbox: '☑️', select: '🔽', file: '📎', gaps: '🧩'
 }
 function addModule() {
   spec.value.modules.push({ id: newId(), title: '', questions: [] })
@@ -179,6 +179,18 @@ function toggleRepeat(m: any, on: boolean) {
   if (on) m.repeat = { label: 'Παιδί', until: m.id, ask: '', max: 6 }
   else delete m.repeat
 }
+/* the copy by email: to one of the Email questions asked once; with only one
+   such question there is nothing to choose */
+const copySources = computed(() => emailCopySources(spec.value))
+function toggleCopy(on: boolean) {
+  if (on) spec.value.emailCopy = { q: copySources.value[0]?.id || '' }
+  else delete spec.value.emailCopy
+}
+// a question it pointed at, since removed or moved into a repeated run
+watch(copySources, list => {
+  const c = spec.value.emailCopy
+  if (c && !list.some(q => q.id === c.q)) c.q = list[0]?.id || ''
+})
 function addTick() { spec.value.ticks.push({ id: newId(), label: '', required: true }) }
 
 const link = computed(() => `https://forms.scouts30.org/${form.value?.slug || settings.slug}`)
@@ -263,7 +275,15 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
             <span class="chev">{{ open === q.id ? '▾' : '›' }}</span>
           </button>
           <div v-if="open === q.id" class="qedit">
-            <div><label class="lab">{{ t('formQuestion') }}</label><input v-model="q.label" class="in" :placeholder="t('formQuestionPh')"></div>
+            <div v-if="q.type === 'gaps'">
+              <label class="lab">{{ t('formGapsText') }}</label>
+              <textarea v-model="q.label" class="in" rows="4" :placeholder="t('formGapsPh')" />
+              <div class="tiny muted">{{ t('formGapsHow') }}</div>
+              <!-- what the person will see -->
+              <div v-if="gapCount(q.label)" class="gapprev"><FormGaps :label="q.label" :model-value="[]" :required="q.required" /></div>
+              <div v-else-if="q.label.trim()" class="tiny warn">{{ t('formGapsNone') }}</div>
+            </div>
+            <div v-else><label class="lab">{{ t('formQuestion') }}</label><input v-model="q.label" class="in" :placeholder="t('formQuestionPh')"></div>
             <div>
               <label class="lab">{{ t('formAnswerType') }}</label>
               <select v-model="q.type" class="in">
@@ -325,6 +345,22 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
           <div><label class="lab">{{ t('formSignatureLabel') }}</label><input v-model="spec.signature.label" class="in" :placeholder="t('formSignatureLabelPh')"></div>
           <label class="tog"><input v-model="spec.signature.required" type="checkbox"> {{ t('formRequired') }}</label>
         </template>
+      </div>
+
+      <div class="sec-title">📧 {{ t('formCopy') }}</div>
+      <div class="card mod">
+        <label class="tog"><input type="checkbox" :checked="!!spec.emailCopy" :disabled="!copySources.length && !spec.emailCopy" @change="toggleCopy(($event.target as HTMLInputElement).checked)"> {{ t('formCopyOn') }}</label>
+        <div v-if="!copySources.length" class="tiny muted">{{ t('formCopyNeedsEmail') }}</div>
+        <template v-else-if="spec.emailCopy">
+          <div>
+            <label class="lab">{{ t('formCopyTo') }}</label>
+            <select v-model="spec.emailCopy.q" class="in">
+              <option v-for="q in copySources" :key="q.id" :value="q.id">{{ numbers.get(q.id) }} · {{ q.label || t('formUntitledQ') }}</option>
+            </select>
+          </div>
+          <div class="tiny muted">{{ t('formCopyNote') }}</div>
+        </template>
+        <div v-if="spec.emailCopy && form && !form.emailReady" class="tiny warn">⚠️ {{ t('formCopyNotReady') }}</div>
       </div>
     </template>
 
@@ -441,4 +477,6 @@ select.in{appearance:auto}
 .donePrev .tick{width:44px; height:44px; border-radius:50%; background:#27473A; color:#fff; display:grid; place-items:center; font-size:22px; font-weight:800; margin-bottom:4px}
 .donePrev b{font-size:16px}
 .donePrev p{margin:0; font-size:13px; color:var(--muted); white-space:pre-line}
+.warn{color:#8A6614; font-weight:600}
+.gapprev{margin-top:8px; padding:10px 12px; border:2px dashed var(--line, #DCE5EF); border-radius:12px; background:#fff}
 </style>

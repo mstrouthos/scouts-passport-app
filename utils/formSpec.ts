@@ -4,8 +4,32 @@
    questions; then the tickboxes at the end (consents, declarations); then,
    if asked for, a signature. */
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'phone' | 'date' | 'yesno' | 'radio' | 'checkbox' | 'select' | 'file'
-export const FIELD_TYPES: FieldType[] = ['text', 'textarea', 'number', 'email', 'phone', 'date', 'yesno', 'radio', 'checkbox', 'select', 'file']
+export type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'phone' | 'date' | 'yesno' | 'radio' | 'checkbox' | 'select' | 'file' | 'gaps'
+export const FIELD_TYPES: FieldType[] = ['text', 'textarea', 'number', 'email', 'phone', 'date', 'yesno', 'radio', 'checkbox', 'select', 'file', 'gaps']
+
+/* Fill the gaps: the question is a sentence with blanks in it — "___" (three
+   or more underscores) for a plain one, "[ονοματεπώνυμο]" for one with a hint
+   in it — answered in place, one answer per blank, in order. */
+export type GapPart = { text: string } | { gap: number, hint: string }
+const GAP = /_{3,}|\[([^\]\n]{0,60})\]/g
+export function gapParts(label: string): GapPart[] {
+  const out: GapPart[] = []
+  let at = 0, n = 0
+  for (const m of String(label || '').matchAll(GAP)) {
+    if (m.index! > at) out.push({ text: label.slice(at, m.index) })
+    out.push({ gap: n++, hint: (m[1] ?? '').trim() })
+    at = m.index! + m[0].length
+  }
+  if (at < String(label || '').length) out.push({ text: label.slice(at) })
+  return out
+}
+export const gapCount = (label: string) => gapParts(label).filter(p => 'gap' in p).length
+/** The sentence as it was completed, each blank filled with its answer. */
+export function gapsFilled(label: string, v: unknown): string {
+  const a = Array.isArray(v) ? v : []
+  return gapParts(label).map(p => 'gap' in p ? (String(a[p.gap] ?? '').trim() || '___') : p.text).join('')
+}
+export const GAP_MAX = 300
 /** An upload question takes pictures and PDFs, a few to a question. Photos
     are made smaller on the phone before they are sent. */
 // pictures arrive as JPEG whatever the phone took (the page converts them),
@@ -36,6 +60,9 @@ export type FormSpec = {
   modules: FormModule[]
   ticks: FormTick[]
   signature: { enabled: boolean, required: boolean, label: string }
+  /** a copy of the answers (the PDF, and the files they uploaded) is emailed
+      to the address given in this Email question */
+  emailCopy?: { q: string }
 }
 /** What someone sends back. */
 export type FormAnswers = {
@@ -74,7 +101,7 @@ export function normalizeSpec(raw: any): FormSpec {
       .map((q: any) => keep({
         id: id(q?.id),
         type: q.type as FieldType,
-        label: str(q?.label, 500),
+        label: str(q?.label, q?.type === 'gaps' ? 3000 : 500),
         help: str(q?.help, 1000) || undefined,
         required: !!q?.required,
         options: q.type === 'yesno' ? [...YES_NO] : WITH_OPTIONS.includes(q.type)
@@ -120,10 +147,30 @@ export function normalizeSpec(raw: any): FormSpec {
   const ticks = (Array.isArray(raw?.ticks) ? raw.ticks : []).slice(0, 30)
     .map((x: any) => ({ id: id(x?.id), label: str(x?.label, 2000), required: !!x?.required }))
   const sig = raw?.signature || {}
-  return {
+  const out: FormSpec = {
     modules, ticks,
     signature: { enabled: !!sig.enabled, required: sig.required !== false, label: str(sig.label, 300) }
   }
+  // the copy goes to one Email question that is asked once, not per child
+  const copyQ = String(raw?.emailCopy?.q || '')
+  if (copyQ && emailCopySources(out).some(q => q.id === copyQ)) out.emailCopy = { q: copyQ }
+  return out
+}
+
+/** The questions a copy of the answers can be emailed to: the Email
+    questions outside any repeated run. */
+export function emailCopySources(spec: FormSpec): FormQuestion[] {
+  const inRun = new Set<string>()
+  for (const g of repeatGroups(spec)) for (let j = g.start; j <= g.end; j++) for (const q of spec.modules[j].questions) inRun.add(q.id)
+  return spec.modules.flatMap(m => m.questions).filter(q => q.type === 'email' && !inRun.has(q.id))
+}
+
+/** Where this response's copy goes, if the form sends one and the address
+    given looks like one. */
+export function emailCopyAddress(spec: FormSpec, answers: Record<string, unknown>): string | null {
+  if (!spec.emailCopy) return null
+  const v = String(answers?.[spec.emailCopy.q] ?? '').trim()
+  return EMAIL.test(v) ? v : null
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -131,10 +178,17 @@ const PHONE = /^[+\d][\d\s()-]{5,}$/
 
 /** One question's answer checked; the error to show, or null. */
 export function questionError(q: FormQuestion, v: unknown): string | null {
-  const empty = Array.isArray(v) ? v.length === 0 : !String(v ?? '').trim()
+  const empty = Array.isArray(v) ? v.every(x => !String(x ?? '').trim()) : !String(v ?? '').trim()
   if (empty) return q.required ? 'required' : null
   if (q.type === 'checkbox') {
     if (!Array.isArray(v) || v.some(x => !q.options.includes(String(x)))) return 'invalid'
+    return null
+  }
+  if (q.type === 'gaps') {
+    // every blank answered when the question is required, and none too long
+    const a = Array.isArray(v) ? v.map(x => String(x ?? '').trim()) : []
+    if (a.length !== gapCount(q.label) || a.some(x => x.length > GAP_MAX)) return 'invalid'
+    if (q.required && a.some(x => !x)) return 'required'
     return null
   }
   if (q.type === 'file') {
@@ -242,10 +296,15 @@ export function checkAnswers(spec: FormSpec, body: any): { clean: FormAnswers, e
     if (!vis.questions.has(key)) continue
     let v = body?.answers?.[key]
     if (q.type === 'checkbox' || q.type === 'file') v = Array.isArray(v) ? v.map(x => String(x)) : []
-    else v = String(v ?? '').slice(0, q.type === 'textarea' ? 5000 : 500)
+    else if (q.type === 'gaps') {
+      // one answer per blank, however many were sent
+      const a = Array.isArray(v) ? v : []
+      v = Array.from({ length: gapCount(q.label) }, (_, i) => String(a[i] ?? '').trim().slice(0, GAP_MAX))
+    } else v = String(v ?? '').slice(0, q.type === 'textarea' ? 5000 : 500)
     const e = questionError(q, v)
     if (e) errors[key] = e
-    if (Array.isArray(v) ? v.length : String(v).trim()) answers[key] = Array.isArray(v) ? v : String(v).trim()
+    const has = Array.isArray(v) ? (q.type === 'gaps' ? v.some(x => x) : v.length) : String(v).trim()
+    if (has) answers[key] = Array.isArray(v) ? v : String(v).trim()
   }
   const ticks: Record<string, boolean> = {}
   for (const x of spec.ticks) {
@@ -271,6 +330,7 @@ export function checkAnswers(spec: FormSpec, body: any): { clean: FormAnswers, e
 /** An answer as text, for tables and the export — a date the Greek way. */
 export function answerText(v: unknown, type?: FieldType, fileNames?: Record<string, string>): string {
   if (type === 'file' && Array.isArray(v)) return v.map(x => fileNames?.[x] ?? '📎').join(', ')
+  if (type === 'gaps' && Array.isArray(v)) return v.some(x => String(x ?? '').trim()) ? v.map(x => String(x ?? '').trim() || '—').join(' · ') : ''
   if (Array.isArray(v)) return v.join(', ')
   const s = String(v ?? '')
   const d = type === 'date' && s.match(/^(\d{4})-(\d{2})-(\d{2})$/)

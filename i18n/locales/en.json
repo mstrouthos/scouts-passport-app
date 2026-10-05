@@ -977,7 +977,7 @@
   "profilePictureNote": "Choose a photo or an avatar — one of the two is shown.",
   "photoUpload": "Upload a photo",
   "avatarUseInstead": "Avatar instead of a photo",
-  "formCopy": "copy",
+  "formCopy": "Copy by email",
   "formDuplicateModule": "Duplicate section",
   "formModuleCopied": "Section copied below",
   "avatarDone": "Done",
@@ -1104,5 +1104,16 @@
   "formDoneScreen": "Message after sending",
   "formDoneNote": "Left empty, the default message shown below appears.",
   "formSentAt": "Sent {when}",
-  "formSentClose": "You can close this page now."
+  "formSentClose": "You can close this page now.",
+  "formCopyOn": "Email a copy of the answers to whoever fills in the form",
+  "formCopyTo": "To the address given in",
+  "formCopyNote": "Once the form is sent, they receive a PDF with every answer and the signature, along with the photos and PDFs they uploaded.",
+  "formCopyNeedsEmail": "Add an Email question first (outside any repeated section).",
+  "formCopyNotReady": "Email is not set up on the server (NUXT_RESEND_API_KEY and NUXT_EMAIL_FROM) — no copy is sent until it is.",
+  "formCopySent": "A copy is on its way to",
+  "ftype_gaps": "Fill the gaps",
+  "formGapsText": "Text with gaps",
+  "formGapsPh": "e.g. I, [full name], parent of [child's name], declare that…",
+  "formGapsHow": "Write ___ (three underscores) for a gap, or [hint] for a gap with a hint inside it.",
+  "formGapsNone": "No gaps yet — add ___ or [hint]."
 }

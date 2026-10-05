@@ -3,7 +3,7 @@
    answers, their uploads, the tickboxes, the signature with who signed and
    when. As a PDF — to keep, or to print straight from here — with every
    photo in place and any uploaded PDFs appended. Opening it is recorded. */
-import { answerText, visibleParts, instanceTitle } from '~/utils/formSpec'
+import { answerText, visibleParts, instanceTitle, gapParts } from '~/utils/formSpec'
 const { t, locale } = useI18n()
 const me = useMe()
 const { show } = useToast()
@@ -90,6 +90,11 @@ const seen = computed(() => r.value ? visibleParts(r.value.spec, r.value.data.an
       <section v-for="inst in seen?.shown || []" :key="inst.key" class="card mod">
         <h2 v-if="instanceTitle(inst)">{{ instanceTitle(inst) }}</h2>
         <div v-for="q in inst.m.questions.filter((x: any) => seen?.questions.has(x.id + inst.sfx))" :key="q.id" class="qa">
+          <!-- the sentence completed, each answer picked out where its blank was -->
+          <div v-if="q.type === 'gaps'" class="a gapsA">
+            <template v-for="(p, k) in gapParts(q.label)" :key="k"><template v-if="'text' in p">{{ p.text }}</template><mark v-else>{{ r.data.answers?.[q.id + inst.sfx]?.[p.gap] || '___' }}</mark></template>
+          </div>
+          <template v-else>
           <div class="q">{{ q.label }}</div>
           <div v-if="q.type === 'file'" class="files">
             <div v-if="!filesOf(r.data.answers?.[q.id + inst.sfx]).length" class="a none">—</div>
@@ -102,6 +107,7 @@ const seen = computed(() => r.value ? visibleParts(r.value.spec, r.value.data.an
             </div>
           </div>
           <div v-else class="a" :class="{ none: !shown(r.data.answers?.[q.id + inst.sfx]) }">{{ shown(r.data.answers?.[q.id + inst.sfx], q.type) || '—' }}</div>
+          </template>
         </div>
       </section>
 
@@ -157,4 +163,6 @@ h2{margin:0; font-size:15px; color:var(--accent-deep)}
   .print-head b{font-size:18px}
   .card{box-shadow:none; border:1px solid #ddd; break-inside:avoid}
 }
+.gapsA{white-space:pre-line; font-weight:500; line-height:1.7}
+.gapsA mark{background:var(--accent-soft, #E2EEE7); color:var(--ink); font-weight:750; padding:0 5px; border-radius:5px}
 </style>

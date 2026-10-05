@@ -2,7 +2,9 @@ import { and, eq, gt, inArray, isNull } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 import { specOf, isAccepting } from '../../../../utils/forms'
 import { seal, ipHash } from '../../../../utils/seal'
-import { checkAnswers, baseId, repeatGroups, copiesOf } from '../../../../../utils/formSpec'
+import { checkAnswers, baseId, repeatGroups, copiesOf, emailCopyAddress } from '../../../../../utils/formSpec'
+import { emailReady } from '../../../../utils/email'
+import { sendResponseCopy } from '../../../../utils/formCopy'
 import { now } from '../../../../utils/passcode'
 import { sendPushTo } from '../../../../utils/push'
 import { administratorIds } from '../../../../utils/infoNotify'
@@ -67,5 +69,9 @@ export default defineEventHandler(async (event) => {
       body: [f.titleEl, ...repeatGroups(spec).map(g => `${copiesOf(g, clean.repeats)} × ${g.repeat.label}`)].join(' · ')
     })
   } catch (e) { noteError('Φόρμες — ειδοποίηση διαχειριστών', e, { form: f.slug }) }
-  return { ok: true, thanksTitle: f.thanksTitleEl, thanks: f.thanksEl, at: sent }
+  // their own copy, by email, when the form sends one — made after the
+  // answer, so a slow PDF or mail server never holds up the sent screen
+  const copyTo = emailReady() ? emailCopyAddress(spec, clean.answers) : null
+  if (copyTo) void sendResponseCopy(row.id, copyTo)
+  return { ok: true, thanksTitle: f.thanksTitleEl, thanks: f.thanksEl, at: sent, copyTo }
 })

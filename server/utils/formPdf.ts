@@ -1,6 +1,6 @@
 import { PDFDocument, rgb, type PDFFont, type PDFPage, type PDFImage } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
-import { visibleParts, answerText, instanceTitle, type FormSpec, type FormAnswers } from '../../utils/formSpec'
+import { visibleParts, answerText, instanceTitle, gapsFilled, type FormSpec, type FormAnswers } from '../../utils/formSpec'
 import type { FormFile } from './formFiles'
 
 /* One form response as a PDF: everything the person was asked and what they
@@ -119,8 +119,10 @@ export async function responsePdf(p: {
       const key = q.id + inst.sfx
       if (!seen.questions.has(key)) continue
       room(36)
-      text(q.label, { size: 9, color: MUTED, gap: 1 })
       const v = p.data.answers?.[key]
+      // a fill-the-gaps question: the sentence as it was completed
+      if (q.type === 'gaps') { text(gapsFilled(q.label, v), { size: 11, gap: 8 }); continue }
+      text(q.label, { size: 9, color: MUTED, gap: 1 })
       if (q.type === 'file') {
         const list = (Array.isArray(v) ? v : []).map(k => p.files[k]).filter(Boolean)
         if (!list.length) text('—', { font: bold, size: 11, gap: 8 })
