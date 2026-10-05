@@ -10,15 +10,24 @@ import { reportError } from './errorReport'
     "s3:<key>". Without it the base64 stays in the row, as it always did — so
     nothing breaks on a machine with no bucket, and files stored before the
     bucket existed keep serving. */
+/* the provider's address as a full URL: "hel1.your-objectstorage.com" is
+   taken to mean https://hel1.your-objectstorage.com — written without its
+   scheme, the S3 client refuses it ("Invalid URL") and nothing is stored */
+function endpointUrl(raw: string): string | undefined {
+  const v = String(raw || '').trim().replace(/\/+$/, '')
+  if (!v) return undefined
+  return /^https?:\/\//i.test(v) ? v : `https://${v}`
+}
 function client(): { s3: S3Client, bucket: string } | null {
   const c = useRuntimeConfig()
   if (!c.s3Bucket || !c.s3AccessKeyId || !c.s3SecretAccessKey) return null
+  const endpoint = endpointUrl(c.s3Endpoint)
   return {
     bucket: c.s3Bucket,
     s3: new S3Client({
       region: c.s3Region || 'auto',
-      endpoint: c.s3Endpoint || undefined,
-      forcePathStyle: !!c.s3Endpoint,
+      endpoint,
+      forcePathStyle: !!endpoint,
       credentials: { accessKeyId: c.s3AccessKeyId, secretAccessKey: c.s3SecretAccessKey }
     })
   }
@@ -74,8 +83,7 @@ export async function deleteStored(data: string): Promise<void> {
 /* where the bucket is, for the report — never its keys */
 function where() {
   const c = useRuntimeConfig()
-  let endpoint = c.s3Endpoint || '(AWS)'
-  try { if (c.s3Endpoint) endpoint = new URL(c.s3Endpoint).host } catch {}
+  const endpoint = endpointUrl(c.s3Endpoint) || '(AWS)'
   return { bucket: c.s3Bucket, region: c.s3Region || '(auto)', endpoint }
 }
 /** A bucket that would not take or give a file: reported with its settings

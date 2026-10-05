@@ -97,6 +97,9 @@ export default defineNuxtConfig({
   },
 
   nitro: {
-    preset: 'node-server'
+    preset: 'node-server',
+    // lets code deep inside a request (storage, push…) find that request —
+    // so an error report can say which page and who, wherever it is raised
+    experimental: { asyncContext: true }
   }
 })

@@ -65,6 +65,8 @@ export async function reportError(where: string, err: unknown, ctx: Ctx = {}, ev
   console.error(`[error] ${where}:`, err, Object.keys(ctx).length ? ctx : '')
   const url = webhook()
   if (!url) return
+  // reported from deep inside a request (storage, push…): find that request
+  if (!event) { try { event = useEvent() } catch { /* not inside a request: the cron, a timer */ } }
 
   const key = `${where}|${message}`
   const now = Date.now()
