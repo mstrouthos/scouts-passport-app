@@ -74,6 +74,7 @@ const needs: Record<string, () => boolean> = {
   hairColor: () => cfg.value.hair !== 'none' || cfg.value.facialHair !== 'none'
 }
 
+function resetToSaved() { cfg.value = normalizeAvatar(JSON.parse(saved)) }
 function shuffle() {
   const r = randomAvatar()
   cfg.value = { ...r, facialHair: isLeader.value && r.gender === 'boy' ? cfg.value.facialHair : 'none' }
@@ -112,7 +113,9 @@ const ICONS: Record<string, string> = {
     <div ref="dockEl" class="dock">
       <div class="stage" :style="{ background: cfg.bg }">
         <div class="big" v-html="big" />
-        <button class="dice" :aria-label="t('avatarRandom')" @click="shuffle">🎲</button>
+        <button class="dice" :aria-label="t('avatarRandom')" :title="t('avatarRandom')" @click="shuffle">🎲</button>
+        <!-- back to the avatar as last saved, after trying things out -->
+        <button v-if="dirty && me?.avatar" class="dice reset" :aria-label="t('avatarReset')" :title="t('avatarReset')" @click="resetToSaved">↺</button>
       </div>
       <div class="seg tabs" role="tablist">
         <button v-for="tb in tabs" :key="tb.key" role="tab" :aria-selected="tab === tb.key" :class="{ on: tab === tb.key }" @click="pick(tb.key)">
@@ -171,8 +174,10 @@ const ICONS: Record<string, string> = {
 .big{height:100%; aspect-ratio:1}
 .big :deep(svg){width:100%; height:100%; display:block}
 .big :deep(svg > rect:first-of-type){fill:transparent}
-.dice{position:absolute; right:10px; bottom:10px; width:42px; height:42px; border-radius:50%; border:0; background:#fff; font-size:20px; box-shadow:var(--shadow-sm)}
+.dice{position:absolute; right:10px; top:10px; width:42px; height:42px; border-radius:50%; border:0; background:#fff; font-size:20px; box-shadow:var(--shadow-sm)}
 .dice:active{transform:rotate(25deg) scale(.95)}
+.dice.reset{right:60px; font-size:22px; font-weight:800; color:var(--accent-deep)}
+.dice.reset:active{transform:rotate(-40deg) scale(.95)}
 .tabs button{display:flex; flex-direction:column; align-items:center; gap:2px; padding:7px 0 6px; min-width:0; overflow:hidden}
 .tabs{overflow-x:auto; scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
