@@ -1050,5 +1050,6 @@
   "errReportThanks": "Report sent!",
   "errReportThanksBody": "Thank you — we will look into it as soon as we can.",
   "avt_clothes": "Clothes",
-  "avt_gender": "Gender"
+  "avt_gender": "Gender",
+  "boardYouAre": "You're in place #{n}!"
 }
