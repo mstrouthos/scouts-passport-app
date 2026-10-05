@@ -958,7 +958,6 @@
   "avo_gender_boy": "Αγόρι",
   "avo_gender_girl": "Κορίτσι",
   "avo_hair_short": "Κοντά",
-  "avo_hair_spiky": "Καρφάκια",
   "avo_hair_curly": "Σγουρά",
   "avo_hair_side": "Χωρίστρα",
   "avo_hair_buzz": "Ξυρισμένα",
@@ -1012,7 +1011,6 @@
   "avo_clothes_tee": "Μπλουζάκι",
   "avo_clothes_hoodie": "Φούτερ με κουκούλα",
   "avo_clothes_sweater": "Πουλόβερ",
-  "avo_hair_mohawk": "Μοϊκανό",
   "avo_hair_wavy": "Κυματιστά",
   "avo_hair_pigtails": "Δύο κοτσιδάκια",
   "avo_expression_smile": "Χαμόγελο",
@@ -1051,5 +1049,6 @@
   "errReportThanksBody": "Ευχαριστούμε — θα το κοιτάξουμε το συντομότερο.",
   "avt_clothes": "Ρούχα",
   "avt_gender": "Φύλο",
-  "boardYouAre": "Είσαι στη θέση #{n}!"
+  "boardYouAre": "Είσαι στη θέση #{n}!",
+  "avo_hair_crew": "Κοντό κούρεμα"
 }

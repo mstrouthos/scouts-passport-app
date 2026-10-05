@@ -958,7 +958,6 @@
   "avo_gender_boy": "Boy",
   "avo_gender_girl": "Girl",
   "avo_hair_short": "Short",
-  "avo_hair_spiky": "Spiky",
   "avo_hair_curly": "Curly",
   "avo_hair_side": "Side part",
   "avo_hair_buzz": "Buzz cut",
@@ -1012,7 +1011,6 @@
   "avo_clothes_tee": "T-shirt",
   "avo_clothes_hoodie": "Hoodie",
   "avo_clothes_sweater": "Sweater",
-  "avo_hair_mohawk": "Mohawk",
   "avo_hair_wavy": "Wavy",
   "avo_hair_pigtails": "Pigtails",
   "avo_expression_smile": "Smile",
@@ -1051,5 +1049,6 @@
   "errReportThanksBody": "Thank you — we will look into it as soon as we can.",
   "avt_clothes": "Clothes",
   "avt_gender": "Gender",
-  "boardYouAre": "You're in place #{n}!"
+  "boardYouAre": "You're in place #{n}!",
+  "avo_hair_crew": "Crew cut"
 }

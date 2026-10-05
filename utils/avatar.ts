@@ -13,7 +13,7 @@ export const AVATAR_OPTIONS = {
   head: ['square', 'round', 'tall', 'wide'],
   clothes: ['uniform', 'tee', 'hoodie', 'sweater'],
   clothesColor: ['#C9B48A', '#2E5E8C', '#3B6452', '#B23A48', '#5B4A8B', '#E08A2E', '#2B2B33', '#E9EEF4'],
-  hair: ['none', 'buzz', 'short', 'side', 'spiky', 'curly', 'mohawk', 'afro', 'bob', 'long', 'wavy', 'ponytail', 'pigtails', 'bun', 'braids'],
+  hair: ['none', 'buzz', 'crew', 'short', 'side', 'curly', 'afro', 'bob', 'long', 'wavy', 'ponytail', 'pigtails', 'bun', 'braids'],
   hairColor: ['#2A1E1A', '#4A3125', '#7B4A2A', '#B6763A', '#E3BC62', '#B5482A', '#9AA0A6', '#8E5BD6', '#3B82D6', '#E35D9A'],
   eyeColor: ['#2A2330', '#6B3E1F', '#8A6B2E', '#3E8A3A', '#2F79B8', '#1D8A8A'],
   expression: ['smile', 'grin', 'laugh', 'cool', 'surprised', 'silly', 'calm', 'determined'],
@@ -31,7 +31,7 @@ export const AVATAR_OPTIONS = {
    offered to girls, beards and moustaches to men. */
 export const FOR_GENDER: Record<string, Partial<Record<string, readonly string[]>>> = {
   boy: {
-    hair: ['none', 'buzz', 'short', 'side', 'spiky', 'curly', 'mohawk', 'afro'],
+    hair: ['none', 'buzz', 'crew', 'short', 'side', 'curly', 'afro'],
     headwear: ['none', 'scout', 'beret', 'cap', 'beanie']
   },
   girl: {
@@ -186,24 +186,25 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     }).join('')
   }
   // the cap of hair on the top of the head, down to `d` of its height at the sides
-  const cap = (d: number, extra = 0) => {
+  // the cap of hair on the top of the head: down to `d` of its height at the
+  // sides, its hairline at `line` of the height in the middle of the forehead
+  const cap = (d: number, extra = 0, line = 0.2) => {
     const l = x0 - 3 - extra, r = x1 + 3 + extra, t = y0 - 6 - extra
-    return `<path d="M${l} ${y0 + h * d} L${l} ${y0 + hb.r * 0.8} Q${l} ${t} ${x0 + hb.r} ${t} L${x1 - hb.r} ${t} Q${r} ${t} ${r} ${y0 + hb.r * 0.8} L${r} ${y0 + h * d} Q${x1 - 6} ${y0 + h * 0.22} ${cx} ${y0 + h * 0.2} Q${x0 + 6} ${y0 + h * 0.22} ${l} ${y0 + h * d} Z" fill="${hairC}"/>`
+    return `<path d="M${l} ${y0 + h * d} L${l} ${y0 + hb.r * 0.8} Q${l} ${t} ${x0 + hb.r} ${t} L${x1 - hb.r} ${t} Q${r} ${t} ${r} ${y0 + hb.r * 0.8} L${r} ${y0 + h * d} Q${x1 - 6} ${y0 + h * (line + 0.02)} ${cx} ${y0 + h * line} Q${x0 + 6} ${y0 + h * (line + 0.02)} ${l} ${y0 + h * d} Z" fill="${hairC}"/>`
   }
   const sideburns = `<rect x="${x0 - 3}" y="${y0 + 14}" width="9" height="${h * 0.32}" rx="4" fill="${hairC}"/><rect x="${x1 - 6}" y="${y0 + 14}" width="9" height="${h * 0.32}" rx="4" fill="${hairC}"/>`
   const curtains = `<path d="M${cx} ${y0 + 2} Q${cx - 26} ${y0 + h * 0.06} ${x0 + 6} ${y0 + h * 0.32} L${x0 - 6} ${y0 + h * 0.66} Z M${cx} ${y0 + 2} Q${cx + 26} ${y0 + h * 0.06} ${x1 - 6} ${y0 + h * 0.32} L${x1 + 6} ${y0 + h * 0.66} Z" fill="${hairC}"/>`
   const front: Record<string, string> = {
     none: '',
     buzz: `<path d="M${x0} ${y0 + h * 0.28} L${x0} ${y0 + hb.r * 0.7} Q${x0} ${y0 - 2} ${x0 + hb.r} ${y0 - 2} L${x1 - hb.r} ${y0 - 2} Q${x1} ${y0 - 2} ${x1} ${y0 + hb.r * 0.7} L${x1} ${y0 + h * 0.28} Q${cx} ${y0 + h * 0.16} ${x0} ${y0 + h * 0.28} Z" fill="${hairC}" opacity=".9"/>`,
+    // a neat short cut, the hairline set back so more of the forehead shows
+    crew: cap(0.28, 0, 0.1) + `<rect x="${x0 - 3}" y="${y0 + 12}" width="8" height="${h * 0.2}" rx="4" fill="${hairC}"/><rect x="${x1 - 5}" y="${y0 + 12}" width="8" height="${h * 0.2}" rx="4" fill="${hairC}"/>`,
     short: cap(0.36) + sideburns + `<path d="M${cx - 22} ${y0 + h * 0.18} Q${cx - 4} ${y0 + h * 0.34} ${cx + 12} ${y0 + h * 0.16} Z" fill="${hairC}"/>`,
     side: cap(0.4) + sideburns + `<path d="M${x0 - 3} ${y0 + h * 0.4} Q${x0 + 4} ${y0 + h * 0.1} ${cx + 24} ${y0 + h * 0.12} Q${cx - 6} ${y0 + h * 0.2} ${x0 + 10} ${y0 + h * 0.42} Z" fill="${hairC}"/>`
       + `<path d="M${cx + 24} ${y0 + h * 0.12} Q${cx - 6} ${y0 + h * 0.2} ${x0 + 10} ${y0 + h * 0.42}" fill="none" stroke="${hairD}" stroke-width="3" stroke-linecap="round"/>`,
-    spiky: cap(0.34) + sideburns + [-30, -15, 0, 15, 30].map((d, i) => `<path d="M${cx + d - 11} ${y0 + 4} L${cx + d + (i - 2) * 2} ${y0 - 24 + Math.abs(d) * 0.3} L${cx + d + 11} ${y0 + 4} Z" fill="${hairC}"/>`).join(''),
     curly: [...Array(9)].map((_, i) => `<circle cx="${x0 + 2 + i * (w - 4) / 8}" cy="${y0 + 2 + (i % 2) * 5}" r="12" fill="${hairC}"/>`).join('')
       + `<circle cx="${x0 - 2}" cy="${y0 + 22}" r="10" fill="${hairC}"/><circle cx="${x1 + 2}" cy="${y0 + 22}" r="10" fill="${hairC}"/>`
       + cap(0.26),
-    mohawk: `<path d="M${x0} ${y0 + h * 0.3} Q${x0} ${y0} ${cx} ${y0} Q${x1} ${y0} ${x1} ${y0 + h * 0.3} Z" fill="${hairC}" opacity=".35"/>`
-      + `<path d="M${cx - 10} ${y0 + 14} Q${cx - 14} ${y0 - 20} ${cx} ${y0 - 34} Q${cx + 14} ${y0 - 20} ${cx + 10} ${y0 + 14} Z" fill="${hairC}"/>`,
     afro: [...Array(7)].map((_, i) => `<circle cx="${x0 + 6 + i * (w - 12) / 6}" cy="${y0 + 8}" r="11" fill="${hairC}"/>`).join(''),
     bob: cap(0.5, 4) + `<rect x="${x0 + 2}" y="${y0 + 2}" width="${w - 4}" height="${h * 0.24}" rx="10" fill="${hairC}"/>`,
     long: cap(0.62, 4) + curtains,
