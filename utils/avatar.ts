@@ -299,7 +299,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     wavy: `<path d="M${x0 - 10} ${y0 + 26} Q${x0 - 16} ${y1 + 16} ${x0 - 8} ${y1 + 30} q8 9 15 0 q8 9 15 0 L${x1 - 8} ${y1 + 30} q8 9 15 0 Q${x1 + 16} ${y1 + 16} ${x1 + 10} ${y0 + 26} Z" fill="${hairD}"/>`,
     bob: `<path d="M${x0 - 9} ${y0 + 20} Q${x0 - 12} ${y1 - 4} ${x0 - 6} ${y1 + 2} L${x1 + 6} ${y1 + 2} Q${x1 + 12} ${y1 - 4} ${x1 + 9} ${y0 + 20} Z" fill="${hairD}"/>`,
     afro: `<rect x="${x0 - 22}" y="${y0 - 24}" width="${w + 44}" height="${h * 0.86 + 24}" rx="${(w + 44) / 2.3}" fill="${hairF}"/>`
-      + [[-0.42, -14], [-0.18, -20], [0.08, -21], [0.32, -17], [-0.5, 6], [0.5, 4], [-0.56, 26], [0.56, 24]].map(([fx, dy]) =>
+      + [[-0.36, -12], [-0.16, -18], [0.08, -19], [0.3, -15], [-0.42, 8], [0.42, 6], [-0.44, 28], [0.44, 26]].map(([fx, dy]) =>
         `<path d="M${cx + fx * (w + 30) - 5} ${y0 + dy} q5 -6 10 0" fill="none" stroke="${hairL}" stroke-width="2.2" stroke-linecap="round" opacity=".45"/>`).join(''),
     ponytail: `<path d="M${x1 - 6} ${y0 + 16} Q${x1 + 34} ${y0 + 10} ${x1 + 26} ${y0 + 60} Q${x1 + 22} ${y0 + 80} ${x1 + 8} ${y0 + 84} Q${x1 + 18} ${y0 + 50} ${x1 - 4} ${y0 + 34} Z" fill="${hairD}"/>`
       + strands([[x1 + 6, y0 + 22, x1 + 14, y0 + 74, x1 + 24, y0 + 44], [x1 + 14, y0 + 20, x1 + 20, y0 + 64, x1 + 30, y0 + 38]])
@@ -332,14 +332,20 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   const headShape = (e: number, top = e, fill = hairF) =>
     `<rect x="${x0 - e}" y="${y0 - top}" width="${w + 2 * e}" height="${h + e + top}" rx="${hb.r + e}" fill="${fill}"/>`
   // everything above a hairline: down to `d` of the head's height at the
-  // sides, at `line` of it in the middle of the forehead
-  const above = (d: number, line: number) =>
-    `M-60 -60 H260 V${y0 + h * d} H${x1 + 20} Q${x1 - 6} ${y0 + h * (line + 0.02)} ${cx} ${y0 + h * line} Q${x0 + 6} ${y0 + h * (line + 0.02)} ${x0 - 20} ${y0 + h * d} H-60 Z`
+  // sides — a strip along the head's own edge, so the hair wraps the temples
+  // with no skin between it and the ears — and at `line` of it across the
+  // forehead, the corners rounded
+  const T = 9
+  const above = (d: number, line: number) => {
+    const yl = y0 + h * line, yd = y0 + h * d
+    return `M-60 -60 H260 V${yd} H${x1 - T} Q${x1 - T} ${yl} ${x1 - T - 16} ${yl} H${x0 + T + 16} Q${x0 + T} ${yl} ${x0 + T} ${yd} H-60 Z`
+  }
   const cap = (d: number, extra = 0, line = 0.2) =>
     `<g clip-path="url(#${clipTo(above(d, line))})">${headShape(3 + extra, 10 + extra)}</g>`
   // sideburns: the head's own edge, from the temple down to `to` of its height
+  // (as wide as the hair's own strip, tapering to a point at the bottom)
   const sideburnsTo = (to: number, from = 14) =>
-    `<g clip-path="url(#${clipTo(`M${x0 - 20} ${y0 + from} H${x0 + 6} V${y0 + h * to} H${x0 - 20} Z M${x1 - 6} ${y0 + from} H${x1 + 20} V${y0 + h * to} H${x1 - 6} Z`)})">${headShape(3)}</g>`
+    `<g clip-path="url(#${clipTo(`M${x0 - 20} ${y0 + from} H${x0 + T} V${y0 + h * to - 6} L${x0 + 2} ${y0 + h * to} H${x0 - 20} Z M${x1 - T} ${y0 + from} H${x1 + 20} V${y0 + h * to} H${x1 - 2} L${x1 - T} ${y0 + h * to - 6} Z`)})">${headShape(3)}</g>`
   const sideburns = sideburnsTo(0.46)
   // where the top of the head is, at a given x — for curls and rows that
   // follow its curve
@@ -359,12 +365,15 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     + `<path d="M${cx + 12} ${y0 - 6} Q${cx + 4} ${y0 + h * 0.1} ${cx - 10} ${y0 + h * 0.2} Q${cx + 6} ${y0 + h * 0.06} ${cx + 12} ${y0 - 6} Z" fill="${hairF}"/>`
   const front: Record<string, string> = {
     none: '',
-    buzz: `<g opacity=".9" clip-path="url(#${clipTo(above(0.28, 0.16))})">${headShape(1, 2)}</g>`,
+    buzz: `<g opacity=".9" clip-path="url(#${clipTo(above(0.4, 0.16))})">${headShape(1, 2)}</g>`,
     // a neat short cut, the hairline set back so more of the forehead shows
-    crew: cap(0.28, 0, 0.1) + sideburnsTo(0.34, 12)
+    crew: cap(0.4, 0, 0.12) + sideburnsTo(0.44, 12)
       + along(8, 8).map((x, i) => `<path d="M${x - 5} ${headTop(x) - 2} L${x + (i % 2 ? 2 : -1)} ${headTop(x) - 10} L${x + 5} ${headTop(x) - 2} Z" fill="${hairF}"/>`).join(''),
     // short, the hairline receding at the temples, a little lower in the middle
-    receding: `<g clip-path="url(#${clipTo(`M-60 -60 H260 V${y0 + h * 0.36} H${x1 - 5} L${x1 - 6} ${y0 + h * 0.15} Q${x1 - 12} ${y0 + h * 0.03} ${cx + 11} ${y0 + h * 0.07} Q${cx} ${y0 + h * 0.13} ${cx - 11} ${y0 + h * 0.07} Q${x0 + 12} ${y0 + h * 0.03} ${x0 + 6} ${y0 + h * 0.15} L${x0 + 5} ${y0 + h * 0.36} H-60 Z`)})">${headShape(3, 6)}</g>`,
+    // (the hair whole, then the bare scalp laid over it in the face's own
+    // skin — above the brows — so nothing shows through at the rounded corners)
+    receding: cap(0.4, 0, 0.2) + `<g clip-path="url(#${clipTo(`M${x0 + T} ${y0 + h * 0.22} L${x0 + T} ${y0 + h * 0.17} Q${x0 + 14} ${y0 + h * 0.04} ${cx - 11} ${y0 + h * 0.08} Q${cx} ${y0 + h * 0.14} ${cx + 11} ${y0 + h * 0.08} Q${x1 - 14} ${y0 + h * 0.04} ${x1 - T} ${y0 + h * 0.17} L${x1 - T} ${y0 + h * 0.22} Z`)})">`
+      + `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${hb.r}" fill="url(#sk-${id})"/></g>`,
     short: cap(0.36) + sideburns
       // volume: the front swept up and over, rising above the crown
       + `<path d="M${x0 + 4} ${y0 + h * 0.2} Q${x0 + 2} ${y0 - 12} ${cx + 2} ${y0 - 13} Q${x1 + 2} ${y0 - 12} ${x1 - 2} ${y0 + h * 0.14} Q${cx + 10} ${y0 - 2} ${cx - 8} ${y0 + 2} Q${x0 + 12} ${y0 + 4} ${x0 + 4} ${y0 + h * 0.2} Z" fill="${hairF}"/>`
@@ -384,7 +393,9 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     curly: cap(0.3, 2) + curls(9, 2, 12, -2, 5) + sideburnsTo(0.36),
     afro: [...Array(7)].map((_, i) => curl(x0 + 6 + i * (w - 12) / 6, y0 + 8, 11)).join(''),
     // a short, rounded afro: a little fuller than the head, its edge in small curls
-    afroShort: cap(0.34, 6, 0.19) + curls(9, 6, 6, 7),
+    afroShort: cap(0.42, 4, 0.2) + curls(9, 6, 6, 6)
+      // the hairline in small curls too, so it ends soft over the forehead
+      + along(6, T + 8).map((x, i) => curl(x, y0 + h * 0.2 + (i % 2) * 2, 5.5)).join(''),
     // short and wavy: the fringe in soft waves
     wavyShort: cap(0.34, 1) + [...Array(5)].map((_, i) => curl(x0 + 10 + i * (w - 20) / 4, y0 + h * 0.2, 8 - Math.abs(i - 2))).join('') + sideburns,
     curlyLong: cap(0.4, 2) + curls(9, 2, 12, -2, 5),
@@ -397,7 +408,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     })(),
     // cornrows: close to the head, in rows running back from the hairline
     cornrows: (() => {
-      const c = clipTo(above(0.24, 0.14))
+      const c = clipTo(above(0.4, 0.14))
       return `<g clip-path="url(#${c})">${headShape(1, 2)}`
         + along(5, 10).map(x => `<path d="M${x} ${y0 + h * 0.15} L${x + (x - cx) * 0.15} ${headTop(x + (x - cx) * 0.15) + 2}" stroke="${hairD}" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="3 2.4"/>`).join('')
         + `</g>`
@@ -725,7 +736,9 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   // a hat covers the top of the hair; long hair still shows at the sides
   const coversTop = ['scout', 'beret', 'cap', 'beanie', 'golden'].includes(a.headwear)
   // a shine on hair that covers the crown, unless a hat is over it
-  const SHINY = ['crew', 'receding', 'short', 'side', 'wavyShort', 'curly', 'afroShort', 'bob', 'long', 'wavy', 'curlyLong', 'ponytail', 'pigtails', 'bun', 'braids']
+  // (only where the hair is smooth and reaches over the crown: on a
+  // receding hairline it would fall on the scalp)
+  const SHINY = ['short', 'side', 'wavyShort', 'bob', 'long', 'wavy', 'ponytail', 'pigtails', 'bun', 'braids']
   const shine = !coversTop && SHINY.includes(a.hair)
     ? `<path d="M${x0 + 12} ${y0 + 6} Q${cx - 14} ${y0 - 5} ${cx + 6} ${y0 - 3}" fill="none" stroke="${shade(hairC, 1.25)}" stroke-width="3.4" stroke-linecap="round" opacity=".4"/>`
     : ''

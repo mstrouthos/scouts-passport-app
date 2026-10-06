@@ -29,14 +29,16 @@ const tabs = computed(() => AVATAR_TABS.map(tb => ({
 const tab = ref(useRoute().query.tab === 'rewards' ? 'rewards' : me.value?.avatar ? 'body' : 'gender')
 const current = computed(() => tabs.value.find(x => x.key === tab.value)!)
 
-// while choosing hair, the hat comes off so the hair can be seen
-const big = computed(() => avatarSvg(tab.value === 'hair' ? { ...cfg.value, headwear: 'none' } : cfg.value, 'big'))
+// while choosing hair the hat comes off, and while choosing the face the
+// glasses and the hat, so what is being chosen can be seen
+const bare = (a: any) => tab.value === 'hair' ? { ...a, headwear: 'none' } : tab.value === 'face' ? { ...a, headwear: 'none', glasses: 'none' } : a
+const big = computed(() => avatarSvg(bare(cfg.value), 'big'))
 /* a hat would hide what the hair, face and glasses tiles are there to show,
    so only the hats tab draws one */
 // each tile shows what choosing it gives — the girl tile with the long hair
 // that switching brings
 const tile = (field: string, v: string, crop: any) => avatarSvg(
-  { ...applied(field, v), ...(tab.value !== 'headwear' && tab.value !== 'bg' ? { headwear: 'none' } : {}) },
+  bare({ ...applied(field, v), ...(tab.value !== 'headwear' && tab.value !== 'bg' ? { headwear: 'none' } : {}) }),
   `t-${field}-${String(v).replace(/\W/g, '')}`, crop)
 
 /* the preview and the tabs stay pinned; picking a tab brings its options
