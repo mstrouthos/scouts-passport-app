@@ -4,8 +4,8 @@
    questions; then the tickboxes at the end (consents, declarations); then,
    if asked for, a signature. */
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'phone' | 'date' | 'yesno' | 'radio' | 'checkbox' | 'select' | 'file' | 'gaps'
-export const FIELD_TYPES: FieldType[] = ['text', 'textarea', 'number', 'email', 'phone', 'date', 'yesno', 'radio', 'checkbox', 'select', 'file', 'gaps']
+export type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'phone' | 'date' | 'yesno' | 'radio' | 'checkbox' | 'select' | 'file' | 'gaps' | 'calc'
+export const FIELD_TYPES: FieldType[] = ['text', 'textarea', 'number', 'email', 'phone', 'date', 'yesno', 'radio', 'checkbox', 'select', 'file', 'gaps', 'calc']
 
 /* Fill the gaps: the question is a sentence with blanks in it — "___" (three
    or more underscores) for a plain one, "[ονοματεπώνυμο]" for one with a hint
@@ -43,11 +43,73 @@ export const WITH_OPTIONS: FieldType[] = ['radio', 'checkbox', 'select']
 export const YES_NO = ['Ναι', 'Όχι']
 /** Every type answered by picking — what a condition can depend on. */
 export const CHOICE_TYPES: FieldType[] = [...WITH_OPTIONS, 'yesno']
+/** What a condition can depend on: a choice, or an automatic field's result. */
+export const COND_TYPES: FieldType[] = [...CHOICE_TYPES, 'calc']
+
+/* An automatic field: read-only, filled from an earlier answer by rules —
+   an option of a choice question gives a text; a number, or the age from a
+   date of birth, falls in a range that gives a text. "Age 7–10 → Αγέλη".
+   The age is counted on the day the form is filled in, on 31 December of
+   that year, or on a set date. The result is kept with the answers, worked
+   out again by the server, and other questions may depend on it. */
+export type CalcRule = { match?: string, min?: number | null, max?: number | null, text: string }
+export type FormCalc = { from: string, rules: CalcRule[], asOf?: string, otherwise?: string }
+export const CALC_SOURCES: FieldType[] = [...CHOICE_TYPES, 'number', 'date']
+export const calcMode = (srcType?: FieldType) => srcType === 'date' ? 'age' : srcType === 'number' ? 'range' : 'match'
+
+/** Whole years from a date of birth to a day ('' today, 'yearEnd' 31/12 of
+    this year, or 'YYYY-MM-DD'). */
+export function ageOn(birth: string, asOf = '', today = new Date()): number | null {
+  const b = String(birth || '').match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!b) return null
+  const t = asOf === 'yearEnd' ? [today.getFullYear(), 12, 31]
+    : /^\d{4}-\d{2}-\d{2}$/.test(asOf) ? asOf.split('-').map(Number)
+    : [today.getFullYear(), today.getMonth() + 1, today.getDate()]
+  let age = t[0] - +b[1]
+  if (t[1] < +b[2] || (t[1] === +b[2] && t[2] < +b[3])) age--
+  return age >= 0 && age < 130 ? age : null
+}
+
+/** An automatic field's text for the answer it reads, or '' (or its
+    "otherwise") when nothing matches. */
+export function calcValue(calc: FormCalc, srcType: FieldType | undefined, v: unknown, today = new Date()): string {
+  const empty = Array.isArray(v) ? !v.length : !String(v ?? '').trim()
+  if (empty) return ''
+  const mode = calcMode(srcType)
+  let hit: CalcRule | undefined
+  if (mode === 'match') {
+    const vals = Array.isArray(v) ? v.map(String) : [String(v)]
+    hit = calc.rules.find(r => r.match != null && vals.includes(r.match))
+  } else {
+    const n = mode === 'age' ? ageOn(String(v), calc.asOf || '') : Number(String(v).replace(',', '.'))
+    if (n != null && !Number.isNaN(n))
+      hit = calc.rules.find(r => (r.min == null || n >= r.min) && (r.max == null || n <= r.max))
+  }
+  return (hit?.text ?? calc.otherwise ?? '').trim()
+}
+
+/** Works every automatic field out from the answers it reads, in place —
+    a repeated one from the same copy's answer (the second child's sector from
+    the second child's age). Returns whether anything changed. */
+export function fillCalc(spec: FormSpec, answers: Record<string, any>, repeats?: Record<string, number>, today = new Date()): boolean {
+  const byId = new Map(spec.modules.flatMap(m => m.questions).map(q => [q.id, q]))
+  let changed = false
+  for (const inst of instances(spec, repeats)) for (const q of inst.m.questions) {
+    if (q.type !== 'calc' || !q.calc) continue
+    const src = byId.get(q.calc.from)
+    const own = q.calc.from + inst.sfx
+    const v = answers[own] !== undefined ? answers[own] : answers[q.calc.from]
+    const key = q.id + inst.sfx
+    const val = calcValue(q.calc, src?.type, v, today)
+    if (answers[key] !== val) { answers[key] = val; changed = true }
+  }
+  return changed
+}
 
 /** Shown only when an earlier choice question has one of these answers —
     so a family registering again skips what is only asked the first time. */
 export type FormCondition = { q: string, anyOf: string[] }
-export type FormQuestion = { id: string, type: FieldType, label: string, help?: string, required: boolean, options: string[], showIf?: FormCondition }
+export type FormQuestion = { id: string, type: FieldType, label: string, help?: string, required: boolean, options: string[], showIf?: FormCondition, calc?: FormCalc }
 /** A run of sections answered again for each of several — each child in a
     registration. Set on the run's first section: what each copy is called
     ("Παιδί" → Παιδί 1, Παιδί 2…), the section the run ends with, the question
@@ -92,6 +154,7 @@ export function normalizeSpec(raw: any): FormSpec {
   }
   const raws = new Map<object, any>()   // each module or question → its condition as sent
   const rawRepeat = new Map<object, any>()
+  const rawCalc = new Map<object, any>()
   const modules: FormModule[] = (Array.isArray(raw?.modules) ? raw.modules : []).slice(0, 40).map((m: any) => keep({
     id: id(m?.id),
     title: str(m?.title, 200),
@@ -107,9 +170,9 @@ export function normalizeSpec(raw: any): FormSpec {
         options: q.type === 'yesno' ? [...YES_NO] : WITH_OPTIONS.includes(q.type)
           ? [...new Set((Array.isArray(q?.options) ? q.options : []).map((o: any) => str(o, 200)).filter(Boolean))].slice(0, 60) as string[]
           : []
-      }, q?.showIf))
+      }, q?.showIf, undefined, q?.calc))
   }, m?.showIf, m?.repeat))
-  function keep<T extends object>(x: T, showIf: any, repeat?: any): T { raws.set(x, showIf); if (repeat) rawRepeat.set(x, repeat); return x }
+  function keep<T extends object>(x: T, showIf: any, repeat?: any, calc?: any): T { raws.set(x, showIf); if (repeat) rawRepeat.set(x, repeat); if (calc) rawCalc.set(x, calc); return x }
   // repeated runs: from the section that says so through the one it names,
   // never starting inside another run
   let insideUntil = -1
@@ -131,7 +194,7 @@ export function normalizeSpec(raw: any): FormSpec {
   const before: FormQuestion[] = []
   const cond = (c: any, pool: FormQuestion[]): FormCondition | undefined => {
     const src = pool.find(q => q.id === c?.q)
-    if (!src || !CHOICE_TYPES.includes(src.type)) return undefined
+    if (!src || !COND_TYPES.includes(src.type)) return undefined
     const anyOf = (Array.isArray(c?.anyOf) ? c.anyOf : []).map((x: any) => String(x)).filter((x: string) => src.options.includes(x))
     return anyOf.length ? { q: src.id, anyOf } : undefined
   }
@@ -139,6 +202,24 @@ export function normalizeSpec(raw: any): FormSpec {
     const c = cond(raws.get(m), before)
     if (c) m.showIf = c
     for (const q of m.questions) {
+      // an automatic field reads an earlier choice, number or date; its
+      // possible results are its "options", for conditions on it
+      if (q.type === 'calc') {
+        const c = rawCalc.get(q)
+        const src = before.find(x => x.id === c?.from && CALC_SOURCES.includes(x.type))
+        if (src) {
+          const mode = calcMode(src.type)
+          const num = (x: any) => x === '' || x == null || Number.isNaN(Number(x)) ? null : Number(x)
+          const rules: CalcRule[] = (Array.isArray(c.rules) ? c.rules : []).slice(0, 60).map((r: any) => mode === 'match'
+            ? { match: str(r?.match, 200), text: str(r?.text, 300) }
+            : { min: num(r?.min), max: num(r?.max), text: str(r?.text, 300) })
+            .filter((r: CalcRule) => r.text && (mode !== 'match' || src.options.includes(r.match!)))
+          const asOf = c.asOf === 'yearEnd' || /^\d{4}-\d{2}-\d{2}$/.test(String(c.asOf || '')) ? String(c.asOf) : ''
+          q.calc = { from: src.id, rules, ...(mode === 'age' && asOf ? { asOf } : {}), ...(str(c.otherwise, 300) ? { otherwise: str(c.otherwise, 300) } : {}) }
+          q.options = [...new Set([...rules.map(r => r.text), ...(q.calc.otherwise ? [q.calc.otherwise] : [])])]
+        } else q.calc = { from: '', rules: [] }
+        q.required = false
+      }
       const qc = cond(raws.get(q), before)
       if (qc) q.showIf = qc
       before.push(q)
@@ -184,6 +265,7 @@ export function questionError(q: FormQuestion, v: unknown): string | null {
     if (!Array.isArray(v) || v.some(x => !q.options.includes(String(x)))) return 'invalid'
     return null
   }
+  if (q.type === 'calc') return null
   if (q.type === 'gaps') {
     // every blank answered when the question is required, and none too long
     const a = Array.isArray(v) ? v.map(x => String(x ?? '').trim()) : []
@@ -290,6 +372,10 @@ export function checkAnswers(spec: FormSpec, body: any): { clean: FormAnswers, e
   // how many copies of each run: as many as were filled in, within its limit
   const repeats: Record<string, number> = {}
   for (const g of repeatGroups(spec)) repeats[g.id] = copiesOf(g, body?.repeats)
+  // the automatic fields worked out here, whatever the page sent for them
+  const given: Record<string, any> = { ...(body?.answers || {}) }
+  fillCalc(spec, given, repeats)
+  body = { ...body, answers: given }
   const vis = visibleParts(spec, body?.answers || {}, repeats)
   for (const inst of vis.shown) for (const q of inst.m.questions) {
     const key = q.id + inst.sfx

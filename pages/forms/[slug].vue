@@ -9,7 +9,7 @@
    A repeated run of sections (each child of a registration) is met once per
    copy — "Παιδί 1", "Παιδί 2"… — and after the last copy a page lists them,
    lets one be edited or taken out, and asks whether to add another. */
-import { checkAnswers, visibleParts, instanceTitle, repeatGroups, copiesOf, type FormSpec, type Instance, type RepeatGroup } from '~/utils/formSpec'
+import { checkAnswers, visibleParts, instanceTitle, repeatGroups, copiesOf, fillCalc, type FormSpec, type Instance, type RepeatGroup } from '~/utils/formSpec'
 const { t } = useI18n()
 const route = useRoute()
 const slug = computed(() => String(route.params.slug || ''))
@@ -59,6 +59,8 @@ watchEffect(() => {
   for (const x of spec.value?.ticks || []) if (!(x.id in ticks)) ticks[x.id] = false
 })
 const errors = ref<Record<string, string>>({})
+/* the automatic fields, worked out as the answers they read change */
+watch([answers, repeats], () => { if (spec.value) fillCalc(spec.value, answers, repeats) }, { deep: true, immediate: true })
 const busy = ref(false)
 const done = ref<{ thanksTitle?: string, thanks?: string, at?: string, copyTo?: string | null } | null>(null)
 const sentWhen = computed(() => done.value?.at ? new Date(done.value.at).toLocaleString('el-GR', { timeZone: 'Europe/Nicosia', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : '')
@@ -236,6 +238,8 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
               <div v-if="q.help" class="help">{{ q.help }}</div>
 
               <template v-if="q.type === 'gaps'" />
+              <!-- worked out from an earlier answer; nothing to type -->
+              <div v-else-if="q.type === 'calc'" class="calcbox" :class="{ empty: !answers[kOf(q)] }">🧮 {{ answers[kOf(q)] || t('formCalcWaiting') }}</div>
               <textarea v-else-if="q.type === 'textarea'" :id="'q' + kOf(q)" v-model="answers[kOf(q)]" class="in" rows="4" />
               <select v-else-if="q.type === 'select'" :id="'q' + kOf(q)" v-model="answers[kOf(q)]" class="in">
                 <option value="" disabled>{{ t('formChoose') }}</option>
@@ -389,4 +393,6 @@ select.in{appearance:auto}
 .sent .copyto b{color:var(--ink)}
 .sent .close{margin-top:10px; font-size:12px; color:var(--muted)}
 @media (prefers-reduced-motion: reduce){.sent, .seal path{animation:none; stroke-dashoffset:0}}
+.calcbox{padding:12px 14px; border-radius:14px; background:var(--accent-soft); color:var(--accent-deep); font-weight:750; font-size:15px; border:2px dashed var(--note-border)}
+.calcbox.empty{background:#F4F7FB; color:var(--muted); font-weight:500; border-color:var(--line)}
 </style>

@@ -2,7 +2,7 @@
 /* One form: building it (modules of questions, the tickboxes at the end, the
    signature), its settings (link, texts, open or closed), and what has come
    back. Nothing is saved until Save — the page says when there are changes. */
-import { FIELD_TYPES, WITH_OPTIONS, CHOICE_TYPES, YES_NO, REPEAT_MAX, newId, emailCopySources, gapCount, type FormSpec, type FormQuestion, type FieldType } from '~/utils/formSpec'
+import { FIELD_TYPES, WITH_OPTIONS, CHOICE_TYPES, CALC_SOURCES, calcMode, YES_NO, REPEAT_MAX, newId, emailCopySources, gapCount, type FormSpec, type FormQuestion, type FieldType } from '~/utils/formSpec'
 const { t, locale } = useI18n()
 const me = useMe()
 const { show } = useToast()
@@ -59,6 +59,31 @@ function fill(f: any) {
 }
 watch(form, fill, { immediate: true })
 watch([spec, settings], () => { dirty.value = snapshot() !== saved }, { deep: true })
+/* an automatic field: which earlier answer it reads, and its rules */
+watch(spec, s => { for (const m of s?.modules || []) for (const q of m.questions) if (q.type === 'calc' && !q.calc) q.calc = { from: '', rules: [] } }, { deep: true, immediate: true })
+function calcSources(mi: number, qi: number) {
+  const out: Array<FormQuestion & { num: string }> = []
+  spec.value.modules.forEach((m, i) => m.questions.forEach((q, j) => {
+    if (i < mi || (i === mi && j < qi)) if (CALC_SOURCES.includes(q.type)) out.push({ ...q, num: numbers.value.get(q.id) || '?' })
+  }))
+  return out
+}
+const calcSrc = (q: FormQuestion) => spec.value.modules.flatMap(m => m.questions).find(x => x.id === q.calc?.from)
+const calcKind = (q: FormQuestion) => calcMode(calcSrc(q)?.type)
+function setCalcFrom(q: FormQuestion, id: string) {
+  const src = spec.value.modules.flatMap(m => m.questions).find(x => x.id === id)
+  q.calc = { from: id, rules: src && calcMode(src.type) !== 'match' ? [{ min: null, max: null, text: '' }] : [], ...(src?.type === 'date' ? { asOf: 'yearEnd' } : {}) }
+}
+const matchText = (q: FormQuestion, opt: string) => q.calc?.rules.find(r => r.match === opt)?.text || ''
+function setMatch(q: FormQuestion, opt: string, text: string) {
+  const rules = q.calc!.rules.filter(r => r.match !== opt)
+  if (text.trim()) rules.push({ match: opt, text })
+  q.calc!.rules = rules
+}
+const asOfKind = (q: FormQuestion) => !q.calc?.asOf ? 'today' : q.calc.asOf === 'yearEnd' ? 'yearEnd' : 'date'
+function setAsOf(q: FormQuestion, kind: string) {
+  q.calc!.asOf = kind === 'today' ? '' : kind === 'yearEnd' ? 'yearEnd' : (q.calc!.asOf && q.calc!.asOf !== 'yearEnd' ? q.calc!.asOf : new Date().toISOString().slice(0, 10))
+}
 function toLocalInput(iso: string) {
   const d = new Date(iso)
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
@@ -87,7 +112,7 @@ async function save() {
 
 /* building */
 const TYPE_ICON: Record<FieldType, string> = {
-  text: '✏️', textarea: '📝', number: '🔢', email: '✉️', phone: '📞', date: '📅', yesno: '👍', radio: '🔘', checkbox: '☑️', select: '🔽', file: '📎', gaps: '🧩'
+  text: '✏️', textarea: '📝', number: '🔢', email: '✉️', phone: '📞', date: '📅', yesno: '👍', radio: '🔘', checkbox: '☑️', select: '🔽', file: '📎', gaps: '🧩', calc: '🧮'
 }
 function addModule() {
   spec.value.modules.push({ id: newId(), title: '', questions: [] })
@@ -141,7 +166,10 @@ const numbers = computed(() => {
   spec.value.modules.forEach((mod, i) => mod.questions.forEach((q, j) => m.set(q.id, `${i + 1}.${j + 1}`)))
   return m
 })
-const liveOptions = (q: FormQuestion) => q.type === 'yesno' ? [...YES_NO] : cleanOptions(q.options)
+const liveOptions = (q: FormQuestion) => q.type === 'yesno' ? [...YES_NO]
+  // an automatic field's possible results, for conditions on it
+  : q.type === 'calc' ? [...new Set([...(q.calc?.rules || []).map(r => r.text.trim()), (q.calc?.otherwise || '').trim()].filter(Boolean))]
+  : cleanOptions(q.options)
 const asSource = (q: FormQuestion): Source => ({ id: q.id, num: numbers.value.get(q.id) || '?', label: q.label, options: liveOptions(q) })
 function sourcesBefore(mi: number, qi?: number): Source[] {
   const out: Source[] = []
@@ -149,7 +177,7 @@ function sourcesBefore(mi: number, qi?: number): Source[] {
     if (i > mi) return
     m.questions.forEach((q, j) => {
       if (i === mi && (qi === undefined || j >= qi)) return
-      if (CHOICE_TYPES.includes(q.type)) out.push(asSource(q))
+      if (CHOICE_TYPES.includes(q.type) || q.type === 'calc') out.push(asSource(q))
     })
   })
   return out
@@ -368,8 +396,54 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
               <button class="chip" style="margin-top:7px" @click="addOption(q)">+ {{ t('formAddOption') }}</button>
             </div>
             <div v-if="q.type === 'file'" class="tiny muted">📎 {{ t('formFileBuilderNote') }}</div>
+            <!-- an automatic field: read-only, worked out from an earlier answer -->
+            <div v-if="q.type === 'calc' && q.calc" class="calced">
+              <div class="tiny muted">🧮 {{ t('formCalcHow') }}</div>
+              <div>
+                <label class="lab">{{ t('formCalcFrom') }}</label>
+                <select class="in" :value="q.calc.from" @change="setCalcFrom(q, ($event.target as HTMLSelectElement).value)">
+                  <option value="" disabled>{{ t('formCalcPick') }}</option>
+                  <option v-for="s in calcSources(mi, qi)" :key="s.id" :value="s.id">{{ s.num }} · {{ (s.label || t('formUntitledQ')).slice(0, 40) }} ({{ t('ftype_' + s.type) }})</option>
+                </select>
+                <div v-if="!calcSources(mi, qi).length" class="tiny warn">{{ t('formCalcNoSources') }}</div>
+              </div>
+              <template v-if="calcSrc(q)">
+                <!-- a choice: one result per option -->
+                <template v-if="calcKind(q) === 'match'">
+                  <div v-for="o in liveOptions(calcSrc(q)!)" :key="o" class="crow">
+                    <span class="cwhen">{{ o }}</span><span class="carrow">→</span>
+                    <input class="in" :value="matchText(q, o)" :placeholder="t('formCalcResultPh')" @input="setMatch(q, o, ($event.target as HTMLInputElement).value)">
+                  </div>
+                </template>
+                <!-- a number or an age: ranges -->
+                <template v-else>
+                  <div v-if="calcKind(q) === 'age'">
+                    <label class="lab">{{ t('formCalcAgeOn') }}</label>
+                    <div style="display:flex;gap:8px">
+                      <select class="in" :value="asOfKind(q)" @change="setAsOf(q, ($event.target as HTMLSelectElement).value)">
+                        <option value="today">{{ t('formCalcAgeToday') }}</option>
+                        <option value="yearEnd">{{ t('formCalcAgeYearEnd') }}</option>
+                        <option value="date">{{ t('formCalcAgeDate') }}</option>
+                      </select>
+                      <input v-if="asOfKind(q) === 'date'" v-model="q.calc.asOf" type="date" class="in">
+                    </div>
+                  </div>
+                  <div class="tiny muted">{{ calcKind(q) === 'age' ? t('formCalcAgeRows') : t('formCalcNumRows') }}</div>
+                  <div v-for="(r, ri) in q.calc.rules" :key="ri" class="crow range">
+                    <input v-model.number="r.min" class="in num" type="number" inputmode="numeric" :placeholder="t('formCalcFromN')">
+                    <span class="carrow">–</span>
+                    <input v-model.number="r.max" class="in num" type="number" inputmode="numeric" :placeholder="t('formCalcToN')">
+                    <span class="carrow">→</span>
+                    <button class="ib del" :aria-label="t('delete')" @click="q.calc.rules.splice(ri, 1)">✕</button>
+                    <input v-model="r.text" class="in res" :placeholder="t('formCalcResultPh')">
+                  </div>
+                  <button class="chip" @click="q.calc.rules.push({ min: null, max: null, text: '' })">+ {{ t('formCalcAddRange') }}</button>
+                </template>
+                <div><label class="lab">{{ t('formCalcOtherwise') }}</label><input v-model="q.calc.otherwise" class="in" :placeholder="t('formCalcOtherwisePh')"></div>
+              </template>
+            </div>
             <div><label class="lab">{{ t('formHelp') }}</label><input v-model="q.help" class="in" :placeholder="t('formHelpPh')"></div>
-            <label class="tog"><input v-model="q.required" type="checkbox"> {{ t('formRequired') }}</label>
+            <label v-if="q.type !== 'calc'" class="tog"><input v-model="q.required" type="checkbox"> {{ t('formRequired') }}</label>
             <FormConditionEdit v-model="q.showIf" :sources="sourcesBefore(mi, qi)" what="question" />
             <div class="qtools">
               <button class="chip" :disabled="qi === 0" @click="move(m.questions, qi, -1)">↑</button>
@@ -569,4 +643,13 @@ select.in{appearance:auto}
 .gapprev{margin-top:8px; padding:10px 12px; border:2px dashed var(--line, #DCE5EF); border-radius:12px; background:#fff}
 .approval{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; background:#FFF7E3; border:2px solid #F6DDAF; border-radius:16px; padding:12px 14px; font-size:13.5px}
 .approval .btn{width:auto; padding:10px 18px; min-height:0}
+.calced{display:flex; flex-direction:column; gap:10px; padding:12px; border-radius:14px; background:#F1F6FC}
+.crow{display:flex; align-items:center; gap:6px}
+.crow .in{flex:1; min-width:0}
+.crow .in.num{flex:1; width:auto; min-width:0}
+.crow.range{flex-wrap:wrap; padding:8px; border-radius:12px; background:#fff}
+.crow.range .res{flex:1 1 100%}
+.crow.range .del{margin-left:auto}
+.cwhen{flex:none; max-width:42%; font-size:13.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.carrow{flex:none; color:var(--muted); font-weight:700}
 </style>
