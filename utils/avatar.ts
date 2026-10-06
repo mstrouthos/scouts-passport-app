@@ -174,7 +174,7 @@ function crest(x: number, y: number, r = 8) {
 export type Crop = 'full' | 'face' | 'head' | 'body'
 const VIEW: Record<Crop, string> = {
   // the whole avatar, framed so the face fills it and the woggle still shows
-  full: '10 4 180 180', face: '46 26 108 108', head: '22 -4 156 156', body: '20 100 160 100'
+  full: '16 6 168 168', face: '46 26 108 108', head: '22 -4 156 156', body: '20 100 160 100'
 }
 
 /** The SVG, as markup. `id` keeps its patterns apart from another avatar's
@@ -185,11 +185,19 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   const hairC = a.hairColor, hairD = shade(hairC, 0.78)
   // the hair's fill: its colour with a little light at the top, for depth
   const hairF = `url(#hg-${id})`
+  const hairL = shade(hairC, 1.4), hairDD = shade(hairC, 0.6)
+  // one curl: round, a shadow along its lower edge, a glint up top
+  const curl = (x: number, y: number, r: number, fill = hairF) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/>`
+    + `<path d="M${x - r * 0.75} ${y + r * 0.35} Q${x} ${y + r * 1.05} ${x + r * 0.75} ${y + r * 0.35}" fill="none" stroke="${hairDD}" stroke-width="${Math.max(1.4, r * 0.22)}" stroke-linecap="round" opacity=".55"/>`
+    + `<circle cx="${x - r * 0.32}" cy="${y - r * 0.36}" r="${r * 0.26}" fill="${hairL}" opacity=".55"/>`
+  // strands: a few soft lines down a fall of hair
+  const strands = (pts: number[][], col = hairDD, wd = 2) => pts.map(([ax, ay, bx, by, qx, qy]) =>
+    `<path d="M${ax} ${ay} Q${qx} ${qy} ${bx} ${by}" fill="none" stroke="${col}" stroke-width="${wd}" stroke-linecap="round" opacity=".5"/>`).join('')
   const cx = 100
 
   /* the head: a rounded square, of four proportions */
   const HB: Record<string, { w: number, h: number, r: number }> = {
-    square: { w: 84, h: 82, r: 24 }, round: { w: 86, h: 86, r: 40 }, tall: { w: 76, h: 94, r: 30 }, wide: { w: 98, h: 78, r: 28 }
+    square: { w: 86, h: 84, r: 30 }, round: { w: 88, h: 88, r: 42 }, tall: { w: 78, h: 96, r: 34 }, wide: { w: 100, h: 80, r: 32 }
   }
   const hb = HB[a.head]
   const x0 = cx - hb.w / 2, y0 = 124 - hb.h, w = hb.w, h = hb.h, x1 = x0 + w, y1 = y0 + h
@@ -249,24 +257,33 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
 
   /* ---- hair: what falls behind the head, and what sits on it ---- */
   const back: Record<string, string> = {
-    long: `<path d="M${x0 - 10} ${y0 + 26} Q${x0 - 14} ${y1 + 26} ${x0 - 4} ${y1 + 36} L${x1 + 4} ${y1 + 36} Q${x1 + 14} ${y1 + 26} ${x1 + 10} ${y0 + 26} Z" fill="${hairD}"/>`,
+    long: `<path d="M${x0 - 10} ${y0 + 26} Q${x0 - 14} ${y1 + 26} ${x0 - 4} ${y1 + 36} L${x1 + 4} ${y1 + 36} Q${x1 + 14} ${y1 + 26} ${x1 + 10} ${y0 + 26} Z" fill="${hairD}"/>`
+      + strands([[x0 - 5, y0 + 34, x0 - 1, y1 + 30, x0 - 9, y1], [x1 + 5, y0 + 34, x1 + 1, y1 + 30, x1 + 9, y1]]),
     wavy: `<path d="M${x0 - 10} ${y0 + 26} Q${x0 - 16} ${y1 + 16} ${x0 - 8} ${y1 + 30} q8 9 15 0 q8 9 15 0 L${x1 - 8} ${y1 + 30} q8 9 15 0 Q${x1 + 16} ${y1 + 16} ${x1 + 10} ${y0 + 26} Z" fill="${hairD}"/>`,
     bob: `<path d="M${x0 - 9} ${y0 + 20} Q${x0 - 12} ${y1 - 4} ${x0 - 6} ${y1 + 2} L${x1 + 6} ${y1 + 2} Q${x1 + 12} ${y1 - 4} ${x1 + 9} ${y0 + 20} Z" fill="${hairD}"/>`,
-    afro: `<rect x="${x0 - 22}" y="${y0 - 24}" width="${w + 44}" height="${h * 0.86 + 24}" rx="${(w + 44) / 2.3}" fill="${hairF}"/>`,
-    ponytail: `<path d="M${x1 - 6} ${y0 + 16} Q${x1 + 34} ${y0 + 10} ${x1 + 26} ${y0 + 60} Q${x1 + 22} ${y0 + 80} ${x1 + 8} ${y0 + 84} Q${x1 + 18} ${y0 + 50} ${x1 - 4} ${y0 + 34} Z" fill="${hairD}"/>`,
-    pigtails: `<circle cx="${x0 - 12}" cy="${y0 + 40}" r="16" fill="${hairD}"/><circle cx="${x1 + 12}" cy="${y0 + 40}" r="16" fill="${hairD}"/>`
+    afro: `<rect x="${x0 - 22}" y="${y0 - 24}" width="${w + 44}" height="${h * 0.86 + 24}" rx="${(w + 44) / 2.3}" fill="${hairF}"/>`
+      + [[-0.42, -14], [-0.18, -20], [0.08, -21], [0.32, -17], [-0.5, 6], [0.5, 4], [-0.56, 26], [0.56, 24]].map(([fx, dy]) =>
+        `<path d="M${cx + fx * (w + 30) - 5} ${y0 + dy} q5 -6 10 0" fill="none" stroke="${hairL}" stroke-width="2.2" stroke-linecap="round" opacity=".45"/>`).join(''),
+    ponytail: `<path d="M${x1 - 6} ${y0 + 16} Q${x1 + 34} ${y0 + 10} ${x1 + 26} ${y0 + 60} Q${x1 + 22} ${y0 + 80} ${x1 + 8} ${y0 + 84} Q${x1 + 18} ${y0 + 50} ${x1 - 4} ${y0 + 34} Z" fill="${hairD}"/>`
+      + strands([[x1 + 6, y0 + 22, x1 + 14, y0 + 74, x1 + 24, y0 + 44], [x1 + 14, y0 + 20, x1 + 20, y0 + 64, x1 + 30, y0 + 38]])
+      + `<rect x="${x1 - 6}" y="${y0 + 14}" width="9" height="12" rx="3" fill="#8B5A2E" transform="rotate(-20 ${x1 - 2} ${y0 + 20})"/>`,
+    pigtails: curl(x0 - 12, y0 + 40, 16, hairD) + curl(x1 + 12, y0 + 40, 16, hairD)
       + `<rect x="${x0 - 2}" y="${y0 + 33}" width="8" height="12" rx="3" fill="${SCARF_YELLOW}"/><rect x="${x1 - 6}" y="${y0 + 33}" width="8" height="12" rx="3" fill="${SCARF_YELLOW}"/>`,
-    bun: `<circle cx="${cx}" cy="${y0 - 12}" r="17" fill="${hairF}"/><path d="M${cx - 12} ${y0 - 4} Q${cx} ${y0 - 22} ${cx + 12} ${y0 - 4}" fill="none" stroke="${hairD}" stroke-width="3"/>`,
+    bun: curl(cx, y0 - 12, 17) + `<path d="M${cx - 12} ${y0 - 4} Q${cx} ${y0 - 22} ${cx + 12} ${y0 - 4}" fill="none" stroke="${hairD}" stroke-width="3"/>`
+      + `<path d="M${cx - 8} ${y0 - 18} Q${cx} ${y0 - 26} ${cx + 9} ${y0 - 17}" fill="none" stroke="${hairDD}" stroke-width="2" stroke-linecap="round" opacity=".5"/>`,
     // locs: ropes of hair falling to the shoulders
     locs: [-1, 1].map(s => [0, 1, 2].map(i => {
       const bx = s < 0 ? x0 - 8 + i * 6 : x1 + 8 - i * 6
       return `<rect x="${bx - 4}" y="${y0 + 18}" width="8" height="${h * 0.95 - i * 8}" rx="4" fill="${i % 2 ? hairF : hairD}"/>`
+        + `<path d="M${bx - 1.5} ${y0 + 22} V${y0 + 14 + h * 0.95 - i * 8}" stroke="${hairL}" stroke-width="1.3" stroke-linecap="round" opacity=".4"/>`
     }).join('')).join(''),
-    curlyLong: [...Array(5)].map((_, i) => `<circle cx="${x0 - 8}" cy="${y0 + 26 + i * 15}" r="12" fill="${hairD}"/><circle cx="${x1 + 8}" cy="${y0 + 26 + i * 15}" r="12" fill="${hairD}"/>`).join('')
+    curlyLong: [...Array(5)].map((_, i) => curl(x0 - 8, y0 + 26 + i * 15, 12, hairD) + curl(x1 + 8, y0 + 26 + i * 15, 12, hairD)).join('')
       + `<rect x="${x0 - 8}" y="${y0 + 20}" width="${w + 16}" height="${h * 0.7}" rx="12" fill="${hairD}"/>`,
     braids: [-1, 1].map(s => {
       const bx = s < 0 ? x0 - 2 : x1 + 2
-      return [0, 1, 2, 3].map(i => `<ellipse cx="${bx}" cy="${y0 + 44 + i * 16}" rx="9" ry="10" fill="${i % 2 ? hairD : hairF}"/>`).join('')
+      return [0, 1, 2, 3].map(i => `<ellipse cx="${bx}" cy="${y0 + 44 + i * 16}" rx="9" ry="10" fill="${i % 2 ? hairD : hairF}"/>`
+        + `<path d="M${bx - 6} ${y0 + 48 + i * 16} Q${bx} ${y0 + 54 + i * 16} ${bx + 6} ${y0 + 48 + i * 16}" fill="none" stroke="${hairDD}" stroke-width="1.6" opacity=".55"/>`
+        + `<circle cx="${bx - 3}" cy="${y0 + 40 + i * 16}" r="2.2" fill="${hairL}" opacity=".5"/>`).join('')
         + `<rect x="${bx - 5}" y="${y0 + 106}" width="10" height="7" rx="3" fill="${SCARF_YELLOW}"/>`
     }).join('')
   }
@@ -289,7 +306,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   const above = (d: number, line: number) =>
     `M-60 -60 H260 V${y0 + h * d} H${x1 + 20} Q${x1 - 6} ${y0 + h * (line + 0.02)} ${cx} ${y0 + h * line} Q${x0 + 6} ${y0 + h * (line + 0.02)} ${x0 - 20} ${y0 + h * d} H-60 Z`
   const cap = (d: number, extra = 0, line = 0.2) =>
-    `<g clip-path="url(#${clipTo(above(d, line))})">${headShape(3 + extra, 6 + extra)}</g>`
+    `<g clip-path="url(#${clipTo(above(d, line))})">${headShape(3 + extra, 10 + extra)}</g>`
   // sideburns: the head's own edge, from the temple down to `to` of its height
   const sideburnsTo = (to: number, from = 14) =>
     `<g clip-path="url(#${clipTo(`M${x0 - 20} ${y0 + from} H${x0 + 6} V${y0 + h * to} H${x0 - 20} Z M${x1 - 6} ${y0 + from} H${x1 + 20} V${y0 + h * to} H${x1 - 6} Z`)})">${headShape(3)}</g>`
@@ -303,31 +320,49 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   }
   const along = (n: number, inset: number) => [...Array(n)].map((_, i) => x0 + inset + i * (w - 2 * inset) / (n - 1))
   const curls = (n: number, inset: number, r: number, lift: number, wobble = 0) =>
-    along(n, inset).map((x, i) => `<circle cx="${x}" cy="${headTop(x) - lift + (i % 2) * wobble}" r="${r}" fill="${hairF}"/>`).join('')
+    along(n, inset).map((x, i) => curl(x, headTop(x) - lift + (i % 2) * wobble, r)).join('')
   const curtains = `<path d="M${cx} ${y0 + 2} Q${cx - 26} ${y0 + h * 0.06} ${x0 + 6} ${y0 + h * 0.32} L${x0 - 6} ${y0 + h * 0.66} Z M${cx} ${y0 + 2} Q${cx + 26} ${y0 + h * 0.06} ${x1 - 6} ${y0 + h * 0.32} L${x1 + 6} ${y0 + h * 0.66} Z" fill="${hairF}"/>`
+    + strands([[cx - 6, y0 + 6, x0 + 2, y0 + h * 0.5, cx - 22, y0 + h * 0.12], [cx + 6, y0 + 6, x1 - 2, y0 + h * 0.5, cx + 22, y0 + h * 0.12]], hairDD, 1.8)
+  // a fringe swept from a side parting across the brow, for hair tied back
+  const sweep = `<path d="M${cx + 10} ${y0 - 6} Q${cx - 18} ${y0 - 2} ${x0 + 2} ${y0 + h * 0.34} L${x0 - 3} ${y0 + h * 0.3} Q${x0 - 2} ${y0 - 8} ${cx + 10} ${y0 - 9} Z" fill="${hairF}"/>`
+    + `<path d="M${cx + 10} ${y0 - 6} Q${cx - 14} ${y0 + 2} ${x0 + 6} ${y0 + h * 0.3}" fill="none" stroke="${hairDD}" stroke-width="1.8" stroke-linecap="round" opacity=".45"/>`
+    + `<path d="M${cx + 12} ${y0 - 6} Q${cx + 4} ${y0 + h * 0.1} ${cx - 10} ${y0 + h * 0.2} Q${cx + 6} ${y0 + h * 0.06} ${cx + 12} ${y0 - 6} Z" fill="${hairF}"/>`
   const front: Record<string, string> = {
     none: '',
     buzz: `<g opacity=".9" clip-path="url(#${clipTo(above(0.28, 0.16))})">${headShape(1, 2)}</g>`,
     // a neat short cut, the hairline set back so more of the forehead shows
-    crew: cap(0.28, 0, 0.1) + sideburnsTo(0.34, 12),
+    crew: cap(0.28, 0, 0.1) + sideburnsTo(0.34, 12)
+      + along(8, 8).map((x, i) => `<path d="M${x - 5} ${headTop(x) - 2} L${x + (i % 2 ? 2 : -1)} ${headTop(x) - 10} L${x + 5} ${headTop(x) - 2} Z" fill="${hairF}"/>`).join(''),
     // short, the hairline receding at the temples, a little lower in the middle
     receding: `<g clip-path="url(#${clipTo(`M-60 -60 H260 V${y0 + h * 0.36} H${x1 - 5} L${x1 - 6} ${y0 + h * 0.15} Q${x1 - 12} ${y0 + h * 0.03} ${cx + 11} ${y0 + h * 0.07} Q${cx} ${y0 + h * 0.13} ${cx - 11} ${y0 + h * 0.07} Q${x0 + 12} ${y0 + h * 0.03} ${x0 + 6} ${y0 + h * 0.15} L${x0 + 5} ${y0 + h * 0.36} H-60 Z`)})">${headShape(3, 6)}</g>`,
-    short: cap(0.36) + sideburns + `<path d="M${cx - 22} ${y0 + h * 0.18} Q${cx - 4} ${y0 + h * 0.34} ${cx + 12} ${y0 + h * 0.16} Z" fill="${hairF}"/>`,
-    side: cap(0.4) + sideburns + `<path d="M${x0 - 3} ${y0 + h * 0.4} Q${x0 + 4} ${y0 + h * 0.1} ${cx + 24} ${y0 + h * 0.12} Q${cx - 6} ${y0 + h * 0.2} ${x0 + 10} ${y0 + h * 0.42} Z" fill="${hairF}"/>`
-      + `<path d="M${cx + 24} ${y0 + h * 0.12} Q${cx - 6} ${y0 + h * 0.2} ${x0 + 10} ${y0 + h * 0.42}" fill="none" stroke="${hairD}" stroke-width="3" stroke-linecap="round"/>`,
+    short: cap(0.36) + sideburns
+      // volume: the front swept up and over, rising above the crown
+      + `<path d="M${x0 + 4} ${y0 + h * 0.2} Q${x0 + 2} ${y0 - 12} ${cx + 2} ${y0 - 13} Q${x1 + 2} ${y0 - 12} ${x1 - 2} ${y0 + h * 0.14} Q${cx + 10} ${y0 - 2} ${cx - 8} ${y0 + 2} Q${x0 + 12} ${y0 + 4} ${x0 + 4} ${y0 + h * 0.2} Z" fill="${hairF}"/>`
+      + `<path d="M${x0 + 14} ${y0 - 2} Q${cx - 6} ${y0 - 12} ${cx + 16} ${y0 - 8}" fill="none" stroke="${shade(hairC, 1.25)}" stroke-width="3" stroke-linecap="round" opacity=".4"/>`
+      + `<path d="M${cx - 22} ${y0 + h * 0.18} Q${cx - 4} ${y0 + h * 0.34} ${cx + 12} ${y0 + h * 0.16} Z" fill="${hairF}"/>`
+      // the fringe in three locks, a parting between each
+      + [[-26, 0.24], [-8, 0.3], [10, 0.25]].map(([dx, d]) => `<path d="M${cx + dx - 9} ${y0 + h * 0.14} Q${cx + dx - 2} ${y0 + h * (d + 0.02)} ${cx + dx + 4} ${y0 + h * (d + 0.04)} Q${cx + dx + 6} ${y0 + h * 0.18} ${cx + dx + 10} ${y0 + h * 0.13} Z" fill="${hairF}"/>`).join('')
+      + strands([[cx - 18, y0 + h * 0.06, cx - 14, y0 + h * 0.22, cx - 18, y0 + h * 0.14], [cx + 2, y0 + h * 0.05, cx + 1, y0 + h * 0.24, cx + 4, y0 + h * 0.14]], hairDD, 1.8),
+    side: cap(0.4) + sideburns
+      // volume: the front swept up and over, rising above the crown
+      + `<path d="M${x0 + 4} ${y0 + h * 0.2} Q${x0 + 2} ${y0 - 12} ${cx + 2} ${y0 - 13} Q${x1 + 2} ${y0 - 12} ${x1 - 2} ${y0 + h * 0.14} Q${cx + 10} ${y0 - 2} ${cx - 8} ${y0 + 2} Q${x0 + 12} ${y0 + 4} ${x0 + 4} ${y0 + h * 0.2} Z" fill="${hairF}"/>`
+      + `<path d="M${x0 + 14} ${y0 - 2} Q${cx - 6} ${y0 - 12} ${cx + 16} ${y0 - 8}" fill="none" stroke="${shade(hairC, 1.25)}" stroke-width="3" stroke-linecap="round" opacity=".4"/>`
+      + `<path d="M${x0 - 3} ${y0 + h * 0.4} Q${x0 + 4} ${y0 + h * 0.1} ${cx + 24} ${y0 + h * 0.12} Q${cx - 6} ${y0 + h * 0.2} ${x0 + 10} ${y0 + h * 0.42} Z" fill="${hairF}"/>`
+      + `<path d="M${cx + 24} ${y0 + h * 0.12} Q${cx - 6} ${y0 + h * 0.2} ${x0 + 10} ${y0 + h * 0.42}" fill="none" stroke="${hairD}" stroke-width="3" stroke-linecap="round"/>`
+      + strands([[cx + 16, y0 + h * 0.05, x0 + 8, y0 + h * 0.3, cx - 8, y0 + h * 0.1], [cx + 28, y0 + h * 0.03, cx - 2, y0 + h * 0.13, cx + 12, y0 + h * 0.06]], hairDD, 1.8),
     // curls along the curve of the head, down to the temples
     curly: cap(0.3, 2) + curls(9, 2, 12, -2, 5) + sideburnsTo(0.36),
-    afro: [...Array(7)].map((_, i) => `<circle cx="${x0 + 6 + i * (w - 12) / 6}" cy="${y0 + 8}" r="11" fill="${hairF}"/>`).join(''),
+    afro: [...Array(7)].map((_, i) => curl(x0 + 6 + i * (w - 12) / 6, y0 + 8, 11)).join(''),
     // a short, rounded afro: a little fuller than the head, its edge in small curls
     afroShort: cap(0.34, 6, 0.19) + curls(9, 6, 6, 7),
     // short and wavy: the fringe in soft waves
-    wavyShort: cap(0.34, 1) + [...Array(5)].map((_, i) => `<circle cx="${x0 + 10 + i * (w - 20) / 4}" cy="${y0 + h * 0.2}" r="${8 - Math.abs(i - 2)}" fill="${hairF}"/>`).join('') + sideburns,
+    wavyShort: cap(0.34, 1) + [...Array(5)].map((_, i) => curl(x0 + 10 + i * (w - 20) / 4, y0 + h * 0.2, 8 - Math.abs(i - 2))).join('') + sideburns,
     curlyLong: cap(0.4, 2) + curls(9, 2, 12, -2, 5),
     // locs: the top in ropes, with their ends hanging down the sides
     locs: (() => {
       const c = clipTo(above(0.36, 0.2))
       return `<g clip-path="url(#${c})">${headShape(5, 8)}`
-        + along(7, 4).map(x => `<path d="M${x} ${headTop(x) - 4} L${x} ${y0 + h * 0.22}" stroke="${hairD}" stroke-width="2.4" stroke-linecap="round"/>`).join('')
+        + along(7, 4).map(x => `<path d="M${x} ${headTop(x) - 4} L${x} ${y0 + h * 0.22}" stroke="${hairD}" stroke-width="2.4" stroke-linecap="round"/><path d="M${x + 3} ${headTop(x) - 1} L${x + 3} ${y0 + h * 0.12}" stroke="${hairL}" stroke-width="1.4" stroke-linecap="round" opacity=".5"/>`).join('')
         + `</g>` + sideburnsTo(0.6, 10)
     })(),
     // cornrows: close to the head, in rows running back from the hairline
@@ -337,12 +372,13 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
         + along(5, 10).map(x => `<path d="M${x} ${y0 + h * 0.15} L${x + (x - cx) * 0.15} ${headTop(x + (x - cx) * 0.15) + 2}" stroke="${hairD}" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="3 2.4"/>`).join('')
         + `</g>`
     })(),
-    bob: cap(0.5, 4) + `<rect x="${x0 + 2}" y="${y0 + 2}" width="${w - 4}" height="${h * 0.24}" rx="10" fill="${hairF}"/>`,
+    bob: cap(0.5, 4) + `<rect x="${x0 + 2}" y="${y0 + 2}" width="${w - 4}" height="${h * 0.24}" rx="10" fill="${hairF}"/>`
+      + [0.28, 0.5, 0.72].map(f => `<path d="M${x0 + w * f} ${y0 + h * 0.08} L${x0 + w * f + 1} ${y0 + h * 0.25}" stroke="${hairDD}" stroke-width="1.8" stroke-linecap="round" opacity=".45"/>`).join(''),
     long: cap(0.62, 4) + curtains,
     wavy: cap(0.62, 4) + curtains,
-    ponytail: cap(0.32) + `<path d="M${x0} ${y0 + h * 0.3} Q${cx - 10} ${y0 + h * 0.1} ${x1 - 4} ${y0 + h * 0.22} Q${cx} ${y0 - 2} ${x0} ${y0 + h * 0.3} Z" fill="${hairD}" opacity=".5"/>`,
-    pigtails: cap(0.34) + `<path d="M${cx} ${y0 - 4} L${cx} ${y0 + h * 0.2}" stroke="${hairD}" stroke-width="2.5"/>`,
-    bun: cap(0.32),
+    ponytail: cap(0.32) + sweep + `<path d="M${x0} ${y0 + h * 0.3} Q${cx - 10} ${y0 + h * 0.1} ${x1 - 4} ${y0 + h * 0.22} Q${cx} ${y0 - 2} ${x0} ${y0 + h * 0.3} Z" fill="${hairD}" opacity=".5"/>`,
+    pigtails: cap(0.34) + sweep + `<path d="M${cx} ${y0 - 4} L${cx} ${y0 + h * 0.2}" stroke="${hairD}" stroke-width="2.5"/>`,
+    bun: cap(0.32) + sweep,
     braids: cap(0.36) + `<path d="M${cx} ${y0 - 4} L${cx} ${y0 + h * 0.2}" stroke="${hairD}" stroke-width="2.5"/>`
   }
 
@@ -404,7 +440,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     : ''
   // the face: a soft light from the upper left, a warm glow on the cheeks
   const head = `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${hb.r}" fill="url(#sk-${id})"/>`
-    + `<ellipse cx="${eyeL - 6}" cy="${ey + 17}" rx="8" ry="4.5" fill="#F28B82" opacity=".18"/><ellipse cx="${eyeR + 6}" cy="${ey + 17}" rx="8" ry="4.5" fill="#F28B82" opacity=".18"/>`
+    + `<ellipse cx="${eyeL - 6}" cy="${ey + 17}" rx="8" ry="4.5" fill="#F28B82" opacity=".3"/><ellipse cx="${eyeR + 6}" cy="${ey + 17}" rx="8" ry="4.5" fill="#F28B82" opacity=".3"/>`
 
   /* ---- the face: eyes, brows, nose, mouth, together by expression ---- */
   type Ex = { eyes: 'open' | 'happy' | 'half' | 'wink' | 'wide', brows: 'soft' | 'up' | 'angry' | 'flat' | 'tilt', mouth: string }
@@ -421,31 +457,35 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   const xp = EXP[a.expression]
   const iris = a.eyeColor
   const lash = (x: number, s: number) => a.gender === 'girl'
-    ? `<path d="M${x + s * 7} ${ey - 9} l${s * 5} -4 M${x + s * 9} ${ey - 5} l${s * 6} -2" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>` : ''
+    ? `<path d="M${x + s * 7} ${ey - 9} l${s * 5} -4 M${x + s * 9} ${ey - 5} l${s * 6} -2" stroke="${INK}" stroke-width="1.8" stroke-linecap="round"/>` : ''
   const eye = (x: number, s: number) => {
     const kind = xp.eyes === 'wink' ? (s > 0 ? 'happy' : 'open') : xp.eyes
     if (kind === 'happy') return `<path d="M${x - 8} ${ey + 2} Q${x} ${ey - 8} ${x + 8} ${ey + 2}" fill="none" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>`
     // the eye's shape: round (big and friendly), almond (longer, narrower), small
     const sh = a.eyeShape
-    const ry = kind === 'wide' ? 12 : sh === 'almond' ? 7.2 : sh === 'small' ? 7.8 : 10.5
-    const rx = kind === 'wide' ? 10 : sh === 'almond' ? 9.6 : sh === 'small' ? 7 : 9
-    const ir = kind === 'wide' ? 6.5 : sh === 'round' ? 6 : 5.2
+    const ry = kind === 'wide' ? 12.5 : sh === 'almond' ? 7.6 : sh === 'small' ? 8 : 11.2
+    const rx = kind === 'wide' ? 10.5 : sh === 'almond' ? 10 : sh === 'small' ? 7.4 : 10
+    const ir = kind === 'wide' ? 7.8 : sh === 'round' ? 7.6 : 6
     const iy = ey + (sh === 'round' ? 1.5 : 0.8)
     const whites = `<ellipse cx="${x}" cy="${ey}" rx="${rx}" ry="${ry}" fill="#fff"/>`
       + `<circle cx="${x + 1}" cy="${iy}" r="${ir}" fill="${iris}" stroke="${shade(iris, 0.6)}" stroke-width="1.2"/>`
-      + `<circle cx="${x + 1}" cy="${iy}" r="${ir / 2}" fill="${INK}"/><circle cx="${x + 3}" cy="${ey - 1.5}" r="${ir / 3}" fill="#fff"/><circle cx="${x - 1.6}" cy="${iy + ir * 0.45}" r="${ir / 6}" fill="#fff" opacity=".85"/>`
+      + `<circle cx="${x + 1}" cy="${iy}" r="${ir / 1.7}" fill="${INK}"/><circle cx="${x + 3}" cy="${ey - 1.5}" r="${ir / 3}" fill="#fff"/><circle cx="${x - 1.6}" cy="${iy + ir * 0.45}" r="${ir / 6}" fill="#fff" opacity=".85"/>`
+    // the upper lid drawn as a soft dark line, as the concept has it
+    const upper = `<path d="M${x - rx + 0.5} ${ey - 1} Q${x} ${ey - ry * 1.28} ${x + rx - 0.5} ${ey - 1}" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round" opacity=".55"/>`
     const lid = kind === 'half'
       ? `<path d="M${x - rx - 1} ${ey - 1} Q${x} ${ey - ry - 6} ${x + rx + 1} ${ey - 1} Z" fill="${skinD}"/><path d="M${x - rx} ${ey - 1} L${x + rx} ${ey - 1}" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`
       : ''
-    return whites + lid + lash(x, s)
+    return whites + (kind === 'half' ? '' : upper) + lid + lash(x, s)
   }
   const browC = a.hair === 'none' ? shade(skin, 0.55) : shade(hairC, 0.85)
   const brow = (x: number, s: number) => {
     const b = xp.brows, by = ey - 17
     const tilt = b === 'angry' ? s * 12 : b === 'tilt' ? (s > 0 ? -10 : 4) : b === 'soft' ? -s * 4 : 0
     const lift = b === 'up' ? -4 : 0
-    const th = a.brows === 'thin' ? 3.4 : a.brows === 'thick' ? 8 : 5.5, bw = a.brows === 'thick' ? 21 : 18
-    return `<rect x="${x - bw / 2}" y="${by + lift - (th - 5.5) / 2}" width="${bw}" height="${th}" rx="${th / 2}" fill="${browC}" transform="rotate(${tilt} ${x} ${by + lift + 3})"/>`
+    const th = a.brows === 'thin' ? 2.6 : a.brows === 'thick' ? 6 : 4, bw = a.brows === 'thick' ? 20 : 17
+    // a curved, tapering brow, thicker in the middle
+    const yy = by + lift + 2
+    return `<path d="M${x - bw / 2 + 1} ${yy + 1} Q${x} ${yy - 5} ${x + bw / 2 - 1} ${yy + 1}" fill="none" stroke="${browC}" stroke-width="${th}" stroke-linecap="round" transform="rotate(${tilt} ${x} ${yy})"/>`
   }
   const eyes = eye(eyeL, -1) + eye(eyeR, 1) + brow(eyeL, -1) + brow(eyeR, 1)
   const ny = ey + 14
@@ -645,7 +685,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   // a shine on hair that covers the crown, unless a hat is over it
   const SHINY = ['crew', 'receding', 'short', 'side', 'wavyShort', 'curly', 'afroShort', 'bob', 'long', 'wavy', 'curlyLong', 'ponytail', 'pigtails', 'bun', 'braids']
   const shine = !coversTop && SHINY.includes(a.hair)
-    ? `<path d="M${x0 + 12} ${y0 + 6} Q${cx - 14} ${y0 - 5} ${cx + 6} ${y0 - 3}" fill="none" stroke="${shade(hairC, 1.45)}" stroke-width="3.4" stroke-linecap="round" opacity=".55"/>`
+    ? `<path d="M${x0 + 12} ${y0 + 6} Q${cx - 14} ${y0 - 5} ${cx + 6} ${y0 - 3}" fill="none" stroke="${shade(hairC, 1.25)}" stroke-width="3.4" stroke-linecap="round" opacity=".4"/>`
     : ''
   const hairFront = (coversTop ? `<g clip-path="url(#under-${id})">${front[a.hair] || ''}</g>` : (front[a.hair] || '')) + shine
   const hairBack = coversTop && a.hair === 'bun' ? '' : (back[a.hair] || '')
