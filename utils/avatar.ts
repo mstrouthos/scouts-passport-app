@@ -194,6 +194,13 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   const strands = (pts: number[][], col = hairDD, wd = 2) => pts.map(([ax, ay, bx, by, qx, qy]) =>
     `<path d="M${ax} ${ay} Q${qx} ${qy} ${bx} ${by}" fill="none" stroke="${col}" stroke-width="${wd}" stroke-linecap="round" opacity=".5"/>`).join('')
   const cx = 100
+  const extraDefs: string[] = []
+  let clipN = 0
+  const clipTo = (d: string) => {
+    const c = `hc${clipN++}-${id}`
+    extraDefs.push(`<clipPath id="${c}"><path d="${d}"/></clipPath>`)
+    return c
+  }
 
   /* the head: a rounded square, of four proportions */
   const HB: Record<string, { w: number, h: number, r: number }> = {
@@ -204,29 +211,59 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   const ey = y0 + h * 0.5, ex = w * 0.2, eyeL = cx - ex, eyeR = cx + ex
 
   /* ---- body, clothes, neck ---- */
-  const cc = a.clothesColor, ccD = shade(cc, 0.82), ccL = shade(cc, 1.25)
-  const torso = `<path d="M34 200 L44 162 Q50 144 72 140 L128 140 Q150 144 156 162 L166 200 Z" fill="${cc}"/>`
+  const cc = a.clothesColor, ccD = shade(cc, 0.82), ccL = shade(cc, 1.25), ccDD = shade(cc, 0.66)
+  const TORSO = 'M34 200 L44 162 Q50 144 72 140 L128 140 Q150 144 156 162 L166 200 Z'
+  const torso = `<path d="${TORSO}" fill="${cc}"/>`
     + `<path d="M34 200 L44 162 Q47 154 54 149 L60 200 Z M166 200 L156 162 Q153 154 146 149 L140 200 Z" fill="${ccD}"/>`
+  // whatever is drawn across the chest stays inside the body
+  const onBody = (s: string) => `<g clip-path="url(#${clipTo(TORSO)})">${s}</g>`
+  // sleeves: a seam where each meets the body
+  const seams = `<path d="M54 149 Q60 170 58 200 M146 149 Q140 170 142 200" fill="none" stroke="${ccDD}" stroke-width="1.8" stroke-linecap="round" opacity=".5"/>`
+  const shoulderLight = `<path d="M50 160 Q56 148 70 144" fill="none" stroke="${ccL}" stroke-width="3" stroke-linecap="round" opacity=".55"/><path d="M150 160 Q144 148 130 144" fill="none" stroke="${ccL}" stroke-width="3" stroke-linecap="round" opacity=".35"/>`
+  // a button with a glint
+  const button = (x: number, y: number, r = 2.2, fill = ccDD) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/><circle cx="${x - r * 0.3}" cy="${y - r * 0.3}" r="${r * 0.4}" fill="#fff" opacity=".45"/>`
+  // a chest pocket: a pointed flap with its button, a pleat down the middle
+  const pocket = (x: number) => `<rect x="${x - 12}" y="163" width="24" height="28" rx="4" fill="${ccD}" stroke="${ccDD}" stroke-width="1.4"/>`
+    + `<path d="M${x} 172 V190" stroke="${ccDD}" stroke-width="1.6" opacity=".7"/>`
+    + `<path d="M${x - 13.5} 160 H${x + 13.5} V167 L${x} 173 L${x - 13.5} 167 Z" fill="${shade(cc, 0.74)}" stroke="${ccDD}" stroke-width="1.4" stroke-linejoin="round"/>` + button(x, 167.5, 2.1)
+  // a light colour shows its pattern in a darker one, the rest in cream
+  const light = parseInt(cc.slice(1, 3), 16) + parseInt(cc.slice(3, 5), 16) + parseInt(cc.slice(5, 7), 16) > 560
+  const knit = light ? shade(cc, 0.62) : '#F4E8CF'
+  // the arms below a short sleeve, with the sleeve's hem
+  const arm = (side: 1 | -1) => {
+    const X = (x: number) => cx + side * (x - cx)
+    return `<path d="M${X(34)} 200 L${X(39)} 182 L${X(54)} 185 L${X(55)} 200 Z" fill="${skin}"/>`
+      + `<path d="M${X(34)} 200 L${X(39)} 182 L${X(44)} 183 L${X(41)} 200 Z" fill="${skinD}"/>`
+      + `<path d="M${X(38)} 181 L${X(55)} 184.5" stroke="${ccD}" stroke-width="5" stroke-linecap="round"/>`
+  }
   const clothes: Record<string, string> = {
-    // the scout shirt: collar points, two button-down pockets, epaulettes
-    uniform: torso
-      + `<path d="M74 140 L92 154 L84 163 L68 143 Z M126 140 L108 154 L116 163 L132 143 Z" fill="${ccD}"/>`
-      + `<rect x="56" y="168" width="22" height="22" rx="4" fill="${ccD}"/><rect x="122" y="168" width="22" height="22" rx="4" fill="${ccD}"/>`
-      + `<rect x="56" y="168" width="22" height="8" rx="3" fill="${shade(cc, 0.7)}"/><rect x="122" y="168" width="22" height="8" rx="3" fill="${shade(cc, 0.7)}"/>`
-      + `<rect x="47" y="149" width="22" height="7" rx="3.5" fill="${ccD}" transform="rotate(-20 58 152)"/><rect x="131" y="149" width="22" height="7" rx="3.5" fill="${ccD}" transform="rotate(20 142 152)"/>`
-      // the light on the shoulders, the buttons down the front, on the pockets and epaulettes
-      + `<path d="M50 160 Q56 148 70 144" fill="none" stroke="${ccL}" stroke-width="3" stroke-linecap="round" opacity=".55"/><path d="M150 160 Q144 148 130 144" fill="none" stroke="${ccL}" stroke-width="3" stroke-linecap="round" opacity=".35"/>`
-      + `<path d="M100 172 V200" stroke="${ccD}" stroke-width="2.2"/>`
-      + [178, 192].map(y => `<circle cx="100" cy="${y}" r="2.2" fill="${shade(cc, 0.62)}"/><circle cx="99.4" cy="${y - 0.6}" r=".8" fill="${ccL}"/>`).join('')
-      + [67, 133].map(x => `<circle cx="${x}" cy="172" r="1.9" fill="${shade(cc, 0.62)}"/>`).join('')
-      + `<circle cx="56" cy="148.5" r="1.7" fill="${shade(cc, 0.62)}"/><circle cx="144" cy="148.5" r="1.7" fill="${shade(cc, 0.62)}"/>`,
-    tee: torso + `<path d="M82 141 Q100 156 118 141" fill="none" stroke="${ccD}" stroke-width="6" stroke-linecap="round"/>`
-      + `<path d="M50 160 Q56 148 70 144" fill="none" stroke="${ccL}" stroke-width="3" stroke-linecap="round" opacity=".55"/><path d="M58 176 Q62 186 60 198 M142 176 Q138 186 140 198" fill="none" stroke="${ccD}" stroke-width="2.4" stroke-linecap="round" opacity=".7"/>`,
-    hoodie: `<path d="M60 152 Q58 128 100 126 Q142 128 140 152 Q120 142 100 142 Q80 142 60 152 Z" fill="${ccD}"/>` + torso
-      + `<path d="M91 152 L89 180 M109 152 L111 180" stroke="${ccL}" stroke-width="3.4" stroke-linecap="round"/><circle cx="89" cy="182" r="3" fill="${ccL}"/><circle cx="111" cy="182" r="3" fill="${ccL}"/>`
-      + `<rect x="72" y="186" width="56" height="20" rx="7" fill="${ccD}"/>`,
-    sweater: torso + `<path d="M80 141 Q100 160 120 141" fill="none" stroke="${ccD}" stroke-width="9" stroke-linecap="round"/>`
-      + [0, 1, 2, 3, 4].map(i => `<path d="M${50 + i * 24} 188 l7 8 l7 -8" fill="none" stroke="${ccL}" stroke-width="3.4" stroke-linejoin="round"/>`).join('')
+    // the scout shirt: a wide pointed collar, two pockets with flaps,
+    // epaulettes with brass buttons, buttons down the front
+    uniform: torso + seams + shoulderLight
+      + onBody(pocket(68) + pocket(132) + `<path d="M100 170 V200" stroke="${ccDD}" stroke-width="1.6" opacity=".6"/>` + button(100, 182) + button(100, 195))
+      + `<path d="M72 140 L95 157 L83 168 L61 146 Z M128 140 L105 157 L117 168 L139 146 Z" fill="${shade(cc, 1.1)}" stroke="${ccDD}" stroke-width="1.6" stroke-linejoin="round"/>`
+      + `<path d="M46 154 L67 145 L70 151 L49 160 Z M154 154 L133 145 L130 151 L151 160 Z" fill="${ccD}" stroke="${ccDD}" stroke-width="1.4" stroke-linejoin="round"/>`
+      + button(64, 148.5, 2.4, '#C99A18') + button(136, 148.5, 2.4, '#C99A18'),
+    // a plain t-shirt: short sleeves, a ribbed crew neck
+    tee: torso + shoulderLight + arm(1) + arm(-1)
+      + `<path d="M78 141 Q100 160 122 141" fill="none" stroke="${ccDD}" stroke-width="8" stroke-linecap="round"/><path d="M78 141 Q100 160 122 141" fill="none" stroke="${ccD}" stroke-width="4.5" stroke-linecap="round"/>`
+      + onBody(`<path d="M72 186 Q76 192 74 200 M128 186 Q124 192 126 200" fill="none" stroke="${ccD}" stroke-width="2.2" stroke-linecap="round" opacity=".7"/>`),
+    // a hoodie: the hood round the neck, drawstrings with metal tips, the
+    // pocket across the front
+    hoodie: `<path d="M54 156 Q50 120 100 118 Q150 120 146 156 Q124 140 100 140 Q76 140 54 156 Z" fill="${ccD}"/>`
+      + `<path d="M62 152 Q62 130 100 128 Q138 130 138 152" fill="none" stroke="${ccDD}" stroke-width="3" opacity=".6"/>` + torso + seams + shoulderLight
+      + `<path d="M72 142 Q74 156 86 160 M128 142 Q126 156 114 160" fill="none" stroke="${ccDD}" stroke-width="5" stroke-linecap="round" opacity=".55"/>`
+      + `<path d="M84 158 Q81 168 82 180 M116 158 Q119 168 118 180" fill="none" stroke="#F4F1E8" stroke-width="3.2" stroke-linecap="round"/>`
+      + `<rect x="79.5" y="179" width="5" height="9" rx="2" fill="#3A3A40"/><rect x="115.5" y="179" width="5" height="9" rx="2" fill="#3A3A40"/>`
+      + onBody(`<path d="M62 202 L68 186 Q70 180 78 180 L122 180 Q130 180 132 186 L138 202 Z" fill="${ccD}" stroke="${ccDD}" stroke-width="1.6"/>`
+        + `<path d="M68 186 Q78 190 76 202 M132 186 Q122 190 124 202" fill="none" stroke="${ccDD}" stroke-width="2.2" stroke-linecap="round"/>`),
+    // a knitted sweater: the zigzag band across the chest, a ribbed neck
+    sweater: torso + seams + shoulderLight
+      + onBody(`<rect x="30" y="160" width="140" height="18" fill="${ccD}"/>`
+        + `<path d="M30 175 ${[...Array(15)].map((_, i) => `L${36 + i * 9.5} ${i % 2 ? 175 : 164}`).join(' ')}" fill="none" stroke="${knit}" stroke-width="4.6" stroke-linejoin="round"/>`
+        + `<path d="M30 159 H170 M30 179 H170" stroke="${ccDD}" stroke-width="1.6" opacity=".6"/>`
+        + [...Array(18)].map((_, i) => `<path d="M${38 + i * 7} 186 v14" stroke="${ccD}" stroke-width="1.6" opacity=".6"/>`).join(''))
+      + `<path d="M78 141 Q100 162 122 141" fill="none" stroke="${ccDD}" stroke-width="10" stroke-linecap="round"/>`
   }
   const neck = `<rect x="${cx - 15}" y="${y1 - 14}" width="30" height="${154 - y1 + 14}" rx="8" fill="${skinD}"/>`
     + `<ellipse cx="${cx}" cy="${y1 + 1}" rx="15" ry="5" fill="${skinDD}" opacity=".55"/>`
@@ -291,13 +328,6 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
      enlarged, so it follows any head shape — square, round, tall, wide — with
      no gap at the temples or over the crown. `above` is the part of that
      outline kept: everything over a hairline. */
-  const extraDefs: string[] = []
-  let clipN = 0
-  const clipTo = (d: string) => {
-    const c = `hc${clipN++}-${id}`
-    extraDefs.push(`<clipPath id="${c}"><path d="${d}"/></clipPath>`)
-    return c
-  }
   // the head's outline grown by `e` (and by `top` over the crown)
   const headShape = (e: number, top = e, fill = hairF) =>
     `<rect x="${x0 - e}" y="${y0 - top}" width="${w + 2 * e}" height="${h + e + top}" rx="${hb.r + e}" fill="${fill}"/>`
@@ -395,22 +425,28 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
 
   /* a scout's kit, over the shirt: a whistle or a compass on a lanyard, or
      badges sewn on (the troop's crest on the chest, a patch on the sleeve) */
-  const lanyard = (endX: number, endY: number) => `<path d="M88 152 Q${(88 + endX) / 2 - 4} ${(152 + endY) / 2 + 6} ${endX} ${endY} M112 152 Q${(112 + endX) / 2 + 2} ${(152 + endY) / 2 + 8} ${endX} ${endY}" fill="none" stroke="#2B2B33" stroke-width="2.2"/>`
+  // a cord round the neck: it comes out from under the neckerchief on both
+  // sides and meets at a ring in the middle of the chest, where it hangs
+  const RX = 100, RY = 174
+  const lanyard = `<path d="M83 152 Q84 170 ${RX - 2} ${RY - 1} M117 152 Q116 170 ${RX + 2} ${RY - 1}" fill="none" stroke="#2B2B33" stroke-width="2.2" stroke-linecap="round"/>`
+    + `<circle cx="${RX}" cy="${RY}" r="2.8" fill="none" stroke="#94A1B2" stroke-width="1.6"/>`
   const gear: Record<string, string> = {
     none: '',
-    // a metal whistle: a barrel with a mouthpiece, a ring and the light on it
-    whistle: lanyard(72, 164) + `<g transform="rotate(-24 72 170)">`
+    // a metal whistle hanging from its ring, the mouthpiece down: a barrel,
+    // the round chamber with its hole, the light along it
+    whistle: lanyard + `<g transform="translate(${RX - 58.5} ${RY + 3 - 166}) rotate(72 58.5 166) translate(58.5 166) scale(.76) translate(-58.5 -166)">`
       + `<path d="M60 165 h17 a6.5 6.5 0 0 1 0 13 h-17 a6.5 6.5 0 0 1 0 -13 Z" fill="#B9C3CF"/>`
       + `<path d="M60 171.5 h17 a6.5 6.5 0 0 1 -6 6.5 h-11 a6.5 6.5 0 0 1 -6.5 -6.5 Z" fill="#94A1B2"/>`
       + `<rect x="76" y="166.5" width="11" height="8" rx="2.4" fill="#A9B4C2"/><rect x="76" y="171" width="11" height="3.5" rx="1.5" fill="#8593A6"/>`
       + `<circle cx="65" cy="171.5" r="3" fill="#6F7E92"/><path d="M61 167.4 h13" stroke="#EEF2F6" stroke-width="2" stroke-linecap="round"/>`
       + `<circle cx="58.5" cy="166" r="2.6" fill="none" stroke="#94A1B2" stroke-width="1.6"/></g>`,
-    // a compass: a brass case and bezel, a white dial with its four marks, a red and navy needle
-    compass: lanyard(129, 162) + `<circle cx="129" cy="169" r="11.5" fill="#C99A18"/><circle cx="129" cy="169" r="11.5" fill="none" stroke="#9C7410" stroke-width="1.4"/>`
+    // a compass hanging from its bail: a brass case and bezel, a white dial
+    // with its four marks, a red and navy needle
+    compass: lanyard + `<g transform="translate(${RX - 129} ${RY + 11 - 169})"><circle cx="129" cy="169" r="11.5" fill="#C99A18"/><circle cx="129" cy="169" r="11.5" fill="none" stroke="#9C7410" stroke-width="1.4"/>`
       + `<circle cx="129" cy="169" r="8.6" fill="#FFFDF5"/><rect x="127" y="155.6" width="4" height="3.4" rx="1.2" fill="#C99A18"/>`
       + `<path d="M129 161.6 v2 M129 174.4 v2 M121.6 169 h2 M134.4 169 h2" stroke="#2B2B33" stroke-width="1.2" stroke-linecap="round"/>`
       + `<path d="M129 162.8 L131.4 169 L126.6 169 Z" fill="#D8343C"/><path d="M129 175.2 L131.4 169 L126.6 169 Z" fill="#1F2C6B"/><circle cx="129" cy="169" r="1.3" fill="#C99A18"/>`
-      + `<path d="M122.5 164.5 Q125 161.8 128.5 161.4" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".8"/>`,
+      + `<path d="M122.5 164.5 Q125 161.8 128.5 161.4" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".8"/></g>`,
     // badges sewn on: the troop's crest on the chest, a stripe patch on the sleeve
     badges: `<circle cx="66" cy="166" r="9" fill="#1F2C6B"/>` + crest(66, 166, 7.4)
       + `<g transform="rotate(18 147 158)"><rect x="139" y="150" width="16" height="16" rx="3.5" fill="#1F2C6B" stroke="#F2C230" stroke-width="1.4"/>`
@@ -565,7 +601,9 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     cateye: `<g fill="#fff" fill-opacity=".18" stroke="${gc}" stroke-width="4" stroke-linejoin="round"><path d="M${eyeL - 15} ${gy - 10} L${eyeL + 13} ${gy - 8} Q${eyeL + 13} ${gy + 11} ${eyeL} ${gy + 11} Q${eyeL - 13} ${gy + 11} ${eyeL - 15} ${gy - 10} Z"/><path d="M${eyeR + 15} ${gy - 10} L${eyeR - 13} ${gy - 8} Q${eyeR - 13} ${gy + 11} ${eyeR} ${gy + 11} Q${eyeR + 13} ${gy + 11} ${eyeR + 15} ${gy - 10} Z"/></g><path d="M${eyeL + 13} ${gy - 4} L${eyeR - 13} ${gy - 4}" stroke="${gc}" stroke-width="3.4"/>` + arms,
     sunglasses: `<path d="M${eyeL - 15} ${gy - 10} L${eyeL + 14} ${gy - 10} L${eyeL + 13} ${gy + 2} Q${eyeL + 11} ${gy + 12} ${eyeL} ${gy + 12} Q${eyeL - 12} ${gy + 12} ${eyeL - 14} ${gy + 2} Z M${eyeR + 15} ${gy - 10} L${eyeR - 14} ${gy - 10} L${eyeR - 13} ${gy + 2} Q${eyeR - 11} ${gy + 12} ${eyeR} ${gy + 12} Q${eyeR + 12} ${gy + 12} ${eyeR + 14} ${gy + 2} Z" fill="${INK}"/>`
       + `<path d="M${eyeL + 14} ${gy - 8} L${eyeR - 14} ${gy - 8}" stroke="${gc}" stroke-width="4"/><path d="M${eyeL - 15} ${gy - 10} L${eyeL + 14} ${gy - 10} M${eyeR - 14} ${gy - 10} L${eyeR + 15} ${gy - 10}" stroke="${gc}" stroke-width="4" stroke-linecap="round"/>`
-      + `<path d="M${eyeL - 9} ${gy - 5} l7 0 M${eyeR - 9} ${gy - 5} l7 0" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".55"/>` + arms
+      + `<path d="M${eyeL - 9} ${gy - 5} l7 0 M${eyeR - 9} ${gy - 5} l7 0" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".55"/>`
+      + `<path d="M${eyeL - 16} ${gy - 11} L${eyeL + 15} ${gy - 11} M${eyeR - 15} ${gy - 11} L${eyeR + 16} ${gy - 11}" stroke="${gc}" stroke-width="5.5" stroke-linecap="round"/>`
+      + `<path d="M${eyeL + 3} ${gy + 6} l5 -5 M${eyeR + 3} ${gy + 6} l5 -5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".35"/>` + arms
   }
 
   /* ---- headwear ---- */
@@ -575,12 +613,13 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     none: '',
     // the campaign hat: a wide flat brim, the crown pinched into four dents
     // (the "Montana peak"), a brown band
-    scout: `<ellipse cx="${cx}" cy="${y0 + 12}" rx="${w / 2 + 34}" ry="12" fill="#A88550"/><ellipse cx="${cx}" cy="${y0 + 9}" rx="${w / 2 + 34}" ry="10" fill="#C9A267"/>`
-      + `<path d="M${cx - 34} ${y0 + 10} L${cx - 28} ${y0 - 28} Q${cx - 16} ${y0 - 40} ${cx - 7} ${y0 - 31} L${cx} ${y0 - 42} L${cx + 7} ${y0 - 31} Q${cx + 16} ${y0 - 40} ${cx + 28} ${y0 - 28} L${cx + 34} ${y0 + 10} Z" fill="#C9A267"/>`
-      + `<path d="M${cx + 7} ${y0 - 31} Q${cx + 16} ${y0 - 40} ${cx + 28} ${y0 - 28} L${cx + 34} ${y0 + 10} L${cx + 14} ${y0 + 10} Z" fill="#B48E55"/>`
-      + `<rect x="${cx - 34}" y="${y0 - 2}" width="68" height="10" rx="3" fill="#5A3B22"/>`
-      + `<path d="M${cx - 22} ${y0 - 24} Q${cx - 15} ${y0 - 32} ${cx - 9} ${y0 - 27}" fill="none" stroke="#E3C38E" stroke-width="2.6" stroke-linecap="round"/>`
-      + `<path d="M${cx - w / 2 - 24} ${y0 + 10} Q${cx - w / 2} ${y0 + 6} ${cx - 40} ${y0 + 6}" fill="none" stroke="#DDBB84" stroke-width="2.4" stroke-linecap="round"/>`
+    scout: `<ellipse cx="${cx}" cy="${y0 + 12}" rx="${w / 2 + 34}" ry="12" fill="#6E4524"/><ellipse cx="${cx}" cy="${y0 + 9}" rx="${w / 2 + 34}" ry="10" fill="#94633A"/>`
+      + `<path d="M${cx - 34} ${y0 + 10} L${cx - 28} ${y0 - 28} Q${cx - 16} ${y0 - 40} ${cx - 7} ${y0 - 31} L${cx} ${y0 - 42} L${cx + 7} ${y0 - 31} Q${cx + 16} ${y0 - 40} ${cx + 28} ${y0 - 28} L${cx + 34} ${y0 + 10} Z" fill="#94633A"/>`
+      + `<path d="M${cx + 7} ${y0 - 31} Q${cx + 16} ${y0 - 40} ${cx + 28} ${y0 - 28} L${cx + 34} ${y0 + 10} L${cx + 14} ${y0 + 10} Z" fill="#7A4E2A"/>`
+      + `<path d="M${cx - 14} ${y0 - 30} Q${cx - 10} ${y0 - 14} ${cx - 12} ${y0 - 2} M${cx + 12} ${y0 - 30} Q${cx + 9} ${y0 - 14} ${cx + 11} ${y0 - 2}" fill="none" stroke="#6E4524" stroke-width="2" opacity=".6"/>`
+      + `<rect x="${cx - 34}" y="${y0 - 2}" width="68" height="10" rx="3" fill="#3E2614"/>`
+      + `<path d="M${cx - 22} ${y0 - 24} Q${cx - 15} ${y0 - 32} ${cx - 9} ${y0 - 27}" fill="none" stroke="#B9875A" stroke-width="2.6" stroke-linecap="round"/>`
+      + `<path d="M${cx - w / 2 - 24} ${y0 + 10} Q${cx - w / 2} ${y0 + 6} ${cx - 40} ${y0 + 6}" fill="none" stroke="#B9875A" stroke-width="2.4" stroke-linecap="round"/>`
       + crest(cx, y0 + 3, 7),
     beret: `<path d="M${x0 - 6} ${y0 + 12} Q${x0 - 16} ${top - 18} ${cx - 4} ${top - 22} Q${x1 + 22} ${top - 20} ${x1 + 6} ${y0 + 10} Z" fill="${hw}"/>`
       + `<rect x="${x0 - 2}" y="${y0 + 4}" width="${w + 4}" height="10" rx="5" fill="${hwD}"/><rect x="${cx - 2}" y="${top - 30}" width="5" height="10" rx="2.5" fill="${hwD}"/>`
@@ -596,7 +635,10 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     beanie: `<path d="M${x0 - 4} ${y0 + 16} Q${x0 - 4} ${top - 26} ${cx} ${top - 26} Q${x1 + 4} ${top - 26} ${x1 + 4} ${y0 + 16} Z" fill="${hw}"/>`
       + `<rect x="${x0 - 6}" y="${y0 + 2}" width="${w + 12}" height="18" rx="7" fill="${hwD}"/>`
       + [...Array(7)].map((_, i) => `<rect x="${x0 + 2 + i * (w - 4) / 7}" y="${y0 + 4}" width="3" height="14" rx="1.5" fill="${hw}" opacity=".55"/>`).join('')
-      + `<circle cx="${cx}" cy="${top - 28}" r="10" fill="${hwL}"/>`
+      + `<circle cx="${cx}" cy="${top - 26}" r="12" fill="${hwL}"/>`
+      + [[-4, -3], [3, -5], [5, 2], [-2, 4], [-6, 2]].map(([dx, dy]) => `<circle cx="${cx + dx}" cy="${top - 26 + dy}" r="2.6" fill="${hwD}" opacity=".35"/>`).join('')
+      + `<circle cx="${cx - 4}" cy="${top - 31}" r="3.4" fill="#fff" opacity=".35"/>`
+      + [...Array(6)].map((_, i) => `<path d="M${x0 + 8 + i * (w - 16) / 5} ${top - 18} Q${x0 + 8 + i * (w - 16) / 5} ${y0 - 6} ${x0 + 8 + i * (w - 16) / 5} ${y0 + 2}" stroke="${hwD}" stroke-width="2.6" opacity=".45" fill="none"/>`).join('')
       + crest(cx, y0 + 11, 7.5),
     // the golden campaign hat (90 days): gold felt, a red band, a red feather
     golden: `<ellipse cx="${cx}" cy="${y0 + 12}" rx="${w / 2 + 36}" ry="12.5" fill="#C99A18"/><ellipse cx="${cx}" cy="${y0 + 9}" rx="${w / 2 + 36}" ry="10.5" fill="#F2C230"/>`
