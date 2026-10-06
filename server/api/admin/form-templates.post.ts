@@ -1,13 +1,11 @@
 import { useDb, schema as s } from '../../db'
-import { requireTroopLeader } from '../../utils/guard'
-import { formById } from '../../utils/forms'
+import { formForLeader } from '../../utils/forms'
 import { now } from '../../utils/passcode'
 
 /** A form's design kept as a template, as it is saved now. */
 export default defineEventHandler(async (event) => {
-  const me = await requireTroopLeader(event)
   const b = await readBody<{ formId?: number, name?: string }>(event)
-  const f = await formById(Number(b?.formId))
+  const { me, f } = await formForLeader(event, Number(b?.formId))
   const name = String(b?.name || '').trim().slice(0, 200) || f.titleEl
   const db = await useDb()
   const [row] = await db.insert(s.formTemplates).values({

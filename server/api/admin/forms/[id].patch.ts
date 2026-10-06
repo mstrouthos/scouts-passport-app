@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
-import { requireTroopLeader, idParam } from '../../../utils/guard'
-import { formById } from '../../../utils/forms'
+import { idParam } from '../../../utils/guard'
+import { formForLeader, formSections, isArchigosFor } from '../../../utils/forms'
 import { toSlug } from '../../../utils/slug'
 import { now } from '../../../utils/passcode'
 import { normalizeSpec } from '../../../../utils/formSpec'
@@ -9,9 +9,8 @@ import { normalizeSpec } from '../../../../utils/formSpec'
 /** Save a form: its texts, its link, whether it is open, and its questions.
     Answers already sent keep the questions they answered. */
 export default defineEventHandler(async (event) => {
-  await requireTroopLeader(event)
   const id = idParam(event)
-  await formById(id)
+  const { me, f } = await formForLeader(event, id)
   const b = await readBody<any>(event)
   const db = await useDb()
   const set: Record<string, any> = { updatedAt: now() }
@@ -23,7 +22,19 @@ export default defineEventHandler(async (event) => {
   if (b?.introEl !== undefined) set.introEl = String(b.introEl || '').slice(0, 5000) || null
   if (b?.thanksEl !== undefined) set.thanksEl = String(b.thanksEl || '').slice(0, 2000) || null
   if (b?.thanksTitleEl !== undefined) set.thanksTitleEl = String(b.thanksTitleEl || '').trim().slice(0, 200) || null
-  if (b?.isOpen !== undefined) set.isOpen = !!b.isOpen
+  if (b?.sectionId !== undefined) {
+    // only to a sector of their own; the whole troop is the administrators'
+    const sec = b.sectionId ? Number(b.sectionId) : null
+    const secs = await formSections(me)
+    if (secs !== null && (sec == null || !secs.includes(sec))) throw createError({ statusCode: 403, message: 'Δεν είναι στον τομέα σας' })
+    set.sectionId = sec
+    // moved to a sector this leader is not Αρχηγός of: it waits again
+    if (!f.pendingApproval && !(await isArchigosFor(me, sec))) set.pendingApproval = true
+  }
+  if (b?.isOpen !== undefined) {
+    if (b.isOpen && (set.pendingApproval ?? f.pendingApproval)) throw createError({ statusCode: 400, message: 'Η φόρμα περιμένει έγκριση από τον Αρχηγό' })
+    set.isOpen = !!b.isOpen
+  }
   if (b?.closesAt !== undefined) {
     const d = b.closesAt ? new Date(String(b.closesAt)) : null
     if (d && Number.isNaN(d.getTime())) throw createError({ statusCode: 400, message: 'Μη έγκυρη ημερομηνία' })

@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
-import { requireTroopLeader, idParam } from '../../../../utils/guard'
+import { requireLeader, idParam } from '../../../../utils/guard'
+import { canManageForm } from '../../../../utils/forms'
 import { logAccess } from '../../../../utils/forms'
 import { unseal } from '../../../../utils/seal'
 import { normalizeSpec } from '../../../../../utils/formSpec'
@@ -9,12 +10,13 @@ import { filesOfResponse } from '../../../../utils/formFiles'
 /** One answer in full, with the questions as they were when it was sent.
     Opening it marks it read, and is recorded. */
 export default defineEventHandler(async (event) => {
-  const me = await requireTroopLeader(event)
+  const me = await requireLeader(event)
   const id = idParam(event)
   const db = await useDb()
   const r = (await db.select().from(s.formResponses).where(eq(s.formResponses.id, id)).limit(1))[0]
   if (!r) throw createError({ statusCode: 404, message: 'Not found' })
   const f = (await db.select().from(s.forms).where(eq(s.forms.id, r.formId)).limit(1))[0]
+  if (!f || !(await canManageForm(me, f))) throw createError({ statusCode: 404, message: 'Not found' })
   if (!r.isRead) await db.update(s.formResponses).set({ isRead: true }).where(eq(s.formResponses.id, id))
   await logAccess(r.formId, me.id, 'view', id)
   // newer and older neighbours, to step through them without going back

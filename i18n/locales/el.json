@@ -1222,5 +1222,22 @@
   "rw_bronzePatch": "Χάλκινο σήμα παρουσίας",
   "rw_silverPatch": "Ασημένιο σήμα παρουσίας",
   "rw_honourCord": "Κορδόνι τιμής",
-  "rw_sunrise": "Ανατολή στο βουνό"
+  "rw_sunrise": "Ανατολή στο βουνό",
+  "formsLeadersOnly": "Τις φόρμες και τις απαντήσεις τους τις βλέπουν μόνο οι Βαθμοφόροι του τομέα τους και οι διαχειριστές.",
+  "formFor": "Τομέας",
+  "formWholeTroop": "Όλο το Σύστημα",
+  "formSentForApproval": "Στάλθηκε για έγκριση στον Αρχηγό του τομέα.",
+  "formToApprove": "✅ Για έγκριση",
+  "formAwaiting": "Αναμονή",
+  "formAwaitingLong": "Περιμένει έγκριση από τον Αρχηγό του τομέα.",
+  "formApprove": "Έγκριση",
+  "formApproved": "Η φόρμα εγκρίθηκε",
+  "formOpenAfterApproval": "Θα μπορεί να ανοίξει μόλις εγκριθεί.",
+  "formSendParents": "Στείλε στους γονείς",
+  "formSendParentsNote": "Οι γονείς των τομέων που διαλέγετε παίρνουν ειδοποίηση στην εφαρμογή, που ανοίγει τη φόρμα.",
+  "formSendParentsClosed": "Ανοίξτε πρώτα τη φόρμα για να τη στείλετε.",
+  "formSendParentsGo": "Αποστολή στους γονείς",
+  "formSendParentsQ": "Να σταλεί η φόρμα στους γονείς: {list};",
+  "formSentParents": "Στάλθηκε σε {n} γονείς",
+  "formFillNow": "Συμπλήρωσε τη φόρμα"
 }

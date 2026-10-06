@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
-import { requireTroopLeader, idParam } from '../../../../utils/guard'
-import { formById, logAccess, specOf } from '../../../../utils/forms'
+import { idParam } from '../../../../utils/guard'
+import { formForLeader, logAccess, specOf } from '../../../../utils/forms'
 import { unseal } from '../../../../utils/seal'
 import { answerText, repeatGroups, copiesOf, type FieldType, type RepeatGroup } from '../../../../../utils/formSpec'
 import { saveFormFile } from '../../../../utils/formFiles'
@@ -15,9 +15,8 @@ import { xlsx } from '../../../../utils/xlsx'
     answers (the parent's) on each of them. The file is kept, encrypted, with
     the form's other files (in the bucket), and downloaded from there. */
 export default defineEventHandler(async (event) => {
-  const me = await requireTroopLeader(event)
   const id = idParam(event)
-  const f = await formById(id)
+  const { me, f } = await formForLeader(event, id)
   const db = await useDb()
   const rows = (await db.select().from(s.formResponses).where(eq(s.formResponses.formId, id)))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))

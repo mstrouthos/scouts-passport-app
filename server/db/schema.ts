@@ -689,6 +689,12 @@ export const forms = pgTable('forms', {
   thanksEl: text('thanks_el'),
   // the heading of the screen after sending; the app's own when empty
   thanksTitleEl: text('thanks_title_el'),
+  // the sector it belongs to (null: the whole troop, the administrators');
+  // one made by an Υπαρχηγός waits for an Αρχηγός to approve it before it opens
+  sectionId: integer('section_id'),
+  pendingApproval: boolean('pending_approval').notNull().default(false),
+  approvedBy: integer('approved_by'),
+  approvedAt: text('approved_at'),
   spec: text('spec').notNull().default('{}'),
   isOpen: boolean('is_open').notNull().default(false),
   closesAt: text('closes_at'),

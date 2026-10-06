@@ -1,12 +1,15 @@
 <script setup lang="ts">
-/* Φόρμες — forms the administrators build and anyone with the link fills in,
-   on forms.scouts30.org. Administrators only: what comes back is families'
-   data. */
+/* Φόρμες — forms the Βαθμοφόροι build and anyone with the link fills in,
+   on forms.scouts30.org. Each leader sees their own sectors' forms (the
+   administrators all of them): what comes back is families' data. One made
+   by an Υπαρχηγός waits for the Αρχηγός's approval before it can open. */
 const { t, locale } = useI18n()
 const me = useMe()
 const { show } = useToast()
-if (me.value && me.value.role !== 'troop_leader') navigateTo('/admin/more', { replace: true })
-const { data: forms, refresh } = await useFetch<any[]>('/api/admin/forms')
+const { data: list, refresh } = await useFetch<any>('/api/admin/forms')
+const forms = computed<any[]>(() => list.value?.forms || [])
+const sectionId = ref<number | ''>('')
+watchEffect(() => { if (list.value && !list.value.allSections && sectionId.value === '' && list.value.sections.length) sectionId.value = list.value.sections[0].id })
 
 const creating = ref(false)
 const title = ref('')
@@ -34,7 +37,8 @@ async function create() {
   if (!title.value.trim() || busy.value) return
   busy.value = true
   try {
-    const r = await $fetch<any>('/api/admin/forms', { method: 'POST', body: { titleEl: title.value, fromTemplate: fromTemplate.value || undefined } })
+    const r = await $fetch<any>('/api/admin/forms', { method: 'POST', body: { titleEl: title.value, fromTemplate: fromTemplate.value || undefined, sectionId: sectionId.value || null } })
+    if (r.pendingApproval) show('⏳ ' + t('formSentForApproval'))
     await navigateTo(`/admin/forms/${r.id}`)
   } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
 }
@@ -48,15 +52,16 @@ onMounted(refresh)
       <NuxtLink v-for="f in forms" :key="f.id" :to="`/admin/forms/${f.id}`" class="it">
         <div style="flex:1;min-width:0">
           <b>{{ f.titleEl }}</b>
-          <span>forms.scouts30.org/{{ f.slug }} · {{ fmtDate(f.createdAt, locale) }}</span>
+          <span>{{ f.section || t('formWholeTroop') }} · forms.scouts30.org/{{ f.slug }} · {{ fmtDate(f.createdAt, locale) }}</span>
         </div>
         <span v-if="f.unread" class="pill live">{{ f.unread }} {{ t('formNew') }}</span>
-        <span class="pill" :class="f.accepting ? 'ok' : 'draft'">{{ f.accepting ? t('formOpen') : t('formClosedShort') }}</span>
+        <span v-if="f.pendingApproval" class="pill live">{{ f.canApprove ? t('formToApprove') : '⏳ ' + t('formAwaiting') }}</span>
+        <span v-else class="pill" :class="f.accepting ? 'ok' : 'draft'">{{ f.accepting ? t('formOpen') : t('formClosedShort') }}</span>
         <span class="tiny muted" style="flex:none">{{ f.responses }}</span>
         <span class="chev">›</span>
       </NuxtLink>
     </div>
-    <div class="tiny muted">🔒 {{ t('formsAdminOnly') }}</div>
+    <div class="tiny muted">🔒 {{ t('formsLeadersOnly') }}</div>
 
     <button class="fab" :aria-label="t('formNewForm')" @click="openCreate">+</button>
     <Teleport to="body">
@@ -80,6 +85,13 @@ onMounted(refresh)
           <div>
             <label class="lab">{{ t('formTitle') }}</label>
             <input v-model="title" class="in" :placeholder="t('formTitlePh')" @keydown.enter="create">
+          </div>
+          <div v-if="list?.allSections || (list?.sections?.length || 0) > 1">
+            <label class="lab">{{ t('formFor') }}</label>
+            <select v-model="sectionId" class="in">
+              <option v-if="list?.allSections" value="">{{ t('formWholeTroop') }}</option>
+              <option v-for="s in list?.sections" :key="s.id" :value="s.id">{{ s.nameEl }}</option>
+            </select>
           </div>
           <button class="btn" :disabled="!title.trim() || busy" @click="create">{{ t('formCreate') }}</button>
           <button class="btn ghost" @click="creating = false">{{ t('close') }}</button>

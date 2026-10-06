@@ -39,7 +39,7 @@ const seesBar = computed(() => me.value?.role === 'troop_leader'
     <NuxtLink v-if="me?.can?.parents !== false" to="/admin/parents" class="srow">
       <div class="ico">👨‍👩‍👧</div><div class="txt"><b>{{ t('parents') }}</b><span>{{ t('parentsSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>
-    <NuxtLink v-if="me?.role === 'troop_leader'" to="/admin/forms" class="srow">
+    <NuxtLink to="/admin/forms" class="srow">
       <div class="ico">📋</div><div class="txt"><b>{{ t('forms') }}</b><span>{{ t('formsSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>
     <NuxtLink v-if="me?.role === 'troop_leader'" to="/admin/launch" class="srow">

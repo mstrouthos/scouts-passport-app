@@ -1222,5 +1222,22 @@
   "rw_bronzePatch": "Bronze Attendance Patch",
   "rw_silverPatch": "Silver Attendance Patch",
   "rw_honourCord": "Honour Cord",
-  "rw_sunrise": "Mountain Sunrise"
+  "rw_sunrise": "Mountain Sunrise",
+  "formsLeadersOnly": "Forms and their answers are seen only by their sector's leaders and the administrators.",
+  "formFor": "Sector",
+  "formWholeTroop": "Whole troop",
+  "formSentForApproval": "Sent to the sector's leader for approval.",
+  "formToApprove": "✅ To approve",
+  "formAwaiting": "Waiting",
+  "formAwaitingLong": "Waiting for the sector leader's approval.",
+  "formApprove": "Approve",
+  "formApproved": "Form approved",
+  "formOpenAfterApproval": "It can be opened once approved.",
+  "formSendParents": "Send to parents",
+  "formSendParentsNote": "The parents of the sectors you pick get a notification in the app that opens the form.",
+  "formSendParentsClosed": "Open the form first to send it.",
+  "formSendParentsGo": "Send to parents",
+  "formSendParentsQ": "Send the form to the parents of: {list}?",
+  "formSentParents": "Sent to {n} parents",
+  "formFillNow": "Fill in the form"
 }

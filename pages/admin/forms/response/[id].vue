@@ -8,7 +8,6 @@ const { t, locale } = useI18n()
 const me = useMe()
 const { show } = useToast()
 const route = useRoute()
-if (me.value && me.value.role !== 'troop_leader') navigateTo('/admin/more', { replace: true })
 const id = computed(() => Number(route.params.id))
 const { data: r } = await useFetch<any>(() => `/api/admin/forms/responses/${id.value}`)
 const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}`

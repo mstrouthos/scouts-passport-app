@@ -8,12 +8,39 @@ const me = useMe()
 const { show } = useToast()
 const route = useRoute()
 const id = Number(route.params.id)
-if (me.value && me.value.role !== 'troop_leader') navigateTo('/admin/more', { replace: true })
 
 const tab = ref<'build' | 'settings' | 'responses'>(route.query.tab === 'responses' ? 'responses' : 'build')
 watch(tab, v => navigateTo({ query: { ...route.query, tab: v } }, { replace: true }))
 
 const { data: form, refresh } = await useFetch<any>(`/api/admin/forms/${id}`)
+
+/* approval: an Υπαρχηγός's form waits for the sector's Αρχηγός */
+async function approve() {
+  try {
+    await $fetch(`/api/admin/forms/${id}/approve`, { method: 'POST' })
+    show('✅ ' + t('formApproved'))
+    await refresh()
+  } catch (e: any) { show(errMsg(e)) }
+}
+
+/* sending it to families in the app: the parents of the sectors picked */
+const parentSecs = ref<number[]>([])
+watchEffect(() => {
+  if (form.value && !parentSecs.value.length)
+    parentSecs.value = form.value.sectionId ? [form.value.sectionId] : form.value.sections.map((x: any) => x.id)
+})
+const toggleSec = (sid: number) => { parentSecs.value = parentSecs.value.includes(sid) ? parentSecs.value.filter(x => x !== sid) : [...parentSecs.value, sid] }
+const sendingParents = ref(false)
+async function sendToParents() {
+  if (!parentSecs.value.length || sendingParents.value) return
+  const names = form.value.sections.filter((x: any) => parentSecs.value.includes(x.id)).map((x: any) => x.nameEl).join(', ')
+  if (!confirm(t('formSendParentsQ', { list: names }))) return
+  sendingParents.value = true
+  try {
+    const r = await $fetch<any>(`/api/admin/forms/${id}/notify-parents`, { method: 'POST', body: { sectionIds: parentSecs.value } })
+    show('📣 ' + t('formSentParents', { n: r.parents }))
+  } catch (e: any) { show(errMsg(e)) } finally { sendingParents.value = false }
+}
 const spec = ref<FormSpec>({ modules: [], ticks: [], signature: { enabled: false, required: true, label: '' } })
 const settings = reactive({ titleEl: '', slug: '', introEl: '', thanksEl: '', thanksTitleEl: '', isOpen: false, closesAt: '' })
 const open = ref<string | null>(null)    // the question being edited
@@ -224,6 +251,13 @@ async function saveTemplate() {
   } catch (e: any) { show(errMsg(e)) } finally { reuseBusy.value = false }
 }
 
+async function moveSection(v: string) {
+  try {
+    await $fetch(`/api/admin/forms/${id}`, { method: 'PATCH', body: { sectionId: v ? Number(v) : null } })
+    await refresh()
+  } catch (e: any) { show(errMsg(e)); await refresh() }
+}
+
 async function removeForm() {
   if (!confirm(t('formDeleteQ'))) return
   await $fetch(`/api/admin/forms/${id}`, { method: 'DELETE' })
@@ -256,6 +290,11 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
       <button :class="{ on: tab === 'build' }" @click="tab = 'build'">🧩 {{ t('formTabBuild') }}</button>
       <button :class="{ on: tab === 'settings' }" @click="tab = 'settings'">⚙️ {{ t('formTabSettings') }}</button>
       <button :class="{ on: tab === 'responses' }" @click="tab = 'responses'">📥 {{ t('formTabResponses') }}</button>
+    </div>
+    <!-- an Υπαρχηγός's form: waiting for the Αρχηγός, who may approve it here -->
+    <div v-if="form?.pendingApproval" class="approval">
+      <span>⏳ <b>{{ t('formAwaitingLong') }}</b></span>
+      <button v-if="form.canApprove" class="btn" @click="approve">✅ {{ t('formApprove') }}</button>
     </div>
 
     <!-- ===== building ===== -->
@@ -412,7 +451,8 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
         </div>
       </div>
       <div class="card mod">
-        <label class="tog"><input v-model="settings.isOpen" type="checkbox"> <b>{{ t('formAccepting') }}</b></label>
+        <label class="tog"><input v-model="settings.isOpen" type="checkbox" :disabled="form?.pendingApproval"> <b>{{ t('formAccepting') }}</b></label>
+        <div v-if="form?.pendingApproval" class="tiny muted">⏳ {{ t('formOpenAfterApproval') }}</div>
         <div>
           <label class="lab">{{ t('formClosesAt') }}</label>
           <input v-model="settings.closesAt" type="datetime-local" class="in">
@@ -424,6 +464,23 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
         <div class="tiny muted">{{ t('formReuseNote') }}</div>
         <button class="btn ghost" :disabled="reuseBusy" @click="copyForm">⧉ {{ t('formCopyToNew') }}</button>
         <button class="btn ghost" :disabled="reuseBusy" @click="saveTemplate">⭐ {{ t('formSaveTemplate') }}</button>
+      </div>
+      <!-- to the families, in the app: a notification that opens the form -->
+      <div class="card mod">
+        <div class="sec-title" style="margin:0">📣 {{ t('formSendParents') }}</div>
+        <div class="tiny muted">{{ form?.accepting ? t('formSendParentsNote') : t('formSendParentsClosed') }}</div>
+        <div class="chips">
+          <button v-for="s in form?.sections" :key="s.id" type="button" class="chip" :class="{ on: parentSecs.includes(s.id) }" @click="toggleSec(s.id)">{{ s.nameEl }}</button>
+        </div>
+        <button class="btn" :disabled="!form?.accepting || !parentSecs.length || sendingParents || dirty" @click="sendToParents">📣 {{ t('formSendParentsGo') }}</button>
+        <div v-if="dirty" class="tiny muted">{{ t('formSaveFirst') }}</div>
+      </div>
+      <div class="card mod">
+        <label class="lab">{{ t('formFor') }}</label>
+        <select class="in" :value="form?.sectionId ?? ''" @change="moveSection(($event.target as HTMLSelectElement).value)">
+          <option v-if="form?.allSections" value="">{{ t('formWholeTroop') }}</option>
+          <option v-for="s in form?.sections" :key="s.id" :value="s.id">{{ s.nameEl }}</option>
+        </select>
       </div>
       <button class="btn danger" @click="removeForm">🗑 {{ t('formDelete') }}</button>
     </template>
@@ -510,4 +567,6 @@ select.in{appearance:auto}
 .donePrev p{margin:0; font-size:13px; color:var(--muted); white-space:pre-line}
 .warn{color:#8A6614; font-weight:600}
 .gapprev{margin-top:8px; padding:10px 12px; border:2px dashed var(--line, #DCE5EF); border-radius:12px; background:#fff}
+.approval{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; background:#FFF7E3; border:2px solid #F6DDAF; border-radius:16px; padding:12px 14px; font-size:13.5px}
+.approval .btn{width:auto; padding:10px 18px; min-height:0}
 </style>

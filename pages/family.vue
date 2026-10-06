@@ -291,6 +291,8 @@ async function enableNotifs() {
                    :style="expanded === n.id ? 'white-space:normal' : 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis'">
                   {{ n.body }}
                 </p>
+                <!-- a form sent to the family opens from here -->
+                <a v-if="n.kind === 'formInvite'" :href="`/f/${n.refId}`" class="btn" style="margin-top:8px;text-decoration:none;font-size:13px" @click.stop>📋 {{ t('formFillNow') }}</a>
               </div>
             </button>
           </template>

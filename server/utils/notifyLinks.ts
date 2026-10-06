@@ -4,8 +4,8 @@
    each other, and importing this from either would close the cycle. */
 export function linkForNotification(kind: string, refId: number | null, who: 'member' | 'parent' = 'member'): string | null {
   if (refId == null) return null
-  // a family's notices all open on their own page
-  if (who === 'parent') return '/family'
+  // a family's notices open on their own page — a form sent to them, the form
+  if (who === 'parent') return kind === 'formInvite' ? `/f/${refId}` : '/family'
   if (kind === 'badge') return `/app/badges?badge=${refId}`
   if (kind === 'requirement') return `/app/requirements?req=${refId}`
   // the Κοινότητα's booklet is a separate programme with its own numbering
@@ -25,6 +25,7 @@ export function linkForNotification(kind: string, refId: number | null, who: 'me
   // a collection item earned with a run of meetings
   if (kind === 'reward') return '/app/avatar?tab=rewards'
   if (kind === 'missionSubmitted') return '/admin/missions'
+  if (kind === 'formApproval' || kind === 'formApproved') return `/admin/forms/${refId}`
   if (kind === 'formResponse') return `/admin/forms/response/${refId}`
   return null
 }
