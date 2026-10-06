@@ -1122,5 +1122,19 @@
   "emailTestSent": "✅ Sent to {to} — check the spam folder too.",
   "emailTest_address": "Type a valid email address.",
   "emailTest_setup": "⚠️ Email is not set up on the server (NUXT_RESEND_API_KEY and NUXT_EMAIL_FROM_ADDRESS).",
-  "emailTest_failed": "❌ Not sent. The details went to Discord."
+  "emailTest_failed": "❌ Not sent. The details went to Discord.",
+  "formReuse": "Reuse",
+  "formReuseNote": "The form's questions, declarations, signature and messages — never the answers. The new form starts closed.",
+  "formCopyToNew": "Copy to a new form",
+  "formSaveTemplate": "Save as template",
+  "formCopyTitleQ": "Title of the new form:",
+  "formCopySuffix": "copy",
+  "formCopied": "Form copied — change whatever differs.",
+  "formTemplateNameQ": "Template name:",
+  "formTemplateSaved": "Saved as a template — find it under + New form.",
+  "formSaveFirst": "Save your changes first.",
+  "formStartFrom": "Start from",
+  "formBlank": "Blank form",
+  "formTemplateSize": "{m} sections · {q} questions",
+  "formTemplateDeleteQ": "Delete the template “{name}”? Forms made from it don't change."
 }

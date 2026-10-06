@@ -696,6 +696,19 @@ export const forms = pgTable('forms', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at')
 })
+/* A form's design kept to start new ones from: its questions and its
+   messages, never anything anyone answered. */
+export const formTemplates = pgTable('form_templates', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  introEl: text('intro_el'),
+  thanksEl: text('thanks_el'),
+  thanksTitleEl: text('thanks_title_el'),
+  spec: text('spec').notNull(),
+  createdBy: integer('created_by'),
+  createdAt: text('created_at').notNull()
+})
+
 export const formResponses = pgTable('form_responses', {
   id: serial('id').primaryKey(),
   formId: integer('form_id').notNull().references(() => forms.id),

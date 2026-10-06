@@ -199,6 +199,31 @@ async function copyLink() {
 }
 const previewHref = computed(() => `/forms/${form.value?.slug}?preview=1`)
 
+/* reuse: the whole form copied to a new one, to change what differs; or its
+   design kept as a template for new forms. Both from what is saved. */
+const reuseBusy = ref(false)
+async function copyForm() {
+  if (dirty.value) { show(t('formSaveFirst')); return }
+  const title = prompt(t('formCopyTitleQ'), `${settings.titleEl} (${t('formCopySuffix')})`)
+  if (!title?.trim()) return
+  reuseBusy.value = true
+  try {
+    const r = await $fetch<any>('/api/admin/forms', { method: 'POST', body: { titleEl: title, fromForm: id } })
+    show('⧉ ' + t('formCopied'))
+    await navigateTo(`/admin/forms/${r.id}`)
+  } catch (e: any) { show(errMsg(e)) } finally { reuseBusy.value = false }
+}
+async function saveTemplate() {
+  if (dirty.value) { show(t('formSaveFirst')); return }
+  const name = prompt(t('formTemplateNameQ'), settings.titleEl)
+  if (!name?.trim()) return
+  reuseBusy.value = true
+  try {
+    await $fetch('/api/admin/form-templates', { method: 'POST', body: { formId: id, name } })
+    show('⭐ ' + t('formTemplateSaved'))
+  } catch (e: any) { show(errMsg(e)) } finally { reuseBusy.value = false }
+}
+
 async function removeForm() {
   if (!confirm(t('formDeleteQ'))) return
   await $fetch(`/api/admin/forms/${id}`, { method: 'DELETE' })
@@ -393,6 +418,12 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
           <input v-model="settings.closesAt" type="datetime-local" class="in">
           <div class="tiny muted">{{ t('formClosesAtNote') }}</div>
         </div>
+      </div>
+      <div class="card mod">
+        <div class="sec-title" style="margin:0">♻️ {{ t('formReuse') }}</div>
+        <div class="tiny muted">{{ t('formReuseNote') }}</div>
+        <button class="btn ghost" :disabled="reuseBusy" @click="copyForm">⧉ {{ t('formCopyToNew') }}</button>
+        <button class="btn ghost" :disabled="reuseBusy" @click="saveTemplate">⭐ {{ t('formSaveTemplate') }}</button>
       </div>
       <button class="btn danger" @click="removeForm">🗑 {{ t('formDelete') }}</button>
     </template>

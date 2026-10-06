@@ -460,6 +460,16 @@ CREATE TABLE IF NOT EXISTS forms (
   created_at TEXT NOT NULL,
   updated_at TEXT
 );
+CREATE TABLE IF NOT EXISTS form_templates (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  intro_el TEXT,
+  thanks_el TEXT,
+  thanks_title_el TEXT,
+  spec TEXT NOT NULL,
+  created_by INTEGER,
+  created_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS form_responses (
   id SERIAL PRIMARY KEY,
   form_id INTEGER NOT NULL REFERENCES forms(id),
