@@ -17,6 +17,43 @@ const editingId = ref<number | null>(null)
 let editingOriginal: Opt[] = []
 const openResults = ref<number | null>(null)
 
+/* who has seen which poll, for the administrators: a poll counts as seen
+   once its card has been in view for a moment; one opened from its
+   notification (?poll=12&n=1) is brought into view and counted as such */
+const me = useMe()
+const route = useRoute()
+const router = useRouter()
+const isAdmin = computed(() => me.value?.role === 'troop_leader')
+const focus = ref<number | null>(Number(route.query.poll) || null)
+const counted = new Set<number>()
+let io: IntersectionObserver | null = null
+const timers = new Map<number, ReturnType<typeof setTimeout>>()
+function watchCards() {
+  if (!io) return
+  io.disconnect()
+  document.querySelectorAll<HTMLElement>('.poll[data-id]').forEach(el => io!.observe(el))
+}
+onMounted(() => {
+  if (focus.value) {
+    counted.add(focus.value)
+    markViewed('poll', focus.value, !!route.query.n)
+    router.replace({ query: {} })
+    nextTick(() => document.querySelector(`.poll[data-id="${focus.value}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
+  }
+  if (!('IntersectionObserver' in window)) return
+  io = new IntersectionObserver(entries => {
+    for (const e of entries) {
+      const pid = Number((e.target as HTMLElement).dataset.id)
+      if (counted.has(pid)) continue
+      if (e.isIntersecting) timers.set(pid, setTimeout(() => { counted.add(pid); markViewed('poll', pid) }, 800))
+      else { clearTimeout(timers.get(pid)); timers.delete(pid) }
+    }
+  }, { threshold: 0.6 })
+  watchCards()
+})
+watch(data, () => nextTick(watchCards))
+onUnmounted(() => { io?.disconnect(); timers.forEach(clearTimeout) })
+
 const sectionName = (id: number | null) =>
   id == null ? t('wholeTroop') : (data.value?.sections || []).find((x: any) => x.id === id)?.nameEl ?? ''
 
@@ -103,7 +140,7 @@ const share = (o: any, poll: any) => poll.voterCount ? Math.round((o.count / pol
   <AppShell :title="t('polls')" :sub="t('pollsSub')" back="/admin/more">
     <div v-if="!data?.polls?.length" class="empty">{{ t('noPolls') }}</div>
 
-    <div v-for="p in data?.polls || []" :key="p.id" class="poll" :class="{ closed: p.isClosed }">
+    <div v-for="p in data?.polls || []" :key="p.id" class="poll" :class="{ closed: p.isClosed, focus: focus === p.id }" :data-id="p.id">
       <div class="phead">
         <div style="flex:1;min-width:0">
           <b>{{ p.questionEl }}</b>
@@ -117,7 +154,7 @@ const share = (o: any, poll: any) => poll.voterCount ? Math.round((o.count / pol
 
       <button v-for="o in p.options" :key="o.id" class="opt" :class="{ mine: p.myVotes.includes(o.id) }"
               :disabled="p.isClosed || busy" @click="vote(p, o.id)">
-        <span class="bar" :style="{ width: share(o, p) + '%' }" />
+        <span class="fill" :style="{ width: share(o, p) + '%' }" />
         <span class="lbl">{{ o.textEl }}</span>
         <span class="cnt">{{ o.count }}</span>
       </button>
@@ -132,6 +169,9 @@ const share = (o: any, poll: any) => poll.voterCount ? Math.round((o.count / pol
           <span>{{ o.voters.length ? o.voters.map((v: any) => name(v)).join(', ') : '—' }}</span>
         </div>
       </div>
+
+      <!-- the administrators: who saw it and did not vote -->
+      <SeenStats v-if="isAdmin" kind="poll" :id="p.id" />
 
       <div v-if="p.canManage" style="display:flex;gap:7px">
         <button class="chip" @click="openEdit(p)">✎ {{ t('edit') }}</button>
@@ -193,6 +233,7 @@ const share = (o: any, poll: any) => poll.voterCount ? Math.round((o.count / pol
 </template>
 
 <style scoped>
+.poll.focus{box-shadow:0 0 0 3px var(--accent), var(--shadow)}
 .poll{
   background:var(--card); border-radius:16px; box-shadow:var(--shadow);
   padding:14px; display:flex; flex-direction:column; gap:9px;
@@ -206,7 +247,7 @@ const share = (o: any, poll: any) => poll.voterCount ? Math.round((o.count / pol
   border:1.5px solid var(--line); border-radius:12px; padding:10px 12px;
   text-align:left; background:var(--card); width:100%;
 }
-.opt .bar{
+.opt .fill{
   position:absolute; inset:0 auto 0 0; background:var(--accent-soft);
   transition:width .35s ease;
 }

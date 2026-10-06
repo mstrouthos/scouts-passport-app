@@ -755,6 +755,20 @@ export const scoutRewards = pgTable('scout_rewards', {
   unlockedAt: text('unlocked_at').notNull()
 }, t => [uniqueIndex('scout_reward_uq').on(t.scoutId, t.rewardKey)])
 
+/* Who among the Βαθμοφόροι has opened a poll or an event, and whether they
+   came to it from its notification — for the administrators to see who saw
+   it and did not answer. Never shown to anyone else. */
+export const contentViews = pgTable('content_views', {
+  id: serial('id').primaryKey(),
+  kind: text('kind', { enum: ['poll', 'event'] }).notNull(),
+  refId: integer('ref_id').notNull(),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  firstAt: text('first_at').notNull(),
+  lastAt: text('last_at').notNull(),
+  // the first time they opened it from the notification (a push or the bell)
+  fromNotificationAt: text('from_notification_at')
+}, t => [uniqueIndex('content_views_kind_ref_id_scout_id_key').on(t.kind, t.refId, t.scoutId)])
+
 /* A 👏 from one member to another, for a win in their Ενωμοτία's feed — one
    per member per win. `eventKey` names the win, e.g. "badge:12:3". */
 export const scoutKudos = pgTable('scout_kudos', {

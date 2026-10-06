@@ -17,9 +17,10 @@ export function linkForNotification(kind: string, refId: number | null, who: 'me
   // a notice for families lives on their own page
   if (kind === 'parentPost') return '/family'
   // asking a Βαθμοφόρος whether they are coming opens the event itself
-  if (kind === 'poll') return '/admin/polls'
+  // (?n=1: it was opened from the notification — counted for the administrators)
+  if (kind === 'poll') return `/admin/polls?poll=${refId}&n=1`
   if (kind === 'infoApproval' || kind === 'infoPublished') return `/admin/infopages?open=${refId}`
-  if (kind === 'eventRsvp') return `/admin/events/${refId}`
+  if (kind === 'eventRsvp') return `/admin/events/${refId}?n=1`
   // a mission photo: checked (to the member), or waiting to be (to the leaders)
   if (kind === 'mission') return '/app/challenges?tab=missions'
   // a collection item earned with a run of meetings

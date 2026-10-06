@@ -20,6 +20,12 @@ const eventPatrols = computed(() => {
     sid != null ? p.sectionId === sid : (mine === null || mine.has(p.sectionId)))
 })
 const id = route.params.id
+// opened: counted for the administrators (?n=1 — from its notification)
+onMounted(() => {
+  markViewed('event', Number(id), !!route.query.n)
+  if (route.query.n) router.replace({ query: { ...route.query, n: undefined } })
+})
+const isAdmin = computed(() => me.value?.role === 'troop_leader')
 const { data, refresh } = await useFetch<any>(`/api/admin/events/${id}/review`)
 const tab = ref<'att' | 'uni' | 'pts'>('att')
 /* The register belongs to whoever can actually write in it, on the day.
@@ -234,6 +240,8 @@ const uniDefs = [
             <span class="rnames">{{ g.people.map((p: any) => name(p)).join(', ') }}</span>
           </div>
         </div>
+        <!-- the administrators: who saw it and did not answer -->
+        <SeenStats v-if="isAdmin" kind="event" :id="Number(id)" />
       </div>
     </template>
 

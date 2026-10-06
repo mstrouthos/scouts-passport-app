@@ -1324,5 +1324,16 @@
   "seasonHello_easter": "🕯️ Happy Easter!",
   "seasonHello_summer": "☀️ Happy summer!",
   "seasonToWin": "Win the “{item}” — it's only here now! Answer a quiz, come to a meeting or send a mission.",
-  "seasonWon": "The “{item}” is yours! Put it on your avatar ✨"
+  "seasonWon": "The “{item}” is yours! Put it on your avatar ✨",
+  "seenTitle": "Who saw it",
+  "seenSummary": "{seen} of {n} saw it",
+  "seenAnswered": "answered",
+  "seenNoAnswer": "saw, no answer",
+  "seenNever": "never opened",
+  "seenNoAnswerList": "Saw it but did not answer",
+  "seenNeverList": "Have not opened it yet",
+  "seenLegendPush": "from the notification",
+  "seenLegendPage": "from the page",
+  "seenLegendNoNote": "was not notified",
+  "seenAdminsOnly": "Only administrators see this."
 }

@@ -528,6 +528,16 @@ CREATE TABLE IF NOT EXISTS form_files (
   created_by INTEGER,
   created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS content_views (
+  id SERIAL PRIMARY KEY,
+  kind TEXT NOT NULL,
+  ref_id INTEGER NOT NULL,
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  first_at TEXT NOT NULL,
+  last_at TEXT NOT NULL,
+  from_notification_at TEXT,
+  UNIQUE (kind, ref_id, scout_id)
+);
 CREATE TABLE IF NOT EXISTS scout_kudos (
   id SERIAL PRIMARY KEY,
   from_id INTEGER NOT NULL REFERENCES scouts(id),

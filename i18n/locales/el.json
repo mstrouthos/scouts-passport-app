@@ -1324,5 +1324,16 @@
   "seasonHello_easter": "🕯️ Καλό Πάσχα!",
   "seasonHello_summer": "☀️ Καλό καλοκαίρι!",
   "seasonToWin": "Κέρδισε «{item}» — υπάρχει μόνο τώρα! Απάντησε σε ένα κουίζ, έλα σε μια συγκέντρωση ή στείλε μια αποστολή.",
-  "seasonWon": "Το «{item}» είναι δικό σου! Φόρεσέ το στον χαρακτήρα σου ✨"
+  "seasonWon": "Το «{item}» είναι δικό σου! Φόρεσέ το στον χαρακτήρα σου ✨",
+  "seenTitle": "Ποιος το είδε",
+  "seenSummary": "το είδαν {seen} από {n}",
+  "seenAnswered": "απάντησαν",
+  "seenNoAnswer": "είδαν, δεν απάντησαν",
+  "seenNever": "δεν το άνοιξαν",
+  "seenNoAnswerList": "Το είδαν αλλά δεν απάντησαν",
+  "seenNeverList": "Δεν το άνοιξαν ακόμη",
+  "seenLegendPush": "από την ειδοποίηση",
+  "seenLegendPage": "από τη σελίδα",
+  "seenLegendNoNote": "δεν έλαβε ειδοποίηση",
+  "seenAdminsOnly": "Αυτά τα βλέπουν μόνο οι διαχειριστές."
 }
