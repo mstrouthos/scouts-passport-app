@@ -1136,5 +1136,10 @@
   "formStartFrom": "Ξεκίνα από",
   "formBlank": "Κενή φόρμα",
   "formTemplateSize": "{m} ενότητες · {q} ερωτήσεις",
-  "formTemplateDeleteQ": "Διαγραφή του προτύπου «{name}»; Οι φόρμες που φτιάχτηκαν από αυτό δεν αλλάζουν."
+  "formTemplateDeleteQ": "Διαγραφή του προτύπου «{name}»; Οι φόρμες που φτιάχτηκαν από αυτό δεν αλλάζουν.",
+  "learnSeeBelow": "Δες τη σωστή απάντηση ↓",
+  "learnCheer": "Δεν πειράζει — έτσι μαθαίνουμε! 💪",
+  "learnRight": "Η σωστή απάντηση:",
+  "learnWhy": "Γιατί;",
+  "learnDidYouKnow": "Το ήξερες;"
 }

@@ -1136,5 +1136,10 @@
   "formStartFrom": "Start from",
   "formBlank": "Blank form",
   "formTemplateSize": "{m} sections · {q} questions",
-  "formTemplateDeleteQ": "Delete the template “{name}”? Forms made from it don't change."
+  "formTemplateDeleteQ": "Delete the template “{name}”? Forms made from it don't change.",
+  "learnSeeBelow": "See the right answer ↓",
+  "learnCheer": "Never mind — that's how we learn! 💪",
+  "learnRight": "The right answer:",
+  "learnWhy": "Why?",
+  "learnDidYouKnow": "Did you know?"
 }
