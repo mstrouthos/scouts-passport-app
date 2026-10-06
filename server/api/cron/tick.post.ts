@@ -8,7 +8,7 @@ import { nextOccurrence } from '../../utils/recur'
 import { purgeTrashedScouts } from '../../utils/deleteScout'
 import { READ_TTL_MS } from '../../utils/notifyRetention'
 import { cyprusTimeOnDayOf } from '../../utils/cyprusTime'
-import { localDay, bonusEarned } from '../../utils/streak'
+import { localDay, bonusEarned, currentStreak } from '../../utils/streak'
 import { deleteFormFiles } from '../../utils/formFiles'
 
 /** Hit by host cron every few minutes with the token:
@@ -74,6 +74,41 @@ export default defineEventHandler(async (event) => {
     }, trace)
     report(`challenge #${c.id}${c.isBonus ? ' (bonus)' : ''}: ${c.titleEl}`, trace)
     await db.update(s.challenges).set({ notifiedAt: t }).where(eq(s.challenges.id, c.id))
+  }
+
+  /* the streak, gently: at 19:00 Cyprus time, a member whose streak is still
+     alive (they answered yesterday) but who has not answered today, while
+     there is a question open for them, is told once. Never after 21:00 —
+     a late run does not wake anyone. One a day, by the day's number. */
+  const today = localDay(t)
+  const evening = cyprusTimeOnDayOf(t, 19), late = cyprusTimeOnDayOf(t, 21)
+  if (!isAfter(evening, t) && isAfter(late, t)) {
+    const open = (await db.select().from(s.challenges)).filter(c => c.isPublished && !c.forLeaders
+      && c.unlocksAt && isAtOrBefore(c.unlocksAt, t) && !(c.closesAt && isAtOrBefore(c.closesAt, t)))
+    const answeredBy = new Set(answered.map(a => `${a.challengeId}:${a.scoutId}`))
+    const dayRef = Number(today.replace(/-/g, ''))
+    const due: { id: number, streak: number }[] = []
+    for (const r of scouts.filter(x => x.role === 'scout')) {
+      const days = daysOf.get(r.id) || new Set<string>()
+      if (days.has(today)) continue
+      const streak = currentStreak(days, today)
+      if (!streak) continue
+      const mine = open.filter(c => !answeredBy.has(`${c.id}:${r.id}`)
+        && (!c.isBonus || bonusEarned(days, today))
+        && ((!c.sectionId && !c.patrolId)
+          || (c.patrolId != null ? r.patrolId === c.patrolId : sectionOfWith(r as any, patrols) === c.sectionId)))
+      if (mine.length) due.push({ id: r.id, streak })
+    }
+    // one message per streak length, so each reads its own number
+    for (const n of [...new Set(due.map(d => d.streak))]) {
+      const trace: PushTrace[] = []
+      notified += await sendPushTo(due.filter(d => d.streak === n).map(d => d.id), {
+        title: `🔥 ${n} ${n === 1 ? 'μέρα' : 'μέρες'} σερί!`,
+        body: 'Απάντησε τη σημερινή ερώτηση για να συνεχίσει το σερί σου.',
+        kind: 'streak_reminder', refId: dayRef
+      }, trace)
+      report(`streak reminder (${n} days)`, trace)
+    }
   }
 
   // event reminders due — members with accounts, plus parent subscriptions
