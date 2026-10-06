@@ -24,12 +24,32 @@ async function approve() {
 }
 
 /* sending it to families in the app: the parents of the sectors picked */
+/* only the sectors picked: a sector's form starts with its own picked, a
+   troop-wide one with none — every sector is one tap on "all" — and
+   emptying the choice leaves it empty (it never fills itself back in) */
 const parentSecs = ref<number[]>([])
-watchEffect(() => {
-  if (form.value && !parentSecs.value.length)
-    parentSecs.value = form.value.sectionId ? [form.value.sectionId] : form.value.sections.map((x: any) => x.id)
-})
+let secsSet = false
+watch(form, f => {
+  if (!f || secsSet) return
+  secsSet = true
+  parentSecs.value = f.sectionId ? [f.sectionId] : []
+}, { immediate: true })
 const toggleSec = (sid: number) => { parentSecs.value = parentSecs.value.includes(sid) ? parentSecs.value.filter(x => x !== sid) : [...parentSecs.value, sid] }
+const allSecs = computed(() => !!form.value?.sections?.length && form.value.sections.every((x: any) => parentSecs.value.includes(x.id)))
+const toggleAll = () => { parentSecs.value = allSecs.value ? [] : form.value.sections.map((x: any) => x.id) }
+/* where it has gone already; a sector sent to by mistake can be taken back */
+const sentTo = ref<any[]>([])
+async function loadSentTo() { try { sentTo.value = await $fetch<any[]>(`/api/admin/forms/${id}/sent-to`) } catch {} }
+onMounted(loadSentTo)
+async function unsend(sec: any) {
+  if (!confirm(t('formUnsendQ', { name: sec.nameEl }))) return
+  try {
+    const r = await $fetch<any>(`/api/admin/forms/${id}/unsend`, { method: 'POST', body: { sectionId: sec.id } })
+    show('↩️ ' + t('formUnsent', { n: r.parents }))
+    loadSentTo(); loadInvites()
+  } catch (e: any) { show(errMsg(e)) }
+}
+const chosenNames = computed(() => (form.value?.sections || []).filter((x: any) => parentSecs.value.includes(x.id)).map((x: any) => x.nameEl).join(', '))
 const sendingParents = ref(false)
 async function sendToParents() {
   if (!parentSecs.value.length || sendingParents.value) return
@@ -39,7 +59,7 @@ async function sendToParents() {
   try {
     const r = await $fetch<any>(`/api/admin/forms/${id}/notify-parents`, { method: 'POST', body: { sectionIds: parentSecs.value } })
     show('📣 ' + t('formSentParents', { n: r.parents }))
-    loadInvites()
+    loadInvites(); loadSentTo()
   } catch (e: any) { show(errMsg(e)) } finally { sendingParents.value = false }
 }
 const spec = ref<FormSpec>({ modules: [], ticks: [], signature: { enabled: false, required: true, label: '' } })
@@ -563,10 +583,18 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
         <div class="sec-title" style="margin:0">📣 {{ t('formSendParents') }}</div>
         <div class="tiny muted">{{ form?.accepting ? t('formSendParentsNote') : t('formSendParentsClosed') }}</div>
         <div class="chips">
+          <button v-if="(form?.sections?.length || 0) > 1" type="button" class="chip" :class="{ on: allSecs }" @click="toggleAll">{{ t('formAllSectors') }}</button>
           <button v-for="s in form?.sections" :key="s.id" type="button" class="chip" :class="{ on: parentSecs.includes(s.id) }" @click="toggleSec(s.id)">{{ s.nameEl }}</button>
         </div>
+        <div class="tiny" :class="parentSecs.length ? '' : 'muted'">{{ parentSecs.length ? t('formSendTo', { list: allSecs ? t('formAllSectors') : chosenNames }) : t('formPickSectors') }}</div>
         <button class="btn" :disabled="!form?.accepting || !parentSecs.length || sendingParents || dirty" @click="sendToParents">📣 {{ t('formSendParentsGo') }}</button>
         <div v-if="dirty" class="tiny muted">{{ t('formSaveFirst') }}</div>
+        <template v-if="sentTo.length">
+          <div class="tiny muted">{{ t('formSentToNow') }}</div>
+          <div class="chips">
+            <button v-for="sec in sentTo" :key="sec.id" type="button" class="chip" @click="unsend(sec)">{{ sec.nameEl }} · {{ sec.parents }} ✕</button>
+          </div>
+        </template>
       </div>
       <div class="card mod">
         <label class="lab">{{ t('formFor') }}</label>

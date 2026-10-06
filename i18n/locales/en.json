@@ -1335,5 +1335,11 @@
   "seenLegendPush": "from the notification",
   "seenLegendPage": "from the page",
   "seenLegendNoNote": "was not notified",
-  "seenAdminsOnly": "Only administrators see this."
+  "seenAdminsOnly": "Only administrators see this.",
+  "formAllSectors": "All sectors",
+  "formSendTo": "Goes only to the parents of: {list}",
+  "formPickSectors": "Pick whose sectors' parents it goes to.",
+  "formSentToNow": "Already sent to the parents of (tap ✕ to take it back from a sector):",
+  "formUnsendQ": "Take the form back from the parents of “{name}”? It leaves their list and their notifications. What they have already sent stays.",
+  "formUnsent": "Taken back from {n} parents"
 }
