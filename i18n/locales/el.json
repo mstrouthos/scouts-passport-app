@@ -1257,5 +1257,7 @@
   "formCalcAddRange": "Εύρος",
   "formCalcOtherwise": "Αλλιώς (προαιρετικό)",
   "formCalcOtherwisePh": "π.χ. Εκτός ορίων ηλικίας",
-  "formCalcWaiting": "Θα συμπληρωθεί αυτόματα"
+  "formCalcWaiting": "Θα συμπληρωθεί αυτόματα",
+  "quiz": "Κουίζ",
+  "missionAll": "Όλες οι αποστολές"
 }

@@ -21,10 +21,10 @@ export function linkForNotification(kind: string, refId: number | null, who: 'me
   if (kind === 'infoApproval' || kind === 'infoPublished') return `/admin/infopages?open=${refId}`
   if (kind === 'eventRsvp') return `/admin/events/${refId}`
   // a mission photo: checked (to the member), or waiting to be (to the leaders)
-  if (kind === 'mission') return '/app/missions'
+  if (kind === 'mission') return '/app/challenges?tab=missions'
   // a collection item earned with a run of meetings
   if (kind === 'reward') return '/app/avatar?tab=rewards'
-  if (kind === 'missionSubmitted') return '/admin/missions'
+  if (kind === 'missionSubmitted') return '/admin/challenges?tab=missions'
   if (kind === 'formApproval' || kind === 'formApproved') return `/admin/forms/${refId}`
   if (kind === 'formResponse') return `/admin/forms/response/${refId}`
   return null

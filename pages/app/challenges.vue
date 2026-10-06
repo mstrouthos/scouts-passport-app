@@ -5,10 +5,14 @@ const me = useMe()
 const lx = useLx()
 const { show } = useToast()
 const { data, refresh } = await useFetch<any>('/api/challenges')
-/* The quiz is the Ομάδα's. The Αγέλη's weekly challenges are a separate thing
-   and live on the family page — a typed URL should not cross the two. */
-const sectionGuard = computed(() => me.value?.section?.slug === 'omada')
-watchEffect(() => { if (me.value && !sectionGuard.value) navigateTo('/app') })
+/* Προκλήσεις: the quiz and the photo missions, side by side. The quiz is the
+   Ομάδα's alone; the missions are for every sector with member logins, so a
+   member without the quiz sees the missions only. */
+const route = useRoute()
+const quizOn = computed(() => me.value?.section?.slug === 'omada')
+const part = ref<'quiz' | 'missions'>(route.query.tab === 'missions' ? 'missions' : 'quiz')
+watchEffect(() => { if (me.value && !quizOn.value) part.value = 'missions' })
+watch(part, v => navigateTo({ query: { ...route.query, tab: v === 'missions' ? 'missions' : undefined } }, { replace: true }))
 
 const open = ref<any>(null)      // the question sheet
 const picked = ref<number | null>(null)
@@ -159,6 +163,12 @@ function optClass(c: any, o: any) {
 
 <template>
   <AppShell :title="t('challenges')">
+    <div v-if="quizOn" class="seg">
+      <button :class="{ on: part === 'quiz' }" @click="part = 'quiz'">🎯 {{ t('quiz') }}</button>
+      <button :class="{ on: part === 'missions' }" @click="part = 'missions'">📸 {{ t('missions') }}</button>
+    </div>
+    <MissionsMember v-if="part === 'missions'" />
+    <template v-else>
     <!-- streak header -->
     <div class="streak-card">
       <div class="flame">
@@ -195,6 +205,7 @@ function optClass(c: any, o: any) {
     <FxStreakCelebration v-if="streakShow && data" :streak="data.streak" :week="data.week" :bonus="data.bonusEarned"
                          @close="streakShow = false; rewardShow = earned.length > 0" />
     <FxRewardUnlocked v-if="rewardShow" :keys="earned" @close="rewardShow = false; earned = []" />
+    </template>
 
     <Teleport to="body">
       <div v-if="open" class="sheet-backdrop" @click.self="close">

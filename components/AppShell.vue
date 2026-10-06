@@ -79,19 +79,21 @@ const tabs = computed(() => isLeader.value
         ? [{ to: '/admin/challenges', icon: 'target', label: t('nav.challenges') }]
         : runsPack.value
           ? [{ to: '/admin/pack', icon: 'target', label: t('nav.challenges') }]
-          : []),
+          // no quiz to run, but the photo missions
+          : [{ to: '/admin/challenges?tab=missions', icon: 'target', label: t('nav.challenges') }]),
       { to: '/admin/more', icon: 'more', label: t('nav.more') }
     ]
   : [
       { to: '/app', icon: 'passport', label: t('nav.passport') },
       { to: '/app/calendar', icon: 'calendar', label: t('nav.calendar') },
-      ...(runsQuiz.value ? [{ to: '/app/challenges', icon: 'target', label: t('nav.challenges') }] : []),
+      // the quiz (the Ομάδα's) and the photo missions (everyone's)
+      { to: '/app/challenges', icon: 'target', label: t('nav.challenges') },
       { to: '/app/board', icon: 'trophy', label: t('nav.board') },
       { to: '/app/info', icon: 'infoI', label: t('nav.info') }
     ])
 const isOn = (to: string) => to === '/app' || to === '/admin'
   ? route.path === to
-  : route.path.startsWith(to)
+  : route.path.startsWith(to.split('?')[0])
 
 /* Per-section colour applies to everyone, not just leaders: Ομάδα Προσκόπων
    (default/troop-wide) = green, Κοινότητα Ανιχνευτών = purple, Αγέλη = amber,

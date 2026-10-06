@@ -72,7 +72,7 @@ function sub(e: any) {
       </div>
     </div>
 
-    <NuxtLink to="/app/missions" class="banner">
+    <NuxtLink to="/app/challenges?tab=missions" class="banner">
       <div class="ico">📸</div>
       <div><b>{{ t('missions') }}</b><span>{{ data?.missionsOpen ? t('missionsWaiting', { n: data.missionsOpen }) : t('missionsSub') }}</span></div>
       <span v-if="data?.missionsOpen" class="mcount">{{ data.missionsOpen }}</span>

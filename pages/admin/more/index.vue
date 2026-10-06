@@ -30,9 +30,6 @@ const seesBar = computed(() => me.value?.role === 'troop_leader'
     <NuxtLink to="/admin/infopages" class="srow">
       <div class="ico">ℹ️</div><div class="txt"><b>{{ t('infoAdmin') }}</b><span>{{ t('infoAdminSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>
-    <NuxtLink to="/admin/missions" class="srow">
-      <div class="ico">📸</div><div class="txt"><b>{{ t('missions') }}</b><span>{{ t('missionsAdminSub') }}</span></div><span class="chev">›</span>
-    </NuxtLink>
     <NuxtLink to="/admin/polls" class="srow">
       <div class="ico">🗳️</div><div class="txt"><b>{{ t('polls') }}</b><span>{{ t('pollsSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>

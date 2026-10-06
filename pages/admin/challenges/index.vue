@@ -14,7 +14,13 @@ const runsQuiz = computed(() => {
   const scopes = me.value.scopeSections
   return scopes == null || scopes.some((x: any) => x.slug === 'omada')
 })
-watchEffect(() => { if (me.value && !runsQuiz.value) navigateTo('/admin') })
+/* Προκλήσεις: the quiz and the photo missions, side by side; a leader of a
+   sector without the quiz sees the missions only */
+const route = useRoute()
+const part = ref<'quiz' | 'missions'>(route.query.tab === 'missions' ? 'missions' : 'quiz')
+watchEffect(() => { if (me.value && !runsQuiz.value) part.value = 'missions' })
+watch(part, v => navigateTo({ query: { ...route.query, tab: v === 'missions' ? 'missions' : undefined } }, { replace: true }))
+const waiting = ref(0)
 
 // ----- multi-select + bulk delete -----
 const selecting = ref(false)
@@ -122,6 +128,12 @@ function sub(c: any) {
 
 <template>
   <AppShell :title="isTroop ? t('challenges') : t('myChallenges')">
+    <div v-if="runsQuiz" class="seg">
+      <button :class="{ on: part === 'quiz' }" @click="part = 'quiz'">🎯 {{ t('quiz') }}</button>
+      <button :class="{ on: part === 'missions' }" @click="part = 'missions'">📸 {{ t('missions') }}<b v-if="waiting" class="wcount">{{ waiting }}</b></button>
+    </div>
+    <MissionsAdmin v-if="part === 'missions'" @count="waiting = $event" />
+    <template v-else>
     <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center">
       <!-- the quiz's league table, as the members see it -->
       <NuxtLink v-if="!selecting && secs?.length" to="/admin/board" class="chip" style="text-decoration:none">🏆 {{ t('board') }}</NuxtLink>
@@ -162,6 +174,7 @@ function sub(c: any) {
     <button class="import-link" @click="openImport">{{ t('importQuestions') }}</button>
 
     <NuxtLink to="/admin/challenges/new" class="fab" aria-label="new">+</NuxtLink>
+    </template>
 
     <Teleport to="body">
       <div v-if="importing" class="sheet-backdrop" @click.self="importing = false">
@@ -241,4 +254,5 @@ function sub(c: any) {
   padding:12px; font-size:10.5px; line-height:1.5; white-space:pre-wrap;
   word-break:break-word; max-height:280px; overflow:auto; margin:0;
 }
+.wcount{margin-left:6px; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:#E2582A; color:#fff; font-size:11px; display:inline-grid; place-items:center}
 </style>

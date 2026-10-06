@@ -1257,5 +1257,7 @@
   "formCalcAddRange": "Range",
   "formCalcOtherwise": "Otherwise (optional)",
   "formCalcOtherwisePh": "e.g. Outside the age range",
-  "formCalcWaiting": "Filled in automatically"
+  "formCalcWaiting": "Filled in automatically",
+  "quiz": "Quiz",
+  "missionAll": "All missions"
 }
