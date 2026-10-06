@@ -8,52 +8,54 @@
 export type SectorWords = {
   member: string; members: string; memberAcc: string; newMember: string
   unit: string; units: string; unitAcc: string; unitGen: string; winner: string
+  // whole phrases, so the article and adjective agree with the word's gender
+  newUnit: string; whichMember: string
 }
 
 const EL: Record<string, SectorWords> = {
   'omada': {
     member: 'Πρόσκοπος', members: 'Πρόσκοποι', memberAcc: 'πρόσκοπο', newMember: 'Νέος πρόσκοπος',
-    unit: 'Ενωμοτία', units: 'Ενωμοτίες', unitAcc: 'ενωμοτία', unitGen: 'ενωμοτίας', winner: 'Νικήτρια ενωμοτία'
+    unit: 'Ενωμοτία', units: 'Ενωμοτίες', unitAcc: 'ενωμοτία', unitGen: 'ενωμοτίας', winner: 'Νικήτρια ενωμοτία', newUnit: 'Νέα ενωμοτία', whichMember: 'Ποιος πρόσκοπος;'
   },
   'koinotita': {
     member: 'Ανιχνευτής', members: 'Ανιχνευτές', memberAcc: 'ανιχνευτή', newMember: 'Νέος ανιχνευτής',
-    unit: 'Όμιλος', units: 'Όμιλοι', unitAcc: 'όμιλο', unitGen: 'ομίλου', winner: 'Νικητής όμιλος'
+    unit: 'Όμιλος', units: 'Όμιλοι', unitAcc: 'όμιλο', unitGen: 'ομίλου', winner: 'Νικητής όμιλος', newUnit: 'Νέος όμιλος', whichMember: 'Ποιος ανιχνευτής;'
   },
   'ageli': {
     member: 'Λυκόπουλο', members: 'Λυκόπουλα', memberAcc: 'λυκόπουλο', newMember: 'Νέο λυκόπουλο',
-    unit: 'Εξάδα', units: 'Εξάδες', unitAcc: 'εξάδα', unitGen: 'εξάδας', winner: 'Νικήτρια εξάδα'
+    unit: 'Εξάδα', units: 'Εξάδες', unitAcc: 'εξάδα', unitGen: 'εξάδας', winner: 'Νικήτρια εξάδα', newUnit: 'Νέα εξάδα', whichMember: 'Ποιο λυκόπουλο;'
   },
   'mikri-ageli': {
     member: 'Μικρός Εξερευνητής', members: 'Μικροί Εξερευνητές', memberAcc: 'μικρό εξερευνητή', newMember: 'Νέος μικρός εξερευνητής',
-    unit: 'Εξάδα', units: 'Εξάδες', unitAcc: 'εξάδα', unitGen: 'εξάδας', winner: 'Νικήτρια εξάδα'
+    unit: 'Εξάδα', units: 'Εξάδες', unitAcc: 'εξάδα', unitGen: 'εξάδας', winner: 'Νικήτρια εξάδα', newUnit: 'Νέα εξάδα', whichMember: 'Ποιος μικρός εξερευνητής;'
   }
 }
 const EL_NEUTRAL: SectorWords = {
   member: 'Μέλος', members: 'Μέλη', memberAcc: 'μέλος', newMember: 'Νέο μέλος',
-  unit: 'Μονάδα', units: 'Μονάδες', unitAcc: 'μονάδα', unitGen: 'μονάδας', winner: 'Νικήτρια μονάδα'
+  unit: 'Μονάδα', units: 'Μονάδες', unitAcc: 'μονάδα', unitGen: 'μονάδας', winner: 'Νικήτρια μονάδα', newUnit: 'Νέα μονάδα', whichMember: 'Ποιο μέλος;'
 }
 
 const EN: Record<string, SectorWords> = {
   'omada': {
     member: 'Scout', members: 'Scouts', memberAcc: 'scout', newMember: 'New scout',
-    unit: 'Patrol', units: 'Patrols', unitAcc: 'patrol', unitGen: 'patrol', winner: 'Winning patrol'
+    unit: 'Patrol', units: 'Patrols', unitAcc: 'patrol', unitGen: 'patrol', winner: 'Winning patrol', newUnit: 'New patrol', whichMember: 'Which scout?'
   },
   'koinotita': {
     member: 'Venturer', members: 'Venturers', memberAcc: 'venturer', newMember: 'New venturer',
-    unit: 'Club', units: 'Clubs', unitAcc: 'club', unitGen: 'club', winner: 'Winning club'
+    unit: 'Club', units: 'Clubs', unitAcc: 'club', unitGen: 'club', winner: 'Winning club', newUnit: 'New club', whichMember: 'Which venturer?'
   },
   'ageli': {
     member: 'Cub', members: 'Cubs', memberAcc: 'cub', newMember: 'New cub',
-    unit: 'Six', units: 'Sixes', unitAcc: 'six', unitGen: 'six', winner: 'Winning six'
+    unit: 'Six', units: 'Sixes', unitAcc: 'six', unitGen: 'six', winner: 'Winning six', newUnit: 'New six', whichMember: 'Which cub?'
   },
   'mikri-ageli': {
     member: 'Little Explorer', members: 'Little Explorers', memberAcc: 'little explorer', newMember: 'New little explorer',
-    unit: 'Six', units: 'Sixes', unitAcc: 'six', unitGen: 'six', winner: 'Winning six'
+    unit: 'Six', units: 'Sixes', unitAcc: 'six', unitGen: 'six', winner: 'Winning six', newUnit: 'New six', whichMember: 'Which little explorer?'
   }
 }
 const EN_NEUTRAL: SectorWords = {
   member: 'Member', members: 'Members', memberAcc: 'member', newMember: 'New member',
-  unit: 'Unit', units: 'Units', unitAcc: 'unit', unitGen: 'unit', winner: 'Winning unit'
+  unit: 'Unit', units: 'Units', unitAcc: 'unit', unitGen: 'unit', winner: 'Winning unit', newUnit: 'New unit', whichMember: 'Which member?'
 }
 
 export function useSectorWords() {

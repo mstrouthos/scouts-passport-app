@@ -188,7 +188,7 @@ async function enableNotifs() {
     </header>
 
     <main class="content" style="padding-bottom:40px">
-      <div v-if="offline && me" class="note" style="background:var(--gold-soft)">📡 {{ t('offlineNote') }}</div>
+      <div v-if="offline && me" class="note" style="background:var(--gold-soft)">📡 {{ t('offlineNoteParent') }}</div>
       <!-- not signed in -->
       <template v-if="!me">
         <div class="note"><b>🔐 {{ t('parentSignIn') }}</b>{{ t('parentSignInHelp') }}</div>

@@ -328,7 +328,7 @@ async function deletePatrol() {
 
       <div v-if="editingPatrol" class="sheet-backdrop" @click.self="editingPatrol = null">
         <div class="sheet" style="display:flex;flex-direction:column;gap:12px">
-          <h3 style="margin:0;font-size:17px;text-align:center">{{ editingPatrol.id ? t('editUnit', { unit: wordsFor(slugOf(editingPatrol.sectionId)).unitGen }) : t('newUnit', { unit: wordsFor(slugOf(editingPatrol.sectionId)).unitAcc }) }}</h3>
+          <h3 style="margin:0;font-size:17px;text-align:center">{{ editingPatrol.id ? t('editUnit', { unit: wordsFor(slugOf(editingPatrol.sectionId)).unitGen }) : wordsFor(slugOf(editingPatrol.sectionId)).newUnit }}</h3>
           <div><label class="lab">{{ t('titleEl') }}</label><input v-model="editingPatrol.nameEl" class="in"></div>
           <div><label class="lab">{{ t('titleEn') }}</label><input v-model="editingPatrol.nameEn" class="in" :placeholder="t('enOptional')"></div>
           <div v-if="editingPatrol.id"><label class="lab">{{ t('icon') }}</label><input v-model="editingPatrol.emblem" class="in"></div>

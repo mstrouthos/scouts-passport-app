@@ -320,7 +320,7 @@ const uniDefs = [
                   @click="game.patrolId = p.id">{{ p.emblem }} {{ lx(p, 'name') }}</button>
         </div>
       </div>
-      <div v-else><label class="lab">{{ t('whichMember', { member: evWords.member.toLowerCase() }) }}</label>
+      <div v-else><label class="lab">{{ evWords.whichMember }}</label>
         <div class="chips">
           <button v-for="r in data.scouts" :key="r.id" class="chip" :class="{ on: game.scoutId === r.id }"
                   @click="game.scoutId = r.id">{{ name(r) }}</button>
