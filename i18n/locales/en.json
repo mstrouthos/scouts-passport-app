@@ -1141,5 +1141,12 @@
   "learnCheer": "Never mind — that's how we learn! 💪",
   "learnRight": "The right answer:",
   "learnWhy": "Why?",
-  "learnDidYouKnow": "Did you know?"
+  "learnDidYouKnow": "Did you know?",
+  "attendStreak": "{n} in a row present",
+  "attendRecord": "Record: {n} in a row",
+  "attendRecordNow": "Your record! Keep it up 🔥",
+  "attendRecent": "The last meetings",
+  "attend_present": "Present",
+  "attend_excused": "Excused",
+  "attend_absent": "Absent"
 }

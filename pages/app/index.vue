@@ -58,6 +58,20 @@ function sub(e: any) {
       </div>
     </div>
 
+    <!-- showing up, in a row: the streak, the record, the last few meetings -->
+    <div v-if="data?.attendance?.recent?.length" class="attend">
+      <div class="a-top">
+        <div class="a-ico">🏕️</div>
+        <div class="a-txt">
+          <b>{{ t('attendStreak', { n: data.attendance.current }) }}</b>
+          <span>{{ data.attendance.current && data.attendance.current >= data.attendance.best ? t('attendRecordNow') : t('attendRecord', { n: data.attendance.best }) }}</span>
+        </div>
+      </div>
+      <div class="a-row" :aria-label="t('attendRecent')">
+        <i v-for="(m, i) in data.attendance.recent" :key="i" :class="m" :title="t('attend_' + m)">{{ m === 'present' ? '✓' : m === 'excused' ? '–' : '✕' }}</i>
+      </div>
+    </div>
+
     <NuxtLink v-if="openChal" to="/app/challenges" class="banner">
       <div class="ico">🎯</div>
       <div><b>{{ t('newChallenge') }}</b><span>{{ lx(openChal) }} · {{ t('upToPts', { n: openChal.points }) }}</span></div>
@@ -123,4 +137,15 @@ function sub(e: any) {
 .stat.tappable{cursor:pointer; color:inherit; text-decoration:none}
 .stat.tappable b, .stat.tappable span{color:inherit; text-decoration:none}
 .stat.tappable:active{transform:translateY(1px)}
+.attend{background:#fff; border-radius:18px; padding:12px 14px; box-shadow:var(--shadow-sm, 0 2px 10px rgba(30,70,140,.08)); display:flex; flex-direction:column; gap:10px}
+.a-top{display:flex; align-items:center; gap:12px}
+.a-ico{width:40px; height:40px; border-radius:12px; background:#FFF3DC; display:grid; place-items:center; font-size:22px; flex:none}
+.a-txt{display:flex; flex-direction:column; min-width:0}
+.a-txt b{font-size:14px}
+.a-txt span{font-size:12px; color:var(--muted)}
+.a-row{display:flex; gap:6px}
+.a-row i{flex:1; max-width:34px; height:26px; border-radius:8px; display:grid; place-items:center; font-style:normal; font-size:13px; font-weight:800}
+.a-row i.present{background:#E2F5EA; color:#1F9D57}
+.a-row i.excused{background:#EEF2F6; color:#8A97A8}
+.a-row i.absent{background:#FCEBE7; color:#D8543C}
 </style>

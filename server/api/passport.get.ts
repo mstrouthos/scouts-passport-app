@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../db'
 import { requireScout, pointTotals, sectionOf, sectionOfWith } from '../utils/guard'
 import { BADGE_CATEGORIES } from '../db/passportData'
 import { isScoutTroop } from '../utils/programme'
+import { attendanceOf } from '../utils/attendanceStreak'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
@@ -32,6 +33,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     points: myPoints, rank, totalScouts: actives.length,
+    attendance: await attendanceOf(me.id),
     badges: badges.map(b => ({
       id: b.id, icon: b.iconEmoji, titleEl: b.titleEl, titleEn: b.titleEn,
       descriptionEl: b.descriptionEl, descriptionEn: b.descriptionEn,
