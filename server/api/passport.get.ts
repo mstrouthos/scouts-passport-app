@@ -4,6 +4,8 @@ import { requireScout, pointTotals, sectionOf, sectionOfWith } from '../utils/gu
 import { BADGE_CATEGORIES } from '../db/passportData'
 import { isScoutTroop } from '../utils/programme'
 import { attendanceOf } from '../utils/attendanceStreak'
+import { isOpen, isFor } from '../utils/missions'
+import { now } from '../utils/passcode'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
@@ -34,6 +36,13 @@ export default defineEventHandler(async (event) => {
   return {
     points: myPoints, rank, totalScouts: actives.length,
     attendance: await attendanceOf(me.id),
+    // photo missions open for them that they have not finished
+    missionsOpen: await (async () => {
+      const done = new Set((await db.select().from(s.missionSubmissions).where(eq(s.missionSubmissions.scoutId, me.id)))
+        .filter(x => x.status !== 'rejected').map(x => x.missionId))
+      const t = now()
+      return (await db.select().from(s.missions)).filter(m => isFor(m, mySection) && isOpen(m, t) && !done.has(m.id)).length
+    })(),
     badges: badges.map(b => ({
       id: b.id, icon: b.iconEmoji, titleEl: b.titleEl, titleEn: b.titleEn,
       descriptionEl: b.descriptionEl, descriptionEn: b.descriptionEn,

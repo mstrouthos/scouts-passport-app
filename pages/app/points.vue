@@ -7,6 +7,7 @@ const { data } = await useFetch<any>('/api/points')
 
 const SOURCES: Record<string, { emoji: string, key: string, tone: string }> = {
   challenge:  { emoji: '🎯', key: 'ptsFromChallenges', tone: '#7B4FA0' },
+  mission:    { emoji: '📸', key: 'ptsFromMissions',   tone: '#D9822B' },
   attendance: { emoji: '✋', key: 'ptsFromAttendance', tone: '#2E7D5B' },
   uniform:    { emoji: '👔', key: 'ptsFromUniform',    tone: '#4E8FD6' },
   game:       { emoji: '🏆', key: 'ptsFromGames',      tone: '#C99A18' },

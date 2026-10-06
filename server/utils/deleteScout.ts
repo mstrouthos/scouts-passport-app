@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { childIdsOfParent } from './parents'
 
@@ -10,11 +10,15 @@ import { childIdsOfParent } from './parents'
 export async function cascadeDeleteScout(id: number) {
   const db = (await useDb())
   await db.transaction(async tx => {
+    // their mission photos go with them
+    const photos = (await tx.select().from(s.missionSubmissions).where(eq(s.missionSubmissions.scoutId, id))).map(x => x.fileId)
+    await tx.delete(s.missionSubmissions).where(eq(s.missionSubmissions.scoutId, id))
+    if (photos.length) await tx.delete(s.files).where(inArray(s.files.id, photos))
     for (const t of [
       s.challengeAnswers, s.challengeReveals, s.eventReviews, s.eventRsvps,
       s.scoutAchievements, s.requirementAwards, s.ventureAwards, s.ventureLogs, s.ventureMilestones,
       s.pointAwards, s.pollVotes, s.pushSubscriptions, s.notifications, s.notificationLog,
-      s.leaderScopes, s.notifyGroupLeaders, s.notifyGroupMembers, s.packChallengeDone, s.parentChildren
+      s.leaderScopes, s.notifyGroupLeaders, s.notifyGroupMembers, s.packChallengeDone, s.parentChildren, s.scoutRewards
     ] as any[]) {
       await tx.delete(t).where(eq(t.scoutId, id))
     }

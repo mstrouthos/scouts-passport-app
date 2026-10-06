@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   const scored = new Set<string>()
 
   const KIND_EL: Record<string, string> = {
-    game: 'Παιχνίδι', attendance: 'Παρουσία', uniform: 'Στολή', manual: 'Απονομή'
+    game: 'Παιχνίδι', attendance: 'Παρουσία', uniform: 'Στολή', manual: 'Απονομή', mission: 'Αποστολή'
   }
   for (const w of await db.select().from(s.pointAwards)) {
     const mine = w.scoutId === me.id
@@ -66,7 +66,7 @@ export default defineEventHandler(async (event) => {
   const total = items.reduce((n, i) => n + i.points, 0)
 
   // a headline per source, so the shape of the total is visible at a glance
-  const buckets = ['challenge', 'attendance', 'uniform', 'game', 'patrol', 'manual']
+  const buckets = ['challenge', 'mission', 'attendance', 'uniform', 'game', 'patrol', 'manual']
   const summary = buckets.map(key => ({
     key,
     points: items.filter(i => (i.source === 'patrol' ? 'patrol' : i.source) === key)

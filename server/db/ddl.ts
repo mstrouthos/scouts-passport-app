@@ -460,6 +460,33 @@ CREATE TABLE IF NOT EXISTS forms (
   created_at TEXT NOT NULL,
   updated_at TEXT
 );
+CREATE TABLE IF NOT EXISTS missions (
+  id SERIAL PRIMARY KEY,
+  title_el TEXT NOT NULL,
+  description_el TEXT NOT NULL DEFAULT '',
+  emoji TEXT NOT NULL DEFAULT '📸',
+  points INTEGER NOT NULL DEFAULT 10,
+  section_id INTEGER REFERENCES sections(id),
+  opens_at TEXT NOT NULL,
+  closes_at TEXT,
+  is_published BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by INTEGER,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS mission_submissions (
+  id SERIAL PRIMARY KEY,
+  mission_id INTEGER NOT NULL REFERENCES missions(id),
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  file_id INTEGER NOT NULL REFERENCES files(id),
+  note TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  review_note TEXT,
+  reviewed_by INTEGER,
+  reviewed_at TEXT,
+  award_id INTEGER,
+  created_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS mission_submission_uq ON mission_submissions (mission_id, scout_id);
 CREATE TABLE IF NOT EXISTS scout_rewards (
   id SERIAL PRIMARY KEY,
   scout_id INTEGER NOT NULL REFERENCES scouts(id),

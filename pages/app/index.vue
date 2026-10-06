@@ -72,6 +72,13 @@ function sub(e: any) {
       </div>
     </div>
 
+    <NuxtLink to="/app/missions" class="banner">
+      <div class="ico">📸</div>
+      <div><b>{{ t('missions') }}</b><span>{{ data?.missionsOpen ? t('missionsWaiting', { n: data.missionsOpen }) : t('missionsSub') }}</span></div>
+      <span v-if="data?.missionsOpen" class="mcount">{{ data.missionsOpen }}</span>
+      <div class="go">›</div>
+    </NuxtLink>
+
     <NuxtLink v-if="openChal" to="/app/challenges" class="banner">
       <div class="ico">🎯</div>
       <div><b>{{ t('newChallenge') }}</b><span>{{ lx(openChal) }} · {{ t('upToPts', { n: openChal.points }) }}</span></div>
@@ -148,4 +155,6 @@ function sub(e: any) {
 .a-row i.present{background:#E2F5EA; color:#1F9D57}
 .a-row i.excused{background:#EEF2F6; color:#8A97A8}
 .a-row i.absent{background:#FCEBE7; color:#D8543C}
+.mcount{margin-left:auto; min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:#E2582A; color:#fff; font-size:12px; font-weight:800; display:grid; place-items:center}
+.mcount + .go{margin-left:6px}
 </style>

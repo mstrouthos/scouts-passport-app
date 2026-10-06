@@ -244,7 +244,7 @@ export const pointAwards = pgTable('point_awards', {
   scoutId: integer('scout_id').references(() => scouts.id),
   patrolId: integer('patrol_id').references(() => patrols.id),
   eventId: integer('event_id').references(() => events.id),
-  kind: text('kind', { enum: ['game', 'attendance', 'uniform', 'manual'] }).notNull(),
+  kind: text('kind', { enum: ['game', 'attendance', 'uniform', 'manual', 'mission'] }).notNull(),
   points: integer('points').notNull(),
   reasonEl: text('reason_el').notNull().default(''),
   reasonEn: text('reason_en'),
@@ -696,6 +696,40 @@ export const forms = pgTable('forms', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at')
 })
+/* Photo missions: something to go and do — tie a bowline, find three kinds
+   of tree — and a photo to show it, which a Βαθμοφόρος of the sector checks
+   before the points are given. For one sector, or for every sector with
+   member logins. */
+export const missions = pgTable('missions', {
+  id: serial('id').primaryKey(),
+  titleEl: text('title_el').notNull(),
+  descriptionEl: text('description_el').notNull().default(''),
+  emoji: text('emoji').notNull().default('📸'),
+  points: integer('points').notNull().default(10),
+  sectionId: integer('section_id').references(() => sections.id),
+  opensAt: text('opens_at').notNull(),
+  closesAt: text('closes_at'),
+  isPublished: boolean('is_published').notNull().default(true),
+  createdBy: integer('created_by'),
+  createdAt: text('created_at').notNull()
+})
+
+/** One member's photo for a mission: waiting, approved (with the points
+    given) or not approved (with why, and a new photo may be sent). */
+export const missionSubmissions = pgTable('mission_submissions', {
+  id: serial('id').primaryKey(),
+  missionId: integer('mission_id').notNull().references(() => missions.id),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  fileId: integer('file_id').notNull().references(() => files.id),
+  note: text('note'),
+  status: text('status', { enum: ['pending', 'approved', 'rejected'] }).notNull().default('pending'),
+  reviewNote: text('review_note'),
+  reviewedBy: integer('reviewed_by'),
+  reviewedAt: text('reviewed_at'),
+  awardId: integer('award_id'),
+  createdAt: text('created_at').notNull()
+}, t => [uniqueIndex('mission_submission_uq').on(t.missionId, t.scoutId)])
+
 /* The limited-edition avatar items a member has earned with their quiz
    streak (utils/avatar.ts STREAK_REWARDS), and when. Theirs for good. */
 export const scoutRewards = pgTable('scout_rewards', {
