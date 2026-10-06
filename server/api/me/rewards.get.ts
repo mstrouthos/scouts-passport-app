@@ -6,5 +6,5 @@ import { syncRewards } from '../../utils/rewards'
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
   const r = await syncRewards(me.id)
-  return { current: r.current, best: r.best, unlocked: r.unlocked }
+  return { current: r.current, best: r.best, attendCurrent: r.attendCurrent, attendBest: r.attendBest, unlocked: r.unlocked }
 })

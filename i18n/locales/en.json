@@ -1151,7 +1151,6 @@
   "attend_absent": "Absent",
   "avt_rewards": "Collection",
   "rwTitle": "Limited-edition collection",
-  "rwIntro": "Earned only with a quiz streak — once earned, yours for good. Your best streak: {n} days.",
   "rwLimited": "Limited edition",
   "rwWearing": "Wearing",
   "rwTapToWear": "Tap to wear",
@@ -1215,5 +1214,13 @@
   "camShoot": "Take the photo",
   "camFlip": "Other camera",
   "camRetake": "Retake",
-  "camUse": "Use it"
+  "camUse": "Use it",
+  "rwIntro2": "Earned only with a streak — once earned, yours for good.",
+  "rwTrack_quiz": "Quiz streak · your best: {n} days",
+  "rwTrack_attendance": "Attendance streak · your best: {n} in a row",
+  "rwNeedsMeetings": "{n} meetings in a row",
+  "rw_bronzePatch": "Bronze Attendance Patch",
+  "rw_silverPatch": "Silver Attendance Patch",
+  "rw_honourCord": "Honour Cord",
+  "rw_sunrise": "Mountain Sunrise"
 }

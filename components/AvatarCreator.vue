@@ -24,7 +24,8 @@ const tabs = computed(() => AVATAR_TABS.map(tb => ({
   ...tb, sections: tb.sections.filter(s => s.field !== 'facialHair' || (isLeader.value && cfg.value.gender === 'boy'))
 })))
 // someone making their first avatar starts with the first question
-const tab = ref(me.value?.avatar ? 'body' : 'gender')
+// a notification of a new item opens the collection: /app/avatar?tab=rewards
+const tab = ref(useRoute().query.tab === 'rewards' ? 'rewards' : me.value?.avatar ? 'body' : 'gender')
 const current = computed(() => tabs.value.find(x => x.key === tab.value)!)
 
 // while choosing hair, the hat comes off so the hair can be seen
@@ -77,7 +78,9 @@ const needs: Record<string, () => boolean> = {
 
 /* the collection: what the streak has earned, worn or not; what it has not,
    with how far there is to go */
-const { data: rewards } = await useFetch<{ current: number, best: number, unlocked: string[] }>('/api/me/rewards')
+const { data: rewards } = await useFetch<{ current: number, best: number, attendBest: number, unlocked: string[] }>('/api/me/rewards')
+const bestFor = (r: StreakReward) => (r.track === 'attendance' ? rewards.value?.attendBest : rewards.value?.best) ?? 0
+const TRACKS = [{ key: 'quiz', icon: '🔥' }, { key: 'attendance', icon: '🏕️' }] as const
 const owns = (r: StreakReward) => !!rewards.value?.unlocked.includes(r.key)
 const wearing = (r: StreakReward) => (cfg.value as any)[r.field] === r.value
 function toggleReward(r: StreakReward) {
@@ -146,9 +149,11 @@ const ICONS: Record<string, string> = {
     <!-- the collection: limited edition, earned with the quiz streak -->
     <div v-if="tab === 'rewards'" class="card opts">
       <div class="lab">{{ t('rwTitle') }}</div>
-      <div class="tiny muted">{{ t('rwIntro', { n: rewards?.best ?? 0 }) }}</div>
+      <div class="tiny muted">{{ t('rwIntro2') }}</div>
+      <template v-for="tr in TRACKS" :key="tr.key">
+      <div class="lab sub">{{ tr.icon }} {{ t('rwTrack_' + tr.key, { n: tr.key === 'quiz' ? (rewards?.best ?? 0) : (rewards?.attendBest ?? 0) }) }}</div>
       <div class="rgrid">
-        <button v-for="r in STREAK_REWARDS" :key="r.key" class="rw" :class="{ own: owns(r), on: owns(r) && wearing(r) }"
+        <button v-for="r in STREAK_REWARDS.filter(x => x.track === tr.key)" :key="r.key" class="rw" :class="{ own: owns(r), on: owns(r) && wearing(r) }"
                 :disabled="!owns(r)" @click="toggleReward(r)">
           <span class="ltd">{{ t('rwLimited') }}</span>
           <span class="art" v-html="rewardArt(r)" />
@@ -156,11 +161,12 @@ const ICONS: Record<string, string> = {
           <b>{{ t('rw_' + r.key) }}</b>
           <small v-if="owns(r)">{{ wearing(r) ? '✓ ' + t('rwWearing') : t('rwTapToWear') }}</small>
           <template v-else>
-            <small>🔥 {{ t('rwNeeds', { n: r.days }) }}</small>
-            <i class="bar"><i :style="{ width: Math.min(100, (rewards?.best ?? 0) / r.days * 100) + '%' }" /></i>
+            <small>{{ tr.icon }} {{ t(r.track === 'attendance' ? 'rwNeedsMeetings' : 'rwNeeds', { n: r.days }) }}</small>
+            <i class="bar"><i :style="{ width: Math.min(100, bestFor(r) / r.days * 100) + '%' }" /></i>
           </template>
         </button>
       </div>
+      </template>
     </div>
 
     <!-- one card per choice: its tiles, then its own colours; or colours alone -->

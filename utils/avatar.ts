@@ -32,7 +32,9 @@ export const AVATAR_OPTIONS = {
      (see STREAK_REWARDS) — a pin, the woggle, a scene, a companion, an aura */
   pin: ['none', 'flame'],
   woggle: ['classic', 'silver', 'gold'],
-  scene: ['none', 'campfire', 'aurora'],
+  scene: ['none', 'campfire', 'aurora', 'sunrise'],
+  patch: ['none', 'bronze', 'silver'],
+  cord: ['none', 'honour'],
   companion: ['none', 'phoenix'],
   aura: ['none', 'legend'],
   headwearColor: ['#7A1F2B', '#2E5E8C', '#3B6452', '#2B2B33', '#E08A2E', '#E35D9A', '#E9EEF4'],
@@ -58,18 +60,23 @@ export function optionsFor(field: string, gender: string): readonly string[] {
   return list.filter(v => !STREAK_REWARDS.some(r => r.field === field && r.value === v))
 }
 
-/* Limited edition: each earned by a quiz streak, from 7 days to 300, each
-   more impressive than the last. Nobody can choose one any other way; once
+/* Limited edition: earned by a streak — days in a row answering the quiz,
+   from 7 to 300, or meetings in a row present, from 5 to 40 — each more
+   impressive than the last. Nobody can choose one any other way; once
    earned it is theirs for good, even if the streak later ends. */
 export const STREAK_REWARDS = [
-  { days: 7, key: 'flamePin', field: 'pin', value: 'flame', crop: 'body' },
-  { days: 20, key: 'silverWoggle', field: 'woggle', value: 'silver', crop: 'body' },
-  { days: 40, key: 'campfire', field: 'scene', value: 'campfire', crop: 'full' },
-  { days: 60, key: 'goldWoggle', field: 'woggle', value: 'gold', crop: 'body' },
-  { days: 90, key: 'goldenHat', field: 'headwear', value: 'golden', crop: 'head' },
-  { days: 150, key: 'phoenix', field: 'companion', value: 'phoenix', crop: 'full' },
-  { days: 200, key: 'aurora', field: 'scene', value: 'aurora', crop: 'full' },
-  { days: 300, key: 'legend', field: 'aura', value: 'legend', crop: 'full' }
+  { track: 'quiz', days: 7, key: 'flamePin', field: 'pin', value: 'flame', crop: 'body' },
+  { track: 'quiz', days: 20, key: 'silverWoggle', field: 'woggle', value: 'silver', crop: 'body' },
+  { track: 'quiz', days: 40, key: 'campfire', field: 'scene', value: 'campfire', crop: 'full' },
+  { track: 'quiz', days: 60, key: 'goldWoggle', field: 'woggle', value: 'gold', crop: 'body' },
+  { track: 'quiz', days: 90, key: 'goldenHat', field: 'headwear', value: 'golden', crop: 'head' },
+  { track: 'quiz', days: 150, key: 'phoenix', field: 'companion', value: 'phoenix', crop: 'full' },
+  { track: 'quiz', days: 200, key: 'aurora', field: 'scene', value: 'aurora', crop: 'full' },
+  { track: 'quiz', days: 300, key: 'legend', field: 'aura', value: 'legend', crop: 'full' },
+  { track: 'attendance', days: 5, key: 'bronzePatch', field: 'patch', value: 'bronze', crop: 'body' },
+  { track: 'attendance', days: 10, key: 'silverPatch', field: 'patch', value: 'silver', crop: 'body' },
+  { track: 'attendance', days: 20, key: 'honourCord', field: 'cord', value: 'honour', crop: 'body' },
+  { track: 'attendance', days: 40, key: 'sunrise', field: 'scene', value: 'sunrise', crop: 'full' }
 ] as const
 export type StreakReward = typeof STREAK_REWARDS[number]
 
@@ -92,7 +99,7 @@ export const DEFAULT_AVATAR: Avatar = {
   eyeShape: 'round', brows: 'normal', nose: 'button', facialHairColor: '#4A3125',
   facialHair: 'none', glasses: 'none', glassesColor: '#2A2330', headwear: 'none', headwearColor: '#7A1F2B', bg: '#D9E8FD',
   earrings: 'none', gear: 'none',
-  pin: 'none', woggle: 'classic', scene: 'none', companion: 'none', aura: 'none'
+  pin: 'none', woggle: 'classic', scene: 'none', companion: 'none', aura: 'none', patch: 'none', cord: 'none'
 }
 
 /* avatars saved before the redraw named a few things differently */
@@ -354,6 +361,22 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       + `<path d="M67 175.5 C70.5 179 71 182 69.6 184.6 C68.8 186 65.2 186 64.4 184.6 C63.2 182.4 64.2 180.6 65.4 179.8 C65.6 181.2 66.2 181.8 66.8 182 C66.2 179.6 66.4 177.4 67 175.5 Z" fill="#FFB62E"/>`
       + `<path d="M67 180.5 C68.6 182.2 68.6 184 67 185 C65.4 184 65.6 182.4 67 180.5 Z" fill="#FFE58A"/></g>`
     : ''
+  // the attendance patch (5 / 10 meetings in a row): a shield on the sleeve,
+  // bronze with one star or silver with two, a little tent on it
+  const PATCH: Record<string, [string, string]> = { bronze: ['#C77B3A', '#8E5524'], silver: ['#C9D3DE', '#8E9CAF'] }
+  const patch = PATCH[a.patch]
+    ? `<g transform="translate(52 161) rotate(-18)"><path d="M-8 -9 H8 V0 Q8 8 0 12 Q-8 8 -8 0 Z" fill="${PATCH[a.patch][0]}" stroke="${PATCH[a.patch][1]}" stroke-width="1.6"/>`
+      + `<path d="M-4.5 4 L0 -3 L4.5 4 Z" fill="#fff"/><path d="M0 -3 L0 4" stroke="${PATCH[a.patch][1]}" stroke-width="1"/>`
+      + (a.patch === 'silver' ? `<circle cx="-3.6" cy="-6" r="1.4" fill="#FFD84A"/><circle cx="3.6" cy="-6" r="1.4" fill="#FFD84A"/>` : `<circle cx="0" cy="-6" r="1.5" fill="#FFD84A"/>`)
+      + `</g>`
+    : ''
+  // the honour cord (20 meetings in a row): blue and gold, braided, from the
+  // shoulder across the chest, with metal tips
+  const cord = a.cord === 'honour'
+    ? [[`M135 146 C141 166 131 181 115 179`], [`M138 149 C146 172 134 188 117 186`]].map(([d]) =>
+      `<path d="${d}" fill="none" stroke="${SCARF_BLUE}" stroke-width="3.6" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${SCARF_YELLOW}" stroke-width="3.6" stroke-dasharray="3 3" stroke-linecap="round"/>`).join('')
+      + `<rect x="111" y="176" width="6" height="9" rx="2" fill="#E3B23C" transform="rotate(20 114 180)"/>`
+    : ''
   const head = `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${hb.r}" fill="${skin}"/>`
 
   /* ---- the face: eyes, brows, nose, mouth, together by expression ---- */
@@ -530,7 +553,16 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       + `<path d="M-20 96 C24 70 60 104 100 82 C140 60 168 92 220 70 L220 86 C170 106 138 78 102 98 C62 120 26 90 -20 112 Z" fill="url(#aur-${id})" opacity=".4"/>`
       + `<path d="M150 18 L118 40" stroke="url(#shoot-${id})" stroke-width="2.4" stroke-linecap="round"/><circle cx="118" cy="40" r="1.8" fill="#fff"/>`
   }
-  const sceneDefs = a.scene === 'campfire'
+  // a sunrise over the mountains (40 meetings in a row)
+  scenes.sunrise = `<rect x="-40" y="-40" width="280" height="280" fill="url(#dawn-${id})"/>`
+    + `<circle cx="150" cy="122" r="26" fill="#FFE07A"/><circle cx="150" cy="122" r="38" fill="#FFE07A" opacity=".25"/>`
+    + `<path d="M-40 150 L20 92 L58 128 L96 84 L150 140 L196 100 L240 140 V240 H-40 Z" fill="#7FA6C9"/>`
+    + `<path d="M-40 168 L30 120 L80 158 L130 118 L182 160 L240 130 V240 H-40 Z" fill="#4E8B6A"/>`
+    + [[26, 186, 22], [176, 190, 20]].map(([x, y, s]) =>
+      `<path d="M${x} ${y - s * 2.4} L${x - s * 0.55} ${y - s * 1.3} L${x - s * 0.3} ${y - s * 1.3} L${x - s * 0.75} ${y - s * 0.4} L${x + s * 0.75} ${y - s * 0.4} L${x + s * 0.3} ${y - s * 1.3} L${x + s * 0.55} ${y - s * 1.3} Z" fill="#2F6B4A"/>`).join('')
+  const sceneDefs = a.scene === 'sunrise'
+    ? `<linearGradient id="dawn-${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8EC5F0"/><stop offset=".55" stop-color="#FFC7A1"/><stop offset="1" stop-color="#FFE3B0"/></linearGradient>`
+    : a.scene === 'campfire'
     ? `<linearGradient id="sky-${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14203D"/><stop offset="1" stop-color="#3A3F6B"/></linearGradient>`
     : a.scene === 'aurora'
       ? `<linearGradient id="night-${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0B1630"/><stop offset="1" stop-color="#1D2E55"/></linearGradient>`
@@ -589,7 +621,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     + `<clipPath id="face-${id}"><rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${hb.r}"/></clipPath>`
     + `</defs>`
     + `<rect x="-40" y="-40" width="280" height="280" fill="${a.bg}"/>` + scenes[a.scene] + aura
-    + hairBack + clothes[a.clothes] + scarfBack + neck + scarfFront + gear[a.gear] + pin
+    + hairBack + clothes[a.clothes] + scarfBack + neck + scarfFront + gear[a.gear] + pin + patch + cord
     + ears + head + earrings[a.earrings] + extras[a.extras] + eyes + nose + facialHair[a.facialHair] + (MOUTH[xp.mouth] || '')
     + hairFront + glasses[a.glasses] + headwear[a.headwear] + companion
     + `</svg>`

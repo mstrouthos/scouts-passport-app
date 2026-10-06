@@ -36,7 +36,7 @@ async function wear() {
         <div class="art" v-html="art" />
         <div class="new">🎉 {{ t('rwUnlocked') }}</div>
         <b class="name">{{ t('rw_' + top.key) }}</b>
-        <div class="days">🔥 {{ t('rwNeeds', { n: top.days }) }}</div>
+        <div class="days">{{ top.track === 'attendance' ? '🏕️ ' + t('rwNeedsMeetings', { n: top.days }) : '🔥 ' + t('rwNeeds', { n: top.days }) }}</div>
         <div v-if="list.length > 1" class="more">{{ t('rwAndMore', { n: list.length - 1 }) }}</div>
         <button class="go" :disabled="busy" @click="wear">✨ {{ t('rwWear') }}</button>
         <button class="later" @click="emit('close')">{{ t('rwLater') }}</button>

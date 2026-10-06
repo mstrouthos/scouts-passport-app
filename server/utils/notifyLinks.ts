@@ -22,6 +22,8 @@ export function linkForNotification(kind: string, refId: number | null, who: 'me
   if (kind === 'eventRsvp') return `/admin/events/${refId}`
   // a mission photo: checked (to the member), or waiting to be (to the leaders)
   if (kind === 'mission') return '/app/missions'
+  // a collection item earned with a run of meetings
+  if (kind === 'reward') return '/app/avatar?tab=rewards'
   if (kind === 'missionSubmitted') return '/admin/missions'
   if (kind === 'formResponse') return `/admin/forms/response/${refId}`
   return null

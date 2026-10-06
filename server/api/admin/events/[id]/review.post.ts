@@ -8,6 +8,7 @@ import { canScheduleForGroup, groupMemberIds } from '../../../../utils/groupScop
 import { canEditEvent } from '../../../../utils/eventScope'
 import { leadersForEvent } from '../../../../utils/rsvp'
 import { attendanceIsOpen } from '../../../../utils/attendance'
+import { rewardAttendance } from '../../../../utils/rewards'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -80,5 +81,7 @@ export default defineEventHandler(async (event) => {
     : ['Χωρίς στολή', 'No uniform']
   if (uniform && uniformPts)
     await db.insert(s.pointAwards).values({ scoutId, eventId, kind: 'uniform', points: uniformPts, reasonEl: uniformLabel[0], reasonEn: uniformLabel[1], awardedBy: me.id, awardedAt: t })
+  // a run of meetings may have just earned a collection item
+  if (attendance === 'present') await rewardAttendance(scoutId)
   return { ok: true }
 })
