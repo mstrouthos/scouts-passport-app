@@ -199,7 +199,7 @@ function goBack() {
               </div>
             </button>
           </template>
-          <div v-else class="empty">{{ t('noNotifs') }}</div>
+          <div v-else class="empty" style="display:flex;flex-direction:column;align-items:center;gap:6px"><img src="/images/art/phoenix/wave.webp" alt="" style="width:120px;height:120px;object-fit:contain"><span>{{ t('noNotifs') }}</span></div>
           <button class="btn ghost" @click="notifOpen = false">{{ t('close') }}</button>
         </div>
       </div>

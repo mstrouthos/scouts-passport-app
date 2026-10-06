@@ -74,7 +74,7 @@ const sheetSteps = computed(() => {
     <div class="sec-title">{{ t('myBadges') }}</div>
     <div v-if="earnedBadges.length" class="badge-grid">
       <button v-for="b in earnedBadges" :key="b.id" class="btile" @click="sheet = b">
-        <span class="disc">{{ b.icon }}</span>
+        <span class="disc" :class="{ art: b.art }"><BadgeIcon :art="b.art" :emoji="b.icon" :size="46" /></span>
         <span class="lbl">{{ lx(b) }}</span>
       </button>
     </div>
@@ -90,18 +90,21 @@ const sheetSteps = computed(() => {
       </button>
       <div v-if="openCat === c.slug" class="badge-grid" style="margin-top:9px">
         <button v-for="b in c.items" :key="b.id" class="btile" :class="{ off: !b.earned }" @click="sheet = b">
-          <span class="disc">{{ b.icon }}</span>
+          <span class="disc" :class="{ art: b.art }"><BadgeIcon :art="b.art" :emoji="b.icon" :size="46" /></span>
           <span class="lbl">{{ lx(b) }}</span>
         </button>
       </div>
     </div>
 
     <Teleport to="body">
-      <Celebration v-if="party" :emoji="party.icon" :title="lx(party)"
+      <Celebration v-if="party" :emoji="party.icon" :image="party.art" :title="lx(party)"
                    :subtitle="t('badgeEarned')" @close="party = null" />
       <div v-if="sheet" class="sheet-backdrop" @click.self="sheet = null">
         <div class="sheet" style="max-height:88dvh;overflow:auto">
-          <div style="width:64px;height:64px;border-radius:18px;margin:0 auto 10px;display:grid;place-items:center;font-size:30px"
+          <div v-if="sheet.art" style="display:grid;place-items:center;margin:0 auto 10px">
+            <BadgeIcon :art="sheet.art" :size="132" :dim="!sheet.earned" />
+          </div>
+          <div v-else style="width:64px;height:64px;border-radius:18px;margin:0 auto 10px;display:grid;place-items:center;font-size:30px"
                :style="sheet.earned ? 'background:linear-gradient(145deg,#FFF6DF,#FBE7B4)' : 'background:#EEF2F6;filter:grayscale(1);opacity:.6'">
             {{ sheet.icon }}
           </div>

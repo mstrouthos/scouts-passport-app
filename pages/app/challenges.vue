@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { phoenixArt } from '~/utils/art'
 const { t, locale } = useI18n()
 const me = useMe()
 const lx = useLx()
@@ -189,7 +190,7 @@ function optClass(c: any, o: any) {
         <div class="cap" :class="{ dim: c.state === 'missed' }">{{ lx(c) }}</div>
       </div>
     </div>
-    <div v-else class="empty">{{ t('noChallenges') }}</div>
+    <div v-else class="empty pempty"><img :src="phoenixArt('sleep')" alt=""><span>{{ t('noChallenges') }}</span></div>
 
     <FxStreakCelebration v-if="streakShow && data" :streak="data.streak" :week="data.week" :bonus="data.bonusEarned"
                          @close="streakShow = false; rewardShow = earned.length > 0" />
@@ -211,7 +212,7 @@ function optClass(c: any, o: any) {
               </svg>
               <b>{{ readLeft }}</b>
             </div>
-            <div class="tiny muted" style="text-align:center">👀 {{ t('readCountdown') }}</div>
+            <div class="readhint"><img :src="phoenixArt('think')" alt=""><span>{{ t('readCountdown') }}</span></div>
           </template>
 
           <template v-else>
@@ -241,7 +242,7 @@ function optClass(c: any, o: any) {
             </div>
             <!-- wrong: the phoenix, the right answer and why; right: why, as a fact to keep -->
             <div v-if="!open.answer.isCorrect" class="learn">
-              <MascotPhoenix class="l-bird" pose="idle" :fire="false" />
+              <img :src="phoenixArt('encourage')" alt="" class="l-bird">
               <div class="l-body">
                 <div class="l-cheer">{{ t('learnCheer') }}</div>
                 <div v-if="rightOption" class="l-right"><span>{{ t('learnRight') }}</span> <b>{{ lx(rightOption, 'text') }}</b></div>
@@ -386,7 +387,7 @@ function optClass(c: any, o: any) {
 /* what an answer teaches: after a wrong one, the phoenix and the right answer */
 .learn{display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:16px; background:#FFF6E6; border:2px solid #F6DDAF; animation:learnIn .45s .2s cubic-bezier(.2,.9,.3,1.2) both}
 .learn.good{background:#E9F7EF; border-color:#BFE6CF}
-.l-bird{flex:none; width:64px}
+.l-bird{flex:none; width:72px; height:72px; object-fit:contain}
 .l-body{flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; font-size:13.5px; line-height:1.55; color:#3D4B60}
 .l-cheer{font-weight:800; color:#8A5A00}
 .l-right span{color:#6F7F93}
@@ -394,4 +395,8 @@ function optClass(c: any, o: any) {
 .l-why b{color:var(--ink)}
 @keyframes learnIn{from{opacity:0; transform:translateY(10px)}}
 @media (prefers-reduced-motion: reduce){.learn{animation:none}}
+.pempty{display:flex; flex-direction:column; align-items:center; gap:6px}
+.pempty img{width:140px; height:140px; object-fit:contain}
+.readhint{display:flex; align-items:center; justify-content:center; gap:8px; font-size:12.5px; color:var(--muted)}
+.readhint img{width:56px; height:56px; object-fit:contain}
 </style>

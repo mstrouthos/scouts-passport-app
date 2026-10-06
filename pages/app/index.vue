@@ -106,7 +106,7 @@ function sub(e: any) {
         <div class="sec-title">{{ t('myBadges') }}</div>
         <div class="badge-grid">
           <NuxtLink v-for="b in earnedBadges" :key="b.id" :to="`/app/badges?open=${b.id}`" class="btile">
-            <span class="disc">{{ b.icon }}</span>
+            <span class="disc" :class="{ art: b.art }"><BadgeIcon :art="b.art" :emoji="b.icon" :size="46" /></span>
             <span class="lbl">{{ lx(b) }}</span>
           </NuxtLink>
         </div>

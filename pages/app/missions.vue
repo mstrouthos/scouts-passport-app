@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { phoenixArt } from '~/utils/art'
 /* Photo missions: something to go and do, and a photo to show it. A
    Βαθμοφόρος checks each photo before its points are given; one not
    approved says why, and another may be sent. Only the member and their
@@ -61,7 +62,9 @@ const STATUS: Record<string, { icon: string, key: string }> = {
 <template>
   <AppShell :title="t('missions')" :sub="t('missionsSub')" back="/app">
 
-    <div v-if="!data?.length" class="empty">{{ t('missionsNone') }}</div>
+    <!-- the banner: a scout's kit on a table -->
+    <img src="/images/art/scenes/missions.webp" alt="" class="banner-art">
+    <div v-if="!data?.length" class="empty pempty"><img :src="phoenixArt('camera')" alt=""><span>{{ t('missionsNone') }}</span></div>
 
     <div v-for="m in open" :key="m.id" class="mcard">
       <div class="mtop">
@@ -129,4 +132,7 @@ const STATUS: Record<string, { icon: string, key: string }> = {
 .mstate span{color:#6F7F93; font-style:italic}
 .thumb{width:44px; height:44px; border-radius:10px; object-fit:cover; flex:none}
 .prev{width:100%; max-height:44dvh; object-fit:contain; border-radius:16px; background:#000}
+.banner-art{width:100%; aspect-ratio:16/7; object-fit:cover; border-radius:20px; display:block; box-shadow:var(--shadow-sm, 0 2px 10px rgba(30,70,140,.08))}
+.pempty{display:flex; flex-direction:column; align-items:center; gap:6px}
+.pempty img{width:140px; height:140px; object-fit:contain}
 </style>

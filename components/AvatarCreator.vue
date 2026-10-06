@@ -7,6 +7,7 @@
    Members make one here; so may a Βαθμοφόρος, instead of a photo — saving an
    avatar takes their photo down, as only one of the two is shown. Beards and
    moustaches are offered to Βαθμοφόροι only. */
+import { rewardArt } from '~/utils/art'
 import { AVATAR_OPTIONS, AVATAR_TABS, STREAK_REWARDS, optionsFor, DEFAULT_AVATAR, avatarSvg, normalizeAvatar, randomAvatar, type Avatar, type StreakReward } from '~/utils/avatar'
 const props = defineProps<{ back: string }>()
 const { t } = useI18n()
@@ -87,7 +88,7 @@ function toggleReward(r: StreakReward) {
   if (!owns(r)) return
   cfg.value = { ...cfg.value, [r.field]: wearing(r) ? (DEFAULT_AVATAR as any)[r.field] : r.value } as Avatar
 }
-const rewardArt = (r: StreakReward) => avatarSvg({ ...cfg.value, [r.field]: r.value }, `rw-${r.key}`, r.crop)
+const rewardOnMe = (r: StreakReward) => avatarSvg({ ...cfg.value, [r.field]: r.value }, `rw-${r.key}`, r.crop)
 const rewardFields = [...new Set(STREAK_REWARDS.map(r => r.field))]
 
 function resetToSaved() { cfg.value = normalizeAvatar(JSON.parse(saved)) }
@@ -148,6 +149,11 @@ const ICONS: Record<string, string> = {
 
     <!-- the collection: limited edition, earned with the quiz streak -->
     <div v-if="tab === 'rewards'" class="card opts">
+      <!-- the trophy shelf, and the phoenix with its cup -->
+      <div class="rwhead">
+        <img src="/images/art/scenes/collection.webp" alt="" class="shelf">
+        <img src="/images/art/phoenix/trophy.webp" alt="" class="cup">
+      </div>
       <div class="lab">{{ t('rwTitle') }}</div>
       <div class="tiny muted">{{ t('rwIntro2') }}</div>
       <template v-for="tr in TRACKS" :key="tr.key">
@@ -156,7 +162,10 @@ const ICONS: Record<string, string> = {
         <button v-for="r in STREAK_REWARDS.filter(x => x.track === tr.key)" :key="r.key" class="rw" :class="{ own: owns(r), on: owns(r) && wearing(r) }"
                 :disabled="!owns(r)" @click="toggleReward(r)">
           <span class="ltd">{{ t('rwLimited') }}</span>
-          <span class="art" v-html="rewardArt(r)" />
+          <!-- earned: worn on the avatar, with its card; not yet: its card, to aim for -->
+          <span v-if="owns(r)" class="art" v-html="rewardOnMe(r)" />
+          <span v-else class="art card"><img :src="rewardArt(r.key)" alt=""></span>
+          <img v-if="owns(r)" :src="rewardArt(r.key)" alt="" class="sticker">
           <span v-if="!owns(r)" class="lock">🔒</span>
           <b>{{ t('rw_' + r.key) }}</b>
           <small v-if="owns(r)">{{ wearing(r) ? '✓ ' + t('rwWearing') : t('rwTapToWear') }}</small>
@@ -253,7 +262,12 @@ const ICONS: Record<string, string> = {
 .rw{position:relative; display:flex; flex-direction:column; align-items:stretch; gap:3px; padding:8px; border-radius:16px; border:2px solid var(--line); background:var(--hair); text-align:left; font:inherit; color:inherit; overflow:hidden}
 .rw .art{display:block; aspect-ratio:1; border-radius:12px; overflow:hidden; background:#DCE7F5}
 .rw .art :deep(svg){width:100%; height:100%; display:block}
-.rw:not(.own) .art{filter:grayscale(1) brightness(.9); opacity:.55}
+.rw .art.card{display:grid; place-items:center; background:linear-gradient(160deg,#EEF3FA,#DCE6F3)}
+.rw .art.card img{width:78%; height:78%; object-fit:contain; filter:grayscale(.45) opacity(.8)}
+.sticker{position:absolute; top:calc(8px + 50%); right:10px; width:44px; height:44px; object-fit:contain; filter:drop-shadow(0 3px 4px rgba(0,0,0,.2)); transform:translateY(-50%) rotate(8deg)}
+.rwhead{position:relative; margin:-2px 0 4px}
+.rwhead .shelf{width:100%; aspect-ratio:16/7; object-fit:cover; border-radius:16px; display:block}
+.rwhead .cup{position:absolute; right:-6px; bottom:-14px; width:96px; height:96px; object-fit:contain; filter:drop-shadow(0 4px 6px rgba(0,0,0,.25))}
 .rw.own{border-color:#F2C230; background:#FFF9E6}
 .rw.on{border-color:var(--accent); background:var(--accent-soft); box-shadow:0 0 0 2px var(--accent) inset}
 .rw b{font-size:13px; line-height:1.25}
@@ -261,7 +275,7 @@ const ICONS: Record<string, string> = {
 .rw.on small{color:var(--accent-deep)}
 .ltd{position:absolute; top:12px; left:12px; z-index:1; font-size:9px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#8A5A00; background:#FFE58A; border-radius:999px; padding:2px 7px}
 .rw:not(.own) .ltd{background:#E3E9F1; color:#6F7F93}
-.lock{position:absolute; top:calc(8px + 30%); left:50%; transform:translate(-50%,-50%); font-size:30px}
+.lock{position:absolute; top:36px; right:14px; font-size:18px; width:30px; height:30px; border-radius:50%; background:#fff; display:grid; place-items:center; box-shadow:0 2px 6px rgba(0,0,0,.15)}
 .bar{display:block; height:6px; border-radius:6px; background:#E3E9F1; overflow:hidden; margin-top:2px}
 .bar i{display:block; height:100%; background:linear-gradient(90deg,#FF9A3C,#F2C230); border-radius:6px}
 .rw:active:not(:disabled){transform:scale(.97)}

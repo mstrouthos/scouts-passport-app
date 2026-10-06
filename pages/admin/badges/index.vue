@@ -19,7 +19,7 @@ const { data } = await useFetch('/api/admin/badges')
     <div class="adm">
       <div class="hdr">{{ t('badges') }} · {{ data?.length || 0 }}</div>
       <NuxtLink v-for="b in data" :key="b.id" :to="`/admin/badges/${b.id}`" class="it">
-        <div style="font-size:20px;width:26px;text-align:center">{{ b.icon }}</div>
+        <BadgeIcon :art="b.art" :emoji="b.icon" :size="30" style="flex:none" />
         <div style="flex:1"><b>{{ lx(b) }}</b><span>{{ t('awardedTo') }} {{ b.awarded }}/{{ b.total }}</span></div>
         <span class="chev">›</span>
       </NuxtLink>

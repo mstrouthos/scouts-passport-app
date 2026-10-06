@@ -4,6 +4,7 @@
    it on there and then. More than one at once (a long streak from before
    the collection existed) shows the finest, and says how many more. */
 import { STREAK_REWARDS, avatarSvg, normalizeAvatar, DEFAULT_AVATAR } from '~/utils/avatar'
+import { rewardArt } from '~/utils/art'
 const props = defineProps<{ keys: string[] }>()
 const emit = defineEmits<{ (e: 'close'): void }>()
 const { t } = useI18n()
@@ -33,7 +34,10 @@ async function wear() {
       <div class="card">
         <div class="rays" aria-hidden="true" />
         <div class="ltd">{{ t('rwLimited') }}</div>
-        <div class="art" v-html="art" />
+        <div class="stage">
+          <div class="art" v-html="art" />
+          <img :src="rewardArt(top.key)" alt="" class="sticker">
+        </div>
         <div class="new">🎉 {{ t('rwUnlocked') }}</div>
         <b class="name">{{ t('rw_' + top.key) }}</b>
         <div class="days">{{ top.track === 'attendance' ? '🏕️ ' + t('rwNeedsMeetings', { n: top.days }) : '🔥 ' + t('rwNeeds', { n: top.days }) }}</div>
@@ -67,4 +71,7 @@ async function wear() {
 @keyframes fade{from{opacity:0}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion: reduce){.card, .rays, .veil{animation:none}}
+.stage{position:relative}
+.sticker{position:absolute; right:-26px; top:-14px; width:88px; height:88px; object-fit:contain; filter:drop-shadow(0 6px 10px rgba(0,0,0,.35)); transform:rotate(10deg); animation:stick .6s .35s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes stick{from{opacity:0; transform:rotate(-30deg) scale(.3)}}
 </style>

@@ -6,7 +6,7 @@
    spins under your finger. Confetti tumbles in depth behind it and the
    phoenix cheers below. Shown when a scout opens the notification that told
    them, so the moment lands somewhere. */
-const props = defineProps<{ emoji: string, title: string, subtitle?: string }>()
+const props = defineProps<{ emoji: string, title: string, subtitle?: string, image?: string | null }>()
 const emit = defineEmits<{ (e: 'close'): void }>()
 
 const RIM = 12
@@ -61,7 +61,7 @@ onMounted(() => { setTimeout(() => { landed.value = true }, 1250) })
                :style="{ '--spin': spin + 'deg' }">
             <i v-for="k in RIM" :key="k" class="rim" :style="{ transform: `translateZ(${k - RIM / 2 - 0.5}px)` }" />
             <div class="face front">
-              <div class="ring"><span class="emoji">{{ props.emoji }}</span></div>
+              <div class="ring"><img v-if="props.image" :src="props.image" alt="" class="art"><span v-else class="emoji">{{ props.emoji }}</span></div>
             </div>
             <div class="face back"><img src="/images/logo-256.png" alt=""></div>
             <div class="gleam" />
@@ -188,4 +188,5 @@ onMounted(() => { setTimeout(() => { landed.value = true }, 1250) })
   .flyer, .medal.landed:not(.dragging), .rays, .gleam, .title, .sub, .btn, .hint, .ribbon, .cheer{animation:none}
   .cf, .burst, .shock{display:none}
 }
+.ring .art{width:118%; height:118%; object-fit:contain; filter:drop-shadow(0 3px 2px rgba(120,70,0,.3))}
 </style>

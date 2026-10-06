@@ -404,7 +404,7 @@ async function deleteScout() {
           <component :is="b.earned && me?.can?.badges !== false ? 'button' : 'div'" v-for="b in data.badges" :key="b.id"
                      class="btile" :class="{ off: !b.earned }" :style="b.earned && me?.can?.badges !== false ? 'position:relative' : 'cursor:default'"
                      @click="revoke(b)">
-            <span class="disc">{{ b.icon }}</span><span class="lbl">{{ lx(b) }}</span>
+            <span class="disc" :class="{ art: b.art }"><BadgeIcon :art="b.art" :emoji="b.icon" :size="46" /></span><span class="lbl">{{ lx(b) }}</span>
             <span v-if="b.earned && me?.can?.badges !== false" class="revoke" aria-hidden="true">✕</span>
           </component>
         </div>
@@ -433,7 +433,7 @@ async function deleteScout() {
           <div class="adm">
             <button v-for="b in data.badges" :key="b.id" class="it" :disabled="b.earned"
                     :style="b.earned ? 'opacity:.45' : ''" @click="award(b.id)">
-              <div style="font-size:20px;width:26px;text-align:center">{{ b.icon }}</div>
+              <BadgeIcon :art="b.art" :emoji="b.icon" :size="30" style="flex:none" />
               <div style="flex:1"><b>{{ lx(b) }}</b></div>
               <span v-if="b.earned" style="color:var(--green);font-weight:700">✓</span>
               <span v-else class="chev">›</span>

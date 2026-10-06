@@ -1,3 +1,4 @@
+import { badgeArt } from '../../../../utils/art'
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, assertScoutInScope, idParam, pointTotals, sectionOf } from '../../../utils/guard'
@@ -41,7 +42,7 @@ export default defineEventHandler(async (event) => {
     patrolRole: r.patrolRole ?? null,
     points: (await pointTotals()).get(id) || 0,
     badges: badges.filter(b => !b.isArchived).sort((a, b) => a.sortOrder - b.sortOrder).map(b => ({
-      id: b.id, icon: b.iconEmoji, titleEl: b.titleEl, titleEn: b.titleEn, earned: earnedIds.has(b.id)
+      id: b.id, icon: b.iconEmoji, art: badgeArt(b.slug), titleEl: b.titleEl, titleEn: b.titleEn, earned: earnedIds.has(b.id)
     }))
   }
 })

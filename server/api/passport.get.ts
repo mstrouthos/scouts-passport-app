@@ -1,3 +1,4 @@
+import { badgeArt } from '../../utils/art'
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { requireScout, pointTotals, sectionOf, sectionOfWith } from '../utils/guard'
@@ -44,7 +45,7 @@ export default defineEventHandler(async (event) => {
       return (await db.select().from(s.missions)).filter(m => isFor(m, mySection) && isOpen(m, t) && !done.has(m.id)).length
     })(),
     badges: badges.map(b => ({
-      id: b.id, icon: b.iconEmoji, titleEl: b.titleEl, titleEn: b.titleEn,
+      id: b.id, icon: b.iconEmoji, art: badgeArt(b.slug), titleEl: b.titleEl, titleEn: b.titleEn,
       descriptionEl: b.descriptionEl, descriptionEn: b.descriptionEn,
       category: b.category,
       categoryEl: BADGE_CATEGORIES.find(c => c.slug === b.category)?.titleEl ?? null,
