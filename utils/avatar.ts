@@ -620,46 +620,79 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   /* ---- headwear ---- */
   const hw = a.headwearColor, hwD = shade(hw, 0.78), hwL = shade(hw, 1.2)
   const top = y0 - 4
+  // the troop's own logo, as the badge on every hat: the real thing, cut
+  // round, with a navy rim and a glint
+  const badge = (x: number, y: number, r: number) =>
+    `<circle cx="${x}" cy="${y}" r="${r + 1.4}" fill="${CREST_NAVY}"/>`
+    + `<image href="/images/logo-96.webp" x="${x - r}" y="${y - r}" width="${2 * r}" height="${2 * r}" clip-path="url(#${clipTo(`M${x - r} ${y} A${r} ${r} 0 1 0 ${x + r} ${y} A${r} ${r} 0 1 0 ${x - r} ${y} Z`)})"/>`
+    + `<path d="M${x - r * 0.7} ${y - r * 0.35} A${r * 0.8} ${r * 0.8} 0 0 1 ${x - r * 0.1} ${y - r * 0.8}" fill="none" stroke="#fff" stroke-width="${Math.max(1, r * 0.16)}" stroke-linecap="round" opacity=".55"/>`
+  /* the campaign hat: a wide brim, the crown rising to a rounded peak with
+     its two dents in front, the band with the badge — in brown felt, or in
+     gold for the 90-day reward */
+  const campaign = (felt: string, feltD: string, feltDD: string, feltL: string, band: string, bandL: string) => {
+    const R = w / 2 + 34
+    return `<ellipse cx="${cx}" cy="${y0 + 12}" rx="${R}" ry="12" fill="${feltDD}"/><ellipse cx="${cx}" cy="${y0 + 9}" rx="${R}" ry="10" fill="${felt}"/>`
+      + `<path d="M${cx - R + 6} ${y0 + 10} A${R - 6} 7 0 0 1 ${cx + R - 6} ${y0 + 10}" fill="none" stroke="${feltL}" stroke-width="2.2" opacity=".55"/>`
+      + `<path d="M${cx - 33} ${y0 + 9} C${cx - 34} ${y0 - 14} ${cx - 24} ${y0 - 40} ${cx} ${y0 - 41} C${cx + 24} ${y0 - 40} ${cx + 34} ${y0 - 14} ${cx + 33} ${y0 + 9} Z" fill="${felt}"/>`
+      + `<path d="M${cx + 6} ${y0 - 40.5} C${cx + 24} ${y0 - 39} ${cx + 34} ${y0 - 14} ${cx + 33} ${y0 + 9} L${cx + 19} ${y0 + 9} C${cx + 23} ${y0 - 12} ${cx + 19} ${y0 - 30} ${cx + 6} ${y0 - 40.5} Z" fill="${feltD}"/>`
+      + [-1, 1].map(s => `<ellipse cx="${cx + s * 11}" cy="${y0 - 25}" rx="6.5" ry="10.5" fill="${feltDD}" opacity=".8" transform="rotate(${s * 14} ${cx + s * 11} ${y0 - 25})"/>`
+        + `<path d="M${cx + s * 5} ${y0 - 18} Q${cx + s * 11} ${y0 - 12} ${cx + s * 16} ${y0 - 20}" fill="none" stroke="${feltL}" stroke-width="1.8" stroke-linecap="round" opacity=".6"/>`).join('')
+      + `<path d="M${cx - 22} ${y0 - 26} Q${cx - 18} ${y0 - 36} ${cx - 8} ${y0 - 39}" fill="none" stroke="${feltL}" stroke-width="2.4" stroke-linecap="round" opacity=".7"/>`
+      + `<path d="M${cx - 33.6} ${y0 - 4} Q${cx} ${y0 - 1} ${cx + 33.6} ${y0 - 4} L${cx + 33.4} ${y0 + 8} Q${cx} ${y0 + 11} ${cx - 33.4} ${y0 + 8} Z" fill="${band}"/>`
+      + `<path d="M${cx - 32} ${y0 - 2.4} Q${cx} ${y0 + 0.6} ${cx + 32} ${y0 - 2.4}" fill="none" stroke="${bandL}" stroke-width="1.6" opacity=".7"/>`
+  }
+  // a sparkle, for the golden hat
+  const sparkle = (x: number, y: number, r: number) => `<path d="M${x} ${y - r} Q${x + r * 0.18} ${y - r * 0.18} ${x + r} ${y} Q${x + r * 0.18} ${y + r * 0.18} ${x} ${y + r} Q${x - r * 0.18} ${y + r * 0.18} ${x - r} ${y} Q${x - r * 0.18} ${y - r * 0.18} ${x} ${y - r} Z" fill="#FFF3B8"/>`
+  const hwDD = shade(hw, 0.58)
+  // the pompom sits on the crown, low enough to stay in the picture on a tall head
+  const pom = Math.max(top - 28, 12)
+  const beanieBody = `M${x0 - 4} ${y0 + 16} Q${x0 - 4} ${top - 26} ${cx} ${top - 26} Q${x1 + 4} ${top - 26} ${x1 + 4} ${y0 + 16} Z`
   const headwear: Record<string, string> = {
     none: '',
-    // the campaign hat: a wide flat brim, the crown pinched into four dents
-    // (the "Montana peak"), a brown band
-    scout: `<ellipse cx="${cx}" cy="${y0 + 12}" rx="${w / 2 + 34}" ry="12" fill="#6E4524"/><ellipse cx="${cx}" cy="${y0 + 9}" rx="${w / 2 + 34}" ry="10" fill="#94633A"/>`
-      + `<path d="M${cx - 34} ${y0 + 10} L${cx - 28} ${y0 - 28} Q${cx - 16} ${y0 - 40} ${cx - 7} ${y0 - 31} L${cx} ${y0 - 42} L${cx + 7} ${y0 - 31} Q${cx + 16} ${y0 - 40} ${cx + 28} ${y0 - 28} L${cx + 34} ${y0 + 10} Z" fill="#94633A"/>`
-      + `<path d="M${cx + 7} ${y0 - 31} Q${cx + 16} ${y0 - 40} ${cx + 28} ${y0 - 28} L${cx + 34} ${y0 + 10} L${cx + 14} ${y0 + 10} Z" fill="#7A4E2A"/>`
-      + `<path d="M${cx - 14} ${y0 - 30} Q${cx - 10} ${y0 - 14} ${cx - 12} ${y0 - 2} M${cx + 12} ${y0 - 30} Q${cx + 9} ${y0 - 14} ${cx + 11} ${y0 - 2}" fill="none" stroke="#6E4524" stroke-width="2" opacity=".6"/>`
-      + `<rect x="${cx - 34}" y="${y0 - 2}" width="68" height="10" rx="3" fill="#3E2614"/>`
-      + `<path d="M${cx - 22} ${y0 - 24} Q${cx - 15} ${y0 - 32} ${cx - 9} ${y0 - 27}" fill="none" stroke="#B9875A" stroke-width="2.6" stroke-linecap="round"/>`
-      + `<path d="M${cx - w / 2 - 24} ${y0 + 10} Q${cx - w / 2} ${y0 + 6} ${cx - 40} ${y0 + 6}" fill="none" stroke="#B9875A" stroke-width="2.4" stroke-linecap="round"/>`
-      + crest(cx, y0 + 3, 7),
+    scout: campaign('#94633A', '#7A4E2A', '#5E3B1F', '#B9875A', '#3E2614', '#6E4524') + badge(cx, y0 + 2, 8.5),
+    // a beret: soft, pulled over to one side, a dark leather band, the
+    // little stalk on top, the badge to the front
     beret: `<path d="M${x0 - 6} ${y0 + 12} Q${x0 - 16} ${top - 18} ${cx - 4} ${top - 22} Q${x1 + 22} ${top - 20} ${x1 + 6} ${y0 + 10} Z" fill="${hw}"/>`
-      + `<rect x="${x0 - 2}" y="${y0 + 4}" width="${w + 4}" height="10" rx="5" fill="${hwD}"/><rect x="${cx - 2}" y="${top - 30}" width="5" height="10" rx="2.5" fill="${hwD}"/>`
-      + `<path d="M${x0 + 6} ${top - 8} Q${cx - 12} ${top - 20} ${cx + 10} ${top - 19}" fill="none" stroke="${hwL}" stroke-width="3" stroke-linecap="round" opacity=".7"/>`
-      + crest(x0 + 20, y0 - 6, 8),
+      + `<path d="M${x1 + 6} ${y0 + 10} Q${x1 + 22} ${top - 20} ${cx + 10} ${top - 21} Q${x1 + 8} ${top - 10} ${x1 - 6} ${y0 + 8} Z" fill="${hwD}"/>`
+      + `<path d="M${x0 - 2} ${y0 + 6} Q${cx} ${y0 + 1} ${x1 + 2} ${y0 + 6} L${x1 + 2} ${y0 + 14} Q${cx} ${y0 + 10} ${x0 - 2} ${y0 + 14} Z" fill="${shade(hw, 0.4)}"/>`
+      + `<path d="M${x0 + 2} ${y0 + 7.5} Q${cx} ${y0 + 3} ${x1 - 2} ${y0 + 7.5}" fill="none" stroke="#fff" stroke-width="1.2" opacity=".18"/>`
+      + `<path d="M${cx - 10} ${top - 22} q-1 -8 4 -9 q5 1 3 9 Z" fill="${hwD}"/>`
+      + `<path d="M${x0 + 4} ${top - 6} Q${cx - 14} ${top - 20} ${cx + 10} ${top - 20}" fill="none" stroke="${hwL}" stroke-width="3.2" stroke-linecap="round" opacity=".7"/>`
+      + badge(x1 - 20, y0 - 8, 8.5),
+    // a baseball cap: six panels with their seams, eyelets, the button on
+    // top, a curved brim, the badge on the front panel
     cap: `<path d="M${x0 - 3} ${y0 + 16} Q${x0 - 4} ${top - 22} ${cx} ${top - 22} Q${x1 + 4} ${top - 22} ${x1 + 3} ${y0 + 16} Z" fill="${hw}"/>`
       + `<path d="M${x1 - 18} ${top - 18} Q${x1 + 4} ${top - 16} ${x1 + 3} ${y0 + 16} L${x1 - 10} ${y0 + 16} Q${x1 - 8} ${top - 4} ${x1 - 18} ${top - 18} Z" fill="${hwD}"/>`
+      + `<path d="M${cx} ${top - 20} V${y0 + 12} M${cx - 4} ${top - 20} Q${x0 + 8} ${top - 10} ${x0 + 4} ${y0 + 14} M${cx + 4} ${top - 20} Q${x1 - 8} ${top - 10} ${x1 - 4} ${y0 + 14}" fill="none" stroke="${hwDD}" stroke-width="1.5" opacity=".55"/>`
+      + `<circle cx="${cx - 20}" cy="${top - 9}" r="1.6" fill="${hwDD}" opacity=".7"/><circle cx="${cx + 20}" cy="${top - 9}" r="1.6" fill="${hwDD}" opacity=".7"/>`
       + `<path d="M${x0 - 8} ${y0 + 18} Q${cx} ${y0 + 6} ${x1 + 8} ${y0 + 18} Q${cx} ${y0 + 30} ${x0 - 8} ${y0 + 18} Z" fill="${hwD}"/>`
-      + `<circle cx="${cx}" cy="${top - 20}" r="4" fill="${hwD}"/>`
-      + `<path d="M${cx} ${top - 18} V${y0 + 12}" stroke="${hwD}" stroke-width="1.6" opacity=".7"/>`
+      + `<path d="M${x0 - 6} ${y0 + 19.5} Q${cx} ${y0 + 31} ${x1 + 6} ${y0 + 19.5}" fill="none" stroke="${hwDD}" stroke-width="2.6" stroke-linecap="round"/>`
+      + `<path d="M${x0 + 2} ${y0 + 15} Q${cx} ${y0 + 8} ${x1 - 2} ${y0 + 15}" fill="none" stroke="${hwL}" stroke-width="1.8" stroke-linecap="round" opacity=".55"/>`
+      + `<ellipse cx="${cx}" cy="${top - 21}" rx="5" ry="3.4" fill="${hwD}"/>`
       + `<path d="M${x0 + 8} ${y0 + 2} Q${x0 + 10} ${top - 12} ${cx - 14} ${top - 18}" fill="none" stroke="${hwL}" stroke-width="3" stroke-linecap="round" opacity=".6"/>`
-      + crest(cx, top - 4, 8),
-    beanie: `<path d="M${x0 - 4} ${y0 + 16} Q${x0 - 4} ${top - 26} ${cx} ${top - 26} Q${x1 + 4} ${top - 26} ${x1 + 4} ${y0 + 16} Z" fill="${hw}"/>`
-      + `<rect x="${x0 - 6}" y="${y0 + 2}" width="${w + 12}" height="18" rx="7" fill="${hwD}"/>`
-      + [...Array(7)].map((_, i) => `<rect x="${x0 + 2 + i * (w - 4) / 7}" y="${y0 + 4}" width="3" height="14" rx="1.5" fill="${hw}" opacity=".55"/>`).join('')
-      + `<circle cx="${cx}" cy="${top - 26}" r="12" fill="${hwL}"/>`
-      + [[-4, -3], [3, -5], [5, 2], [-2, 4], [-6, 2]].map(([dx, dy]) => `<circle cx="${cx + dx}" cy="${top - 26 + dy}" r="2.6" fill="${hwD}" opacity=".35"/>`).join('')
-      + `<circle cx="${cx - 4}" cy="${top - 31}" r="3.4" fill="#fff" opacity=".35"/>`
-      + [...Array(6)].map((_, i) => `<path d="M${x0 + 8 + i * (w - 16) / 5} ${top - 18} Q${x0 + 8 + i * (w - 16) / 5} ${y0 - 6} ${x0 + 8 + i * (w - 16) / 5} ${y0 + 2}" stroke="${hwD}" stroke-width="2.6" opacity=".45" fill="none"/>`).join('')
-      + crest(cx, y0 + 11, 7.5),
-    // the golden campaign hat (90 days): gold felt, a red band, a red feather
-    golden: `<ellipse cx="${cx}" cy="${y0 + 12}" rx="${w / 2 + 36}" ry="12.5" fill="#C99A18"/><ellipse cx="${cx}" cy="${y0 + 9}" rx="${w / 2 + 36}" ry="10.5" fill="#F2C230"/>`
-      + `<path d="M${cx - 34} ${y0 + 10} L${cx - 28} ${y0 - 28} Q${cx - 16} ${y0 - 40} ${cx - 7} ${y0 - 31} L${cx} ${y0 - 42} L${cx + 7} ${y0 - 31} Q${cx + 16} ${y0 - 40} ${cx + 28} ${y0 - 28} L${cx + 34} ${y0 + 10} Z" fill="#F2C230"/>`
-      + `<path d="M${cx + 7} ${y0 - 31} Q${cx + 16} ${y0 - 40} ${cx + 28} ${y0 - 28} L${cx + 34} ${y0 + 10} L${cx + 14} ${y0 + 10} Z" fill="#DDAA22"/>`
-      + `<path d="M${cx - 22} ${y0 - 26} Q${cx - 14} ${y0 - 34} ${cx - 9} ${y0 - 28}" fill="none" stroke="#FFF3B8" stroke-width="2.4" stroke-linecap="round"/>`
-      + `<path d="M${cx + 26} ${y0 - 1} C${cx + 34} ${y0 - 18} ${cx + 46} ${y0 - 34} ${cx + 52} ${y0 - 38} C${cx + 48} ${y0 - 22} ${cx + 40} ${y0 - 8} ${cx + 30} ${y0 + 1} Z" fill="#D8343C"/>`
-      + `<path d="M${cx + 30} ${y0 - 2} C${cx + 38} ${y0 - 16} ${cx + 45} ${y0 - 28} ${cx + 50} ${y0 - 35}" fill="none" stroke="#8E1A22" stroke-width="1.2"/>`
-      + `<rect x="${cx - 34}" y="${y0 - 2}" width="68" height="10" rx="3" fill="#B23A48"/>`
-      + crest(cx, y0 + 3, 7.5)
+      + badge(cx, top - 3, 9),
+    // a knitted beanie: ribbed all over, a deep folded cuff, a big fluffy
+    // pompom, the badge on the cuff
+    beanie: `<path d="${beanieBody}" fill="${hw}"/>`
+      + `<g clip-path="url(#${clipTo(beanieBody)})">`
+      + [...Array(16)].map((_, i) => `<rect x="${x0 - 4 + i * (w + 8) / 15 - 1.6}" y="${top - 30}" width="3.2" height="${y0 - top + 50}" fill="${hwD}" opacity=".5"/>`).join('')
+      + `<path d="M${x0 - 4} ${top - 2} Q${cx - 18} ${top - 26} ${cx + 6} ${top - 24}" fill="none" stroke="${hwL}" stroke-width="4" stroke-linecap="round" opacity=".45"/></g>`
+      + `<rect x="${x0 - 6}" y="${y0 + 1}" width="${w + 12}" height="19" rx="7" fill="${hwD}"/>`
+      + [...Array(12)].map((_, i) => `<rect x="${x0 - 3 + i * (w + 6) / 11 - 1.3}" y="${y0 + 3.5}" width="2.6" height="14" rx="1.3" fill="${hwDD}" opacity=".45"/>`).join('')
+      + `<path d="M${x0 - 3} ${y0 + 3.4} H${x1 + 3}" stroke="${hwL}" stroke-width="1.6" stroke-linecap="round" opacity=".45"/>`
+      + [[0, 0, 11], [-8, 3, 6.5], [8, 3, 6.5], [-6, -7, 6.5], [6, -7, 6.5], [0, -10, 6], [-10, -3, 5.5], [10, -3, 5.5]].map(([dx, dy, r]) =>
+        `<circle cx="${cx + dx}" cy="${pom + dy}" r="${r}" fill="${hwL}"/>`).join('')
+      + [[-5, -2], [4, -5], [6, 4], [-3, 6], [-9, 2], [1, -11]].map(([dx, dy]) => `<circle cx="${cx + dx}" cy="${pom + dy}" r="1.7" fill="${hwD}" opacity=".5"/>`).join('')
+      + `<circle cx="${cx - 5}" cy="${pom - 6}" r="3.4" fill="#fff" opacity=".35"/>`
+      + badge(cx, y0 + 10.5, 7.6),
+    // the golden campaign hat (90 days): gold felt, a red band, a red
+    // feather, sparkles
+    golden: campaign('#F2C230', '#DDAA22', '#B98A12', '#FFF3B8', '#C8303A', '#E86A6A')
+      + `<path d="M${cx + 25} ${y0 - 1} C${cx + 30} ${y0 - 20} ${cx + 42} ${y0 - 36} ${cx + 52} ${y0 - 42} C${cx + 50} ${y0 - 24} ${cx + 42} ${y0 - 8} ${cx + 30} ${y0 + 1} Z" fill="#D8343C"/>`
+      + `<path d="M${cx + 28} ${y0 - 1} C${cx + 35} ${y0 - 18} ${cx + 43} ${y0 - 30} ${cx + 50} ${y0 - 39}" fill="none" stroke="#8E1A22" stroke-width="1.3"/>`
+      + [[-12, 0.3], [-20, 0.45], [-28, 0.6]].map(([dy, k]) => `<path d="M${cx + 33 + k * 10} ${y0 + dy} l6 -4" stroke="#8E1A22" stroke-width="1" opacity=".6"/>`).join('')
+      + sparkle(cx - 46, y0 - 18, 5) + sparkle(cx + 54, y0 - 2, 4) + sparkle(cx - 28, y0 - 40, 3.4)
+      + badge(cx, y0 + 2, 8.5)
   }
 
   /* ---- limited edition, around the avatar ---- */
