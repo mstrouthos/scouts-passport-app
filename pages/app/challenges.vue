@@ -197,7 +197,7 @@ function optClass(c: any, o: any) {
           <span class="face"><span class="ico">{{ nodeIcon(c) }}</span></span>
           <span v-if="c.isBonus" class="star">🎁</span>
         </button>
-        <div class="cap" :class="{ dim: c.state === 'missed' }">{{ lx(c) }}</div>
+        <div class="cap" :class="{ dim: c.state === 'missed' }">{{ lx(c) }}<span v-if="c.draft" class="draft">🧪 {{ t('draftTest') }}</span></div>
       </div>
     </div>
     <div v-else class="empty pempty"><img :src="phoenixArt('sleep')" alt=""><span>{{ t('noChallenges') }}</span></div>
@@ -410,4 +410,5 @@ function optClass(c: any, o: any) {
 .pempty img{width:140px; height:140px; object-fit:contain}
 .readhint{display:flex; align-items:center; justify-content:center; gap:8px; font-size:12.5px; color:var(--muted)}
 .readhint img{width:56px; height:56px; object-fit:contain}
+.draft{display:inline-block; margin-left:6px; padding:1px 7px; border-radius:999px; background:#FFE9B8; color:#8A5A00; font-size:10.5px; font-weight:800; vertical-align:middle}
 </style>

@@ -70,7 +70,7 @@ const STATUS: Record<string, { icon: string, key: string }> = {
       <div class="mtop">
         <div class="memoji">{{ m.emoji }}</div>
         <div class="mtxt">
-          <b>{{ m.titleEl }}</b>
+          <b>{{ m.titleEl }}<span v-if="m.draft" class="draft">🧪 {{ t('draftTest') }}</span></b>
           <span>+{{ m.points }} {{ t('pts') }}<template v-if="m.closesAt"> · {{ t('missionUntil', { d: fmtDate(m.closesAt, locale) }) }}</template></span>
         </div>
       </div>
@@ -90,7 +90,7 @@ const STATUS: Record<string, { icon: string, key: string }> = {
       <div v-for="m in done" :key="m.id" class="mcard small">
         <div class="mtop">
           <div class="memoji">{{ m.emoji }}</div>
-          <div class="mtxt"><b>{{ m.titleEl }}</b>
+          <div class="mtxt"><b>{{ m.titleEl }}<span v-if="m.draft" class="draft">🧪 {{ t('draftTest') }}</span></b>
             <span v-if="m.submission">{{ STATUS[m.submission.status].icon }} {{ t(STATUS[m.submission.status].key) }}<template v-if="m.submission.status === 'approved'"> · +{{ m.points }} {{ t('pts') }}</template></span>
           </div>
           <img v-if="m.submission" :src="m.submission.photo" alt="" class="thumb">
@@ -136,4 +136,5 @@ const STATUS: Record<string, { icon: string, key: string }> = {
 .banner-art{width:100%; aspect-ratio:16/7; object-fit:cover; border-radius:20px; display:block; box-shadow:var(--shadow-sm, 0 2px 10px rgba(30,70,140,.08))}
 .pempty{display:flex; flex-direction:column; align-items:center; gap:6px}
 .pempty img{width:140px; height:140px; object-fit:contain}
+.draft{display:inline-block; margin-left:6px; padding:1px 7px; border-radius:999px; background:#FFE9B8; color:#8A5A00; font-size:10.5px; font-weight:800; vertical-align:middle}
 </style>

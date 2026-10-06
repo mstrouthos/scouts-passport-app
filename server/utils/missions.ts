@@ -7,6 +7,10 @@ export type Mission = typeof s.missions.$inferSelect
 
 /** Open for answers right now: published, opened, not yet closed. */
 export const isOpen = (m: Mission, t: string) => m.isPublished && !isAfter(m.opensAt, t) && !(m.closesAt && isAtOrBefore(m.closesAt, t))
+/** Open for this member: as above, or — for a hidden test account — a draft
+    not yet published, to try it out first. */
+export const isOpenFor = (m: Mission, t: string, me: { isHidden: boolean }) =>
+  (m.isPublished || me.isHidden) && !isAfter(m.opensAt, t) && !(m.closesAt && isAtOrBefore(m.closesAt, t))
 
 /** The sector a member belongs to, for which missions are theirs. */
 export async function memberSection(me: SessionScout) {

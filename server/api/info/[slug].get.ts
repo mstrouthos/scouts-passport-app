@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const db = await useDb()
   const mySection = sectionOfWith(me, await db.select().from(s.patrols))
   const p = pagesForSection(await allInfoPages(), mySection).find(x => x.slug === slug)
-  if (!p || (!p.isPublished && me.role === 'scout'))
+  if (!p || (!p.isPublished && me.role === 'scout' && !me.isHidden))
     throw createError({ statusCode: 404, message: 'Not found' })
   return {
     slug: p.slug, icon: p.iconEmoji, titleEl: p.titleEl, titleEn: p.titleEn,

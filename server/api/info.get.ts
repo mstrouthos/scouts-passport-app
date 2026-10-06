@@ -9,7 +9,8 @@ export default defineEventHandler(async (event) => {
   const db = await useDb()
   const mySection = sectionOfWith(me, await db.select().from(s.patrols))
   const rows = pagesForSection(await allInfoPages(), mySection)
-    .filter(p => p.isPublished || me.role !== 'scout')
+    // drafts: to the Βαθμοφόροι, and to the hidden test accounts
+    .filter(p => p.isPublished || me.role !== 'scout' || me.isHidden)
   return rows.map(p => ({
     slug: p.slug, icon: p.iconEmoji, titleEl: p.titleEl, titleEn: p.titleEn,
     summaryEl: p.summaryEl, summaryEn: p.summaryEn, isPublished: p.isPublished,

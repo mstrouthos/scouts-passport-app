@@ -3,7 +3,7 @@ import { useDb, schema as s } from '../../../db'
 import { requireScout, idParam } from '../../../utils/guard'
 import { now } from '../../../utils/passcode'
 import { storeFile, deleteStored } from '../../../utils/storage'
-import { isOpen, isFor, memberSection, missionById, checkCameraTicket } from '../../../utils/missions'
+import { isOpenFor, isFor, memberSection, missionById, checkCameraTicket } from '../../../utils/missions'
 import { leadersOfSections } from '../../../utils/polls'
 import { sendPushTo } from '../../../utils/push'
 import { noteError } from '../../../utils/errorReport'
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const m = await missionById(idParam(event))
   const t = now()
   if (!isFor(m, await memberSection(me))) throw createError({ statusCode: 404, message: 'Η αποστολή δεν βρέθηκε' })
-  if (!isOpen(m, t)) throw createError({ statusCode: 400, message: 'Η αποστολή έχει κλείσει' })
+  if (!isOpenFor(m, t, me)) throw createError({ statusCode: 400, message: 'Η αποστολή έχει κλείσει' })
 
   const b = await readBody<{ mime?: string, dataBase64?: string, note?: string, ticket?: string }>(event)
   if (!checkCameraTicket(b?.ticket, me.id, m.id)) throw createError({ statusCode: 400, message: 'Η φωτογραφία πρέπει να τραβηχτεί με την κάμερα της εφαρμογής' })

@@ -25,7 +25,9 @@ export default defineEventHandler(async (event) => {
   const earnedBonus = bonusEarned(days, today)
 
   const mine = (await db.select().from(s.challenges))
-    .filter(c => c.isPublished && isAtOrBefore(c.unlocksAt, t) && !c.forLeaders)
+    // a draft is shown only to the hidden test accounts, at once, to try it
+    // out before it is published; a published one follows its schedule
+    .filter(c => !c.forLeaders && (c.isPublished ? isAtOrBefore(c.unlocksAt, t) : me.isHidden))
     .filter(c => (!c.sectionId && !c.patrolId)
       || (c.patrolId != null ? c.patrolId === me.patrolId : c.sectionId === mySection))
     // a bonus question only appears once this week's streak has earned it
@@ -50,7 +52,7 @@ export default defineEventHandler(async (event) => {
       id: c.id, titleEl: c.titleEl, titleEn: c.titleEn,
       questionEl: c.questionEl, questionEn: c.questionEn,
       imageEmoji: c.imageEmoji, points: c.points,
-      unlocksAt: c.unlocksAt, closesAt: c.closesAt, closed, isBonus: c.isBonus,
+      unlocksAt: c.unlocksAt, closesAt: c.closesAt, closed, isBonus: c.isBonus, draft: !c.isPublished,
       revealedAt: revealMap.get(c.id) ?? null,
       // path state drives the colour of the node
       state: mine_ ? (mine_.isCorrect ? 'correct' : 'wrong') : closed ? 'missed' : 'open',

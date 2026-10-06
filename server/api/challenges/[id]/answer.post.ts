@@ -17,7 +17,8 @@ export default defineEventHandler(async (event) => {
   const t = now()
 
   const c = (await db.select().from(s.challenges).where(eq(s.challenges.id, id)).limit(1))[0]
-  if (!c || !c.isPublished || !c.unlocksAt || isAfter(c.unlocksAt, t))
+  // a draft only for the hidden test accounts; a published one once it unlocks
+  if (!c || (c.isPublished ? (!c.unlocksAt || isAfter(c.unlocksAt, t)) : !me.isHidden))
     throw createError({ statusCode: 404, message: 'Challenge not found' })
   if (isAtOrBefore(c.closesAt, t))
     throw createError({ statusCode: 400, message: 'Challenge closed' })
