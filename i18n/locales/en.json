@@ -1269,5 +1269,6 @@
   "formYourAnswers": "Your answers",
   "formReadOnly": "Read-only. To change anything, talk to the leaders.",
   "formKeptInApp": "You will find it in the app, under Forms you have sent.",
-  "formFromParent": "Sent from the family app by {name}"
+  "formFromParent": "Sent from the family app by {name}",
+  "formAlreadySent": "This form has been sent"
 }
