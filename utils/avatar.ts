@@ -183,6 +183,8 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   const a = normalizeAvatar(a0 || {})
   const skin = a.skin, skinD = shade(skin, 0.86), skinDD = shade(skin, 0.72)
   const hairC = a.hairColor, hairD = shade(hairC, 0.78)
+  // the hair's fill: its colour with a little light at the top, for depth
+  const hairF = `url(#hg-${id})`
   const cx = 100
 
   /* the head: a rounded square, of four proportions */
@@ -203,8 +205,15 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       + `<path d="M74 140 L92 154 L84 163 L68 143 Z M126 140 L108 154 L116 163 L132 143 Z" fill="${ccD}"/>`
       + `<rect x="56" y="168" width="22" height="22" rx="4" fill="${ccD}"/><rect x="122" y="168" width="22" height="22" rx="4" fill="${ccD}"/>`
       + `<rect x="56" y="168" width="22" height="8" rx="3" fill="${shade(cc, 0.7)}"/><rect x="122" y="168" width="22" height="8" rx="3" fill="${shade(cc, 0.7)}"/>`
-      + `<rect x="47" y="149" width="22" height="7" rx="3.5" fill="${ccD}" transform="rotate(-20 58 152)"/><rect x="131" y="149" width="22" height="7" rx="3.5" fill="${ccD}" transform="rotate(20 142 152)"/>`,
-    tee: torso + `<path d="M82 141 Q100 156 118 141" fill="none" stroke="${ccD}" stroke-width="6" stroke-linecap="round"/>`,
+      + `<rect x="47" y="149" width="22" height="7" rx="3.5" fill="${ccD}" transform="rotate(-20 58 152)"/><rect x="131" y="149" width="22" height="7" rx="3.5" fill="${ccD}" transform="rotate(20 142 152)"/>`
+      // the light on the shoulders, the buttons down the front, on the pockets and epaulettes
+      + `<path d="M50 160 Q56 148 70 144" fill="none" stroke="${ccL}" stroke-width="3" stroke-linecap="round" opacity=".55"/><path d="M150 160 Q144 148 130 144" fill="none" stroke="${ccL}" stroke-width="3" stroke-linecap="round" opacity=".35"/>`
+      + `<path d="M100 172 V200" stroke="${ccD}" stroke-width="2.2"/>`
+      + [178, 192].map(y => `<circle cx="100" cy="${y}" r="2.2" fill="${shade(cc, 0.62)}"/><circle cx="99.4" cy="${y - 0.6}" r=".8" fill="${ccL}"/>`).join('')
+      + [67, 133].map(x => `<circle cx="${x}" cy="172" r="1.9" fill="${shade(cc, 0.62)}"/>`).join('')
+      + `<circle cx="56" cy="148.5" r="1.7" fill="${shade(cc, 0.62)}"/><circle cx="144" cy="148.5" r="1.7" fill="${shade(cc, 0.62)}"/>`,
+    tee: torso + `<path d="M82 141 Q100 156 118 141" fill="none" stroke="${ccD}" stroke-width="6" stroke-linecap="round"/>`
+      + `<path d="M50 160 Q56 148 70 144" fill="none" stroke="${ccL}" stroke-width="3" stroke-linecap="round" opacity=".55"/><path d="M58 176 Q62 186 60 198 M142 176 Q138 186 140 198" fill="none" stroke="${ccD}" stroke-width="2.4" stroke-linecap="round" opacity=".7"/>`,
     hoodie: `<path d="M60 152 Q58 128 100 126 Q142 128 140 152 Q120 142 100 142 Q80 142 60 152 Z" fill="${ccD}"/>` + torso
       + `<path d="M91 152 L89 180 M109 152 L111 180" stroke="${ccL}" stroke-width="3.4" stroke-linecap="round"/><circle cx="89" cy="182" r="3" fill="${ccL}"/><circle cx="111" cy="182" r="3" fill="${ccL}"/>`
       + `<rect x="72" y="186" width="56" height="20" rx="7" fill="${ccD}"/>`,
@@ -212,11 +221,12 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       + [0, 1, 2, 3, 4].map(i => `<path d="M${50 + i * 24} 188 l7 8 l7 -8" fill="none" stroke="${ccL}" stroke-width="3.4" stroke-linejoin="round"/>`).join('')
   }
   const neck = `<rect x="${cx - 15}" y="${y1 - 14}" width="30" height="${154 - y1 + 14}" rx="8" fill="${skinD}"/>`
+    + `<ellipse cx="${cx}" cy="${y1 + 1}" rx="15" ry="5" fill="${skinDD}" opacity=".55"/>`
 
   /* the woggle: brown leather; silver with the crest (20 days); gold with a
      red stone (60 days) */
   const WOGGLES: Record<string, string> = {
-    classic: `<rect x="90.5" y="159" width="19" height="13" rx="5.5" fill="${WOGGLE}"/><rect x="90.5" y="165.5" width="19" height="6.5" rx="3.2" fill="${WOGGLE_D}"/>`,
+    classic: `<rect x="90.5" y="159" width="19" height="13" rx="5.5" fill="${WOGGLE}"/><rect x="90.5" y="165.5" width="19" height="6.5" rx="3.2" fill="${WOGGLE_D}"/><rect x="93" y="160.6" width="8" height="2.2" rx="1.1" fill="#B07A47" opacity=".9"/>`,
     silver: `<rect x="89.5" y="158.5" width="21" height="14" rx="6" fill="#C9D3DE"/><rect x="89.5" y="165.5" width="21" height="7" rx="3.5" fill="#9AA8B8"/>`
       + `<rect x="92" y="160" width="9" height="2.6" rx="1.3" fill="#fff" opacity=".85"/>` + crest(100, 165.5, 4.2),
     gold: `<rect x="89" y="158" width="22" height="15" rx="6.5" fill="${'#F2C230'}"/><rect x="89" y="165.5" width="22" height="7.5" rx="3.7" fill="#C99A18"/>`
@@ -242,21 +252,21 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     long: `<path d="M${x0 - 10} ${y0 + 26} Q${x0 - 14} ${y1 + 26} ${x0 - 4} ${y1 + 36} L${x1 + 4} ${y1 + 36} Q${x1 + 14} ${y1 + 26} ${x1 + 10} ${y0 + 26} Z" fill="${hairD}"/>`,
     wavy: `<path d="M${x0 - 10} ${y0 + 26} Q${x0 - 16} ${y1 + 16} ${x0 - 8} ${y1 + 30} q8 9 15 0 q8 9 15 0 L${x1 - 8} ${y1 + 30} q8 9 15 0 Q${x1 + 16} ${y1 + 16} ${x1 + 10} ${y0 + 26} Z" fill="${hairD}"/>`,
     bob: `<path d="M${x0 - 9} ${y0 + 20} Q${x0 - 12} ${y1 - 4} ${x0 - 6} ${y1 + 2} L${x1 + 6} ${y1 + 2} Q${x1 + 12} ${y1 - 4} ${x1 + 9} ${y0 + 20} Z" fill="${hairD}"/>`,
-    afro: `<rect x="${x0 - 22}" y="${y0 - 24}" width="${w + 44}" height="${h * 0.86 + 24}" rx="${(w + 44) / 2.3}" fill="${hairC}"/>`,
+    afro: `<rect x="${x0 - 22}" y="${y0 - 24}" width="${w + 44}" height="${h * 0.86 + 24}" rx="${(w + 44) / 2.3}" fill="${hairF}"/>`,
     ponytail: `<path d="M${x1 - 6} ${y0 + 16} Q${x1 + 34} ${y0 + 10} ${x1 + 26} ${y0 + 60} Q${x1 + 22} ${y0 + 80} ${x1 + 8} ${y0 + 84} Q${x1 + 18} ${y0 + 50} ${x1 - 4} ${y0 + 34} Z" fill="${hairD}"/>`,
     pigtails: `<circle cx="${x0 - 12}" cy="${y0 + 40}" r="16" fill="${hairD}"/><circle cx="${x1 + 12}" cy="${y0 + 40}" r="16" fill="${hairD}"/>`
       + `<rect x="${x0 - 2}" y="${y0 + 33}" width="8" height="12" rx="3" fill="${SCARF_YELLOW}"/><rect x="${x1 - 6}" y="${y0 + 33}" width="8" height="12" rx="3" fill="${SCARF_YELLOW}"/>`,
-    bun: `<circle cx="${cx}" cy="${y0 - 12}" r="17" fill="${hairC}"/><path d="M${cx - 12} ${y0 - 4} Q${cx} ${y0 - 22} ${cx + 12} ${y0 - 4}" fill="none" stroke="${hairD}" stroke-width="3"/>`,
+    bun: `<circle cx="${cx}" cy="${y0 - 12}" r="17" fill="${hairF}"/><path d="M${cx - 12} ${y0 - 4} Q${cx} ${y0 - 22} ${cx + 12} ${y0 - 4}" fill="none" stroke="${hairD}" stroke-width="3"/>`,
     // locs: ropes of hair falling to the shoulders
     locs: [-1, 1].map(s => [0, 1, 2].map(i => {
       const bx = s < 0 ? x0 - 8 + i * 6 : x1 + 8 - i * 6
-      return `<rect x="${bx - 4}" y="${y0 + 18}" width="8" height="${h * 0.95 - i * 8}" rx="4" fill="${i % 2 ? hairC : hairD}"/>`
+      return `<rect x="${bx - 4}" y="${y0 + 18}" width="8" height="${h * 0.95 - i * 8}" rx="4" fill="${i % 2 ? hairF : hairD}"/>`
     }).join('')).join(''),
     curlyLong: [...Array(5)].map((_, i) => `<circle cx="${x0 - 8}" cy="${y0 + 26 + i * 15}" r="12" fill="${hairD}"/><circle cx="${x1 + 8}" cy="${y0 + 26 + i * 15}" r="12" fill="${hairD}"/>`).join('')
       + `<rect x="${x0 - 8}" y="${y0 + 20}" width="${w + 16}" height="${h * 0.7}" rx="12" fill="${hairD}"/>`,
     braids: [-1, 1].map(s => {
       const bx = s < 0 ? x0 - 2 : x1 + 2
-      return [0, 1, 2, 3].map(i => `<ellipse cx="${bx}" cy="${y0 + 44 + i * 16}" rx="9" ry="10" fill="${i % 2 ? hairD : hairC}"/>`).join('')
+      return [0, 1, 2, 3].map(i => `<ellipse cx="${bx}" cy="${y0 + 44 + i * 16}" rx="9" ry="10" fill="${i % 2 ? hairD : hairF}"/>`).join('')
         + `<rect x="${bx - 5}" y="${y0 + 106}" width="10" height="7" rx="3" fill="${SCARF_YELLOW}"/>`
     }).join('')
   }
@@ -272,7 +282,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     return c
   }
   // the head's outline grown by `e` (and by `top` over the crown)
-  const headShape = (e: number, top = e, fill = hairC) =>
+  const headShape = (e: number, top = e, fill = hairF) =>
     `<rect x="${x0 - e}" y="${y0 - top}" width="${w + 2 * e}" height="${h + e + top}" rx="${hb.r + e}" fill="${fill}"/>`
   // everything above a hairline: down to `d` of the head's height at the
   // sides, at `line` of it in the middle of the forehead
@@ -293,8 +303,8 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   }
   const along = (n: number, inset: number) => [...Array(n)].map((_, i) => x0 + inset + i * (w - 2 * inset) / (n - 1))
   const curls = (n: number, inset: number, r: number, lift: number, wobble = 0) =>
-    along(n, inset).map((x, i) => `<circle cx="${x}" cy="${headTop(x) - lift + (i % 2) * wobble}" r="${r}" fill="${hairC}"/>`).join('')
-  const curtains = `<path d="M${cx} ${y0 + 2} Q${cx - 26} ${y0 + h * 0.06} ${x0 + 6} ${y0 + h * 0.32} L${x0 - 6} ${y0 + h * 0.66} Z M${cx} ${y0 + 2} Q${cx + 26} ${y0 + h * 0.06} ${x1 - 6} ${y0 + h * 0.32} L${x1 + 6} ${y0 + h * 0.66} Z" fill="${hairC}"/>`
+    along(n, inset).map((x, i) => `<circle cx="${x}" cy="${headTop(x) - lift + (i % 2) * wobble}" r="${r}" fill="${hairF}"/>`).join('')
+  const curtains = `<path d="M${cx} ${y0 + 2} Q${cx - 26} ${y0 + h * 0.06} ${x0 + 6} ${y0 + h * 0.32} L${x0 - 6} ${y0 + h * 0.66} Z M${cx} ${y0 + 2} Q${cx + 26} ${y0 + h * 0.06} ${x1 - 6} ${y0 + h * 0.32} L${x1 + 6} ${y0 + h * 0.66} Z" fill="${hairF}"/>`
   const front: Record<string, string> = {
     none: '',
     buzz: `<g opacity=".9" clip-path="url(#${clipTo(above(0.28, 0.16))})">${headShape(1, 2)}</g>`,
@@ -302,16 +312,16 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     crew: cap(0.28, 0, 0.1) + sideburnsTo(0.34, 12),
     // short, the hairline receding at the temples, a little lower in the middle
     receding: `<g clip-path="url(#${clipTo(`M-60 -60 H260 V${y0 + h * 0.36} H${x1 - 5} L${x1 - 6} ${y0 + h * 0.15} Q${x1 - 12} ${y0 + h * 0.03} ${cx + 11} ${y0 + h * 0.07} Q${cx} ${y0 + h * 0.13} ${cx - 11} ${y0 + h * 0.07} Q${x0 + 12} ${y0 + h * 0.03} ${x0 + 6} ${y0 + h * 0.15} L${x0 + 5} ${y0 + h * 0.36} H-60 Z`)})">${headShape(3, 6)}</g>`,
-    short: cap(0.36) + sideburns + `<path d="M${cx - 22} ${y0 + h * 0.18} Q${cx - 4} ${y0 + h * 0.34} ${cx + 12} ${y0 + h * 0.16} Z" fill="${hairC}"/>`,
-    side: cap(0.4) + sideburns + `<path d="M${x0 - 3} ${y0 + h * 0.4} Q${x0 + 4} ${y0 + h * 0.1} ${cx + 24} ${y0 + h * 0.12} Q${cx - 6} ${y0 + h * 0.2} ${x0 + 10} ${y0 + h * 0.42} Z" fill="${hairC}"/>`
+    short: cap(0.36) + sideburns + `<path d="M${cx - 22} ${y0 + h * 0.18} Q${cx - 4} ${y0 + h * 0.34} ${cx + 12} ${y0 + h * 0.16} Z" fill="${hairF}"/>`,
+    side: cap(0.4) + sideburns + `<path d="M${x0 - 3} ${y0 + h * 0.4} Q${x0 + 4} ${y0 + h * 0.1} ${cx + 24} ${y0 + h * 0.12} Q${cx - 6} ${y0 + h * 0.2} ${x0 + 10} ${y0 + h * 0.42} Z" fill="${hairF}"/>`
       + `<path d="M${cx + 24} ${y0 + h * 0.12} Q${cx - 6} ${y0 + h * 0.2} ${x0 + 10} ${y0 + h * 0.42}" fill="none" stroke="${hairD}" stroke-width="3" stroke-linecap="round"/>`,
     // curls along the curve of the head, down to the temples
     curly: cap(0.3, 2) + curls(9, 2, 12, -2, 5) + sideburnsTo(0.36),
-    afro: [...Array(7)].map((_, i) => `<circle cx="${x0 + 6 + i * (w - 12) / 6}" cy="${y0 + 8}" r="11" fill="${hairC}"/>`).join(''),
+    afro: [...Array(7)].map((_, i) => `<circle cx="${x0 + 6 + i * (w - 12) / 6}" cy="${y0 + 8}" r="11" fill="${hairF}"/>`).join(''),
     // a short, rounded afro: a little fuller than the head, its edge in small curls
     afroShort: cap(0.34, 6, 0.19) + curls(9, 6, 6, 7),
     // short and wavy: the fringe in soft waves
-    wavyShort: cap(0.34, 1) + [...Array(5)].map((_, i) => `<circle cx="${x0 + 10 + i * (w - 20) / 4}" cy="${y0 + h * 0.2}" r="${8 - Math.abs(i - 2)}" fill="${hairC}"/>`).join('') + sideburns,
+    wavyShort: cap(0.34, 1) + [...Array(5)].map((_, i) => `<circle cx="${x0 + 10 + i * (w - 20) / 4}" cy="${y0 + h * 0.2}" r="${8 - Math.abs(i - 2)}" fill="${hairF}"/>`).join('') + sideburns,
     curlyLong: cap(0.4, 2) + curls(9, 2, 12, -2, 5),
     // locs: the top in ropes, with their ends hanging down the sides
     locs: (() => {
@@ -327,7 +337,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
         + along(5, 10).map(x => `<path d="M${x} ${y0 + h * 0.15} L${x + (x - cx) * 0.15} ${headTop(x + (x - cx) * 0.15) + 2}" stroke="${hairD}" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="3 2.4"/>`).join('')
         + `</g>`
     })(),
-    bob: cap(0.5, 4) + `<rect x="${x0 + 2}" y="${y0 + 2}" width="${w - 4}" height="${h * 0.24}" rx="10" fill="${hairC}"/>`,
+    bob: cap(0.5, 4) + `<rect x="${x0 + 2}" y="${y0 + 2}" width="${w - 4}" height="${h * 0.24}" rx="10" fill="${hairF}"/>`,
     long: cap(0.62, 4) + curtains,
     wavy: cap(0.62, 4) + curtains,
     ponytail: cap(0.32) + `<path d="M${x0} ${y0 + h * 0.3} Q${cx - 10} ${y0 + h * 0.1} ${x1 - 4} ${y0 + h * 0.22} Q${cx} ${y0 - 2} ${x0} ${y0 + h * 0.3} Z" fill="${hairD}" opacity=".5"/>`,
@@ -338,6 +348,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
 
   /* ---- ears and head ---- */
   const ears = `<rect x="${x0 - 9}" y="${ey - 8}" width="16" height="20" rx="8" fill="${skinD}"/><rect x="${x1 - 7}" y="${ey - 8}" width="16" height="20" rx="8" fill="${skinD}"/>`
+    + `<path d="M${x0 - 3} ${ey - 3} Q${x0 - 6} ${ey + 3} ${x0 - 2} ${ey + 8}" fill="none" stroke="${skinDD}" stroke-width="2.4" stroke-linecap="round"/><path d="M${x1 + 3} ${ey - 3} Q${x1 + 6} ${ey + 3} ${x1 + 2} ${ey + 8}" fill="none" stroke="${skinDD}" stroke-width="2.4" stroke-linecap="round"/>`
   // earrings, at the lobes
   const GOLD = '#F2C230', GOLD_D = '#C99A18'
   const earrings: Record<string, string> = {
@@ -351,9 +362,23 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   const lanyard = (endX: number, endY: number) => `<path d="M88 152 Q${(88 + endX) / 2 - 4} ${(152 + endY) / 2 + 6} ${endX} ${endY} M112 152 Q${(112 + endX) / 2 + 2} ${(152 + endY) / 2 + 8} ${endX} ${endY}" fill="none" stroke="#2B2B33" stroke-width="2.2"/>`
   const gear: Record<string, string> = {
     none: '',
-    whistle: lanyard(72, 164) + `<g transform="rotate(-24 72 168)"><rect x="63" y="164" width="19" height="9.5" rx="4.75" fill="#C8D0DA"/><rect x="79" y="165" width="6" height="7.5" rx="2" fill="#AEB9C6"/><circle cx="67.5" cy="168.7" r="2.5" fill="#8E9CAF"/></g>`,
-    compass: lanyard(129, 162) + `<circle cx="129" cy="168" r="9.5" fill="#C8D0DA"/><circle cx="129" cy="168" r="7" fill="#fff"/><path d="M129 162.3 L131.3 168 L129 169 Z" fill="#D8543C"/><path d="M129 173.7 L126.7 168 L129 167 Z" fill="#2B2B33"/>`,
-    badges: crest(66, 166, 6.5) + `<rect x="140" y="152" width="14" height="12" rx="3" fill="#3B6452" stroke="#fff" stroke-width="1.6" transform="rotate(18 147 158)"/><path d="M144 155 l3 4 l3 -4" fill="none" stroke="${SCARF_YELLOW}" stroke-width="1.8" transform="rotate(18 147 158)"/>`
+    // a metal whistle: a barrel with a mouthpiece, a ring and the light on it
+    whistle: lanyard(72, 164) + `<g transform="rotate(-24 72 170)">`
+      + `<path d="M60 165 h17 a6.5 6.5 0 0 1 0 13 h-17 a6.5 6.5 0 0 1 0 -13 Z" fill="#B9C3CF"/>`
+      + `<path d="M60 171.5 h17 a6.5 6.5 0 0 1 -6 6.5 h-11 a6.5 6.5 0 0 1 -6.5 -6.5 Z" fill="#94A1B2"/>`
+      + `<rect x="76" y="166.5" width="11" height="8" rx="2.4" fill="#A9B4C2"/><rect x="76" y="171" width="11" height="3.5" rx="1.5" fill="#8593A6"/>`
+      + `<circle cx="65" cy="171.5" r="3" fill="#6F7E92"/><path d="M61 167.4 h13" stroke="#EEF2F6" stroke-width="2" stroke-linecap="round"/>`
+      + `<circle cx="58.5" cy="166" r="2.6" fill="none" stroke="#94A1B2" stroke-width="1.6"/></g>`,
+    // a compass: a brass case and bezel, a white dial with its four marks, a red and navy needle
+    compass: lanyard(129, 162) + `<circle cx="129" cy="169" r="11.5" fill="#C99A18"/><circle cx="129" cy="169" r="11.5" fill="none" stroke="#9C7410" stroke-width="1.4"/>`
+      + `<circle cx="129" cy="169" r="8.6" fill="#FFFDF5"/><rect x="127" y="155.6" width="4" height="3.4" rx="1.2" fill="#C99A18"/>`
+      + `<path d="M129 161.6 v2 M129 174.4 v2 M121.6 169 h2 M134.4 169 h2" stroke="#2B2B33" stroke-width="1.2" stroke-linecap="round"/>`
+      + `<path d="M129 162.8 L131.4 169 L126.6 169 Z" fill="#D8343C"/><path d="M129 175.2 L131.4 169 L126.6 169 Z" fill="#1F2C6B"/><circle cx="129" cy="169" r="1.3" fill="#C99A18"/>`
+      + `<path d="M122.5 164.5 Q125 161.8 128.5 161.4" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".8"/>`,
+    // badges sewn on: the troop's crest on the chest, a stripe patch on the sleeve
+    badges: `<circle cx="66" cy="166" r="9" fill="#1F2C6B"/>` + crest(66, 166, 7.4)
+      + `<g transform="rotate(18 147 158)"><rect x="139" y="150" width="16" height="16" rx="3.5" fill="#1F2C6B" stroke="#F2C230" stroke-width="1.4"/>`
+      + `<path d="M142 155 l5 4 l5 -4 M142 160 l5 4 l5 -4" fill="none" stroke="#F2C230" stroke-width="2" stroke-linejoin="round"/></g>`
   }
   // the flame pin (7 days): bronze, on the left pocket
   const pin = a.pin === 'flame'
@@ -377,7 +402,9 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       `<path d="${d}" fill="none" stroke="${SCARF_BLUE}" stroke-width="3.6" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${SCARF_YELLOW}" stroke-width="3.6" stroke-dasharray="3 3" stroke-linecap="round"/>`).join('')
       + `<rect x="111" y="176" width="6" height="9" rx="2" fill="#E3B23C" transform="rotate(20 114 180)"/>`
     : ''
-  const head = `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${hb.r}" fill="${skin}"/>`
+  // the face: a soft light from the upper left, a warm glow on the cheeks
+  const head = `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${hb.r}" fill="url(#sk-${id})"/>`
+    + `<ellipse cx="${eyeL - 6}" cy="${ey + 17}" rx="8" ry="4.5" fill="#F28B82" opacity=".18"/><ellipse cx="${eyeR + 6}" cy="${ey + 17}" rx="8" ry="4.5" fill="#F28B82" opacity=".18"/>`
 
   /* ---- the face: eyes, brows, nose, mouth, together by expression ---- */
   type Ex = { eyes: 'open' | 'happy' | 'half' | 'wink' | 'wide', brows: 'soft' | 'up' | 'angry' | 'flat' | 'tilt', mouth: string }
@@ -405,8 +432,8 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     const ir = kind === 'wide' ? 6.5 : sh === 'round' ? 6 : 5.2
     const iy = ey + (sh === 'round' ? 1.5 : 0.8)
     const whites = `<ellipse cx="${x}" cy="${ey}" rx="${rx}" ry="${ry}" fill="#fff"/>`
-      + `<circle cx="${x + 1}" cy="${iy}" r="${ir}" fill="${iris}"/>`
-      + `<circle cx="${x + 1}" cy="${iy}" r="${ir / 2}" fill="${INK}"/><circle cx="${x + 3}" cy="${ey - 1.5}" r="${ir / 3}" fill="#fff"/>`
+      + `<circle cx="${x + 1}" cy="${iy}" r="${ir}" fill="${iris}" stroke="${shade(iris, 0.6)}" stroke-width="1.2"/>`
+      + `<circle cx="${x + 1}" cy="${iy}" r="${ir / 2}" fill="${INK}"/><circle cx="${x + 3}" cy="${ey - 1.5}" r="${ir / 3}" fill="#fff"/><circle cx="${x - 1.6}" cy="${iy + ir * 0.45}" r="${ir / 6}" fill="#fff" opacity=".85"/>`
     const lid = kind === 'half'
       ? `<path d="M${x - rx - 1} ${ey - 1} Q${x} ${ey - ry - 6} ${x + rx + 1} ${ey - 1} Z" fill="${skinD}"/><path d="M${x - rx} ${ey - 1} L${x + rx} ${ey - 1}" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`
       : ''
@@ -428,7 +455,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     long: `<path d="M${cx - 2} ${ny - 11} Q${cx + 1} ${ny - 11} ${cx + 2} ${ny - 1} Q${cx + 8} ${ny + 4} ${cx + 1} ${ny + 6.5} Q${cx - 6} ${ny + 6.5} ${cx - 4.5} ${ny + 2} Q${cx - 2.5} ${ny - 2} ${cx - 2} ${ny - 11} Z" fill="${skinDD}"/>`,
     wide: `<path d="M${cx - 9} ${ny + 4} Q${cx - 6} ${ny - 5} ${cx} ${ny - 3} Q${cx + 6} ${ny - 5} ${cx + 9} ${ny + 4} Q${cx} ${ny + 8.5} ${cx - 9} ${ny + 4} Z" fill="${skinDD}"/>`
   }
-  const nose = NOSE[a.nose] || NOSE.button
+  const nose = (NOSE[a.nose] || NOSE.button) + `<ellipse cx="${cx - 1.6}" cy="${ny - 0.5}" rx="1.8" ry="1.4" fill="#fff" opacity=".35"/>`
   // with a moustache the mouth sits a little lower, so the two do not meet
   const my = y0 + h * 0.8 + (['moustache', 'goatee', 'beard', 'denseShort', 'shortBeard'].includes(a.facialHair) ? 4 : 0)
   const MOUTH: Record<string, string> = {
@@ -488,11 +515,13 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
 
   /* ---- glasses ---- */
   const gc = a.glassesColor, gy = ey
-  const arms = `<path d="M${eyeL - 13} ${gy - 3} L${x0 - 2} ${gy - 6} M${eyeR + 13} ${gy - 3} L${x1 + 2} ${gy - 6}" stroke="${gc}" stroke-width="3.4" stroke-linecap="round"/>`
+  // a glint across each lens
+  const glare = `<path d="M${eyeL + 2} ${gy - 8} l6 -2 M${eyeR + 2} ${gy - 8} l6 -2" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".7"/>`
+  const arms = `<path d=""M${eyeL - 13} ${gy - 3} L${x0 - 2} ${gy - 6} M${eyeR + 13} ${gy - 3} L${x1 + 2} ${gy - 6}" stroke="${gc}" stroke-width="3.4" stroke-linecap="round"/>`
   const glasses: Record<string, string> = {
     none: '',
-    round: `<g fill="#fff" fill-opacity=".18" stroke="${gc}" stroke-width="4"><circle cx="${eyeL}" cy="${gy}" r="13"/><circle cx="${eyeR}" cy="${gy}" r="13"/></g><path d="M${eyeL + 13} ${gy - 2} Q${cx} ${gy - 7} ${eyeR - 13} ${gy - 2}" fill="none" stroke="${gc}" stroke-width="3.4"/>` + arms,
-    square: `<g fill="#fff" fill-opacity=".18" stroke="${gc}" stroke-width="4"><rect x="${eyeL - 14}" y="${gy - 11}" width="28" height="22" rx="6"/><rect x="${eyeR - 14}" y="${gy - 11}" width="28" height="22" rx="6"/></g><path d="M${eyeL + 14} ${gy - 3} L${eyeR - 14} ${gy - 3}" stroke="${gc}" stroke-width="3.4"/>` + arms,
+    round: `<g fill="#fff" fill-opacity=".18" stroke="${gc}" stroke-width="4"><circle cx="${eyeL}" cy="${gy}" r="13"/><circle cx="${eyeR}" cy="${gy}" r="13"/></g><path d="M${eyeL + 13} ${gy - 2} Q${cx} ${gy - 7} ${eyeR - 13} ${gy - 2}" fill="none" stroke="${gc}" stroke-width="3.4"/>` + arms + glare,
+    square: `<g fill="#fff" fill-opacity=".18" stroke="${gc}" stroke-width="4"><rect x="${eyeL - 14}" y="${gy - 11}" width="28" height="22" rx="6"/><rect x="${eyeR - 14}" y="${gy - 11}" width="28" height="22" rx="6"/></g><path d="M${eyeL + 14} ${gy - 3} L${eyeR - 14} ${gy - 3}" stroke="${gc}" stroke-width="3.4"/>` + arms + glare,
     cateye: `<g fill="#fff" fill-opacity=".18" stroke="${gc}" stroke-width="4" stroke-linejoin="round"><path d="M${eyeL - 15} ${gy - 10} L${eyeL + 13} ${gy - 8} Q${eyeL + 13} ${gy + 11} ${eyeL} ${gy + 11} Q${eyeL - 13} ${gy + 11} ${eyeL - 15} ${gy - 10} Z"/><path d="M${eyeR + 15} ${gy - 10} L${eyeR - 13} ${gy - 8} Q${eyeR - 13} ${gy + 11} ${eyeR} ${gy + 11} Q${eyeR + 13} ${gy + 11} ${eyeR + 15} ${gy - 10} Z"/></g><path d="M${eyeL + 13} ${gy - 4} L${eyeR - 13} ${gy - 4}" stroke="${gc}" stroke-width="3.4"/>` + arms,
     sunglasses: `<path d="M${eyeL - 15} ${gy - 10} L${eyeL + 14} ${gy - 10} L${eyeL + 13} ${gy + 2} Q${eyeL + 11} ${gy + 12} ${eyeL} ${gy + 12} Q${eyeL - 12} ${gy + 12} ${eyeL - 14} ${gy + 2} Z M${eyeR + 15} ${gy - 10} L${eyeR - 14} ${gy - 10} L${eyeR - 13} ${gy + 2} Q${eyeR - 11} ${gy + 12} ${eyeR} ${gy + 12} Q${eyeR + 12} ${gy + 12} ${eyeR + 14} ${gy + 2} Z" fill="${INK}"/>`
       + `<path d="M${eyeL + 14} ${gy - 8} L${eyeR - 14} ${gy - 8}" stroke="${gc}" stroke-width="4"/><path d="M${eyeL - 15} ${gy - 10} L${eyeL + 14} ${gy - 10} M${eyeR - 14} ${gy - 10} L${eyeR + 15} ${gy - 10}" stroke="${gc}" stroke-width="4" stroke-linecap="round"/>`
@@ -510,14 +539,19 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       + `<path d="M${cx - 34} ${y0 + 10} L${cx - 28} ${y0 - 28} Q${cx - 16} ${y0 - 40} ${cx - 7} ${y0 - 31} L${cx} ${y0 - 42} L${cx + 7} ${y0 - 31} Q${cx + 16} ${y0 - 40} ${cx + 28} ${y0 - 28} L${cx + 34} ${y0 + 10} Z" fill="#C9A267"/>`
       + `<path d="M${cx + 7} ${y0 - 31} Q${cx + 16} ${y0 - 40} ${cx + 28} ${y0 - 28} L${cx + 34} ${y0 + 10} L${cx + 14} ${y0 + 10} Z" fill="#B48E55"/>`
       + `<rect x="${cx - 34}" y="${y0 - 2}" width="68" height="10" rx="3" fill="#5A3B22"/>`
+      + `<path d="M${cx - 22} ${y0 - 24} Q${cx - 15} ${y0 - 32} ${cx - 9} ${y0 - 27}" fill="none" stroke="#E3C38E" stroke-width="2.6" stroke-linecap="round"/>`
+      + `<path d="M${cx - w / 2 - 24} ${y0 + 10} Q${cx - w / 2} ${y0 + 6} ${cx - 40} ${y0 + 6}" fill="none" stroke="#DDBB84" stroke-width="2.4" stroke-linecap="round"/>`
       + crest(cx, y0 + 3, 7),
     beret: `<path d="M${x0 - 6} ${y0 + 12} Q${x0 - 16} ${top - 18} ${cx - 4} ${top - 22} Q${x1 + 22} ${top - 20} ${x1 + 6} ${y0 + 10} Z" fill="${hw}"/>`
       + `<rect x="${x0 - 2}" y="${y0 + 4}" width="${w + 4}" height="10" rx="5" fill="${hwD}"/><rect x="${cx - 2}" y="${top - 30}" width="5" height="10" rx="2.5" fill="${hwD}"/>`
+      + `<path d="M${x0 + 6} ${top - 8} Q${cx - 12} ${top - 20} ${cx + 10} ${top - 19}" fill="none" stroke="${hwL}" stroke-width="3" stroke-linecap="round" opacity=".7"/>`
       + crest(x0 + 20, y0 - 6, 8),
     cap: `<path d="M${x0 - 3} ${y0 + 16} Q${x0 - 4} ${top - 22} ${cx} ${top - 22} Q${x1 + 4} ${top - 22} ${x1 + 3} ${y0 + 16} Z" fill="${hw}"/>`
       + `<path d="M${x1 - 18} ${top - 18} Q${x1 + 4} ${top - 16} ${x1 + 3} ${y0 + 16} L${x1 - 10} ${y0 + 16} Q${x1 - 8} ${top - 4} ${x1 - 18} ${top - 18} Z" fill="${hwD}"/>`
       + `<path d="M${x0 - 8} ${y0 + 18} Q${cx} ${y0 + 6} ${x1 + 8} ${y0 + 18} Q${cx} ${y0 + 30} ${x0 - 8} ${y0 + 18} Z" fill="${hwD}"/>`
       + `<circle cx="${cx}" cy="${top - 20}" r="4" fill="${hwD}"/>`
+      + `<path d="M${cx} ${top - 18} V${y0 + 12}" stroke="${hwD}" stroke-width="1.6" opacity=".7"/>`
+      + `<path d="M${x0 + 8} ${y0 + 2} Q${x0 + 10} ${top - 12} ${cx - 14} ${top - 18}" fill="none" stroke="${hwL}" stroke-width="3" stroke-linecap="round" opacity=".6"/>`
       + crest(cx, top - 4, 8),
     beanie: `<path d="M${x0 - 4} ${y0 + 16} Q${x0 - 4} ${top - 26} ${cx} ${top - 26} Q${x1 + 4} ${top - 26} ${x1 + 4} ${y0 + 16} Z" fill="${hw}"/>`
       + `<rect x="${x0 - 6}" y="${y0 + 2}" width="${w + 12}" height="18" rx="7" fill="${hwD}"/>`
@@ -607,10 +641,15 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       + `</g>`
     : ''
   // a hat covers the top of the hair; long hair still shows at the sides
-  const coversTop = ['scout', 'beret', 'cap', 'beanie'].includes(a.headwear)
-  const hairFront = coversTop ? `<g clip-path="url(#under-${id})">${front[a.hair] || ''}</g>` : (front[a.hair] || '')
+  const coversTop = ['scout', 'beret', 'cap', 'beanie', 'golden'].includes(a.headwear)
+  // a shine on hair that covers the crown, unless a hat is over it
+  const SHINY = ['crew', 'receding', 'short', 'side', 'wavyShort', 'curly', 'afroShort', 'bob', 'long', 'wavy', 'curlyLong', 'ponytail', 'pigtails', 'bun', 'braids']
+  const shine = !coversTop && SHINY.includes(a.hair)
+    ? `<path d="M${x0 + 12} ${y0 + 6} Q${cx - 14} ${y0 - 5} ${cx + 6} ${y0 - 3}" fill="none" stroke="${shade(hairC, 1.45)}" stroke-width="3.4" stroke-linecap="round" opacity=".55"/>`
+    : ''
+  const hairFront = (coversTop ? `<g clip-path="url(#under-${id})">${front[a.hair] || ''}</g>` : (front[a.hair] || '')) + shine
   const hairBack = coversTop && a.hair === 'bun' ? '' : (back[a.hair] || '')
-  const hatTop = a.headwear === 'scout' ? y0 + 6 : y0 + 14
+  const hatTop = a.headwear === 'scout' || a.headwear === 'golden' ? y0 + 6 : y0 + 14
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEW[crop]}">`
     + `<defs>`
@@ -618,6 +657,8 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     + `<clipPath id="under-${id}"><rect x="0" y="${hatTop}" width="200" height="200"/></clipPath>`
     + `<clipPath id="chin-${id}"><rect x="${x0 - 1}" y="${y0}" width="${w + 2}" height="${h + 10}" rx="${hb.r}"/></clipPath>`
     + extraDefs.join('') + sceneDefs
+    + `<radialGradient id="sk-${id}" cx=".4" cy=".34" r=".75"><stop offset="0" stop-color="${shade(skin, 1.07)}"/><stop offset=".6" stop-color="${skin}"/><stop offset="1" stop-color="${shade(skin, 0.93)}"/></radialGradient>`
+    + `<linearGradient id="hg-${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${shade(hairC, 1.12)}"/><stop offset=".55" stop-color="${hairC}"/><stop offset="1" stop-color="${shade(hairC, 0.92)}"/></linearGradient>`
     + `<clipPath id="face-${id}"><rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${hb.r}"/></clipPath>`
     + `</defs>`
     + `<rect x="-40" y="-40" width="280" height="280" fill="${a.bg}"/>` + scenes[a.scene] + aura
