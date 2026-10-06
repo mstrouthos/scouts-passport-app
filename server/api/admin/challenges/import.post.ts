@@ -1,6 +1,6 @@
 import { useDb, schema as s } from '../../../db'
 import { requireLeader } from '../../../utils/guard'
-import { MAX_POINTS } from '../../../utils/scoring'
+import { pointRange } from '../../../utils/scoring'
 import { toUtcIso } from '../../../utils/passcode'
 import { resolveQuizSection } from '../../../utils/quizSector'
 import { assertCan } from '../../../utils/permissions'
@@ -66,7 +66,7 @@ export default defineEventHandler(async (event) => {
       questionEl, questionEn: q.questionEn || null,
       imageEmoji: q.imageEmoji || null,
       explanationEl: q.explanationEl || '', explanationEn: q.explanationEn || null,
-      points: MAX_POINTS,
+      ...pointRange(q.points, q.minPoints),
       unlocksAt, closesAt,
       sectionId: batchSection, forLeaders: false, isBonus: !!q.isBonus, createdBy: me.id,
       // published only when it has an unlock time, mirroring single creation

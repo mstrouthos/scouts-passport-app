@@ -3,7 +3,7 @@
    rays of light, its name and the streak that won it — and a button to put
    it on there and then. More than one at once (a long streak from before
    the collection existed) shows the finest, and says how many more. */
-import { STREAK_REWARDS, avatarSvg, normalizeAvatar, DEFAULT_AVATAR } from '~/utils/avatar'
+import { STREAK_REWARDS, SEASON_OF, avatarSvg, normalizeAvatar, DEFAULT_AVATAR } from '~/utils/avatar'
 import { rewardArt } from '~/utils/art'
 const props = defineProps<{ keys: string[] }>()
 const emit = defineEmits<{ (e: 'close'): void }>()
@@ -16,6 +16,8 @@ const top = computed(() => list.value[list.value.length - 1])
 const mine = computed(() => normalizeAvatar(me.value?.avatar || DEFAULT_AVATAR))
 const art = computed(() => top.value ? avatarSvg({ ...mine.value, [top.value.field]: top.value.value }, 'unlock', 'full') : '')
 const busy = ref(false)
+// the moment it appears: a sparkle
+watch(top, v => { if (v) sfx('unlock') }, { immediate: true })
 async function wear() {
   if (!top.value) return
   busy.value = true
@@ -40,7 +42,7 @@ async function wear() {
         </div>
         <div class="new">🎉 {{ t('rwUnlocked') }}</div>
         <b class="name">{{ t('rw_' + top.key) }}</b>
-        <div class="days">{{ top.track === 'attendance' ? '🏕️ ' + t('rwNeedsMeetings', { n: top.days }) : '🔥 ' + t('rwNeeds', { n: top.days }) }}</div>
+        <div class="days">{{ top.track === 'season' ? t('rwSeason_' + SEASON_OF[top.key]) : top.track === 'attendance' ? '🏕️ ' + t('rwNeedsMeetings', { n: top.days }) : '🔥 ' + t('rwNeeds', { n: top.days }) }}</div>
         <div v-if="list.length > 1" class="more">{{ t('rwAndMore', { n: list.length - 1 }) }}</div>
         <button class="go" :disabled="busy" @click="wear">✨ {{ t('rwWear') }}</button>
         <button class="later" @click="emit('close')">{{ t('rwLater') }}</button>

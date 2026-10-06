@@ -30,6 +30,13 @@ export const scouts = pgTable('scouts', {
   firstName: text('first_name').notNull(),
   phone: text('phone'),
   email: text('email'),
+  // what the app last showed them, so a win since then is played once when
+  // they open it: the moment they last looked, their place on the league
+  // table and their Ενωμοτία's then, the year their birthday was last cheered
+  momentsSeenAt: text('moments_seen_at'),
+  lastRank: integer('last_rank'),
+  lastPatrolRank: integer('last_patrol_rank'),
+  birthdaySeen: text('birthday_seen'),
   birthday: text('birthday'),      // YYYY-MM-DD
   idNumber: text('id_number'),
   lastName: text('last_name').notNull(),
@@ -261,7 +268,10 @@ export const challenges = pgTable('challenges', {
   imageEmoji: text('image_emoji'),
   explanationEl: text('explanation_el').notNull().default(''),
   explanationEn: text('explanation_en'),
+  // the most a correct answer is worth (answered at once) and the least (however
+  // slowly); set by the leader, 10 and 5 unless changed
   points: integer('points').notNull().default(10),
+  minPoints: integer('min_points').notNull().default(5),
   unlocksAt: text('unlocks_at'),
   closesAt: text('closes_at'),
   sectionId: integer('section_id').references(() => sections.id),
@@ -744,6 +754,16 @@ export const scoutRewards = pgTable('scout_rewards', {
   rewardKey: text('reward_key').notNull(),
   unlockedAt: text('unlocked_at').notNull()
 }, t => [uniqueIndex('scout_reward_uq').on(t.scoutId, t.rewardKey)])
+
+/* A 👏 from one member to another, for a win in their Ενωμοτία's feed — one
+   per member per win. `eventKey` names the win, e.g. "badge:12:3". */
+export const scoutKudos = pgTable('scout_kudos', {
+  id: serial('id').primaryKey(),
+  fromId: integer('from_id').notNull().references(() => scouts.id),
+  toId: integer('to_id').notNull().references(() => scouts.id),
+  eventKey: text('event_key').notNull(),
+  createdAt: text('created_at').notNull()
+}, t => [uniqueIndex('scout_kudos_from_id_event_key_key').on(t.fromId, t.eventKey)])
 
 /* A form's design kept to start new ones from: its questions and its
    messages, never anything anyone answered. */

@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
     id: c.id, titleEl: c.titleEl, titleEn: c.titleEn,
     questionEl: c.questionEl, questionEn: c.questionEn,
     explanationEl: c.explanationEl, explanationEn: c.explanationEn,
-    imageEmoji: c.imageEmoji, points: c.points,
+    imageEmoji: c.imageEmoji, points: c.points, minPoints: c.minPoints,
     unlocksAt: c.unlocksAt, closesAt: c.closesAt,
     sectionId: c.sectionId, forLeaders: c.forLeaders, isBonus: c.isBonus, isPublished: c.isPublished,
     // once anyone has answered, changing the options would invalidate their answers

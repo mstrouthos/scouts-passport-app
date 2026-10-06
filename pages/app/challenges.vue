@@ -133,6 +133,7 @@ async function submit() {
     })
     stopTicker()
     result.value = { correct: !!res.isCorrect, points: res.points || 0 }
+    sfx(res.isCorrect ? 'correct' : 'wrong')
     clearTimeout(resultTimer); resultTimer = setTimeout(() => { result.value = null }, 2200)
     await refresh()
     open.value = items.value.find(x => x.id === open.value.id) || null

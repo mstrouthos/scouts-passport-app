@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { isBirthday } from '~/utils/season'
+import { STREAK_REWARDS, SEASON_OF } from '~/utils/avatar'
+import { rewardArt } from '~/utils/art'
 const { t, locale } = useI18n()
 const me = useMe()
 const lx = useLx()
@@ -11,6 +14,13 @@ const rankLabel = computed(() => {
   if (!r) return '—'
   return locale.value === 'el' ? `${r}ος` : `${r}${['th', 'st', 'nd', 'rd'][r % 10 < 4 && (r % 100 < 11 || r % 100 > 13) ? r % 10 : 0]}`
 })
+// their birthday: a party hat on their avatar, for the day
+const birthday = computed(() => isBirthday(me.value?.birthday))
+/* the season: its card says what there is to win, and whether it is won */
+const season = useSeason()
+const { data: rw } = await useFetch<{ unlocked: string[] }>('/api/me/rewards')
+const seasonItem = computed(() => season.value ? STREAK_REWARDS.find(r => r.track === 'season' && SEASON_OF[r.key] === season.value) : null)
+const seasonWon = computed(() => !!seasonItem.value && !!rw.value?.unlocked.includes(seasonItem.value.key))
 const earnedBadges = computed<any[]>(() => (data.value?.badges || []).filter((b: any) => b.earned))
 const earned = computed(() => earnedBadges.value.length)
 
@@ -37,11 +47,11 @@ function sub(e: any) {
       <div class="who">
         <!-- their own avatar, made in the creator; tapping it opens the creator -->
         <NuxtLink to="/app/avatar" class="me-av" :aria-label="t('avatarEdit')">
-          <Avatar :name="`${me?.firstName || ''} ${me?.lastName || ''}`" :avatar="me?.avatar" :size="64" tone="gold" />
+          <Avatar :name="`${me?.firstName || ''} ${me?.lastName || ''}`" :avatar="me?.avatar" :size="64" tone="gold" :party="birthday" />
           <span class="pen">✎</span>
         </NuxtLink>
         <div style="min-width:0">
-          <div class="name">{{ me?.firstName }} {{ me?.lastName }}</div>
+          <div class="name">{{ me?.firstName }} {{ me?.lastName }}<template v-if="birthday"> 🎂</template></div>
           <div class="meta">{{ lx(me?.section, 'name') }} · {{ lx(me?.patrol, 'name') }}</div>
           <NuxtLink v-if="!me?.avatar" to="/app/avatar" class="make">✨ {{ t('avatarMake') }} ›</NuxtLink>
         </div>
@@ -50,7 +60,10 @@ function sub(e: any) {
         <NuxtLink to="/app/points" class="stat tappable">
           <b>{{ data?.points ?? 0 }}</b><span>{{ t('points') }} ›</span>
         </NuxtLink>
-        <div class="stat"><b>{{ rankLabel }}</b><span>{{ t('rank') }}</span></div>
+        <!-- their place leads to the league table -->
+        <NuxtLink to="/app/board" class="stat tappable">
+          <b>{{ rankLabel }}<small v-if="data?.totalScouts" class="of">/{{ data.totalScouts }}</small></b><span>{{ t('rank') }} ›</span>
+        </NuxtLink>
         <NuxtLink v-if="showBadges" to="/app/badges" class="stat tappable">
           <b>{{ earned }}/{{ data?.badges?.length ?? 0 }}</b><span>{{ t('badges') }} ›</span>
         </NuxtLink>
@@ -71,6 +84,16 @@ function sub(e: any) {
         <i v-for="(m, i) in data.attendance.recent" :key="i" :class="m" :title="t('attend_' + m)">{{ m === 'present' ? '✓' : m === 'excused' ? '–' : '✕' }}</i>
       </div>
     </div>
+
+    <!-- the season: what there is to win while it lasts -->
+    <NuxtLink v-if="seasonItem" to="/app/avatar?tab=rewards" class="season-card" :class="season">
+      <img :src="rewardArt(seasonItem.key)" alt="">
+      <div>
+        <b>{{ t('seasonHello_' + season) }}</b>
+        <span>{{ seasonWon ? t('seasonWon', { item: t('rw_' + seasonItem.key) }) : t('seasonToWin', { item: t('rw_' + seasonItem.key) }) }}</span>
+      </div>
+      <div class="go">{{ seasonWon ? '✓' : '›' }}</div>
+    </NuxtLink>
 
     <NuxtLink to="/app/challenges?tab=missions" class="banner">
       <div class="ico">📸</div>
@@ -119,6 +142,9 @@ function sub(e: any) {
       <div class="go">›</div>
     </NuxtLink>
 
+    <!-- the Ενωμοτία's wins, with a 👏 to give -->
+    <PatrolFeed />
+
     <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>{{ t('nextAction') }}</span>
       <NuxtLink to="/app/calendar" class="tiny" style="color:var(--accent-deep);font-weight:650">{{ t('calendar') }} ›</NuxtLink>
@@ -130,6 +156,9 @@ function sub(e: any) {
       </div>
     </div>
     <div v-else class="empty">{{ t('noUpcoming') }}</div>
+
+    <!-- what happened while they were away, played once -->
+    <ClientOnly><FxMoments /></ClientOnly>
   </AppShell>
 </template>
 
@@ -155,6 +184,17 @@ function sub(e: any) {
 .a-row i.present{background:#E2F5EA; color:#1F9D57}
 .a-row i.excused{background:#EEF2F6; color:#8A97A8}
 .a-row i.absent{background:#FCEBE7; color:#D8543C}
+.of{font-size:.55em; opacity:.75; margin-left:1px}
+.season-card{display:flex; align-items:center; gap:12px; padding:10px 14px 10px 10px; border-radius:18px; text-decoration:none; color:#fff; box-shadow:0 6px 18px rgba(30,70,140,.18)}
+.season-card.christmas{background:linear-gradient(135deg,#C8303A,#7A1F2B)}
+.season-card.easter{background:linear-gradient(135deg,#E8BB3E,#C8303A)}
+.season-card.summer{background:linear-gradient(135deg,#F2A93B,#2E86AC)}
+.season-card img{width:58px; height:58px; flex:none; object-fit:contain; filter:drop-shadow(0 3px 6px rgba(0,0,0,.25)); animation:wobble 3s ease-in-out infinite}
+.season-card > div{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px}
+.season-card b{font-size:14.5px}
+.season-card span{font-size:12.5px; opacity:.92; line-height:1.35}
+.season-card .go{flex:none; font-size:20px; font-weight:800}
+@keyframes wobble{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
 .mcount{margin-left:auto; min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:#E2582A; color:#fff; font-size:12px; font-weight:800; display:grid; place-items:center}
 .mcount + .go{margin-left:6px}
 </style>

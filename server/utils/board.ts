@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../db'
 import { pointTotals, sectionOfWith } from './guard'
 import { getTeamScoring, teamScore } from './settings'
 import { faceOf } from './face'
+import { isBirthday } from '../../utils/season'
 
 /** One sector's league table: its real members by points, and its units by
     the sector's own rule (sum or average). A hidden test account is in it
@@ -20,7 +21,9 @@ export async function boardFor(sectionId: number | null, meId?: number) {
   const individual = actives.map(r => ({
     id: r.id, me: r.id === meId,
     firstName: r.firstName, lastName: r.lastName, firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn,
-    patrolId: r.patrolId, points: totals.get(r.id) || 0, avatar: faceOf(r).avatar
+    patrolId: r.patrolId, points: totals.get(r.id) || 0, avatar: faceOf(r).avatar,
+    // only whether it is today, never the date
+    birthday: isBirthday(r.birthday)
   })).sort((a, b) => b.points - a.points)
 
   const patrolBoard = patrols.map(p => {

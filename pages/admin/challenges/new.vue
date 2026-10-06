@@ -17,6 +17,7 @@ const { data: secs } = await useFetch<any>('/api/admin/quiz-sections')   // only
 
 const form = reactive({
   questionEl: '', questionEn: '', explanationEl: '', imageEmoji: '',
+  points: 10, minPoints: 5,
   sectionId: null as number | null,
   date: new Date(Date.now() + 86400_000).toISOString().slice(0, 10), time: '17:00', closeDays: 3
 })
@@ -41,6 +42,7 @@ async function publish() {
         questionEl: form.questionEl, questionEn: form.questionEn || null,
         titleEl: form.questionEl.slice(0, 60), explanationEl: form.explanationEl,
         imageEmoji: form.imageEmoji || null,
+        points: form.points, minPoints: form.minPoints,
         sectionId: form.sectionId,
         unlocksAt, closesAt, isPublished: true,
         options: options.value.filter(o => o.textEl.trim())
@@ -92,9 +94,11 @@ async function publish() {
           </div>
         </div>
         <div style="display:flex;gap:8px">
-          <div style="flex:1"><label class="lab">{{ t('points') }}</label><div class="in ro">{{ t('fixedScoring') }}</div></div>
+          <div style="flex:1"><label class="lab">{{ t('maxPoints') }}</label><input v-model.number="form.points" type="number" min="1" max="100" inputmode="numeric" class="in"></div>
+          <div style="flex:1"><label class="lab">{{ t('minPoints') }}</label><input v-model.number="form.minPoints" type="number" min="0" :max="form.points" inputmode="numeric" class="in"></div>
           <div style="flex:1"><label class="lab">Emoji</label><input v-model="form.imageEmoji" class="in" placeholder="🧭"></div>
         </div>
+        <div class="tiny muted" style="margin-top:-6px">{{ t('scoringHint', { max: form.points || 0, min: Math.min(form.minPoints || 0, form.points || 0) }) }}</div>
         <div style="display:flex;gap:8px">
           <div style="flex:1.4"><label class="lab">{{ t('unlocks') }}</label><input v-model="form.date" type="date" class="in"></div>
           <div style="flex:1"><label class="lab">&nbsp;</label><input v-model="form.time" type="time" class="in"></div>

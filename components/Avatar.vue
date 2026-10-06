@@ -5,11 +5,13 @@ import { avatarSvg, type Avatar } from '~/utils/avatar'
 const props = defineProps<{
   name: string, tone?: 'accent' | 'green' | 'purple' | 'amber' | 'blue' | 'gold'
   photo?: string | null, avatar?: Partial<Avatar> | null, size?: number
+  // their birthday: a party hat, for the day
+  party?: boolean
 }>()
 const initials = computed(() =>
   props.name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase())
 const uid = 'av' + useId().replace(/[^a-z0-9]/gi, '')
-const svg = computed(() => props.avatar ? avatarSvg(props.avatar, uid) : '')
+const svg = computed(() => props.avatar ? avatarSvg(props.avatar, uid, 'full', { party: !!props.party }) : '')
 const failed = ref(false)
 watch(() => props.photo, () => { failed.value = false })
 const dim = computed(() => props.size ? { width: props.size + 'px', height: props.size + 'px', fontSize: Math.round(props.size / 3) + 'px' } : undefined)

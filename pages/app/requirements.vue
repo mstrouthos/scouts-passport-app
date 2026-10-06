@@ -23,6 +23,7 @@ const party = ref<any>(null)
 watch(() => route.query.req, (raw) => {
   const id = Number(raw)
   if (!Number.isInteger(id)) return
+  markCelebrated(`requirement:${id}`)
   for (const st of stages.value) {
     const it = st.items.find((x: any) => x.id === id)
     if (!it) continue

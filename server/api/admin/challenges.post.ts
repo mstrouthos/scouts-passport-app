@@ -1,5 +1,5 @@
 import { useDb, schema as s } from '../../db'
-import { MAX_POINTS } from '../../utils/scoring'
+import { pointRange } from '../../utils/scoring'
 import { requireLeader } from '../../utils/guard'
 import { resolveQuizSection } from '../../utils/quizSector'
 import { toUtcIso } from '../../utils/passcode'
@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
     questionEl: String(b.questionEl), questionEn: b.questionEn || null,
     imageEmoji: b.imageEmoji || null,
     explanationEl: b.explanationEl || '', explanationEn: b.explanationEn || null,
-    points: MAX_POINTS,   // every question scores the same; the clock decides the rest
+    ...pointRange(b.points, b.minPoints),
     unlocksAt: toUtcIso(b.unlocksAt), closesAt: toUtcIso(b.closesAt),
     sectionId, forLeaders: false, isBonus: !!b.isBonus, createdBy: me.id, isPublished: !!b.isPublished && !!b.unlocksAt
   }).returning())

@@ -7,6 +7,8 @@
    The same function draws the avatar everywhere, and the builder's tiles,
    zoomed in on what each choice changes. */
 
+import { currentSeason } from './season'
+
 export const AVATAR_OPTIONS = {
   gender: ['boy', 'girl'],
   skin: ['#FFE0CC', '#F9CBA7', '#EDB485', '#D99A68', '#B9774A', '#935A35', '#6E3F22', '#4A2A17'],
@@ -27,10 +29,10 @@ export const AVATAR_OPTIONS = {
   facialHair: ['none', 'stubble', 'shortBeard', 'denseShort', 'beard', 'moustache', 'goatee', 'chinPatch'],
   glasses: ['none', 'round', 'square', 'cateye', 'sunglasses'],
   glassesColor: ['#2A2330', '#B23A48', '#2F79B8', '#3E8A3A', '#C99A18', '#E35D9A'],
-  headwear: ['none', 'scout', 'beret', 'cap', 'beanie', 'golden'],
+  headwear: ['none', 'scout', 'beret', 'cap', 'beanie', 'golden', 'santa', 'straw'],
   /* limited edition: earned by keeping the quiz streak, never chosen freely
      (see STREAK_REWARDS) — a pin, the woggle, a scene, a companion, an aura */
-  pin: ['none', 'flame'],
+  pin: ['none', 'flame', 'egg'],
   woggle: ['classic', 'silver', 'gold'],
   scene: ['none', 'campfire', 'aurora', 'sunrise'],
   patch: ['none', 'bronze', 'silver'],
@@ -76,8 +78,15 @@ export const STREAK_REWARDS = [
   { track: 'attendance', days: 5, key: 'bronzePatch', field: 'patch', value: 'bronze', crop: 'body' },
   { track: 'attendance', days: 10, key: 'silverPatch', field: 'patch', value: 'silver', crop: 'body' },
   { track: 'attendance', days: 20, key: 'honourCord', field: 'cord', value: 'honour', crop: 'body' },
-  { track: 'attendance', days: 40, key: 'sunrise', field: 'scene', value: 'sunrise', crop: 'full' }
+  { track: 'attendance', days: 40, key: 'sunrise', field: 'scene', value: 'sunrise', crop: 'full' },
+  // seasonal: won by taking part (a quiz answer, a meeting, a photo mission)
+  // while the season lasts — see SEASON_OF and utils/season.ts
+  { track: 'season', days: 0, key: 'santaHat', field: 'headwear', value: 'santa', crop: 'head' },
+  { track: 'season', days: 0, key: 'redEgg', field: 'pin', value: 'egg', crop: 'body' },
+  { track: 'season', days: 0, key: 'strawHat', field: 'headwear', value: 'straw', crop: 'head' }
 ] as const
+/** Which season each seasonal item belongs to. */
+export const SEASON_OF: Record<string, 'christmas' | 'easter' | 'summer'> = { santaHat: 'christmas', redEgg: 'easter', strawHat: 'summer' }
 export type StreakReward = typeof STREAK_REWARDS[number]
 
 /** The avatar with anything limited-edition its owner has not earned taken
@@ -179,8 +188,12 @@ const VIEW: Record<Crop, string> = {
 
 /** The SVG, as markup. `id` keeps its patterns apart from another avatar's
     on the same page. */
-export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop: Crop = 'full'): string {
-  const a = normalizeAvatar(a0 || {})
+export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop: Crop = 'full', opts: { party?: boolean } = {}): string {
+  const a: any = normalizeAvatar(a0 || {})
+  // a season's item is worn only while its season lasts
+  const season = currentSeason()
+  for (const r of STREAK_REWARDS)
+    if (r.track === 'season' && a[r.field] === r.value && SEASON_OF[r.key] !== season) a[r.field] = (DEFAULT_AVATAR as any)[r.field]
   const skin = a.skin, skinD = shade(skin, 0.86), skinDD = shade(skin, 0.72)
   const hairC = a.hairColor, hairD = shade(hairC, 0.78)
   // the hair's fill: its colour with a little light at the top, for depth
@@ -468,6 +481,11 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     ? `<g transform="translate(67 181) scale(1.3) translate(-67 -181)"><circle cx="67" cy="181" r="7" fill="#C77B3A" stroke="#8E5524" stroke-width="1.6"/>`
       + `<path d="M67 175.5 C70.5 179 71 182 69.6 184.6 C68.8 186 65.2 186 64.4 184.6 C63.2 182.4 64.2 180.6 65.4 179.8 C65.6 181.2 66.2 181.8 66.8 182 C66.2 179.6 66.4 177.4 67 175.5 Z" fill="#FFB62E"/>`
       + `<path d="M67 180.5 C68.6 182.2 68.6 184 67 185 C65.4 184 65.6 182.4 67 180.5 Z" fill="#FFE58A"/></g>`
+    // the Easter egg (seasonal): a red-dyed egg in a gold rim, on the same pocket
+    : a.pin === 'egg'
+    ? `<g transform="translate(67 181) scale(1.3) translate(-67 -181)"><ellipse cx="67" cy="181" rx="6.6" ry="8.2" fill="#F2C230" stroke="#C99A18" stroke-width="1.2"/>`
+      + `<ellipse cx="67" cy="181.3" rx="5" ry="6.5" fill="#C8202E"/><ellipse cx="65.2" cy="178.4" rx="1.5" ry="2.4" fill="#fff" opacity=".55"/>`
+      + `<path d="M62.6 183 Q67 185.4 71.4 183" fill="none" stroke="#8E1520" stroke-width="1" opacity=".6"/></g>`
     : ''
   // the attendance patch (5 / 10 meetings in a row): a shield on the sleeve,
   // bronze with one star or silver with two, a little tent on it
@@ -687,6 +705,30 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       + badge(cx, y0 + 10.5, 7.6),
     // the golden campaign hat (90 days): gold felt, a red band, a red
     // feather, sparkles
+    // the Santa hat (seasonal, Christmas): red, the tip flopping over to the
+    // side with its pompom, a fluffy white trim with a sprig of holly
+    santa: `<path d="M${x0 - 4} ${y0 + 10} Q${x0 - 2} ${top - 30} ${cx + 6} ${top - 30} Q${x1 + 18} ${top - 28} ${x1 + 22} ${y0 + 8} Q${x1 + 10} ${top - 12} ${x1 + 4} ${y0 + 10} Z" fill="#D12F3A"/>`
+      + `<path d="M${cx + 6} ${top - 30} Q${x1 + 18} ${top - 28} ${x1 + 22} ${y0 + 8} Q${x1 + 12} ${top - 14} ${cx + 14} ${top - 22} Z" fill="#A5202B"/>`
+      + `<path d="M${x0 + 6} ${top - 6} Q${x0 + 12} ${top - 24} ${cx - 2} ${top - 26}" fill="none" stroke="#F06A72" stroke-width="3.4" stroke-linecap="round" opacity=".7"/>`
+      + `<rect x="${x0 - 7}" y="${y0 + 3}" width="${w + 14}" height="15" rx="7.5" fill="#F7F4EE"/>`
+      + [...Array(9)].map((_, i) => `<circle cx="${x0 - 3 + i * (w + 6) / 8}" cy="${y0 + 4 + (i % 2) * 1.5}" r="4.2" fill="#fff"/>`).join('')
+      + `<rect x="${x0 - 5}" y="${y0 + 13}" width="${w + 10}" height="4" rx="2" fill="#DCD6CC" opacity=".7"/>`
+      + `<circle cx="${x1 + 21}" cy="${y0 + 12}" r="8.5" fill="#fff"/><circle cx="${x1 + 18.5}" cy="${y0 + 9.5}" r="3" fill="#F7F4EE"/>`
+      + `<path d="M${x0 + 10} ${y0 + 8} q4 -5 9 -2 q-4 1 -5 5 Z M${x0 + 10} ${y0 + 8} q-1 -6 -6 -6 q2 3 1 7 Z" fill="#2E7D4A"/>`
+      + `<circle cx="${x0 + 12}" cy="${y0 + 9.5}" r="2" fill="#D12F3A"/><circle cx="${x0 + 9}" cy="${y0 + 10.5}" r="2" fill="#D12F3A"/>`,
+    // the straw hat (seasonal, summer camp): woven straw, a wide brim, a blue
+    // band with the badge
+    straw: (() => {
+      const R = w / 2 + 30
+      return `<ellipse cx="${cx}" cy="${y0 + 12}" rx="${R}" ry="11" fill="#C9A24E"/><ellipse cx="${cx}" cy="${y0 + 9}" rx="${R}" ry="9.5" fill="#EBCB7A"/>`
+        + [...Array(5)].map((_, i) => `<ellipse cx="${cx}" cy="${y0 + 9}" rx="${R - 6 - i * 7}" ry="${8 - i * 1.2}" fill="none" stroke="#C9A24E" stroke-width="1" opacity=".55"/>`).join('')
+        + `<path d="M${cx - 31} ${y0 + 8} C${cx - 32} ${y0 - 14} ${cx - 22} ${y0 - 32} ${cx} ${y0 - 33} C${cx + 22} ${y0 - 32} ${cx + 32} ${y0 - 14} ${cx + 31} ${y0 + 8} Z" fill="#EBCB7A"/>`
+        + `<path d="M${cx + 8} ${y0 - 32.5} C${cx + 24} ${y0 - 30} ${cx + 32} ${y0 - 14} ${cx + 31} ${y0 + 8} L${cx + 18} ${y0 + 8} C${cx + 22} ${y0 - 10} ${cx + 18} ${y0 - 26} ${cx + 8} ${y0 - 32.5} Z" fill="#D9B45E"/>`
+        + [-20, -10, 0, 10, 20].map(dx => `<path d="M${cx + dx} ${y0 - 30 + Math.abs(dx) * 0.12} Q${cx + dx * 1.15} ${y0 - 12} ${cx + dx * 1.25} ${y0 + 2}" fill="none" stroke="#C9A24E" stroke-width="1.1" opacity=".6"/>`).join('')
+        + `<path d="M${cx - 31.6} ${y0 - 5} Q${cx} ${y0 - 2} ${cx + 31.6} ${y0 - 5} L${cx + 31.3} ${y0 + 5} Q${cx} ${y0 + 8} ${cx - 31.3} ${y0 + 5} Z" fill="#2E5E8C"/>`
+        + `<path d="M${cx - 22} ${y0 - 22} Q${cx - 16} ${y0 - 30} ${cx - 6} ${y0 - 31}" fill="none" stroke="#FFF1C4" stroke-width="2.4" stroke-linecap="round" opacity=".8"/>`
+        + badge(cx, y0, 7)
+    })(),
     golden: campaign('#F2C230', '#DDAA22', '#B98A12', '#FFF3B8', '#C8303A', '#E86A6A')
       + `<path d="M${cx + 25} ${y0 - 1} C${cx + 30} ${y0 - 20} ${cx + 42} ${y0 - 36} ${cx + 52} ${y0 - 42} C${cx + 50} ${y0 - 24} ${cx + 42} ${y0 - 8} ${cx + 30} ${y0 + 1} Z" fill="#D8343C"/>`
       + `<path d="M${cx + 28} ${y0 - 1} C${cx + 35} ${y0 - 18} ${cx + 43} ${y0 - 30} ${cx + 50} ${y0 - 39}" fill="none" stroke="#8E1A22" stroke-width="1.3"/>`
@@ -694,6 +736,16 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       + sparkle(cx - 46, y0 - 18, 5) + sparkle(cx + 54, y0 - 2, 4) + sparkle(cx - 28, y0 - 40, 3.4)
       + badge(cx, y0 + 2, 8.5)
   }
+
+  // a birthday: a striped party hat, tilted, with a pompom — for the day only
+  const partyHat = (() => {
+    const bx = cx + 8, by = y0 + 8, tx = cx + 16, ty = Math.max(top - 26, 4)
+    const cone = `M${bx - 20} ${by} L${tx} ${ty} L${bx + 18} ${by - 2} Z`
+    return `<g clip-path="url(#${clipTo(cone)})"><path d="${cone}" fill="#4E8FD6"/>`
+      + [0, 1, 2, 3].map(i => `<path d="M${bx - 26} ${by - 4 - i * 10} L${bx + 26} ${by - 14 - i * 10} L${bx + 26} ${by - 9.5 - i * 10} L${bx - 26} ${by + 0.5 - i * 10} Z" fill="${['#F5D547', '#E7643C', '#F5D547', '#E7643C'][i]}"/>`).join('')
+      + `</g><path d="M${bx - 20} ${by} Q${bx} ${by + 4} ${bx + 18} ${by - 2}" fill="none" stroke="#2E5E8C" stroke-width="3" stroke-linecap="round"/>`
+      + [[-7, -4], [0, -7], [7, -4], [-5, 3], [5, 3], [0, 0]].map(([dx, dy]) => `<circle cx="${tx + dx * 0.75}" cy="${ty + dy * 0.75}" r="3.8" fill="${dx === 0 && dy === 0 ? '#fff' : '#E35D9A'}"/>`).join('')
+  })()
 
   /* ---- limited edition, around the avatar ---- */
   // a scene instead of the plain colour: a campfire night (40 days), the
@@ -767,7 +819,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       + `</g>`
     : ''
   // a hat covers the top of the hair; long hair still shows at the sides
-  const coversTop = ['scout', 'beret', 'cap', 'beanie', 'golden'].includes(a.headwear)
+  const coversTop = ['scout', 'beret', 'cap', 'beanie', 'golden', 'santa', 'straw'].includes(a.headwear)
   // a shine on hair that covers the crown, unless a hat is over it
   // (only where the hair is smooth and reaches over the crown: on a
   // receding hairline it would fall on the scalp)
@@ -777,7 +829,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     : ''
   const hairFront = (coversTop ? `<g clip-path="url(#under-${id})">${front[a.hair] || ''}</g>` : (front[a.hair] || '')) + shine
   const hairBack = coversTop && a.hair === 'bun' ? '' : (back[a.hair] || '')
-  const hatTop = a.headwear === 'scout' || a.headwear === 'golden' ? y0 + 6 : y0 + 14
+  const hatTop = a.headwear === 'scout' || a.headwear === 'golden' || a.headwear === 'straw' ? y0 + 6 : y0 + 14
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEW[crop]}">`
     + `<defs>`
@@ -792,7 +844,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     + `<rect x="-40" y="-40" width="280" height="280" fill="${a.bg}"/>` + scenes[a.scene] + aura
     + hairBack + clothes[a.clothes] + scarfBack + neck + scarfFront + gear[a.gear] + pin + patch + cord
     + ears + head + earrings[a.earrings] + extras[a.extras] + eyes + nose + facialHair[a.facialHair] + (MOUTH[xp.mouth] || '')
-    + hairFront + glasses[a.glasses] + headwear[a.headwear] + companion
+    + hairFront + glasses[a.glasses] + (opts.party ? partyHat : headwear[a.headwear]) + companion
     + `</svg>`
 }
 

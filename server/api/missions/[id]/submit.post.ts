@@ -6,6 +6,7 @@ import { storeFile, deleteStored } from '../../../utils/storage'
 import { isOpenFor, isFor, memberSection, missionById, checkCameraTicket } from '../../../utils/missions'
 import { leadersOfSections } from '../../../utils/polls'
 import { sendPushTo } from '../../../utils/push'
+import { rewardAttendance } from '../../../utils/rewards'
 import { noteError } from '../../../utils/errorReport'
 
 /** A member sends their photo for a mission — or a new one, while the first
@@ -55,5 +56,7 @@ export default defineEventHandler(async (event) => {
       body: `${me.firstName} ${me.lastName} · ${m.titleEl}`, kind: 'missionSubmitted', refId: f.id
     })
   } catch (e) { noteError('Αποστολές — ειδοποίηση Βαθμοφόρων', e, { mission: m.id }) }
+  // taking part counts towards the season's item
+  await rewardAttendance(me.id)
   return { ok: true }
 })

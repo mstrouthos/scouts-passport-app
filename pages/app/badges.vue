@@ -29,6 +29,7 @@ watch(() => route.query.badge, (raw) => {
   const b = findBadge(raw)
   if (!b) return
   party.value = b
+  markCelebrated(`badge:${b.id}`)
   sheet.value = b
   router.replace({ query: {} })   // so a refresh does not replay it
 }, { immediate: true })

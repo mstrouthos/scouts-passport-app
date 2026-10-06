@@ -5,9 +5,10 @@ import { resolveQuizSection } from '../../../utils/quizSector'
 import { challengeInScope } from '../../../utils/challengeScope'
 import { toUtcIso } from '../../../utils/passcode'
 import { assertCan } from '../../../utils/permissions'
+import { pointRange } from '../../../utils/scoring'
 
-/** Edit a challenge. Text and timing can always change. Points are fixed for
-    every question (see utils/scoring), so they are not editable. Options may
+/** Edit a challenge. Text, timing and points can always change (points only
+    count for answers from then on). Options may
     only be replaced while nobody has answered — otherwise existing answers
     would point at options that no longer exist. */
 export default defineEventHandler(async (event) => {
@@ -28,6 +29,7 @@ export default defineEventHandler(async (event) => {
   if (b?.explanationEl !== undefined) set.explanationEl = String(b.explanationEl || '')
   if (b?.imageEmoji !== undefined) set.imageEmoji = String(b.imageEmoji || '').trim() || null
   if (b?.isBonus !== undefined) set.isBonus = !!b.isBonus
+  if (b?.points !== undefined || b?.minPoints !== undefined) Object.assign(set, pointRange(b.points, b.minPoints))
   for (const k of ['unlocksAt', 'closesAt'] as const) {
     if (b?.[k] === undefined) continue
     const v = b[k] ? String(b[k]) : null

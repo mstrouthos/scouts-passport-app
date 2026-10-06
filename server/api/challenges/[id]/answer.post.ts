@@ -3,7 +3,7 @@ import { useDb, schema as s } from '../../../db'
 import { requireScout, idParam } from '../../../utils/guard'
 import { now, isAfter, isAtOrBefore } from '../../../utils/passcode'
 import { localDay, bonusEarned } from '../../../utils/streak'
-import { pointsAfter, MAX_POINTS } from '../../../utils/scoring'
+import { pointsAfter } from '../../../utils/scoring'
 import { isScoutTroop } from '../../../utils/programme'
 import { syncRewards } from '../../../utils/rewards'
 
@@ -35,6 +35,7 @@ export default defineEventHandler(async (event) => {
     .where(and(eq(s.challengeAnswers.challengeId, id), eq(s.challengeAnswers.scoutId, me.id))).limit(1))[0]
   if (existing) throw createError({ statusCode: 400, message: 'Already answered' })
 
+  if (!Number.isInteger(Number(body?.optionId))) throw createError({ statusCode: 400, message: 'Bad option' })
   const opt = (await db.select().from(s.challengeOptions)
     .where(and(eq(s.challengeOptions.id, Number(body?.optionId)), eq(s.challengeOptions.challengeId, id))).limit(1))[0]
   if (!opt) throw createError({ statusCode: 400, message: 'Bad option' })
@@ -44,7 +45,7 @@ export default defineEventHandler(async (event) => {
   const rev = (await db.select().from(s.challengeReveals)
     .where(and(eq(s.challengeReveals.challengeId, id), eq(s.challengeReveals.scoutId, me.id))).limit(1))[0]
   const elapsed = rev ? Date.parse(t) - Date.parse(rev.revealedAt) : 0
-  const points = opt.isCorrect ? pointsAfter(elapsed) : 0
+  const points = opt.isCorrect ? pointsAfter(elapsed, c.points, c.minPoints) : 0
   await db.insert(s.challengeAnswers).values({
     challengeId: id, scoutId: me.id, optionId: opt.id,
     isCorrect: opt.isCorrect, pointsAwarded: points, answeredAt: t
@@ -52,7 +53,7 @@ export default defineEventHandler(async (event) => {
 
   const opts = (await db.select().from(s.challengeOptions).where(eq(s.challengeOptions.challengeId, id)))
   return {
-    isCorrect: opt.isCorrect, points, fullPoints: MAX_POINTS,
+    isCorrect: opt.isCorrect, points, fullPoints: c.points,
     correctOptionId: opts.find(o => o.isCorrect)?.id,
     explanationEl: c.explanationEl, explanationEn: c.explanationEn,
     // a streak that has just reached 7, 20, 40… days earns its item

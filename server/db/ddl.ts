@@ -528,6 +528,15 @@ CREATE TABLE IF NOT EXISTS form_files (
   created_by INTEGER,
   created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS scout_kudos (
+  id SERIAL PRIMARY KEY,
+  from_id INTEGER NOT NULL REFERENCES scouts(id),
+  to_id INTEGER NOT NULL REFERENCES scouts(id),
+  event_key TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (from_id, event_key)
+);
+CREATE INDEX IF NOT EXISTS scout_kudos_to_idx ON scout_kudos(to_id, created_at);
 CREATE TABLE IF NOT EXISTS form_invites (
   id SERIAL PRIMARY KEY,
   form_id INTEGER NOT NULL REFERENCES forms(id),
@@ -579,7 +588,6 @@ export const MIGRATIONS = [
   "ALTER TABLE notification_log ADD COLUMN IF NOT EXISTS error TEXT",
   "ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES parents(id)",
   "ALTER TABLE parents ADD COLUMN IF NOT EXISTS scout_id INTEGER REFERENCES scouts(id)",
-  "UPDATE challenges SET points = 10 WHERE points <> 10",
   "ALTER TABLE sections ADD COLUMN IF NOT EXISTS slug TEXT",
   "ALTER TABLE sections ADD COLUMN IF NOT EXISTS has_app BOOLEAN NOT NULL DEFAULT TRUE",
   "ALTER TABLE leader_scopes ADD COLUMN IF NOT EXISTS rank TEXT NOT NULL DEFAULT 'archigos'",
@@ -618,5 +626,10 @@ export const MIGRATIONS = [
   "ALTER TABLE forms ADD COLUMN IF NOT EXISTS approved_by INTEGER",
   "ALTER TABLE forms ADD COLUMN IF NOT EXISTS approved_at TEXT",
   "ALTER TABLE form_responses ADD COLUMN IF NOT EXISTS parent_id INTEGER",
-  "ALTER TABLE form_invites ADD COLUMN IF NOT EXISTS reminded_at TEXT"
+  "ALTER TABLE form_invites ADD COLUMN IF NOT EXISTS reminded_at TEXT",
+  "ALTER TABLE challenges ADD COLUMN IF NOT EXISTS min_points INTEGER NOT NULL DEFAULT 5",
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS moments_seen_at TEXT",
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS last_rank INTEGER",
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS last_patrol_rank INTEGER",
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS birthday_seen TEXT"
 ]

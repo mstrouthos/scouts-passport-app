@@ -44,6 +44,7 @@ async function snap() {
   // the front camera shows a mirror; the photo is the right way round
   if (facing.value === 'user') { ctx.translate(c.width, 0); ctx.scale(-1, 1) }
   ctx.drawImage(v, 0, 0, c.width, c.height)
+  sfx('shutter')
   flash.value = true; setTimeout(() => { flash.value = false }, 180)
   shot.value = await new Promise<Blob | null>(res => c.toBlob(res, 'image/jpeg', 0.85))
   if (!shot.value) return

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { sound, haptics } = useSfxPrefs()
 const { t, locale, setLocale } = useI18n()
 const me = useMe()
 const { show } = useToast()
@@ -134,6 +135,19 @@ async function enableNotifs() {
       <div class="txt"><b>{{ t('notifTest') }}</b><span>{{ testMsg || t('notifTestSub') }}</span></div>
     </button>
 
+    <!-- the app's little sounds and buzzes -->
+    <div class="sec-title">{{ t('sfxTitle') }}</div>
+    <button class="srow" role="switch" :aria-checked="sound" @click="sound = !sound">
+      <div class="ico">{{ sound ? '🔊' : '🔇' }}</div>
+      <div class="txt"><b>{{ t('sfxSound') }}</b><span>{{ t('sfxSoundSub') }}</span></div>
+      <span class="tog" :class="{ on: sound }"><i /></span>
+    </button>
+    <button class="srow" role="switch" :aria-checked="haptics" @click="haptics = !haptics">
+      <div class="ico">📳</div>
+      <div class="txt"><b>{{ t('sfxHaptics') }}</b><span>{{ t('sfxHapticsSub') }}</span></div>
+      <span class="tog" :class="{ on: haptics }"><i /></span>
+    </button>
+
     <div class="sec-title">{{ t('install') }}</div>
     <div class="note">
       <b>{{ t('installTitle') }}</b>
@@ -142,3 +156,10 @@ async function enableNotifs() {
     </div>
   </AppShell>
 </template>
+
+<style scoped>
+.tog{flex:none; width:44px; height:26px; border-radius:13px; background:var(--line); position:relative; transition:background .2s}
+.tog i{position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:transform .2s}
+.tog.on{background:var(--green)}
+.tog.on i{transform:translateX(18px)}
+</style>

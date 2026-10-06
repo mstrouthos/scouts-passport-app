@@ -8,7 +8,7 @@
    avatar takes their photo down, as only one of the two is shown. Beards and
    moustaches are offered to Βαθμοφόροι only. */
 import { rewardArt } from '~/utils/art'
-import { AVATAR_OPTIONS, AVATAR_TABS, STREAK_REWARDS, optionsFor, DEFAULT_AVATAR, avatarSvg, normalizeAvatar, randomAvatar, type Avatar, type StreakReward } from '~/utils/avatar'
+import { AVATAR_OPTIONS, AVATAR_TABS, STREAK_REWARDS, SEASON_OF, optionsFor, DEFAULT_AVATAR, avatarSvg, normalizeAvatar, randomAvatar, type Avatar, type StreakReward } from '~/utils/avatar'
 const props = defineProps<{ back: string }>()
 const { t } = useI18n()
 const me = useMe()
@@ -83,7 +83,9 @@ const needs: Record<string, () => boolean> = {
    with how far there is to go */
 const { data: rewards } = await useFetch<{ current: number, best: number, attendBest: number, unlocked: string[] }>('/api/me/rewards')
 const bestFor = (r: StreakReward) => (r.track === 'attendance' ? rewards.value?.attendBest : rewards.value?.best) ?? 0
-const TRACKS = [{ key: 'quiz', icon: '🔥' }, { key: 'attendance', icon: '🏕️' }] as const
+// seasonal items are shown only while their season lasts
+const season = useSeason()
+const TRACKS = [{ key: 'quiz', icon: '🔥' }, { key: 'attendance', icon: '🏕️' }, { key: 'season', icon: '🎁' }] as const
 const owns = (r: StreakReward) => !!rewards.value?.unlocked.includes(r.key)
 const wearing = (r: StreakReward) => (cfg.value as any)[r.field] === r.value
 function toggleReward(r: StreakReward) {
@@ -158,10 +160,10 @@ const ICONS: Record<string, string> = {
       </div>
       <div class="lab">{{ t('rwTitle') }}</div>
       <div class="tiny muted">{{ t('rwIntro2') }}</div>
-      <template v-for="tr in TRACKS" :key="tr.key">
+      <template v-for="tr in TRACKS.filter(x => x.key !== 'season' || season)" :key="tr.key">
       <div class="lab sub">{{ tr.icon }} {{ t('rwTrack_' + tr.key, { n: tr.key === 'quiz' ? (rewards?.best ?? 0) : (rewards?.attendBest ?? 0) }) }}</div>
       <div class="rgrid">
-        <button v-for="r in STREAK_REWARDS.filter(x => x.track === tr.key)" :key="r.key" class="rw" :class="{ own: owns(r), on: owns(r) && wearing(r) }"
+        <button v-for="r in STREAK_REWARDS.filter(x => x.track === tr.key && (x.track !== 'season' || SEASON_OF[x.key] === season))" :key="r.key" class="rw" :class="{ own: owns(r), on: owns(r) && wearing(r) }"
                 :disabled="!owns(r)" @click="toggleReward(r)">
           <span class="ltd">{{ t('rwLimited') }}</span>
           <!-- earned: worn on the avatar, with its card; not yet: its card, to aim for -->
@@ -171,6 +173,8 @@ const ICONS: Record<string, string> = {
           <span v-if="!owns(r)" class="lock">🔒</span>
           <b>{{ t('rw_' + r.key) }}</b>
           <small v-if="owns(r)">{{ wearing(r) ? '✓ ' + t('rwWearing') : t('rwTapToWear') }}</small>
+          <!-- a season's item: won only while that season lasts -->
+          <small v-else-if="r.track === 'season'">{{ t('rwSeason_' + SEASON_OF[r.key]) }}</small>
           <template v-else>
             <small>{{ tr.icon }} {{ t(r.track === 'attendance' ? 'rwNeedsMeetings' : 'rwNeeds', { n: r.days }) }}</small>
             <i class="bar"><i :style="{ width: Math.min(100, bestFor(r) / r.days * 100) + '%' }" /></i>

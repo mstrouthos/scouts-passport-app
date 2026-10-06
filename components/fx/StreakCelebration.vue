@@ -33,7 +33,7 @@ const cells = computed(() => props.week.map((d, i) => {
 }))
 const from = computed(() => Math.max(0, props.streak - 1))
 const rolled = ref(false)
-onMounted(() => { setTimeout(() => { rolled.value = true }, 700) })
+onMounted(() => { sfx('whoosh'); setTimeout(() => { rolled.value = true }, 700) })
 </script>
 
 <template>

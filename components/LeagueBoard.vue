@@ -29,7 +29,7 @@ const myPatrol = computed(() => mine.value?.row?.patrolId ?? null)
 /* the podium: the first three, by first name, with their points */
 const firstName = (r: any) => name(r).split(' ')[0]
 const indPodium = computed(() => (data.value?.individual || []).slice(0, 3).map((r: any, i: number) => ({
-  key: r.id, name: firstName(r), sub: `${r.points} ${t('pts')}`, place: indPlaces.value[i], avatar: r.avatar, me: r.me
+  key: r.id, name: firstName(r) + (r.birthday ? ' 🎂' : ''), sub: `${r.points} ${t('pts')}`, place: indPlaces.value[i], avatar: r.avatar, me: r.me, party: r.birthday
 })))
 const patPodium = computed(() => (data.value?.patrols || []).slice(0, 3).map((p: any, i: number) => ({
   key: p.id, name: lx(p, 'name'), sub: `${p.score} ${isSum.value ? t('pts') : t('avg')}`, place: patPlaces.value[i], emblem: p.emblem || '⚜️', me: p.id === myPatrol.value
@@ -65,9 +65,9 @@ const MEDAL: Record<number, { face: string, rim: string, ribbon: string, ink: st
           </svg>
           <span v-else class="num">{{ indPlaces[i] }}</span>
         </div>
-        <Avatar :name="name(r)" :avatar="r.avatar" :size="46" />
+        <Avatar :name="name(r)" :avatar="r.avatar" :size="46" :party="r.birthday" />
         <div class="who">
-          <b>{{ name(r) }}</b>
+          <b>{{ name(r) }}<template v-if="r.birthday"> 🎂</template></b>
           <span>{{ data?.patrolNames?.[r.patrolId]?.emblem }} {{ lx(data?.patrolNames?.[r.patrolId], 'name') }}{{ r.me ? ' · ' + t('you') : '' }}</span>
         </div>
         <div class="pts">{{ r.points }} <small>{{ t('pts') }}</small></div>

@@ -30,7 +30,7 @@ const busy = ref(false)
 const form = reactive<any>({
   titleEl: '', questionEl: '', explanationEl: '', imageEmoji: '',
   unlocksAt: '', closesAt: '', options: [] as any[], answeredCount: 0,
-  sectionId: null as number | null, isBonus: false
+  sectionId: null as number | null, isBonus: false, points: 10, minPoints: 5
 })
 /** ISO -> the value a datetime-local input wants, in local time. */
 function toLocal(iso: string | null) {
@@ -51,6 +51,8 @@ async function openEdit() {
   form.answeredCount = c.answeredCount
   form.sectionId = c.sectionId ?? null
   form.isBonus = !!c.isBonus
+  form.points = c.points ?? 10
+  form.minPoints = c.minPoints ?? 5
   form.options = c.options.map((o: any) => ({ textEl: o.textEl, isCorrect: o.isCorrect }))
   editing.value = true
 }
@@ -75,7 +77,8 @@ async function save() {
       unlocksAt: form.unlocksAt ? new Date(form.unlocksAt).toISOString() : null,
       closesAt: form.closesAt ? new Date(form.closesAt).toISOString() : null,
       sectionId: form.sectionId,
-      isBonus: form.isBonus
+      isBonus: form.isBonus,
+      points: form.points, minPoints: form.minPoints
     }
     if (!locked.value) body.options = form.options
     await $fetch(`/api/admin/challenges/${id}`, { method: 'PATCH', body })
@@ -156,8 +159,10 @@ async function remove() {
           <div><label class="lab">{{ t('explanation') }}</label><textarea v-model="form.explanationEl" class="in" rows="2" /></div>
           <div style="display:flex;gap:8px">
             <div style="flex:1"><label class="lab">{{ t('icon') }}</label><input v-model="form.imageEmoji" class="in"></div>
-            <div style="flex:1"><label class="lab">{{ t('pts') }}</label><div class="in ro">{{ t('fixedScoring') }}</div></div>
+            <div style="flex:1"><label class="lab">{{ t('maxPoints') }}</label><input v-model.number="form.points" type="number" min="1" max="100" inputmode="numeric" class="in"></div>
+            <div style="flex:1"><label class="lab">{{ t('minPoints') }}</label><input v-model.number="form.minPoints" type="number" min="0" :max="form.points" inputmode="numeric" class="in"></div>
           </div>
+          <div class="tiny muted" style="margin-top:-6px">{{ t('scoringHint', { max: form.points || 0, min: Math.min(form.minPoints || 0, form.points || 0) }) }}</div>
           <div style="display:flex;gap:8px">
             <div style="flex:1"><label class="lab">{{ t('unlocksAtLabel') }}</label><input v-model="form.unlocksAt" type="datetime-local" class="in"></div>
             <div style="flex:1"><label class="lab">{{ t('closesAtLabel') }}</label><input v-model="form.closesAt" type="datetime-local" class="in"></div>

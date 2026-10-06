@@ -2,7 +2,7 @@ import { eq, and } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireScout, idParam } from '../../../utils/guard'
 import { now, isAfter, isAtOrBefore } from '../../../utils/passcode'
-import { DECAY_EVERY_MS, MIN_POINTS, MAX_POINTS, READ_MS } from '../../../utils/scoring'
+import { DECAY_EVERY_MS, READ_MS } from '../../../utils/scoring'
 import { isScoutTroop } from '../../../utils/programme'
 
 /** Called the moment a question is opened. The first call fixes when its
@@ -36,6 +36,6 @@ export default defineEventHandler(async (event) => {
     // they did (the clock running); one of the two is always 0
     readLeftMs: Math.max(0, Date.parse(revealedAt) - Date.parse(t)),
     elapsedMs: Math.max(0, Date.parse(t) - Date.parse(revealedAt)),
-    points: MAX_POINTS, minPoints: MIN_POINTS, decayEveryMs: DECAY_EVERY_MS
+    points: c.points, minPoints: Math.min(c.minPoints, c.points), decayEveryMs: DECAY_EVERY_MS
   }
 })

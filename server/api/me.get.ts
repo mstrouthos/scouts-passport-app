@@ -29,6 +29,8 @@ export default defineEventHandler(async (event) => {
     phone: me.phone, email: me.email, birthday: me.birthday,
     rank: isLeader ? await rankOf(me) : null,
     isChief: !!me.isChief,
+    // a hidden test account may try things out (drafts, a season out of season)
+    isHidden: !!me.isHidden,
     canEditSelf: me.canEditSelf,
     scopeKind: kind,
     patrol: patrol && { id: patrol.id, nameEl: patrol.nameEl, nameEn: patrol.nameEn, emblem: patrol.emblem },

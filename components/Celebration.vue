@@ -40,7 +40,10 @@ function up() {
   spin.value = Math.round(spin.value / 180) * 180
 }
 const landed = ref(false)
-onMounted(() => { setTimeout(() => { landed.value = true }, 1250) })
+onMounted(() => {
+  sfx('whoosh')
+  setTimeout(() => { landed.value = true; sfx('fanfare') }, 1250)
+})
 </script>
 
 <template>

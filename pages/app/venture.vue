@@ -46,6 +46,7 @@ const party = ref<any>(null)
 watch(() => route.query.req, (raw) => {
   const id = Number(raw)
   if (!Number.isInteger(id)) return
+  markCelebrated(`venture:${id}`)
   for (const a of awards.value) {
     const it = a.items.find((x: any) => x.id === id)
     if (!it) continue
