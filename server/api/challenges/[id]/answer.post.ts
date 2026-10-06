@@ -5,6 +5,7 @@ import { now, isAfter, isAtOrBefore } from '../../../utils/passcode'
 import { localDay, bonusEarned } from '../../../utils/streak'
 import { pointsAfter, MAX_POINTS } from '../../../utils/scoring'
 import { isScoutTroop } from '../../../utils/programme'
+import { syncRewards } from '../../../utils/rewards'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
@@ -52,6 +53,8 @@ export default defineEventHandler(async (event) => {
   return {
     isCorrect: opt.isCorrect, points, fullPoints: MAX_POINTS,
     correctOptionId: opts.find(o => o.isCorrect)?.id,
-    explanationEl: c.explanationEl, explanationEn: c.explanationEn
+    explanationEl: c.explanationEl, explanationEn: c.explanationEn,
+    // a streak that has just reached 7, 20, 40… days earns its item
+    rewards: (await syncRewards(me.id)).fresh
   }
 })

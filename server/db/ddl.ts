@@ -460,6 +460,13 @@ CREATE TABLE IF NOT EXISTS forms (
   created_at TEXT NOT NULL,
   updated_at TEXT
 );
+CREATE TABLE IF NOT EXISTS scout_rewards (
+  id SERIAL PRIMARY KEY,
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  reward_key TEXT NOT NULL,
+  unlocked_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS scout_reward_uq ON scout_rewards (scout_id, reward_key);
 CREATE TABLE IF NOT EXISTS form_templates (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,

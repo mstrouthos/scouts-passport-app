@@ -27,7 +27,14 @@ export const AVATAR_OPTIONS = {
   facialHair: ['none', 'stubble', 'shortBeard', 'denseShort', 'beard', 'moustache', 'goatee', 'chinPatch'],
   glasses: ['none', 'round', 'square', 'cateye', 'sunglasses'],
   glassesColor: ['#2A2330', '#B23A48', '#2F79B8', '#3E8A3A', '#C99A18', '#E35D9A'],
-  headwear: ['none', 'scout', 'beret', 'cap', 'beanie'],
+  headwear: ['none', 'scout', 'beret', 'cap', 'beanie', 'golden'],
+  /* limited edition: earned by keeping the quiz streak, never chosen freely
+     (see STREAK_REWARDS) — a pin, the woggle, a scene, a companion, an aura */
+  pin: ['none', 'flame'],
+  woggle: ['classic', 'silver', 'gold'],
+  scene: ['none', 'campfire', 'aurora'],
+  companion: ['none', 'phoenix'],
+  aura: ['none', 'legend'],
   headwearColor: ['#7A1F2B', '#2E5E8C', '#3B6452', '#2B2B33', '#E08A2E', '#E35D9A', '#E9EEF4'],
   bg: ['#D9E8FD', '#CDEFE0', '#FCEFC7', '#FBDCE2', '#E6DDF7', '#FFE1C7', '#D4F1F7', '#E3E7EE']
 } as const
@@ -46,7 +53,33 @@ export const FOR_GENDER: Record<string, Partial<Record<string, readonly string[]
 }
 /** The choices offered for this field to this gender. */
 export function optionsFor(field: string, gender: string): readonly string[] {
-  return FOR_GENDER[gender]?.[field] ?? (AVATAR_OPTIONS as any)[field]
+  // the limited-edition ones live in the collection, not among the choices
+  const list: readonly string[] = FOR_GENDER[gender]?.[field] ?? (AVATAR_OPTIONS as any)[field]
+  return list.filter(v => !STREAK_REWARDS.some(r => r.field === field && r.value === v))
+}
+
+/* Limited edition: each earned by a quiz streak, from 7 days to 300, each
+   more impressive than the last. Nobody can choose one any other way; once
+   earned it is theirs for good, even if the streak later ends. */
+export const STREAK_REWARDS = [
+  { days: 7, key: 'flamePin', field: 'pin', value: 'flame', crop: 'body' },
+  { days: 20, key: 'silverWoggle', field: 'woggle', value: 'silver', crop: 'body' },
+  { days: 40, key: 'campfire', field: 'scene', value: 'campfire', crop: 'full' },
+  { days: 60, key: 'goldWoggle', field: 'woggle', value: 'gold', crop: 'body' },
+  { days: 90, key: 'goldenHat', field: 'headwear', value: 'golden', crop: 'head' },
+  { days: 150, key: 'phoenix', field: 'companion', value: 'phoenix', crop: 'full' },
+  { days: 200, key: 'aurora', field: 'scene', value: 'aurora', crop: 'full' },
+  { days: 300, key: 'legend', field: 'aura', value: 'legend', crop: 'full' }
+] as const
+export type StreakReward = typeof STREAK_REWARDS[number]
+
+/** The avatar with anything limited-edition its owner has not earned taken
+    off again. */
+export function withoutLocked(a: Avatar, unlocked: readonly string[]): Avatar {
+  const out: any = { ...a }
+  for (const r of STREAK_REWARDS)
+    if (out[r.field] === r.value && !unlocked.includes(r.key)) out[r.field] = (DEFAULT_AVATAR as any)[r.field]
+  return out
 }
 
 type O = typeof AVATAR_OPTIONS
@@ -58,7 +91,8 @@ export const DEFAULT_AVATAR: Avatar = {
   hair: 'short', hairColor: '#4A3125', eyeColor: '#2A2330', expression: 'smile', extras: 'none',
   eyeShape: 'round', brows: 'normal', nose: 'button', facialHairColor: '#4A3125',
   facialHair: 'none', glasses: 'none', glassesColor: '#2A2330', headwear: 'none', headwearColor: '#7A1F2B', bg: '#D9E8FD',
-  earrings: 'none', gear: 'none'
+  earrings: 'none', gear: 'none',
+  pin: 'none', woggle: 'classic', scene: 'none', companion: 'none', aura: 'none'
 }
 
 /* avatars saved before the redraw named a few things differently */
@@ -172,6 +206,18 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   }
   const neck = `<rect x="${cx - 15}" y="${y1 - 14}" width="30" height="${154 - y1 + 14}" rx="8" fill="${skinD}"/>`
 
+  /* the woggle: brown leather; silver with the crest (20 days); gold with a
+     red stone (60 days) */
+  const WOGGLES: Record<string, string> = {
+    classic: `<rect x="90.5" y="159" width="19" height="13" rx="5.5" fill="${WOGGLE}"/><rect x="90.5" y="165.5" width="19" height="6.5" rx="3.2" fill="${WOGGLE_D}"/>`,
+    silver: `<rect x="89.5" y="158.5" width="21" height="14" rx="6" fill="#C9D3DE"/><rect x="89.5" y="165.5" width="21" height="7" rx="3.5" fill="#9AA8B8"/>`
+      + `<rect x="92" y="160" width="9" height="2.6" rx="1.3" fill="#fff" opacity=".85"/>` + crest(100, 165.5, 4.2),
+    gold: `<rect x="89" y="158" width="22" height="15" rx="6.5" fill="${'#F2C230'}"/><rect x="89" y="165.5" width="22" height="7.5" rx="3.7" fill="#C99A18"/>`
+      + `<rect x="91.5" y="159.6" width="10" height="2.8" rx="1.4" fill="#FFF3B8"/>`
+      + `<circle cx="100" cy="165.5" r="3.6" fill="#D8343C" stroke="#8E1A22" stroke-width="1"/><circle cx="99" cy="164.4" r="1.1" fill="#fff"/>`
+      + `<path d="M115 156 l1.2 3 3 1.2 -3 1.2 -1.2 3 -1.2 -3 -3 -1.2 3 -1.2 Z" fill="#FFF3B8"/>`
+  }
+
   /* the neckerchief: one rolled cloth, round the back of the neck and forward
      on both sides, its two ends brought together through the woggle under
      the chin, their tips just showing below the ring. Blue and yellow
@@ -182,7 +228,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   const scarfFront = `<path d="M77 144 Q84 158 96 166 L104 166 Q116 158 123 144 L114 142 Q109 155 100 158 Q91 155 86 142 Z" ${SC}/>`
     + `<path d="M84 148 Q92 157 100 159 Q108 157 116 148" fill="none" stroke="${SCARF_SHADE}" stroke-width="2" opacity=".35"/>`
     + `<path d="M95.5 170 L88 189 L99.5 179 Z M104.5 170 L112 189 L100.5 179 Z" ${SC}/>`
-    + `<rect x="90.5" y="159" width="19" height="13" rx="5.5" fill="${WOGGLE}"/><rect x="90.5" y="165.5" width="19" height="6.5" rx="3.2" fill="${WOGGLE_D}"/>`
+    + WOGGLES[a.woggle]
 
   /* ---- hair: what falls behind the head, and what sits on it ---- */
   const back: Record<string, string> = {
@@ -302,6 +348,12 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     compass: lanyard(129, 162) + `<circle cx="129" cy="168" r="9.5" fill="#C8D0DA"/><circle cx="129" cy="168" r="7" fill="#fff"/><path d="M129 162.3 L131.3 168 L129 169 Z" fill="#D8543C"/><path d="M129 173.7 L126.7 168 L129 167 Z" fill="#2B2B33"/>`,
     badges: crest(66, 166, 6.5) + `<rect x="140" y="152" width="14" height="12" rx="3" fill="#3B6452" stroke="#fff" stroke-width="1.6" transform="rotate(18 147 158)"/><path d="M144 155 l3 4 l3 -4" fill="none" stroke="${SCARF_YELLOW}" stroke-width="1.8" transform="rotate(18 147 158)"/>`
   }
+  // the flame pin (7 days): bronze, on the left pocket
+  const pin = a.pin === 'flame'
+    ? `<g transform="translate(67 181) scale(1.3) translate(-67 -181)"><circle cx="67" cy="181" r="7" fill="#C77B3A" stroke="#8E5524" stroke-width="1.6"/>`
+      + `<path d="M67 175.5 C70.5 179 71 182 69.6 184.6 C68.8 186 65.2 186 64.4 184.6 C63.2 182.4 64.2 180.6 65.4 179.8 C65.6 181.2 66.2 181.8 66.8 182 C66.2 179.6 66.4 177.4 67 175.5 Z" fill="#FFB62E"/>`
+      + `<path d="M67 180.5 C68.6 182.2 68.6 184 67 185 C65.4 184 65.6 182.4 67 180.5 Z" fill="#FFE58A"/></g>`
+    : ''
   const head = `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${hb.r}" fill="${skin}"/>`
 
   /* ---- the face: eyes, brows, nose, mouth, together by expression ---- */
@@ -448,8 +500,80 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       + `<rect x="${x0 - 6}" y="${y0 + 2}" width="${w + 12}" height="18" rx="7" fill="${hwD}"/>`
       + [...Array(7)].map((_, i) => `<rect x="${x0 + 2 + i * (w - 4) / 7}" y="${y0 + 4}" width="3" height="14" rx="1.5" fill="${hw}" opacity=".55"/>`).join('')
       + `<circle cx="${cx}" cy="${top - 28}" r="10" fill="${hwL}"/>`
-      + crest(cx, y0 + 11, 7.5)
+      + crest(cx, y0 + 11, 7.5),
+    // the golden campaign hat (90 days): gold felt, a red band, a red feather
+    golden: `<ellipse cx="${cx}" cy="${y0 + 12}" rx="${w / 2 + 36}" ry="12.5" fill="#C99A18"/><ellipse cx="${cx}" cy="${y0 + 9}" rx="${w / 2 + 36}" ry="10.5" fill="#F2C230"/>`
+      + `<path d="M${cx - 34} ${y0 + 10} L${cx - 28} ${y0 - 28} Q${cx - 16} ${y0 - 40} ${cx - 7} ${y0 - 31} L${cx} ${y0 - 42} L${cx + 7} ${y0 - 31} Q${cx + 16} ${y0 - 40} ${cx + 28} ${y0 - 28} L${cx + 34} ${y0 + 10} Z" fill="#F2C230"/>`
+      + `<path d="M${cx + 7} ${y0 - 31} Q${cx + 16} ${y0 - 40} ${cx + 28} ${y0 - 28} L${cx + 34} ${y0 + 10} L${cx + 14} ${y0 + 10} Z" fill="#DDAA22"/>`
+      + `<path d="M${cx - 22} ${y0 - 26} Q${cx - 14} ${y0 - 34} ${cx - 9} ${y0 - 28}" fill="none" stroke="#FFF3B8" stroke-width="2.4" stroke-linecap="round"/>`
+      + `<path d="M${cx + 26} ${y0 - 1} C${cx + 34} ${y0 - 18} ${cx + 46} ${y0 - 34} ${cx + 52} ${y0 - 38} C${cx + 48} ${y0 - 22} ${cx + 40} ${y0 - 8} ${cx + 30} ${y0 + 1} Z" fill="#D8343C"/>`
+      + `<path d="M${cx + 30} ${y0 - 2} C${cx + 38} ${y0 - 16} ${cx + 45} ${y0 - 28} ${cx + 50} ${y0 - 35}" fill="none" stroke="#8E1A22" stroke-width="1.2"/>`
+      + `<rect x="${cx - 34}" y="${y0 - 2}" width="68" height="10" rx="3" fill="#B23A48"/>`
+      + crest(cx, y0 + 3, 7.5)
   }
+
+  /* ---- limited edition, around the avatar ---- */
+  // a scene instead of the plain colour: a campfire night (40 days), the
+  // northern lights (200 days)
+  const stars = (pts: number[][]) => pts.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#FFF6D8"/>`).join('')
+  const scenes: Record<string, string> = {
+    none: '',
+    campfire: `<rect x="-40" y="-40" width="280" height="280" fill="url(#sky-${id})"/>`
+      + stars([[30, 24, 1.3], [52, 12, 1], [72, 34, 0.9], [140, 16, 1.2], [176, 46, 1], [24, 66, 0.9], [168, 84, 1.1], [44, 96, 0.8], [158, 112, 0.9]])
+      + `<circle cx="160" cy="32" r="11" fill="#FFF1C4"/><circle cx="165" cy="28" r="10" fill="url(#sky-${id})"/>`
+      + `<ellipse cx="100" cy="206" rx="110" ry="46" fill="#FF9A3C" opacity=".32"/>`
+      + [[22, 196, 34], [44, 200, 26], [168, 198, 32], [186, 200, 24]].map(([x, y, s]) =>
+        `<path d="M${x} ${y - s * 2.6} L${x - s * 0.55} ${y - s * 1.5} L${x - s * 0.3} ${y - s * 1.5} L${x - s * 0.75} ${y - s * 0.6} L${x + s * 0.75} ${y - s * 0.6} L${x + s * 0.3} ${y - s * 1.5} L${x + s * 0.55} ${y - s * 1.5} Z" fill="#16233F"/>`).join(''),
+    aurora: `<rect x="-40" y="-40" width="280" height="280" fill="url(#night-${id})"/>`
+      + stars([[24, 20, 1.2], [62, 10, 0.9], [120, 22, 1], [178, 14, 1.3], [16, 70, 0.9], [184, 62, 1], [36, 118, 0.8], [170, 120, 0.9]])
+      + `<path d="M-20 64 C20 30 50 70 92 44 C130 20 160 54 220 30 L220 58 C164 82 130 50 94 74 C54 98 22 60 -20 92 Z" fill="url(#aur-${id})" opacity=".75"/>`
+      + `<path d="M-20 96 C24 70 60 104 100 82 C140 60 168 92 220 70 L220 86 C170 106 138 78 102 98 C62 120 26 90 -20 112 Z" fill="url(#aur-${id})" opacity=".4"/>`
+      + `<path d="M150 18 L118 40" stroke="url(#shoot-${id})" stroke-width="2.4" stroke-linecap="round"/><circle cx="118" cy="40" r="1.8" fill="#fff"/>`
+  }
+  const sceneDefs = a.scene === 'campfire'
+    ? `<linearGradient id="sky-${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14203D"/><stop offset="1" stop-color="#3A3F6B"/></linearGradient>`
+    : a.scene === 'aurora'
+      ? `<linearGradient id="night-${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0B1630"/><stop offset="1" stop-color="#1D2E55"/></linearGradient>`
+        + `<linearGradient id="aur-${id}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3BE3A0"/><stop offset=".55" stop-color="#2FC6D8"/><stop offset="1" stop-color="#A67BF0"/></linearGradient>`
+        + `<linearGradient id="shoot-${id}" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff"/></linearGradient>`
+      : ''
+
+  // the legend's wings (300 days): golden phoenix wings behind the shoulders,
+  // fanned out, with sparks about them
+  // each feather a long drop from the shoulder; the outer ones longest and
+  // reddest, rising up and out like a phoenix's
+  const feathers = (list: { ang: number, len: number, wid: number, c: string }[]) => list.map(f => {
+    const r = f.ang * Math.PI / 180, bx = 74, by = 150
+    const tx = bx + Math.cos(r) * f.len, ty = by + Math.sin(r) * f.len
+    const nx = -Math.sin(r) * f.wid, ny = Math.cos(r) * f.wid
+    const mx = bx + Math.cos(r) * f.len * 0.55, my = by + Math.sin(r) * f.len * 0.55
+    return `<path d="M${bx} ${by} Q${mx + nx} ${my + ny} ${tx} ${ty} Q${mx - nx} ${my - ny} ${bx} ${by} Z" fill="${f.c}"/>`
+  }).join('')
+  const wing = feathers([
+    ...[-178, -160, -142, -124, -106].map((ang, i) => ({ ang, len: 58 + i * 6, wid: 13, c: '#E2582A' })),
+    ...[-170, -152, -134, -116].map((ang, i) => ({ ang, len: 46 + i * 5, wid: 11, c: '#F29A2E' })),
+    ...[-160, -140, -120].map((ang, i) => ({ ang, len: 32 + i * 4, wid: 9, c: '#FFD24A' }))
+  ])
+  const aura = a.aura === 'legend'
+    ? `<circle cx="100" cy="${y0 + h / 2}" r="${Math.max(w, h) / 2 + 18}" fill="#FFE58A" opacity=".22"/>`
+      + `<g>${wing}</g><g transform="translate(200 0) scale(-1 1)">${wing}</g>`
+      + [[34, 40], [166, 36], [22, 108], [178, 104], [100, 12]].map(([x, y]) =>
+        `<path d="M${x} ${y - 5} l1.6 3.4 3.4 1.6 -3.4 1.6 -1.6 3.4 -1.6 -3.4 -3.4 -1.6 3.4 -1.6 Z" fill="#FFF3B8"/>`).join('')
+    : ''
+
+  // the phoenix companion (150 days): a little one on the right shoulder
+  const companion = a.companion === 'phoenix'
+    ? `<g transform="translate(150 144) scale(1.3)">`
+      + `<path d="M6 6 C14 10 18 18 22 24 C14 22 9 18 5 12 Z" fill="#E8462A"/><path d="M5 8 C11 13 13 19 15 24 C9 21 6 16 3 11 Z" fill="#FFB62E"/>`
+      + `<ellipse cx="0" cy="4" rx="8.5" ry="9.5" fill="#F29A2E"/><ellipse cx="-2" cy="7" rx="5" ry="5.5" fill="#FFD27A"/>`
+      + `<path d="M3 0 C10 -2 14 4 12 11 C8 9 4 6 3 0 Z" fill="#E0661F"/>`
+      + `<circle cx="-2" cy="-8" r="7" fill="#F7B23B"/>`
+      + `<path d="M-4 -14 C-6 -20 -3 -23 -1 -25 C-1 -21 1 -19 0 -14 Z M0 -14 C1 -19 4 -21 6 -22 C5 -18 4 -16 2 -13 Z M-7 -12 C-11 -16 -11 -19 -10 -21 C-8 -18 -6 -16 -5 -13 Z" fill="#E8462A"/>`
+      + `<circle cx="-5" cy="-9" r="1.8" fill="${INK}"/><circle cx="-5.5" cy="-9.6" r=".6" fill="#fff"/>`
+      + `<path d="M-9 -7 L-14 -5.5 L-9 -4.5 Z" fill="#FFD84A"/>`
+      + `<path d="M-3 13 l-1 4 M1 13 l1 4" stroke="#C26A1E" stroke-width="1.6" stroke-linecap="round"/>`
+      + `</g>`
+    : ''
   // a hat covers the top of the hair; long hair still shows at the sides
   const coversTop = ['scout', 'beret', 'cap', 'beanie'].includes(a.headwear)
   const hairFront = coversTop ? `<g clip-path="url(#under-${id})">${front[a.hair] || ''}</g>` : (front[a.hair] || '')
@@ -461,13 +585,13 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     + `<pattern id="st-${id}" patternUnits="userSpaceOnUse" width="9" height="9" patternTransform="rotate(-35)"><rect width="9" height="9" fill="${SCARF_BLUE}"/><rect width="4" height="9" fill="${SCARF_YELLOW}"/></pattern>`
     + `<clipPath id="under-${id}"><rect x="0" y="${hatTop}" width="200" height="200"/></clipPath>`
     + `<clipPath id="chin-${id}"><rect x="${x0 - 1}" y="${y0}" width="${w + 2}" height="${h + 10}" rx="${hb.r}"/></clipPath>`
-    + extraDefs.join('')
+    + extraDefs.join('') + sceneDefs
     + `<clipPath id="face-${id}"><rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${hb.r}"/></clipPath>`
     + `</defs>`
-    + `<rect x="-40" y="-40" width="280" height="280" fill="${a.bg}"/>`
-    + hairBack + clothes[a.clothes] + scarfBack + neck + scarfFront + gear[a.gear]
+    + `<rect x="-40" y="-40" width="280" height="280" fill="${a.bg}"/>` + scenes[a.scene] + aura
+    + hairBack + clothes[a.clothes] + scarfBack + neck + scarfFront + gear[a.gear] + pin
     + ears + head + earrings[a.earrings] + extras[a.extras] + eyes + nose + facialHair[a.facialHair] + (MOUTH[xp.mouth] || '')
-    + hairFront + glasses[a.glasses] + headwear[a.headwear]
+    + hairFront + glasses[a.glasses] + headwear[a.headwear] + companion
     + `</svg>`
 }
 
@@ -489,5 +613,7 @@ export const AVATAR_TABS: ReadonlyArray<{ key: string, icon: string, sections: R
   { key: 'clothes', icon: 'clothes', sections: [{ field: 'clothes', crop: 'body', color: 'clothesColor' }, { field: 'gear', crop: 'body' }] },
   { key: 'glasses', icon: 'glasses', sections: [{ field: 'glasses', crop: 'face', color: 'glassesColor' }] },
   { key: 'headwear', icon: 'hat', sections: [{ field: 'headwear', crop: 'head', color: 'headwearColor' }] },
-  { key: 'bg', icon: 'frame', sections: [{ field: 'bg' }] }
+  { key: 'bg', icon: 'frame', sections: [{ field: 'bg' }] },
+  // the limited-edition collection, earned with the quiz streak
+  { key: 'rewards', icon: 'trophy', sections: [] }
 ]

@@ -1,7 +1,8 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { requireScout } from '../../utils/guard'
-import { normalizeAvatar } from '../../../utils/avatar'
+import { normalizeAvatar, withoutLocked } from '../../../utils/avatar'
+import { syncRewards } from '../../utils/rewards'
 import { deleteStored } from '../../utils/storage'
 
 /** Someone saves the avatar they made. Anyone may: members always use one,
@@ -11,7 +12,8 @@ import { deleteStored } from '../../utils/storage'
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
   const b = await readBody<{ avatar?: any }>(event)
-  const avatar = b?.avatar ? normalizeAvatar(b.avatar) : null
+  // limited-edition items only for those who have earned them
+  const avatar = b?.avatar ? withoutLocked(normalizeAvatar(b.avatar), (await syncRewards(me.id)).unlocked) : null
   const db = await useDb()
   await db.update(s.scouts).set({ avatar: avatar ? JSON.stringify(avatar) : null }).where(eq(s.scouts.id, me.id))
   if (avatar && me.role !== 'scout' && me.photoFileId) {

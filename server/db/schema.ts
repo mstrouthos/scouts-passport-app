@@ -696,6 +696,15 @@ export const forms = pgTable('forms', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at')
 })
+/* The limited-edition avatar items a member has earned with their quiz
+   streak (utils/avatar.ts STREAK_REWARDS), and when. Theirs for good. */
+export const scoutRewards = pgTable('scout_rewards', {
+  id: serial('id').primaryKey(),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  rewardKey: text('reward_key').notNull(),
+  unlockedAt: text('unlocked_at').notNull()
+}, t => [uniqueIndex('scout_reward_uq').on(t.scoutId, t.rewardKey)])
+
 /* A form's design kept to start new ones from: its questions and its
    messages, never anything anyone answered. */
 export const formTemplates = pgTable('form_templates', {

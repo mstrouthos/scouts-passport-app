@@ -113,6 +113,9 @@ let resultTimer: any = null
 /* the day's check-in: after the first answer of the day, once the answer's
    own moment has played, the streak flame and the week */
 const streakShow = ref(false)
+/* a streak that reached 7, 20, 40… days: its limited-edition item, after the flame */
+const earned = ref<string[]>([])
+const rewardShow = ref(false)
 let streakTimer: any = null
 onBeforeUnmount(() => { clearTimeout(streakTimer) })
 async function submit() {
@@ -129,8 +132,11 @@ async function submit() {
     await refresh()
     open.value = items.value.find(x => x.id === open.value.id) || null
     picked.value = null
+    earned.value = res.rewards || []
     if (firstToday && data.value?.answeredToday) {
       clearTimeout(streakTimer); streakTimer = setTimeout(() => { streakShow.value = true }, 2300)
+    } else if (earned.value.length) {
+      clearTimeout(streakTimer); streakTimer = setTimeout(() => { rewardShow.value = true }, 2300)
     }
   } catch (e: any) {
     show(errMsg(e))
@@ -186,7 +192,8 @@ function optClass(c: any, o: any) {
     <div v-else class="empty">{{ t('noChallenges') }}</div>
 
     <FxStreakCelebration v-if="streakShow && data" :streak="data.streak" :week="data.week" :bonus="data.bonusEarned"
-                         @close="streakShow = false" />
+                         @close="streakShow = false; rewardShow = earned.length > 0" />
+    <FxRewardUnlocked v-if="rewardShow" :keys="earned" @close="rewardShow = false; earned = []" />
 
     <Teleport to="body">
       <div v-if="open" class="sheet-backdrop" @click.self="close">

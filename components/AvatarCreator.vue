@@ -7,7 +7,7 @@
    Members make one here; so may a Βαθμοφόρος, instead of a photo — saving an
    avatar takes their photo down, as only one of the two is shown. Beards and
    moustaches are offered to Βαθμοφόροι only. */
-import { AVATAR_OPTIONS, AVATAR_TABS, optionsFor, DEFAULT_AVATAR, avatarSvg, normalizeAvatar, randomAvatar, type Avatar } from '~/utils/avatar'
+import { AVATAR_OPTIONS, AVATAR_TABS, STREAK_REWARDS, optionsFor, DEFAULT_AVATAR, avatarSvg, normalizeAvatar, randomAvatar, type Avatar, type StreakReward } from '~/utils/avatar'
 const props = defineProps<{ back: string }>()
 const { t } = useI18n()
 const me = useMe()
@@ -75,9 +75,23 @@ const needs: Record<string, () => boolean> = {
   facialHairColor: () => cfg.value.facialHair !== 'none'
 }
 
+/* the collection: what the streak has earned, worn or not; what it has not,
+   with how far there is to go */
+const { data: rewards } = await useFetch<{ current: number, best: number, unlocked: string[] }>('/api/me/rewards')
+const owns = (r: StreakReward) => !!rewards.value?.unlocked.includes(r.key)
+const wearing = (r: StreakReward) => (cfg.value as any)[r.field] === r.value
+function toggleReward(r: StreakReward) {
+  if (!owns(r)) return
+  cfg.value = { ...cfg.value, [r.field]: wearing(r) ? (DEFAULT_AVATAR as any)[r.field] : r.value } as Avatar
+}
+const rewardArt = (r: StreakReward) => avatarSvg({ ...cfg.value, [r.field]: r.value }, `rw-${r.key}`, r.crop)
+const rewardFields = [...new Set(STREAK_REWARDS.map(r => r.field))]
+
 function resetToSaved() { cfg.value = normalizeAvatar(JSON.parse(saved)) }
 function shuffle() {
-  const r = randomAvatar()
+  const r: any = randomAvatar()
+  // the dice never takes off what was earned
+  for (const f of rewardFields) r[f] = (cfg.value as any)[f]
   cfg.value = { ...r, facialHair: isLeader.value && r.gender === 'boy' ? cfg.value.facialHair : 'none' }
 }
 
@@ -103,7 +117,8 @@ const ICONS: Record<string, string> = {
   glasses: '<circle cx="7" cy="13" r="3.6"/><circle cx="17" cy="13" r="3.6"/><path d="M10.6 12.5c.9-.7 1.9-.7 2.8 0M3.4 12 2 9M20.6 12 22 9"/>',
   hat: '<path d="M5 16c0-6 3-10 7-10s7 4 7 10"/><path d="M2 16h20v2.5H2z"/>',
   clothes: '<path d="M8 3 4 5.5 2 10l3.5 1.5L7 9.5V21h10V9.5l1.5 2L22 10l-2-4.5L16 3c-.5 1.6-2.1 2.6-4 2.6S8.5 4.6 8 3Z"/>',
-  frame: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="9" r="1.6"/>'
+  frame: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="9" r="1.6"/>',
+  trophy: '<path d="M7 4h10v5a5 5 0 0 1-10 0Z"/><path d="M7 6H4v1.5A3.5 3.5 0 0 0 7.5 11M17 6h3v1.5a3.5 3.5 0 0 1-3.5 3.5M12 14v4M8 21h8M9 18h6"/>'
 }
 </script>
 
@@ -127,6 +142,26 @@ const ICONS: Record<string, string> = {
     </div>
 
     <div v-if="me?.photo" class="note">📷 {{ t('avatarReplacesPhoto') }}</div>
+
+    <!-- the collection: limited edition, earned with the quiz streak -->
+    <div v-if="tab === 'rewards'" class="card opts">
+      <div class="lab">{{ t('rwTitle') }}</div>
+      <div class="tiny muted">{{ t('rwIntro', { n: rewards?.best ?? 0 }) }}</div>
+      <div class="rgrid">
+        <button v-for="r in STREAK_REWARDS" :key="r.key" class="rw" :class="{ own: owns(r), on: owns(r) && wearing(r) }"
+                :disabled="!owns(r)" @click="toggleReward(r)">
+          <span class="ltd">{{ t('rwLimited') }}</span>
+          <span class="art" v-html="rewardArt(r)" />
+          <span v-if="!owns(r)" class="lock">🔒</span>
+          <b>{{ t('rw_' + r.key) }}</b>
+          <small v-if="owns(r)">{{ wearing(r) ? '✓ ' + t('rwWearing') : t('rwTapToWear') }}</small>
+          <template v-else>
+            <small>🔥 {{ t('rwNeeds', { n: r.days }) }}</small>
+            <i class="bar"><i :style="{ width: Math.min(100, (rewards?.best ?? 0) / r.days * 100) + '%' }" /></i>
+          </template>
+        </button>
+      </div>
+    </div>
 
     <!-- one card per choice: its tiles, then its own colours; or colours alone -->
     <div v-for="s in current.sections" :key="tab + s.field" class="card opts">
@@ -208,4 +243,20 @@ const ICONS: Record<string, string> = {
   .dock{margin:0; padding:6px 0 10px}
   .savebar{bottom:16px}
 }
+.rgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:10px}
+.rw{position:relative; display:flex; flex-direction:column; align-items:stretch; gap:3px; padding:8px; border-radius:16px; border:2px solid var(--line); background:var(--hair); text-align:left; font:inherit; color:inherit; overflow:hidden}
+.rw .art{display:block; aspect-ratio:1; border-radius:12px; overflow:hidden; background:#DCE7F5}
+.rw .art :deep(svg){width:100%; height:100%; display:block}
+.rw:not(.own) .art{filter:grayscale(1) brightness(.9); opacity:.55}
+.rw.own{border-color:#F2C230; background:#FFF9E6}
+.rw.on{border-color:var(--accent); background:var(--accent-soft); box-shadow:0 0 0 2px var(--accent) inset}
+.rw b{font-size:13px; line-height:1.25}
+.rw small{font-size:11.5px; color:var(--muted); font-weight:650}
+.rw.on small{color:var(--accent-deep)}
+.ltd{position:absolute; top:12px; left:12px; z-index:1; font-size:9px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#8A5A00; background:#FFE58A; border-radius:999px; padding:2px 7px}
+.rw:not(.own) .ltd{background:#E3E9F1; color:#6F7F93}
+.lock{position:absolute; top:calc(8px + 30%); left:50%; transform:translate(-50%,-50%); font-size:30px}
+.bar{display:block; height:6px; border-radius:6px; background:#E3E9F1; overflow:hidden; margin-top:2px}
+.bar i{display:block; height:100%; background:linear-gradient(90deg,#FF9A3C,#F2C230); border-radius:6px}
+.rw:active:not(:disabled){transform:scale(.97)}
 </style>
