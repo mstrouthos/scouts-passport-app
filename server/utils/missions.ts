@@ -31,3 +31,23 @@ export async function missionById(id: number) {
   if (!m) throw createError({ statusCode: 404, message: 'Η αποστολή δεν βρέθηκε' })
   return m
 }
+
+/* A photo must be taken with the app's own camera, there and then: opening
+   the camera for a mission hands out a ticket, signed and good for a few
+   minutes, which the photo must come back with. A photo from the gallery,
+   or sent some other way, has none. */
+import { createHmac, timingSafeEqual } from 'node:crypto'
+const TICKET_MS = 15 * 60_000
+const sign = (body: string) => createHmac('sha256', String(useRuntimeConfig().passcodePepper)).update('camera:' + body).digest('hex')
+export function cameraTicket(scoutId: number, missionId: number) {
+  const at = Date.now()
+  return `${at}.${sign(`${scoutId}:${missionId}:${at}`)}`
+}
+export function checkCameraTicket(ticket: unknown, scoutId: number, missionId: number) {
+  const [at, mac] = String(ticket || '').split('.')
+  const when = Number(at)
+  if (!when || !mac || Date.now() - when > TICKET_MS || when > Date.now() + 60_000) return false
+  const want = Buffer.from(sign(`${scoutId}:${missionId}:${when}`))
+  const got = Buffer.from(mac)
+  return want.length === got.length && timingSafeEqual(want, got)
+}

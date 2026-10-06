@@ -3,14 +3,15 @@ import { useDb, schema as s } from '../../../db'
 import { requireScout, idParam } from '../../../utils/guard'
 import { now } from '../../../utils/passcode'
 import { storeFile, deleteStored } from '../../../utils/storage'
-import { isOpen, isFor, memberSection, missionById } from '../../../utils/missions'
+import { isOpen, isFor, memberSection, missionById, checkCameraTicket } from '../../../utils/missions'
 import { leadersOfSections } from '../../../utils/polls'
 import { sendPushTo } from '../../../utils/push'
 import { noteError } from '../../../utils/errorReport'
 
 /** A member sends their photo for a mission — or a new one, while the first
-    is still waiting or after it was not approved. The phone makes it a JPEG
-    and smaller first; this only guards. The sector's Βαθμοφόροι are told. */
+    is still waiting or after it was not approved. Only a photo taken with the
+    app's camera for this mission, minutes ago, is taken: it carries the
+    ticket the camera was opened with. The sector's Βαθμοφόροι are told. */
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
   if (me.role !== 'scout') throw createError({ statusCode: 403, message: 'Μόνο για μέλη' })
@@ -19,7 +20,8 @@ export default defineEventHandler(async (event) => {
   if (!isFor(m, await memberSection(me))) throw createError({ statusCode: 404, message: 'Η αποστολή δεν βρέθηκε' })
   if (!isOpen(m, t)) throw createError({ statusCode: 400, message: 'Η αποστολή έχει κλείσει' })
 
-  const b = await readBody<{ mime?: string, dataBase64?: string, note?: string }>(event)
+  const b = await readBody<{ mime?: string, dataBase64?: string, note?: string, ticket?: string }>(event)
+  if (!checkCameraTicket(b?.ticket, me.id, m.id)) throw createError({ statusCode: 400, message: 'Η φωτογραφία πρέπει να τραβηχτεί με την κάμερα της εφαρμογής' })
   if (b?.mime !== 'image/jpeg') throw createError({ statusCode: 400, message: 'Μόνο φωτογραφία' })
   const buf = Buffer.from(String(b?.dataBase64 || ''), 'base64')
   if (!buf.length || buf[0] !== 0xFF || buf[1] !== 0xD8) throw createError({ statusCode: 400, message: 'Μη έγκυρη φωτογραφία' })
