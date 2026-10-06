@@ -9,6 +9,7 @@ import { now } from '../../../../utils/passcode'
 import { sendPushTo } from '../../../../utils/push'
 import { administratorIds } from '../../../../utils/infoNotify'
 import { noteError } from '../../../../utils/errorReport'
+import { parentOfTicket } from '../../../../utils/familyForms'
 
 /** Someone sends a form. Checked against the form's own questions, kept
     encrypted with a copy of them, and the administrators are told. */
@@ -53,8 +54,14 @@ export default defineEventHandler(async (event) => {
   const sent = now()
   const data = { ...clean, signedAt: clean.signature ? sent : null }
 
+  // opened from a parent's app: kept as theirs, for them to read again
+  let parentId = parentOfTicket(body?.k, f.id)
+  if (parentId) {
+    const p = (await db.select({ isActive: s.parents.isActive }).from(s.parents).where(eq(s.parents.id, parentId)).limit(1))[0]
+    if (!p?.isActive) parentId = null
+  }
   const [row] = await db.insert(s.formResponses).values({
-    formId: f.id, sealed: seal(data), spec: JSON.stringify(spec), ipHash: who, createdAt: sent
+    formId: f.id, sealed: seal(data), spec: JSON.stringify(spec), ipHash: who, parentId, createdAt: sent
   }).returning({ id: s.formResponses.id })
   if (waiting.length) {
     await db.update(s.formFiles).set({ responseId: row.id, token: null })
@@ -73,5 +80,5 @@ export default defineEventHandler(async (event) => {
   // answer, so a slow PDF or mail server never holds up the sent screen
   const copyTo = emailReady() ? emailCopyAddress(spec, clean.answers) : null
   if (copyTo) void sendResponseCopy(row.id, copyTo)
-  return { ok: true, thanksTitle: f.thanksTitleEl, thanks: f.thanksEl, at: sent, copyTo }
+  return { ok: true, thanksTitle: f.thanksTitleEl, thanks: f.thanksEl, at: sent, copyTo, kept: !!parentId }
 })

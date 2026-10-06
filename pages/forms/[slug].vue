@@ -33,6 +33,9 @@ const signerName = ref('')
    is the moment the form is sent, by the server's clock */
 const today = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 const website = ref('') // only a bot fills this in
+/* opened from a parent's app, the link carries their ticket (?k=): kept for
+   the send, and taken off the address so a copied link does not pass it on */
+const ticket = ref('')
 /* each upload question's files as uploaded; the answer holds their tokens */
 const uploads = reactive<Record<string, Array<{ token: string, name: string, mime: string, size: number }>>>({})
 function setUploads(id: string, list: typeof uploads[string]) {
@@ -62,12 +65,12 @@ const errors = ref<Record<string, string>>({})
 /* the automatic fields, worked out as the answers they read change */
 watch([answers, repeats], () => { if (spec.value) fillCalc(spec.value, answers, repeats) }, { deep: true, immediate: true })
 const busy = ref(false)
-const done = ref<{ thanksTitle?: string, thanks?: string, at?: string, copyTo?: string | null } | null>(null)
+const done = ref<{ thanksTitle?: string, thanks?: string, at?: string, copyTo?: string | null, kept?: boolean } | null>(null)
 const sentWhen = computed(() => done.value?.at ? new Date(done.value.at).toLocaleString('el-GR', { timeZone: 'Europe/Nicosia', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : '')
 const sendError = ref('')
 const errText = (code: string) => t('formErr_' + code)
 
-const payload = () => ({ answers: { ...answers }, ticks: { ...ticks }, repeats: { ...repeats }, signature: signature.value, signerName: signerName.value, website: website.value })
+const payload = () => ({ answers: { ...answers }, ticks: { ...ticks }, repeats: { ...repeats }, signature: signature.value, signerName: signerName.value, website: website.value, k: ticket.value || undefined })
 /* a problem shown clears the moment it is put right; none new appear until
    the next Επόμενο */
 watch([answers, ticks, signature, signerName], () => {
@@ -136,7 +139,14 @@ const router = useRouter()
 const step = computed(() => Math.max(0, Math.min(Number(route.query.s) || 0, pages.value.length - 1)))
 const page = computed(() => pages.value[step.value])
 const isLast = computed(() => step.value === pages.value.length - 1)
-onMounted(() => { if (route.query.s) router.replace({ query: { ...route.query, s: undefined } }) })
+onMounted(() => {
+  const key = `form-k:${slug.value}`
+  try {
+    if (route.query.k) sessionStorage.setItem(key, String(route.query.k))
+    ticket.value = sessionStorage.getItem(key) || ''
+  } catch { ticket.value = String(route.query.k || '') }
+  if (route.query.s || route.query.k) router.replace({ query: { ...route.query, s: undefined, k: undefined } })
+})
 function go(n: number) {
   errors.value = {}
   router.push({ query: { ...route.query, s: n > 0 ? String(n) : undefined } })
@@ -213,6 +223,7 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
         <h1>{{ done.thanksTitle || t('formSentTitle') }}</h1>
         <p class="thanks">{{ done.thanks || t('formSentText') }}</p>
         <div v-if="sentWhen" class="when">🕒 {{ t('formSentAt', { when: sentWhen }) }}</div>
+        <div v-if="done.kept" class="copyto">📋 {{ t('formKeptInApp') }}</div>
         <div v-if="done.copyTo" class="copyto">📧 {{ t('formCopySent') }} <b>{{ done.copyTo }}</b></div>
         <div class="close">{{ t('formSentClose') }}</div>
       </div>

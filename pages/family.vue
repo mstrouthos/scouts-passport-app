@@ -38,6 +38,33 @@ async function toggleNotif(n: any) {
   if (!n.read) { n.read = true; $fetch(`/api/family/notifications/${n.id}`, { method: 'POST' }).catch(() => {}) }
   expanded.value = expanded.value === n.id ? null : n.id
 }
+/* forms sent to the family: what still waits for an answer, and what they
+   have sent from here — theirs to read again, never to change */
+const forms = ref<{ pending: any[], done: any[] }>({ pending: [], done: [] })
+const formsOpen = ref(false)
+const openAnswer = ref<any>(null)
+const formBusy = ref<number | null>(null)
+const formErr = ref('')
+async function loadForms() {
+  try { forms.value = await $fetch<any>('/api/family/forms') } catch {}
+}
+// the form opens on its own address, with this parent's ticket on the link
+async function openForm(formId: number) {
+  formBusy.value = formId; formErr.value = ''
+  try {
+    const { url } = await $fetch<{ url: string }>(`/api/family/forms/${formId}/link`)
+    window.location.href = url
+  } catch (e: any) { formErr.value = errMsg(e) } finally { formBusy.value = null }
+}
+async function readAnswer(id: number) {
+  formErr.value = ''
+  try { openAnswer.value = await $fetch<any>(`/api/family/forms/responses/${id}`) } catch (e: any) { formErr.value = errMsg(e) }
+}
+const fetchOwnFile = (id: number) => $fetch<Blob>(`/api/family/forms/files/${id}`, { responseType: 'blob' })
+// back from sending one: it moves from waiting to sent
+function onVisible() { if (document.visibilityState === 'visible' && me.value) loadForms() }
+onMounted(() => document.addEventListener('visibilitychange', onVisible))
+onUnmounted(() => document.removeEventListener('visibilitychange', onVisible))
 function fmtWhen(iso: string) {
   const d = new Date(iso), diff = (Date.now() - d.getTime()) / 60000
   if (diff < 60) return `${Math.max(1, Math.round(diff))}′`
@@ -74,6 +101,7 @@ async function load() {
     pack.value = await $fetch('/api/family/pack').catch(() => null)
     info.value = await $fetch<any[]>('/api/family/info').catch(() => [])
     loadNotifs()
+    loadForms()
     ;[posts.value, events.value] = await Promise.all([
       $fetch<any[]>('/api/family/posts'),
       $fetch<any[]>('/api/family/calendar')
@@ -183,6 +211,21 @@ async function enableNotifs() {
           👦 {{ child.firstName }} {{ child.lastName }}<template v-if="child.section"> · {{ lx(child.section, 'name') }}</template>
         </div>
 
+        <!-- forms sent to the family that still wait for an answer -->
+        <template v-if="forms.pending.length">
+          <div class="sec-title">📋 {{ t('formsPending') }}</div>
+          <button v-for="f in forms.pending" :key="f.formId" class="banner" style="width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer"
+                  :disabled="formBusy === f.formId" @click="openForm(f.formId)">
+            <div class="ico">📝</div>
+            <div style="flex:1;min-width:0">
+              <b>{{ f.title }}</b>
+              <span>{{ t('formSentOn', { date: fmtDate(f.sentAt, locale) }) }}<template v-if="f.closesAt"> · {{ t('formClosesOn', { date: fmtDate(f.closesAt, locale) }) }}</template></span>
+            </div>
+            <span class="chev">{{ formBusy === f.formId ? '…' : '›' }}</span>
+          </button>
+        </template>
+        <div v-if="formErr && !openAnswer" class="tiny" style="color:var(--danger)">{{ formErr }}</div>
+
         <!-- what is next for this child, whichever sector they are in -->
         <template v-if="nextEvent">
           <div class="sec-title">{{ t('nextActivity') }}</div>
@@ -269,6 +312,23 @@ async function enableNotifs() {
             </button>
           </div>
         </template>
+
+        <!-- forms already sent: their own open read-only, the other parent's are only named -->
+        <template v-if="forms.done.length">
+          <button class="sec-title" style="display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer" @click="formsOpen = !formsOpen">
+            <span>✅ {{ t('formsDone') }} · {{ forms.done.length }}</span><span class="chev" :style="formsOpen ? 'transform:rotate(90deg)' : ''">›</span>
+          </button>
+          <div v-if="formsOpen" class="adm">
+            <component :is="d.id ? 'button' : 'div'" v-for="(d, i) in forms.done" :key="d.id ?? `o${i}`" class="it" @click="d.id && readAnswer(d.id)">
+              <div style="font-size:19px;width:26px;text-align:center">📋</div>
+              <div style="flex:1;min-width:0">
+                <b>{{ d.title }}</b>
+                <span>{{ fmtDate(d.createdAt, locale) }} · {{ fmtTime(d.createdAt) }}<template v-if="d.by"> · {{ t('formSentBy', { name: d.by }) }}</template></span>
+              </div>
+              <span v-if="d.id" class="chev">›</span>
+            </component>
+          </div>
+        </template>
       </template>
     </main>
 
@@ -292,7 +352,8 @@ async function enableNotifs() {
                   {{ n.body }}
                 </p>
                 <!-- a form sent to the family opens from here -->
-                <a v-if="n.kind === 'formInvite'" :href="`/f/${n.refId}`" class="btn" style="margin-top:8px;text-decoration:none;font-size:13px" @click.stop>📋 {{ t('formFillNow') }}</a>
+                <button v-if="n.kind === 'formInvite'" class="btn" style="margin-top:8px;font-size:13px" :disabled="formBusy === n.refId" @click.stop="openForm(n.refId)">📋 {{ t('formFillNow') }}</button>
+                <div v-if="n.kind === 'formInvite' && formErr && formBusy === null" class="tiny" style="color:var(--danger);margin-top:4px">{{ formErr }}</div>
               </div>
             </button>
           </template>
@@ -314,6 +375,17 @@ async function enableNotifs() {
           </button>
           <button class="btn ghost" @click="settingsOpen = false; signOut()">{{ t('logout') }}</button>
           <button class="btn ghost" @click="settingsOpen = false">{{ t('close') }}</button>
+        </div>
+      </div>
+
+      <!-- their own answers, as they were sent -->
+      <div v-if="openAnswer" class="sheet-backdrop" @click.self="openAnswer = null">
+        <div class="sheet" style="max-height:88dvh;overflow:auto;display:flex;flex-direction:column;gap:13px">
+          <h3 style="margin:0;font-size:17px;text-align:center">{{ openAnswer.formTitle }}</h3>
+          <div class="tiny muted" style="text-align:center;margin-top:-6px">{{ t('formYourAnswers') }} · {{ fmtDate(openAnswer.createdAt, locale) }} · {{ fmtTime(openAnswer.createdAt) }}</div>
+          <FormAnswers :r="openAnswer" :fetch-file="fetchOwnFile" />
+          <div class="tiny muted" style="text-align:center">🔒 {{ t('formReadOnly') }}</div>
+          <button class="btn ghost" @click="openAnswer = null">{{ t('close') }}</button>
         </div>
       </div>
 

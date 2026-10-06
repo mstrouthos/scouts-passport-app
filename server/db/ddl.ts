@@ -528,6 +528,13 @@ CREATE TABLE IF NOT EXISTS form_files (
   created_by INTEGER,
   created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS form_invites (
+  id SERIAL PRIMARY KEY,
+  form_id INTEGER NOT NULL REFERENCES forms(id),
+  parent_id INTEGER NOT NULL,
+  sent_at TEXT NOT NULL,
+  UNIQUE (form_id, parent_id)
+);
 CREATE TABLE IF NOT EXISTS form_access_log (
   id SERIAL PRIMARY KEY,
   form_id INTEGER NOT NULL,
@@ -609,5 +616,6 @@ export const MIGRATIONS = [
   "ALTER TABLE forms ADD COLUMN IF NOT EXISTS section_id INTEGER",
   "ALTER TABLE forms ADD COLUMN IF NOT EXISTS pending_approval BOOLEAN NOT NULL DEFAULT FALSE",
   "ALTER TABLE forms ADD COLUMN IF NOT EXISTS approved_by INTEGER",
-  "ALTER TABLE forms ADD COLUMN IF NOT EXISTS approved_at TEXT"
+  "ALTER TABLE forms ADD COLUMN IF NOT EXISTS approved_at TEXT",
+  "ALTER TABLE form_responses ADD COLUMN IF NOT EXISTS parent_id INTEGER"
 ]

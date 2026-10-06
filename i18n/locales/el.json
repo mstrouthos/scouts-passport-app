@@ -1260,5 +1260,14 @@
   "formCalcWaiting": "Θα συμπληρωθεί αυτόματα",
   "quiz": "Κουίζ",
   "missionAll": "Όλες οι αποστολές",
-  "draftTest": "Δοκιμή"
+  "draftTest": "Δοκιμή",
+  "formsPending": "Φόρμες για συμπλήρωση",
+  "formsDone": "Φόρμες που στείλατε",
+  "formSentOn": "Στάλθηκε {date}",
+  "formClosesOn": "κλείνει {date}",
+  "formSentBy": "από {name}",
+  "formYourAnswers": "Οι απαντήσεις σας",
+  "formReadOnly": "Μόνο για ανάγνωση. Για αλλαγή, μιλήστε με τους Βαθμοφόρους.",
+  "formKeptInApp": "Θα τη βρείτε στην εφαρμογή, στις Φόρμες που στείλατε.",
+  "formFromParent": "Στάλθηκε από την εφαρμογή γονέων: {name}"
 }

@@ -766,9 +766,20 @@ export const formResponses = pgTable('form_responses', {
   spec: text('spec').notNull(),
   // a one-way hash of the sender's address, for the rate limit — never the address
   ipHash: text('ip_hash'),
+  // the parent who sent it from the app (opened from their family page or a
+  // notification), so they can find it again; null for anyone else
+  parentId: integer('parent_id'),
   isRead: boolean('is_read').notNull().default(false),
   createdAt: text('created_at').notNull()
 })
+/** Which parents a form was sent to in the app: what their family page lists
+    as waiting until they (or the other parent of the same child) send it. */
+export const formInvites = pgTable('form_invites', {
+  id: serial('id').primaryKey(),
+  formId: integer('form_id').notNull().references(() => forms.id),
+  parentId: integer('parent_id').notNull(),
+  sentAt: text('sent_at').notNull()
+}, t => [uniqueIndex('form_invites_form_id_parent_id_key').on(t.formId, t.parentId)])
 /** Files that belong to forms: what someone uploaded with their answers, and
     the exports (spreadsheets, PDFs) administrators make. Always encrypted
     (utils/seal.ts) before they are stored — in the bucket, or in `data` as

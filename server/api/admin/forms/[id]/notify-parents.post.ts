@@ -4,6 +4,7 @@ import { sendPushToParents, sendPushToParentIds } from '../../../../utils/push'
 import { parentsOfScouts } from '../../../../utils/parents'
 import { sectionOfWith } from '../../../../utils/guard'
 import { useDb, schema as s } from '../../../../db'
+import { now } from '../../../../utils/passcode'
 
 /** A form sent to families in the app: the parents of the sectors chosen
     (only the leader's own) get a notification that opens it. Only an open
@@ -24,6 +25,12 @@ export default defineEventHandler(async (event) => {
   const patrols = await db.select().from(s.patrols)
   const kids = (await db.select().from(s.scouts)).filter(r => r.role === 'scout' && r.isActive && chosen.includes(sectionOfWith(r, patrols) as number))
   const parents = await parentsOfScouts(kids.map(r => r.id))
+  // each of them finds it waiting on their family page until it is sent
+  if (parents.length) {
+    const t = now()
+    await db.insert(s.formInvites).values(parents.map(p => ({ formId: f.id, parentId: p.id, sentAt: t })))
+      .onConflictDoUpdate({ target: [s.formInvites.formId, s.formInvites.parentId], set: { sentAt: t } })
+  }
   const devices = await sendPushToParentIds(parents.map(p => p.id), msg) + await sendPushToParents(chosen, msg)
   await logAccess(f.id, me.id, `notify-parents:${chosen.join(',')}`)
   return { ok: true, parents: parents.length, devices }

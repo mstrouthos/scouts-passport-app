@@ -24,7 +24,10 @@ export default defineEventHandler(async (event) => {
     .from(s.formResponses).where(eq(s.formResponses.formId, r.formId)))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(x => x.id)
   const at = ids.indexOf(id)
+  // sent by a parent from their app: named, so the leaders know whose it is
+  const parent = r.parentId ? (await db.select({ name: s.parents.name }).from(s.parents).where(eq(s.parents.id, r.parentId)).limit(1))[0] : null
   return {
+    fromParent: parent?.name ?? null,
     id: r.id, formId: r.formId, formTitle: f?.titleEl ?? '', createdAt: r.createdAt,
     spec: normalizeSpec(JSON.parse(r.spec)), data: unseal(r.sealed),
     files: Object.fromEntries(Object.entries(await filesOfResponse(id))
