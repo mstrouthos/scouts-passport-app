@@ -2,13 +2,18 @@
 
    Kept apart from both push.ts and celebrate.ts: those two already depend on
    each other, and importing this from either would close the cycle. */
-export function linkForNotification(kind: string, refId: number | null): string | null {
+export function linkForNotification(kind: string, refId: number | null, who: 'member' | 'parent' = 'member'): string | null {
   if (refId == null) return null
+  // a family's notices all open on their own page
+  if (who === 'parent') return '/family'
   if (kind === 'badge') return `/app/badges?badge=${refId}`
   if (kind === 'requirement') return `/app/requirements?req=${refId}`
   // the Κοινότητα's booklet is a separate programme with its own numbering
   if (kind === 'venture') return `/app/venture?req=${refId}`
-  if (kind === 'challenge') return '/app/challenges'
+  // the day's question, and the reminder to answer it
+  if (kind === 'challenge' || kind === 'challenge_unlocked' || kind === 'streak_reminder') return '/app/challenges'
+  // tomorrow's event, opened in the calendar
+  if (kind === 'event_reminder') return `/app/calendar?event=${refId}`
   // a notice for families lives on their own page
   if (kind === 'parentPost') return '/family'
   // asking a Βαθμοφόρος whether they are coming opens the event itself

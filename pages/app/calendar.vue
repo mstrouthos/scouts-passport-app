@@ -3,6 +3,14 @@ const { t, locale } = useI18n()
 const lx = useLx()
 const openEvent = ref<any>(null)
 const { data } = await useFetch('/api/calendar')
+/* a reminder opens its event: /app/calendar?event=12 */
+const route = useRoute()
+watch([data, () => route.query.event], () => {
+  const id = Number(route.query.event)
+  if (!id || !data.value) return
+  const e = (data.value as any[]).find(x => x?.id === id)
+  if (e) openEvent.value = e
+}, { immediate: true })
 const me = useMe()
 const filter = ref('all')
 

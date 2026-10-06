@@ -165,7 +165,7 @@ export async function sendPushToParentIds(parentIds: number[], msg: { title: str
     .filter(x => x.parentId != null && fresh.includes(x.parentId) && onSurface(x, 'scouts'))
   const per = new Map(fresh.map(id => [id, { id, devices: 0, delivered: 0, errors: [] as string[] }]))
   for (const x of subs) per.get(x.parentId!)!.devices++
-  const url = linkForNotification(msg.kind, msg.refId) || '/family'
+  const url = linkForNotification(msg.kind, msg.refId, 'parent') || '/family'
   const sent = subs.length ? await deliver(subs, JSON.stringify({ title: msg.title, body: msg.body, url }), (sub, ok, why) => {
     const p = per.get(sub.parentId!)!
     if (ok) p.delivered++; else p.errors.push(why || 'failed')
@@ -195,7 +195,7 @@ export async function sendPushToParents(sectionIds: number[] | null, msg: { titl
     } catch { /* already sent to this section */ }
   }
   if (!fresh.length) return 0
-  const url = linkForNotification(msg.kind, msg.refId) || '/family'
+  const url = linkForNotification(msg.kind, msg.refId, 'parent') || '/family'
   const to = subs.filter(x => fresh.includes(x.sectionId!))
   const sent = await deliver(to, JSON.stringify({ title: msg.title, body: msg.body, url }))
   logAnonymousParents(msg, sent, to.length)
