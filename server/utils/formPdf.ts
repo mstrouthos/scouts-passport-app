@@ -1,6 +1,6 @@
 import { PDFDocument, rgb, type PDFFont, type PDFPage, type PDFImage } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
-import { visibleParts, answerText, instanceTitle, gapsFilled, type FormSpec, type FormAnswers } from '../../utils/formSpec'
+import { visibleParts, answerText, instanceTitle, gapParts, type FormSpec, type FormAnswers } from '../../utils/formSpec'
 import type { FormFile } from './formFiles'
 
 /* One form response as a PDF: everything the person was asked and what they
@@ -15,6 +15,8 @@ const INK = rgb(0.086, 0.137, 0.231)
 const MUTED = rgb(0.48, 0.54, 0.63)
 const GREEN = rgb(0.153, 0.278, 0.227)
 const LINE = rgb(0.86, 0.9, 0.94)
+/** Answers stand out from the questions: bold, and this much larger. */
+const ANSWER = 13
 
 async function fonts(doc: PDFDocument) {
   doc.registerFontkit(fontkit)
@@ -86,6 +88,34 @@ export async function responsePdf(p: {
     }
     y -= o.gap ?? 0
   }
+  /* a line of mixed text — a sentence in the regular face with the answers
+     in it bold and larger — wrapped at spaces across the width */
+  type Run = { s: string, font: PDFFont, size: number }
+  const rich = (runs: Run[], o: { gap?: number } = {}) => {
+    const words: Run[] = []
+    for (const r of runs) for (const w of clean(r.font, r.s).replace(/\r/g, '').split(/(\s+)/)) if (w) words.push({ ...r, s: w })
+    const lh = Math.max(...runs.map(r => r.size)) * 1.38
+    let line: Run[] = [], width = 0
+    const flush = () => {
+      while (line.length && /^\s+$/.test(line[line.length - 1].s)) line.pop()
+      room(lh)
+      let x = M
+      for (const w of line) {
+        page.drawText(w.s.replace(/\s+/g, ' '), { x, y: y - lh / 1.38, size: w.size, font: w.font, color: INK })
+        x += w.font.widthOfTextAtSize(w.s.replace(/\s+/g, ' '), w.size)
+      }
+      y -= lh; line = []; width = 0
+    }
+    for (const w of words) {
+      const text = w.s.replace(/\s+/g, ' ')
+      const ww = w.font.widthOfTextAtSize(text, w.size)
+      if (/^\s+$/.test(w.s) && !line.length) continue
+      if (width + ww > W && line.length) { flush(); if (/^\s+$/.test(w.s)) continue }
+      line.push(w); width += ww
+    }
+    if (line.length) flush()
+    y -= o.gap ?? 0
+  }
   const rule = (gap = 10) => {
     room(gap * 2)
     y -= gap
@@ -121,21 +151,27 @@ export async function responsePdf(p: {
       room(36)
       const v = p.data.answers?.[key]
       // a fill-the-gaps question: the sentence as it was completed
-      if (q.type === 'gaps') { text(gapsFilled(q.label, v), { size: 11, gap: 8 }); continue }
+      if (q.type === 'gaps') {
+        const a = Array.isArray(v) ? v : []
+        rich(gapParts(q.label).map(g => 'gap' in g
+          ? { s: String(a[g.gap] ?? '').trim() || '___', font: bold, size: ANSWER }
+          : { s: g.text, font: regular, size: 11 }), { gap: 8 })
+        continue
+      }
       text(q.label, { size: 9, color: MUTED, gap: 1 })
       if (q.type === 'file') {
         const list = (Array.isArray(v) ? v : []).map(k => p.files[k]).filter(Boolean)
-        if (!list.length) text('—', { font: bold, size: 11, gap: 8 })
+        if (!list.length) text('—', { font: bold, size: ANSWER, gap: 8 })
         for (const f of list) {
           const isPdf = f.row.mime === 'application/pdf'
-          text(`${f.row.name}${isPdf ? '  (επισυνάπτεται στο τέλος)' : ''}`, { font: bold, size: 10.5, gap: 3 })
+          text(`${f.row.name}${isPdf ? '  (επισυνάπτεται στο τέλος)' : ''}`, { font: bold, size: ANSWER - 0.5, gap: 3 })
           if (isPdf) attachedPdfs.push({ name: f.row.name, bytes: f.bytes })
           else await image(f.bytes, f.row.mime, W, 300)
         }
         y -= 6
       } else {
         const a = answerText(v, q.type).trim()
-        text(a || '—', { font: bold, size: 11, color: a ? INK : MUTED, gap: 8 })
+        text(a || '—', { font: bold, size: ANSWER, color: a ? INK : MUTED, gap: 8 })
       }
     }
     y -= 6
@@ -162,11 +198,11 @@ export async function responsePdf(p: {
     if (p.data.signature) {
       const png = Buffer.from(p.data.signature.split(',')[1] || '', 'base64')
       await image(png, 'image/png', 260, 110)
-    } else text('—', { font: bold, size: 11 })
+    } else text('—', { font: bold, size: ANSWER })
     page.drawLine({ start: { x: M, y: y + 2 }, end: { x: M + 260, y: y + 2 }, thickness: 0.7, color: MUTED })
     y -= 6
-    if (p.data.signerName) text(`Ονοματεπώνυμο: ${p.data.signerName}`, { size: 10.5, gap: 1 })
-    if (p.data.signedAt) text(`Ημερομηνία: ${when(p.data.signedAt)}`, { size: 10.5 })
+    if (p.data.signerName) rich([{ s: 'Ονοματεπώνυμο: ', font: regular, size: 10.5 }, { s: p.data.signerName, font: bold, size: 12.5 }], { gap: 1 })
+    if (p.data.signedAt) rich([{ s: 'Ημερομηνία: ', font: regular, size: 10.5 }, { s: when(p.data.signedAt), font: bold, size: 12.5 }])
   }
 
   // the PDFs they uploaded, whole, after the answers
