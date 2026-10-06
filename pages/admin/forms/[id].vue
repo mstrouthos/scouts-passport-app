@@ -39,6 +39,7 @@ async function sendToParents() {
   try {
     const r = await $fetch<any>(`/api/admin/forms/${id}/notify-parents`, { method: 'POST', body: { sectionIds: parentSecs.value } })
     show('📣 ' + t('formSentParents', { n: r.parents }))
+    loadInvites()
   } catch (e: any) { show(errMsg(e)) } finally { sendingParents.value = false }
 }
 const spec = ref<FormSpec>({ modules: [], ticks: [], signature: { enabled: false, required: true, label: '' } })
@@ -300,7 +301,25 @@ async function loadResponses() {
   try { responses.value = await $fetch<any[]>(`/api/admin/forms/${id}/responses`) }
   catch (e: any) { show(errMsg(e)) }
 }
-watch(tab, v => { if (v === 'responses') loadResponses() }, { immediate: true })
+/* the parents it was sent to in the app: who has answered, who has not yet */
+const invites = ref<any | null>(null)
+const pendingOpen = ref(false)
+const reminding = ref(false)
+async function loadInvites() {
+  try { invites.value = await $fetch<any>(`/api/admin/forms/${id}/invites`) } catch {}
+}
+async function remind() {
+  const n = invites.value?.pending.length || 0
+  if (!n || reminding.value || !confirm(t('formRemindQ', { n }))) return
+  reminding.value = true
+  try {
+    const r = await $fetch<any>(`/api/admin/forms/${id}/remind`, { method: 'POST' })
+    show('⏰ ' + t('formReminded', { n: r.parents }))
+    await loadInvites()
+  } catch (e: any) { show(errMsg(e)) } finally { reminding.value = false }
+}
+const remindedToday = computed(() => !!invites.value?.lastReminder && Date.now() - Date.parse(invites.value.lastReminder) < 20 * 3600_000)
+watch(tab, v => { if (v === 'responses') { loadResponses(); loadInvites() } }, { immediate: true })
 const exporting = ref(false)
 async function exportCsv() {
   exporting.value = true
@@ -561,8 +580,29 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
 
     <!-- ===== responses ===== -->
     <template v-else>
+      <!-- sent to parents in the app: how many have answered, who is left, a reminder -->
+      <div v-if="invites?.invited" class="card mod">
+        <div class="inv-head">
+          <b>📣 {{ t('formInvAnswered', { a: invites.answered, n: invites.invited }) }}</b>
+          <span class="tiny muted">{{ Math.round(100 * invites.answered / invites.invited) }}%</span>
+        </div>
+        <div class="prog"><i :style="{ width: (100 * invites.answered / invites.invited) + '%' }" /></div>
+        <template v-if="invites.pending.length">
+          <button class="inv-toggle" @click="pendingOpen = !pendingOpen">
+            <span>⏳ {{ t('formInvPending', { n: invites.pending.length }) }}</span><span class="chev" :style="pendingOpen ? 'transform:rotate(90deg)' : ''">›</span>
+          </button>
+          <div v-if="pendingOpen" class="inv-list">
+            <div v-for="p in invites.pending" :key="p.parentId" class="inv-row">
+              <b>{{ p.name }}</b><span v-if="p.children.length" class="tiny muted">{{ p.children.join(', ') }}</span>
+            </div>
+          </div>
+          <button class="btn ghost" :disabled="reminding || remindedToday || !form?.accepting" @click="remind">⏰ {{ t('formRemindGo', { n: invites.pending.length }) }}</button>
+          <div v-if="invites.lastReminder" class="tiny muted">{{ t('formLastReminder', { when: stamp(invites.lastReminder) }) }}<template v-if="remindedToday"> · {{ t('formRemindTomorrow') }}</template></div>
+        </template>
+        <div v-else class="tiny" style="color:var(--green);font-weight:700">✅ {{ t('formInvAllDone') }}</div>
+      </div>
       <div class="rtools">
-        <span class="tiny muted" style="flex:1">{{ responses?.length ?? '…' }} {{ t('formResponsesN') }}</span>
+        <span class="tiny muted" style="flex:1">{{ responses?.length ?? '…' }} {{ t('formResponsesN', responses?.length ?? 2) }}</span>
         <button class="chip" :disabled="!responses?.length || exporting" @click="exportCsv">⬇️ {{ t('formExport') }}</button>
       </div>
       <div v-if="responses && !responses.length" class="empty">{{ t('formNoResponses') }}</div>
@@ -626,6 +666,12 @@ select.in{appearance:auto}
 .slug span{font-size:12.5px; color:var(--muted); flex:none}
 .slug .in{flex:1; min-width:0}
 .rtools{display:flex; align-items:center; gap:8px}
+.inv-head{display:flex; align-items:baseline; justify-content:space-between; gap:8px; font-size:14px}
+.prog{height:8px; border-radius:99px; background:var(--line); overflow:hidden}
+.prog i{display:block; height:100%; background:var(--green); border-radius:99px; transition:width .3s}
+.inv-toggle{display:flex; justify-content:space-between; align-items:center; background:none; border:0; padding:0; font:inherit; font-size:13px; font-weight:700; color:var(--ink); cursor:pointer}
+.inv-list{display:flex; flex-direction:column; gap:6px}
+.inv-row{display:flex; flex-direction:column; gap:1px; font-size:13px; padding:6px 10px; border-radius:10px; background:var(--bg-soft, rgba(0,0,0,.035))}
 .dot{flex:none; width:8px; height:8px; border-radius:50%; background:transparent}
 .dot.on{background:var(--accent)}
 .savebar{position:sticky; bottom:calc(84px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:8px; background:var(--glass); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border:1px solid var(--glass-brd); border-radius:18px; padding:10px; box-shadow:var(--shadow); z-index:5}

@@ -617,5 +617,6 @@ export const MIGRATIONS = [
   "ALTER TABLE forms ADD COLUMN IF NOT EXISTS pending_approval BOOLEAN NOT NULL DEFAULT FALSE",
   "ALTER TABLE forms ADD COLUMN IF NOT EXISTS approved_by INTEGER",
   "ALTER TABLE forms ADD COLUMN IF NOT EXISTS approved_at TEXT",
-  "ALTER TABLE form_responses ADD COLUMN IF NOT EXISTS parent_id INTEGER"
+  "ALTER TABLE form_responses ADD COLUMN IF NOT EXISTS parent_id INTEGER",
+  "ALTER TABLE form_invites ADD COLUMN IF NOT EXISTS reminded_at TEXT"
 ]

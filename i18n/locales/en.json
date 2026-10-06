@@ -880,7 +880,7 @@
   "formDeleteQ": "Delete the form AND all its responses? This cannot be undone.",
   "formUnsaved": "There are unsaved changes. Leave without saving?",
   "formPreview": "Preview",
-  "formResponsesN": "responses",
+  "formResponsesN": "response | responses",
   "formExport": "Excel",
   "formNoResponses": "No responses yet.",
   "formAccessNote": "Responses are stored encrypted. Which administrator opened or exported them is recorded.",
@@ -1270,5 +1270,13 @@
   "formReadOnly": "Read-only. To change anything, talk to the leaders.",
   "formKeptInApp": "You will find it in the app, under Forms you have sent.",
   "formFromParent": "Sent from the family app by {name}",
-  "formAlreadySent": "This form has been sent"
+  "formAlreadySent": "This form has been sent",
+  "formInvAnswered": "{a} of {n} parents have answered",
+  "formInvPending": "Not answered yet · {n}",
+  "formRemindGo": "Remind {n} parents",
+  "formRemindQ": "Send a reminder to the {n} parents who have not answered?",
+  "formReminded": "Reminder sent to {n} parents",
+  "formLastReminder": "Last reminder: {when}",
+  "formRemindTomorrow": "the next one from tomorrow",
+  "formInvAllDone": "Every parent it was sent to has answered"
 }

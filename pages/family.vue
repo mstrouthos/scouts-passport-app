@@ -60,6 +60,7 @@ async function readAnswer(id: number) {
   formErr.value = ''
   try { openAnswer.value = await $fetch<any>(`/api/family/forms/responses/${id}`) } catch (e: any) { formErr.value = errMsg(e) }
 }
+const isFormNote = (n: any) => n.kind === 'formInvite' || n.kind === 'formReminder'
 const sentForm = (formId: number) => forms.value.done.some(d => d.formId === formId)
 const fetchOwnFile = (id: number) => $fetch<Blob>(`/api/family/forms/files/${id}`, { responseType: 'blob' })
 // back from sending one: it moves from waiting to sent
@@ -354,9 +355,9 @@ async function enableNotifs() {
                 </p>
                 <!-- a form sent to the family opens from here -->
                 <!-- (once the family has sent it, it says so instead) -->
-                <div v-if="n.kind === 'formInvite' && sentForm(n.refId)" class="tiny" style="margin-top:8px;color:var(--green);font-weight:700">✅ {{ t('formAlreadySent') }}</div>
-                <button v-else-if="n.kind === 'formInvite'" class="btn" style="margin-top:8px;font-size:13px" :disabled="formBusy === n.refId" @click.stop="openForm(n.refId)">📋 {{ t('formFillNow') }}</button>
-                <div v-if="n.kind === 'formInvite' && formErr && formBusy === null" class="tiny" style="color:var(--danger);margin-top:4px">{{ formErr }}</div>
+                <div v-if="isFormNote(n) && sentForm(n.refId)" class="tiny" style="margin-top:8px;color:var(--green);font-weight:700">✅ {{ t('formAlreadySent') }}</div>
+                <button v-else-if="isFormNote(n)" class="btn" style="margin-top:8px;font-size:13px" :disabled="formBusy === n.refId" @click.stop="openForm(n.refId)">📋 {{ t('formFillNow') }}</button>
+                <div v-if="isFormNote(n) && formErr && formBusy === null" class="tiny" style="color:var(--danger);margin-top:4px">{{ formErr }}</div>
               </div>
             </button>
           </template>

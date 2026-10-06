@@ -55,3 +55,40 @@ export async function ownResponse(parentId: number, id: number) {
   if (!r || r.parentId !== parentId) throw createError({ statusCode: 404, message: 'Not found' })
   return r
 }
+
+/** Who a form was sent to and where each stands: answered (by them or the
+    other parent of the same child, from the app) or still waiting. For the
+    leaders of the form; names and children only, never answers. */
+export async function inviteStatus(formId: number) {
+  const db = await useDb()
+  const invites = await db.select().from(s.formInvites).where(eq(s.formInvites.formId, formId))
+  if (!invites.length) return { invited: 0, answered: 0, pending: [], done: [], lastReminder: null as string | null }
+  const parents = await db.select().from(s.parents)
+  const links = await db.select().from(s.parentChildren)
+  const scouts = await db.select({ id: s.scouts.id, firstName: s.scouts.firstName }).from(s.scouts)
+  const sent = (await db.select({ parentId: s.formResponses.parentId, createdAt: s.formResponses.createdAt })
+    .from(s.formResponses).where(eq(s.formResponses.formId, formId))).filter(r => r.parentId != null)
+  const kidsOf = (pid: number) => {
+    const p = parents.find(x => x.id === pid)
+    return p ? childIdsOfParent(p, links) : []
+  }
+  const rows = invites.map(i => {
+    const p = parents.find(x => x.id === i.parentId)
+    const kids = kidsOf(i.parentId)
+    // an answer from them, or from a parent who shares a child with them
+    const by = sent.find(r => r.parentId === i.parentId || kidsOf(r.parentId!).some(k => kids.includes(k)))
+    return {
+      parentId: i.parentId, name: p?.name ?? '—', active: !!p?.isActive,
+      children: kids.map(k => scouts.find(x => x.id === k)?.firstName).filter(Boolean) as string[],
+      answeredAt: by?.createdAt ?? null,
+      answeredBy: by && by.parentId !== i.parentId ? parents.find(x => x.id === by.parentId)?.name ?? null : null,
+      remindedAt: i.remindedAt
+    }
+  }).filter(r => r.active).sort((a, b) => a.name.localeCompare(b.name, 'el'))
+  const done = rows.filter(r => r.answeredAt)
+  return {
+    invited: rows.length, answered: done.length,
+    pending: rows.filter(r => !r.answeredAt), done,
+    lastReminder: invites.map(i => i.remindedAt).filter(Boolean).sort().pop() ?? null
+  }
+}

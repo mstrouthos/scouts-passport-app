@@ -778,7 +778,9 @@ export const formInvites = pgTable('form_invites', {
   id: serial('id').primaryKey(),
   formId: integer('form_id').notNull().references(() => forms.id),
   parentId: integer('parent_id').notNull(),
-  sentAt: text('sent_at').notNull()
+  sentAt: text('sent_at').notNull(),
+  // the last reminder sent to them about it
+  remindedAt: text('reminded_at')
 }, t => [uniqueIndex('form_invites_form_id_parent_id_key').on(t.formId, t.parentId)])
 /** Files that belong to forms: what someone uploaded with their answers, and
     the exports (spreadsheets, PDFs) administrators make. Always encrypted
