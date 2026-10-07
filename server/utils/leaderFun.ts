@@ -2,6 +2,7 @@ import { and, eq, gt, isNull } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { now } from './passcode'
 import { sendPushTo } from './push'
+import { POTATO_SAFE_MS } from '../../utils/fun'
 
 /** How much fun a day holds: enough for a laugh, never a flood. */
 export const FUN_LIMIT_DAY = 10
@@ -84,7 +85,7 @@ const cyHour = (at: Date) => Number(at.toLocaleString('en-GB', { timeZone: 'Euro
 /** When a round bursts: 3 to 30 hours on, at a waking hour (07:00–23:59). */
 export function potatoBurstAt(from = new Date()) {
   for (let i = 0; i < 500; i++) {
-    const t = new Date(from.getTime() + (3 + Math.random() * 27) * 3600_000)
+    const t = new Date(from.getTime() + POTATO_SAFE_MS + Math.random() * 27 * 3600_000)
     const h = cyHour(t)
     if (h >= 7) return t.toISOString()
   }

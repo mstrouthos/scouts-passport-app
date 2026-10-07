@@ -91,8 +91,11 @@ export const DAILY_FREE = { tomato: 2 } as Record<string, number>
 export const WELCOME = { tomato: 5, snowball: 2, water: 1 } as Record<string, number>
 
 /* the hot potato's danger pay: one thing for every half hour it is held —
-   counted only from 07:00 to midnight — paid when it is passed on, lost if
-   it bursts first; at most POUCH_MAX on one hold */
+   counted only from 07:00 to midnight, and only once it can burst at all
+   (the round's first POTATO_SAFE_MS are safe, and everyone knows it, so
+   they pay nothing) — paid when it is passed on, lost if it bursts first;
+   at most POUCH_MAX on one hold */
+export const POTATO_SAFE_MS = 3 * 3600_000
 export const POUCH_EVERY_MS = 30 * 60_000
 export const POUCH_MAX = 6
 const cyHourOf = (t: number) => Number(new Date(t).toLocaleString('en-GB', { timeZone: 'Europe/Nicosia', hour: '2-digit', hour12: false }))
@@ -103,5 +106,9 @@ export function wakingMs(fromIso: string, to = Date.now()) {
   for (let t = Date.parse(fromIso); t + STEP <= to && n < 400 * STEP; t += STEP) if (cyHourOf(t) >= 7) n += STEP
   return n
 }
-/** How many things a hold has earned so far. */
-export const pouchOf = (gotAt: string, to = Date.now()) => Math.min(POUCH_MAX, Math.floor(wakingMs(gotAt, to) / POUCH_EVERY_MS))
+/** How many things a hold has earned so far: from when it was caught, or
+    from when the round could first burst, whichever is later. */
+export function pouchOf(gotAt: string, startedAt: string, to = Date.now()) {
+  const from = Math.max(Date.parse(gotAt), Date.parse(startedAt) + POTATO_SAFE_MS)
+  return from >= to ? 0 : Math.min(POUCH_MAX, Math.floor(wakingMs(new Date(from).toISOString(), to) / POUCH_EVERY_MS))
+}

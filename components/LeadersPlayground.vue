@@ -6,7 +6,7 @@
    out too, live; what was done to you while you were away plays when you
    come back. Tapping yourself sets how much of it you want. */
 import { avatarSvg, DEFAULT_AVATAR } from '~/utils/avatar'
-import { FUN_ACTIONS, FUN_GAME, FUN_IMPACT, FUN_SPARKLE, FUN_KIND_SCREEN, funAction, funAllowed, isPlay, isThrowable, THROWABLES, ITEM_TIER, BAG_MAX, pouchOf, type FunAction, type FunMotion } from '~/utils/fun'
+import { FUN_ACTIONS, FUN_GAME, FUN_IMPACT, FUN_SPARKLE, FUN_KIND_SCREEN, funAction, funAllowed, isPlay, isThrowable, THROWABLES, ITEM_TIER, BAG_MAX, pouchOf, POTATO_SAFE_MS, type FunAction, type FunMotion } from '~/utils/fun'
 
 const { t, locale } = useI18n()
 const { show } = useToast()
@@ -133,7 +133,9 @@ const have = (a: FunAction) => !isThrowable(a.key) || (bag.value[a.key] || 0) > 
 const itemsText = (items: Record<string, number>) => Object.entries(items).map(([k, n]) => `${funAction(k)?.emoji ?? k}×${n}`).join(' ')
 const bagHelp = ref(false)
 /** What the hold has earned so far — paid when the potato is passed on. */
-const pouch = computed(() => holdIt.value ? pouchOf(potato.value.active.gotAt, clock.value) : 0)
+const pouch = computed(() => holdIt.value ? pouchOf(potato.value.active.gotAt, potato.value.active.startedAt, clock.value) : 0)
+/** The round's first hours, when it cannot burst — and so pays nothing. */
+const safeLeft = computed(() => potato.value.active ? Math.max(0, Date.parse(potato.value.active.startedAt) + POTATO_SAFE_MS - clock.value) : 0)
 /* what was put in the backpack while away: told once, then marked seen */
 const REASON: Record<string, string> = { welcome: 'bagWelcome', potato: 'bagFromPotato', 'kim-dare': 'bagFromDare', 'kim-day': 'bagFromKimDay', 'kim-week': 'bagFromKimWeek' }
 watch(() => data.value?.grants, async gs => {
@@ -484,7 +486,7 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
          :class="{ mine: holdIt, burst: !potato.active && potato.last?.burned }">
       <div class="prow">
         <span class="spud">{{ !potato.active && potato.last?.burned ? '💥' : '🥔' }}</span>
-        <div v-if="holdIt" class="ptxt"><b>{{ t('funPotatoYours') }}</b><span>{{ t('funPotatoYoursSub', { held: heldFor }) }}</span><span class="pouch">💰 {{ t('funPouch', { n: pouch }) }}</span></div>
+        <div v-if="holdIt" class="ptxt"><b>{{ t('funPotatoYours') }}</b><span>{{ t('funPotatoYoursSub', { held: heldFor }) }}</span><span class="pouch">💰 {{ safeLeft ? t('funPouchSafe', { m: Math.ceil(safeLeft / 60_000) }) : t('funPouch', { n: pouch }) }}</span></div>
         <div v-else-if="potato.active" class="ptxt"><b>{{ t('funPotatoAt', { name: potato.active.holderName }) }}</b><span>{{ t('funPotatoPasses', { n: potato.active.passes, m: stillToGo }) }}</span></div>
         <div v-else-if="potato.last?.burned" class="ptxt"><b>{{ t('funPotatoBurst', { name: potato.last.burned === myId ? t('funYouObj') : potato.last.burnedName }) }}</b><span>{{ t('funPotatoBurstSub', { n: potato.last.passes }) }}</span></div>
         <div v-else-if="potato.last?.stopped" class="ptxt"><b>{{ t('funPotatoWasStopped') }}</b><span>{{ t('funPotatoStartSub') }}</span></div>

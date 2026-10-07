@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, message: `${target.firstName} την είχε ήδη σε αυτόν τον γύρο — διάλεξε κάποιον που δεν την έχει πιάσει 🥔` })
     cycle = round([...potatoCycle(p), to])
     // danger pay: a thing for every half hour held, now that it is safely passed on
-    const n = pouchOf(p.gotAt)
+    const n = pouchOf(p.gotAt, p.startedAt)
     if (n) paid = await grant(me.id, randomItems(n), 'potato', `${p.id}:${p.passes}`)
     await db.update(s.hotPotato).set({ holderId: to, prevId: me.id, gotAt: t, passes: p.passes + 1, cycle: JSON.stringify(cycle) })
       .where(eq(s.hotPotato.id, p.id))
