@@ -1,18 +1,20 @@
 import { requireLeader, scopedSectionIds } from '../../utils/guard'
-import { quizSections } from '../../utils/quizSector'
+import { useDb, schema as s } from '../../db'
 import { boardFor } from '../../utils/board'
 
-/** The quiz's league table, for the Βαθμοφόροι of the sector whose quiz it
-    is — and only theirs: a leader sees the sectors that run the quiz inside
-    their own area of responsibility (all of them for a troop-wide one), and
-    nothing else. ?section= picks one when they cover more than one. */
+/** The league table of a sector whose members use the app (the Ομάδα, the
+    Κοινότητα), for its own Βαθμοφόροι — a leader sees those inside their own
+    area of responsibility (all of them for a troop-wide one), and nothing
+    else. ?section= picks one when they cover more than one. The Αγέλες, whose
+    children never sign in, have their standings (admin/pack/standings). */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const secIds = await scopedSectionIds(me)
-  const sections = (await quizSections())
-    .filter(x => secIds === null || secIds.includes(x.id))
+  const db = await useDb()
+  const sections = (await db.select().from(s.sections))
+    .filter(x => x.hasApp && (secIds === null || secIds.includes(x.id)))
     .sort((a, b) => a.sortOrder - b.sortOrder)
-  if (!sections.length) throw createError({ statusCode: 403, message: 'No quiz sector in your area' })
+  if (!sections.length) return { sectionId: null, sections: [] }
   const want = Number(getQuery(event).section)
   const section = sections.find(x => x.id === want) || sections[0]
   return {

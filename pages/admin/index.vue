@@ -10,12 +10,6 @@ const scopeLabel = computed(() => {
   return (me.value?.scopeSections || []).map((x: any) => lx(x, 'name')).join(' · ') || t('allSectors')
 })
 
-const name = useName()
-const { wordsFor } = useSectorWords()
-/* The Αγέλη's and Μικρή Αγέλη's standings sit here, on their own Βαθμοφόροι's
-   dashboard: the families read the weekly challenges, never who is ahead.
-   Empty for every leader who runs neither sector. */
-const { data: standings } = await useFetch<any[]>('/api/admin/pack/standings')
 
 const { show } = useToast()
 const editingDetails = ref(false)
@@ -107,35 +101,6 @@ async function removePhoto() {
       <div class="go">›</div>
     </NuxtLink>
 
-    <template v-for="st in (standings || [])" :key="st.sectionId">
-      <div class="sec-title">{{ t('packStandings') }} · {{ lx(st, 'name') }}</div>
-      <div class="tiny muted">{{ t('packStandingsNote') }}</div>
-
-      <template v-if="st.patrols.length">
-        <div class="sec-title" style="font-size:11px">{{ wordsFor(st.slug).units }}</div>
-        <div class="adm">
-          <div v-for="(p, i) in st.patrols" :key="p.id" class="it" style="cursor:default">
-            <div class="rank">{{ i + 1 }}</div>
-            <div style="flex:1;min-width:0"><b>{{ p.emblem }} {{ p.nameEl }}</b><span>{{ p.size }} {{ t('members') }}</span></div>
-            <span class="amt">{{ p.points }}<small v-if="st.teamScoring === 'average'" class="tiny muted" style="font-weight:500"> {{ t('avg') }}</small></span>
-          </div>
-        </div>
-      </template>
-
-      <div class="sec-title" style="font-size:11px">{{ wordsFor(st.slug).members }}</div>
-      <div v-if="st.members.length" class="adm">
-        <div v-for="(m, i) in st.members" :key="m.id" class="it" style="cursor:default">
-          <div class="rank">{{ i + 1 }}</div>
-          <div style="flex:1;min-width:0">
-            <b>{{ name(m) }}</b>
-            <span>{{ st.patrols.find((p: any) => p.id === m.patrolId)?.nameEl || '—' }}</span>
-          </div>
-          <span class="amt">{{ m.points }}</span>
-        </div>
-      </div>
-      <div v-else class="tiny muted" style="padding:0 2px">{{ t('noMembersYet') }}</div>
-    </template>
-
     <div class="sec-title">{{ t('contactDetails') }}</div>
     <div v-if="editingDetails" class="card" style="display:flex;flex-direction:column;gap:10px">
       <div><label class="lab">{{ t('firstName') }}</label><input v-model="details.firstName" class="in"></div>
@@ -180,9 +145,4 @@ async function removePhoto() {
 .who{display:flex; align-items:center; gap:14px}
 .me-photo{position:relative; flex:none; border:0; padding:0; background:none; border-radius:50%; box-shadow:0 0 0 3px rgba(255,255,255,.55)}
 .cam{position:absolute; right:-4px; bottom:-4px; width:26px; height:26px; border-radius:50%; background:#fff; display:grid; place-items:center; font-size:13px; box-shadow:0 2px 6px rgba(0,0,0,.2)}
-.rank{
-  flex:none; width:24px; height:24px; border-radius:8px; background:#EEF2F6;
-  display:grid; place-items:center; font-size:11px; font-weight:800; color:var(--muted);
-}
-.amt{flex:none; font-weight:800; font-size:14px; color:var(--accent-deep)}
 </style>

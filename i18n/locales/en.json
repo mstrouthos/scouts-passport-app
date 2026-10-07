@@ -1353,5 +1353,7 @@
   "formNotified": "Notification sent to {n} parents",
   "evNeedOwnSector": "Include your own sector too — you cannot set an event for other sectors alone.",
   "evShared": "Joint event: {list}",
-  "evPickSector": "Pick a sector (or several)."
+  "evPickSector": "Pick a sector (or several).",
+  "boardLeadersSub": "The standings of each of your sectors",
+  "boardNone": "There is no league table for your sectors."
 }

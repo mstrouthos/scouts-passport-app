@@ -81,6 +81,8 @@ const tabs = computed(() => isLeader.value
           ? [{ to: '/admin/pack', icon: 'target', label: t('nav.challenges') }]
           // no quiz to run, but the photo missions
           : [{ to: '/admin/challenges?tab=missions', icon: 'target', label: t('nav.challenges') }]),
+      // the league tables, on their own button as the members have them
+      { to: '/admin/board', icon: 'trophy', label: t('nav.board') },
       { to: '/admin/more', icon: 'more', label: t('nav.more') }
     ]
   : [
