@@ -538,6 +538,14 @@ CREATE TABLE IF NOT EXISTS content_views (
   from_notification_at TEXT,
   UNIQUE (kind, ref_id, scout_id)
 );
+CREATE TABLE IF NOT EXISTS leader_fun (
+  id SERIAL PRIMARY KEY,
+  from_id INTEGER NOT NULL REFERENCES scouts(id),
+  to_id INTEGER NOT NULL REFERENCES scouts(id),
+  action TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS leader_fun_created_idx ON leader_fun(created_at);
 CREATE TABLE IF NOT EXISTS scout_kudos (
   id SERIAL PRIMARY KEY,
   from_id INTEGER NOT NULL REFERENCES scouts(id),
@@ -648,5 +656,6 @@ export const MIGRATIONS = [
   "ALTER TABLE events ADD COLUMN IF NOT EXISTS extra_section_ids TEXT",
   "ALTER TABLE events ADD COLUMN IF NOT EXISTS with_leaders BOOLEAN NOT NULL DEFAULT FALSE",
   "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS dismissed_at TEXT",
-  "ALTER TABLE parent_notifications ADD COLUMN IF NOT EXISTS dismissed_at TEXT"
+  "ALTER TABLE parent_notifications ADD COLUMN IF NOT EXISTS dismissed_at TEXT",
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS fun_pref TEXT NOT NULL DEFAULT 'all'"
 ]

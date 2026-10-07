@@ -294,9 +294,6 @@ async function enableNotifs() {
 
         <div class="sec-title" style="display:flex;justify-content:space-between;align-items:center">
           <span>{{ t('calendar') }}</span>
-          <!-- the whole diary into the phone's calendar app, one child at a time -->
-          <a v-if="shownEvents.length" class="chip" target="_blank" rel="noopener" style="text-decoration:none"
-             :href="`/api/family/calendar.ics${childSection ? '?section=' + childSection.id : ''}`">{{ t('addToCalendar') }}</a>
         </div>
         <div v-if="shownEvents.length" class="card" style="display:flex;flex-direction:column;gap:13px">
           <!-- tap for the details; the calendar button lives in there -->
@@ -424,9 +421,7 @@ async function enableNotifs() {
           <div class="tiny muted" style="text-align:center">{{ fmtDate(openEvent.startsAt, locale) }} · {{ sub(openEvent) }}</div>
           <div v-if="openEvent.themeEl" style="font-size:13.5px"><b>{{ t('meetingTheme') }}:</b> {{ openEvent.themeEl }}</div>
           <p v-if="openEvent.descriptionEl" style="margin:0;font-size:13.5px;line-height:1.6;white-space:pre-wrap">{{ openEvent.descriptionEl }}</p>
-          <a class="btn" :href="`/api/family/calendar.ics?event=${openEvent.id}`" style="text-decoration:none">
-            {{ t('addToCalendar') }}
-          </a>
+          <AddToCalendar :event="openEvent" />
           <button class="btn ghost" @click="openEvent = null">{{ t('close') }}</button>
         </div>
       </div>

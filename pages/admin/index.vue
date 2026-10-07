@@ -95,6 +95,8 @@ async function removePhoto() {
       </div></div>
     </div>
 
+    <LeadersPlayground />
+
     <NuxtLink to="/admin/polls" class="banner">
       <div class="ico">🗳️</div>
       <div><b>{{ t('polls') }}</b><span>{{ t('pollsSub') }}</span></div>

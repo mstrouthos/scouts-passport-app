@@ -1,3 +1,4 @@
+import { icsPath } from '../../../utils/icsLink'
 import { requireLeader, idParam, rankOf } from '../../../utils/guard'
 import { eventVisible, canEditEvent, eventHasData, eventSectionIds } from '../../../utils/eventScope'
 
@@ -11,7 +12,7 @@ export default defineEventHandler(async (event) => {
   return {
     id: ev.id, scope: ev.scope, sectionId: ev.sectionId, sectionIds: eventSectionIds(ev), withLeaders: !!ev.withLeaders, patrolId: ev.patrolId,
     titleEl: ev.titleEl, titleEn: ev.titleEn, location: ev.location, themeEl: ev.themeEl, descriptionEl: ev.descriptionEl,
-    groupId: ev.groupId,
+    groupId: ev.groupId, ics: icsPath(ev.id),
     startsAt: ev.startsAt, endsAt: ev.endsAt, isAllDay: ev.isAllDay,
     tracksAttendance: ev.tracksAttendance, remindAt: ev.remindAt,
     past, recorded: data, editable,

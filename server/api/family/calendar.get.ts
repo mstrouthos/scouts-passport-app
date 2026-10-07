@@ -1,3 +1,4 @@
+import { icsPath } from '../../utils/icsLink'
 import { useDb, schema as s } from '../../db'
 import { requireParent } from '../../utils/parentGuard'
 import { eventInSections, eventSectionIds } from '../../utils/eventScope'
@@ -14,6 +15,6 @@ export default defineEventHandler(async (event) => {
     .map(e => ({
       id: e.id, scope: e.scope, sectionId: e.sectionId, sectionIds: eventSectionIds(e), titleEl: e.titleEl, titleEn: e.titleEn,
       location: e.location, descriptionEl: e.descriptionEl, themeEl: e.themeEl,
-      startsAt: e.startsAt, endsAt: e.endsAt, isAllDay: e.isAllDay
+      startsAt: e.startsAt, endsAt: e.endsAt, isAllDay: e.isAllDay, ics: icsPath(e.id)
     }))
 })

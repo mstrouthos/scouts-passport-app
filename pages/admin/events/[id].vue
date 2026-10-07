@@ -224,7 +224,7 @@ const uniDefs = [
   <AppShell v-if="data" :title="lx(data.event)"
             :sub="`${whenFull(data.event)} · ${t('review')}`" back="/admin/events">
     <template #actions>
-      <a class="iconbtn" :href="`/api/calendar.ics?event=${id}`" :aria-label="t('addToCalendar')" style="text-decoration:none">📅</a>
+      <AddToCalendar v-if="meta" :event="meta" icon />
       <button v-if="me?.can?.events !== false && meta?.editable !== false" class="iconbtn" :aria-label="t('editEvent')" @click="openEdit">✎</button>
       <button v-if="meta?.canDelete && me?.can?.events !== false" class="iconbtn" :aria-label="t('deleteEvent')" @click="deleteEvent">
         <NavIcon name="trash" />

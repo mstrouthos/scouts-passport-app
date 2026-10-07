@@ -4,7 +4,7 @@
    API — short chimes and swooshes, no files to download — and quiet. Each can
    be turned off in the settings; a phone that cannot vibrate (iPhones) just
    plays the sound. */
-export type Sfx = 'correct' | 'wrong' | 'unlock' | 'fanfare' | 'rankUp' | 'pop' | 'whoosh' | 'shutter'
+export type Sfx = 'correct' | 'wrong' | 'unlock' | 'fanfare' | 'rankUp' | 'pop' | 'whoosh' | 'shutter' | 'splat' | 'thud' | 'twinkle'
 
 const read = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
 export const sfxEnabled = () => import.meta.client && read('sfx') !== 'off'
@@ -76,11 +76,18 @@ const SOUNDS: Record<Sfx, (c: AudioContext, o: AudioNode, t: number) => void> = 
   // the flame catching
   whoosh: (c, o, t) => { noise(c, o, t, 0.55, 300, 2600, 0.14, 0.9); note(c, o, 220, t + 0.1, 0.4, 'sine', 0.05, 440) },
   // the camera
-  shutter: (c, o, t) => { noise(c, o, t, 0.05, 4000, 3000, 0.25, 0.7); noise(c, o, t + 0.08, 0.06, 2500, 1800, 0.2, 0.7) }
+  shutter: (c, o, t) => { noise(c, o, t, 0.05, 4000, 3000, 0.25, 0.7); noise(c, o, t + 0.08, 0.06, 2500, 1800, 0.2, 0.7) },
+  // something soft landing hard: a wet burst, and a drop
+  splat: (c, o, t) => { noise(c, o, t, 0.22, 900, 180, 0.32, 0.6); note(c, o, 260, t, 0.18, 'sine', 0.14, 70) },
+  // a bump: low, short
+  thud: (c, o, t) => { note(c, o, 150, t, 0.16, 'sine', 0.22, 55); noise(c, o, t, 0.07, 500, 200, 0.12, 0.8) },
+  // something kind: a little run of bells
+  twinkle: (c, o, t) => { [1318.5, 1568, 2093].forEach((f, i) => note(c, o, f, t + i * 0.07, 0.3, 'sine', 0.1)) }
 }
 const BUZZ: Record<Sfx, number | number[]> = {
   correct: 30, wrong: [50, 40, 50], unlock: [20, 40, 20, 40, 70], fanfare: [40, 60, 40, 60, 90],
-  rankUp: [30, 30, 60], pop: 12, whoosh: 25, shutter: 15
+  rankUp: [30, 30, 60], pop: 12, whoosh: 25, shutter: 15,
+  splat: [35, 30, 20], thud: [45], twinkle: 15
 }
 
 /** Play a sound, and buzz the phone, as the member has them set. */

@@ -21,6 +21,8 @@ export function linkForNotification(kind: string, refId: number | null, who: 'me
   if (kind === 'poll') return `/admin/polls?poll=${refId}&n=1`
   if (kind === 'infoApproval' || kind === 'infoPublished') return `/admin/infopages?open=${refId}`
   if (kind === 'eventRsvp') return `/admin/events/${refId}?n=1`
+  // the playground: back to it, to answer in kind
+  if (kind === 'fun') return `/admin?fun=${refId}`
   // a mission photo: checked (to the member), or waiting to be (to the leaders)
   if (kind === 'mission') return '/app/challenges?tab=missions'
   // a collection item earned with a run of meetings

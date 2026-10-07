@@ -4,9 +4,11 @@ export type IcsEvent = {
   startsAt: string, endsAt?: string | null, isAllDay?: boolean, description?: string
 }
 
-const stamp = (iso: string, allDay?: boolean) => {
-  const d = new Date(iso)
-  if (allDay) return d.toISOString().slice(0, 10).replace(/-/g, '')
+const stamp = (iso: string, allDay?: boolean, plusDays = 0) => {
+  const d = new Date(Date.parse(iso) + plusDays * 86400_000)
+  // an all-day event's date is the day in Cyprus: one starting at local
+  // midnight is still the evening before in UTC
+  if (allDay) return d.toLocaleDateString('en-CA', { timeZone: 'Europe/Nicosia' }).replace(/-/g, '')
   return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
 }
 const escapeText = (s: string) => s.replace(/[\\,;]/g, m => '\\' + m).replace(/\n/g, '\\n')
@@ -23,7 +25,8 @@ export function buildIcs(events: IcsEvent[], calName: string): string {
       `UID:${e.uid}@scout-passport`,
       `DTSTAMP:${stamp(new Date().toISOString())}`,
       e.isAllDay ? `DTSTART;VALUE=DATE:${stamp(e.startsAt, true)}` : `DTSTART:${stamp(e.startsAt)}`,
-      e.isAllDay ? `DTEND;VALUE=DATE:${stamp(end, true)}` : `DTEND:${stamp(end)}`,
+      // an all-day end is the day after the last (RFC 5545: DTEND is exclusive)
+      e.isAllDay ? `DTEND;VALUE=DATE:${stamp(end, true, 1)}` : `DTEND:${stamp(end)}`,
       `SUMMARY:${escapeText(e.title)}`,
       e.location ? `LOCATION:${escapeText(e.location)}` : '',
       e.description ? `DESCRIPTION:${escapeText(e.description)}` : '',

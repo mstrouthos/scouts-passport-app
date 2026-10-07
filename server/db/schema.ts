@@ -37,6 +37,9 @@ export const scouts = pgTable('scouts', {
   lastRank: integer('last_rank'),
   lastPatrolRank: integer('last_patrol_rank'),
   birthdaySeen: text('birthday_seen'),
+  // the playground, for this Βαθμοφόρος: 'all', 'kind' (high fives and hugs, no
+  // tomatoes), or 'off' (left out of it)
+  funPref: text('fun_pref').notNull().default('all'),
   birthday: text('birthday'),      // YYYY-MM-DD
   idNumber: text('id_number'),
   lastName: text('last_name').notNull(),
@@ -782,6 +785,16 @@ export const contentViews = pgTable('content_views', {
   // the first time they opened it from the notification (a push or the bell)
   fromNotificationAt: text('from_notification_at')
 }, t => [uniqueIndex('content_views_kind_ref_id_scout_id_key').on(t.kind, t.refId, t.scoutId)])
+
+/* The Βαθμοφόροι's playground: one leader threw a tomato at another, gave
+   them a high five… (utils/fun.ts). Kept for the feed and the marks it leaves. */
+export const leaderFun = pgTable('leader_fun', {
+  id: serial('id').primaryKey(),
+  fromId: integer('from_id').notNull().references(() => scouts.id),
+  toId: integer('to_id').notNull().references(() => scouts.id),
+  action: text('action').notNull(),
+  createdAt: text('created_at').notNull()
+})
 
 /* A 👏 from one member to another, for a win in their Ενωμοτία's feed — one
    per member per win. `eventKey` names the win, e.g. "badge:12:3". */

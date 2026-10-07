@@ -180,10 +180,12 @@ function crest(x: number, y: number, r = 8) {
 
 /** The part a builder tile shows: the whole avatar, the face, the head with
     what is on it, or the body. */
-export type Crop = 'full' | 'face' | 'head' | 'body'
+export type Crop = 'full' | 'face' | 'head' | 'body' | 'stand'
 const VIEW: Record<Crop, string> = {
   // the whole avatar, framed so the face fills it and the woggle still shows
-  full: '16 6 168 168', face: '46 26 108 108', head: '22 -4 156 156', body: '20 100 160 100'
+  full: '16 6 168 168', face: '46 26 108 108', head: '22 -4 156 156', body: '20 100 160 100',
+  // the whole figure, standing: arms, shorts, socks and boots below the shirt
+  stand: '8 -6 184 352'
 }
 
 /** The SVG, as markup. `id` keeps its patterns apart from another avatar's
@@ -278,6 +280,27 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
         + [...Array(18)].map((_, i) => `<path d="M${38 + i * 7} 186 v14" stroke="${ccD}" stroke-width="1.6" opacity=".6"/>`).join(''))
       + `<path d="M78 141 Q100 162 122 141" fill="none" stroke="${ccDD}" stroke-width="10" stroke-linecap="round"/>`
   }
+  /* standing (crop 'stand'): the shirt carries on to the waist, a belt with
+     its buckle, scout shorts, knees, green socks with their red garter tabs,
+     boots; the arms hang at the sides, sleeves then hands */
+  const standing = crop === 'stand'
+  const SHORTS = '#2F3E55', SHORTS_D = '#232F42', SOCK = '#3B6452', SOCK_D = '#2C4C3E', BOOT = '#3A2A20'
+  const lowerBody = !standing ? '' :
+    `<path d="M34 198 L166 198 L153 252 L47 252 Z" fill="${cc}"/><path d="M34 198 L47 252 L58 252 L52 198 Z M166 198 L153 252 L142 252 L148 198 Z" fill="${ccD}"/>`
+    + `<path d="M48 250 L100 250 L98 294 L58 294 Z M100 250 L152 250 L142 294 L102 294 Z" fill="${SHORTS}"/>`
+    + `<path d="M100 254 V290 M58 294 L98 294 M102 294 L142 294" stroke="${SHORTS_D}" stroke-width="2"/>`
+    + `<rect x="47" y="241" width="106" height="11" rx="3" fill="#5A3B22"/><rect x="93" y="240" width="14" height="13" rx="2.5" fill="#C99A18"/><rect x="96.5" y="243" width="7" height="7" rx="1.5" fill="#5A3B22"/>`
+    + [[63, 92], [108, 137]].map(([a, b]) => `<rect x="${a}" y="292" width="${b - a}" height="22" fill="${skin}"/><rect x="${b - 7}" y="292" width="7" height="22" fill="${skinD}"/>`
+      + `<rect x="${a - 2}" y="310" width="${b - a + 4}" height="22" rx="4" fill="${SOCK}"/><rect x="${a - 2}" y="310" width="${b - a + 4}" height="6" rx="3" fill="${SOCK_D}"/>`
+      + `<path d="M${b - 4} 312 l5 0 l-1 9 l-3 -3 Z" fill="#C8303A"/>`
+      + `<ellipse cx="${(a + b) / 2 + (a < 100 ? -4 : 4)}" cy="335" rx="${(b - a) / 2 + 8}" ry="9" fill="${BOOT}"/><ellipse cx="${(a + b) / 2 + (a < 100 ? -6 : 2)}" cy="332" rx="6" ry="2.5" fill="#fff" opacity=".18"/>`).join('')
+  const standArms = !standing ? '' : [-1, 1].map(sd => {
+    const X = (x: number) => cx + sd * (x - cx)
+    return `<path d="M${X(52)} 150 Q${X(34)} 158 ${X(28)} 200 L${X(44)} 204 Q${X(48)} 176 ${X(60)} 162 Z" fill="${cc}"/>`
+      + `<path d="M${X(52)} 150 Q${X(34)} 158 ${X(28)} 200 L${X(34)} 201 Q${X(38)} 170 ${X(52)} 156 Z" fill="${ccD}"/>`
+      + `<path d="M${X(29)} 199 L${X(43)} 203 L${X(41)} 238 L${X(30)} 237 Z" fill="${skin}"/>`
+      + `<circle cx="${X(35.5)}" cy="${242}" r="8.5" fill="${skin}"/><path d="M${X(29)} 244 Q${X(35.5)} 251 ${X(42)} 244" fill="none" stroke="${skinD}" stroke-width="2" stroke-linecap="round"/>`
+  }).join('')
   const neck = `<rect x="${cx - 15}" y="${y1 - 14}" width="30" height="${154 - y1 + 14}" rx="8" fill="${skinD}"/>`
     + `<ellipse cx="${cx}" cy="${y1 + 1}" rx="15" ry="5" fill="${skinDD}" opacity=".55"/>`
 
@@ -841,8 +864,9 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     + `<linearGradient id="hg-${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${shade(hairC, 1.12)}"/><stop offset=".55" stop-color="${hairC}"/><stop offset="1" stop-color="${shade(hairC, 0.92)}"/></linearGradient>`
     + `<clipPath id="face-${id}"><rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="${hb.r}"/></clipPath>`
     + `</defs>`
-    + `<rect x="-40" y="-40" width="280" height="280" fill="${a.bg}"/>` + scenes[a.scene] + aura
-    + hairBack + clothes[a.clothes] + scarfBack + neck + scarfFront + gear[a.gear] + pin + patch + cord
+    // standing, they stand on the page itself: no backdrop of their own
+    + (standing ? '' : `<rect x="-40" y="-40" width="280" height="280" fill="${a.bg}"/>` + scenes[a.scene] + aura)
+    + hairBack + lowerBody + clothes[a.clothes] + standArms + scarfBack + neck + scarfFront + gear[a.gear] + pin + patch + cord
     + ears + head + earrings[a.earrings] + extras[a.extras] + eyes + nose + facialHair[a.facialHair] + (MOUTH[xp.mouth] || '')
     + hairFront + glasses[a.glasses] + (opts.party ? partyHat : headwear[a.headwear]) + companion
     + `</svg>`
