@@ -18,6 +18,12 @@ export function useNotifications() {
     n.read = true
     try { await $fetch(`/api/notifications/${id}/read`, { method: 'POST' }) } catch {}
   }
+  /** everything read at once; still listed */
+  async function markAllRead() {
+    if (!items.value.some(n => !n.read)) return
+    items.value.forEach(n => { n.read = true })
+    try { await $fetch('/api/notifications/read-all', { method: 'POST' }) } catch {}
+  }
   /** swiped away: read, and out of the bell for good */
   async function dismiss(id: number) {
     items.value = items.value.filter(x => x.id !== id)
@@ -25,5 +31,5 @@ export function useNotifications() {
   }
   function reset() { items.value = []; loaded().value = false }
 
-  return { items, unread, load, markRead, dismiss, reset }
+  return { items, unread, load, markRead, markAllRead, dismiss, reset }
 }

@@ -8,7 +8,7 @@ const route = useRoute()
 const router = useRouter()
 const { locale, setLocale, t } = useI18n()
 const { msg } = useToast()
-const { items: notifs, unread, load: loadNotifs, markRead, dismiss: dismissNotif } = useNotifications()
+const { items: notifs, unread, load: loadNotifs, markRead, markAllRead, dismiss: dismissNotif } = useNotifications()
 const notifOpen = ref(false)
 const expanded = ref<number | null>(null)
 onMounted(() => loadNotifs())
@@ -193,6 +193,7 @@ function goBack() {
           <h3 style="margin:0;font-size:17px;text-align:center">{{ t('notifications') }}</h3>
           <template v-if="notifs.length">
             <div class="tiny muted" style="text-align:center;margin-top:-4px">{{ t('notifSwipeHint') }}</div>
+            <button v-if="unread" class="btn ghost" style="align-self:center;width:auto;padding:8px 16px;font-size:13px" @click="markAllRead()">✓ {{ t('notifReadAll') }}</button>
             <!-- swipe one left: read, and gone from the list -->
             <SwipeRow v-for="n in notifs" :key="n.id" @swiped="dismissNotif(n.id)">
             <button class="notif-row" :class="{ unread: !n.read }" @click="toggleNotif(n)">

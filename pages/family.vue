@@ -39,6 +39,11 @@ function dismissNotif(n: any) {
   notifs.value = notifs.value.filter(x => x.id !== n.id)
   $fetch(`/api/family/notifications/${n.id}/dismiss`, { method: 'POST' }).catch(() => {})
 }
+function readAll() {
+  if (!unread.value) return
+  notifs.value.forEach(n => { n.read = true })
+  $fetch('/api/family/notifications/read-all', { method: 'POST' }).catch(() => {})
+}
 async function toggleNotif(n: any) {
   if (!n.read) { n.read = true; $fetch(`/api/family/notifications/${n.id}`, { method: 'POST' }).catch(() => {}) }
   expanded.value = expanded.value === n.id ? null : n.id
@@ -349,6 +354,7 @@ async function enableNotifs() {
           <h3 style="margin:0;font-size:17px;text-align:center">{{ t('notifications') }}</h3>
           <template v-if="notifs.length">
             <div class="tiny muted" style="text-align:center;margin-top:-4px">{{ t('notifSwipeHintParent') }}</div>
+            <button v-if="unread" class="btn ghost" style="align-self:center;width:auto;padding:8px 16px;font-size:13px" @click="readAll">✓ {{ t('notifReadAll') }}</button>
             <SwipeRow v-for="n in notifs" :key="n.id" @swiped="dismissNotif(n)">
             <button class="notif-row" :class="{ unread: !n.read }" @click="toggleNotif(n)">
               <div class="notif-dotmark" :class="{ on: !n.read }" />
