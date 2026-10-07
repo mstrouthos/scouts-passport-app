@@ -1518,5 +1518,7 @@
   "bagHow6": "It holds up to 20 things.",
   "funPouch": "In the pouch: {n} — yours when you pass it on",
   "funPotatoRule10": "While you hold it you gather things for your backpack (one every half hour). You get them when you pass it on — if it bursts in your hands, they're lost!",
-  "kimWon": "You won for your backpack:"
+  "kimWon": "You won for your backpack:",
+  "formLinkSearch": "🔍 Search a name or sector",
+  "formLinkNoMatch": "No child by that name"
 }

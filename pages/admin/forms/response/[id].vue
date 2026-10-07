@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { scoutYearLabel } from '~/utils/scoutYear'
+import { plainName } from '~/utils/plainName'
 /* One form response in full, as it was sent: every module's questions and
    answers, their uploads, the tickboxes, the signature with who signed and
    when. As a PDF — to keep, or to print straight from here — with every
@@ -12,7 +13,17 @@ const id = computed(() => Number(route.params.id))
 const { data: r } = await useFetch<any>(() => `/api/admin/forms/responses/${id.value}`)
 /* a registration's children, picked by a leader */
 const linking = ref<number[] | null>(null)
-const openLink = () => { linking.value = r.value.registration.children.map((k: any) => k.id) }
+const openLink = () => { linking.value = r.value.registration.children.map((k: any) => k.id); kidSearch.value = '' }
+/* a search over the list: by name or sector, accents or none, Greek or Latin
+   letters — those already ticked stay on top */
+const kidSearch = ref('')
+const shownKids = computed(() => {
+  const all = r.value?.registration?.options || []
+  const words = plainName(kidSearch.value).split(' ').filter(Boolean)
+  // each word typed starts one of their words: "nik" finds Νίκος, not Φοίνικας
+  const hit = (k: any) => { const hay = plainName(`${k.name} ${k.section}`).split(' '); return words.every(w => hay.some(h => h.startsWith(w))) }
+  return [...all.filter((k: any) => linking.value?.includes(k.id)), ...all.filter((k: any) => !linking.value?.includes(k.id) && hit(k))]
+})
 async function linkOne(kid: number) {
   linking.value = [...r.value.registration.children.map((k: any) => k.id), kid]
   await saveLink()
@@ -111,12 +122,16 @@ async function print() {
           <div class="sheet" style="max-height:86dvh;overflow:auto;display:flex;flex-direction:column;gap:10px">
             <h3 style="margin:0;font-size:17px;text-align:center">{{ t('formLinkChildren') }}</h3>
             <div class="tiny muted" style="text-align:center">{{ t('formLinkChildrenNote') }}</div>
-            <label v-for="k in r.registration.options" :key="k.id" class="pick" :class="{ on: linking.includes(k.id) }">
+            <input v-model="kidSearch" class="in kidsearch" type="search" :placeholder="t('formLinkSearch')" autocomplete="off">
+            <label v-for="k in shownKids" :key="k.id" class="pick" :class="{ on: linking.includes(k.id) }">
               <input type="checkbox" :checked="linking.includes(k.id)" @change="toggleKid(k.id)">
               <span><b>{{ k.name }}</b><small>{{ k.section }}</small></span>
             </label>
-            <button class="btn" @click="saveLink">{{ t('save') }}</button>
-            <button class="btn ghost" @click="linking = null">{{ t('close') }}</button>
+            <div v-if="kidSearch && shownKids.length === linking.length" class="tiny muted" style="text-align:center">{{ t('formLinkNoMatch') }}</div>
+            <div class="linkbtns">
+              <button class="btn" @click="saveLink">{{ t('save') }}<template v-if="linking.length"> ({{ linking.length }})</template></button>
+              <button class="btn ghost" @click="linking = null">{{ t('close') }}</button>
+            </div>
           </div>
         </div>
       </Teleport>
@@ -146,6 +161,8 @@ async function print() {
 .regcard small{opacity:.75}
 .regcard > .chip{align-self:flex-start}
 .warnline{color:#B26A00; font-weight:600}
+.kidsearch{position:sticky; top:-10px; z-index:1}
+.linkbtns{position:sticky; bottom:calc(-1 * (env(safe-area-inset-bottom) + 26px)); display:flex; flex-direction:column; gap:8px; padding:8px 0 4px; background:inherit}
 .pick{display:flex; align-items:center; gap:10px; background:var(--card, #fff); border-radius:12px; padding:9px 12px; cursor:pointer}
 .pick.on{box-shadow:inset 0 0 0 2px var(--green, #2E7D5B)}
 .pick input{width:18px; height:18px}
