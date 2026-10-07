@@ -821,6 +821,25 @@ export const registrations = pgTable('registrations', {
   createdAt: text('created_at').notNull()
 }, t => [uniqueIndex('registrations_scout_id_year_key').on(t.scoutId, t.year)])
 
+/* The backpack 🎒: how many of each throwable a Βαθμοφόρος has to throw */
+export const funBag = pgTable('fun_bag', {
+  id: serial('id').primaryKey(),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  item: text('item').notNull(),
+  qty: integer('qty').notNull().default(0)
+}, t => [uniqueIndex('fun_bag_scout_id_item_key').on(t.scoutId, t.item)])
+/* What was put in it, why, and whether they have seen it: once per reason
+   and reference ("kim:2026-10-07", "potato:12:3"), so nothing pays twice */
+export const funGrants = pgTable('fun_grants', {
+  id: serial('id').primaryKey(),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  items: text('items').notNull(),
+  reason: text('reason').notNull(),
+  ref: text('ref').notNull(),
+  seen: boolean('seen').notNull().default(false),
+  createdAt: text('created_at').notNull()
+}, t => [uniqueIndex('fun_grants_scout_id_reason_ref_key').on(t.scoutId, t.reason, t.ref)])
+
 /* Το Ταψί του Κιμ: one play a day each — when the tray was first shown, and
    what they picked (utils/kim.ts makes the tray from the day) */
 export const kimPlays = pgTable('kim_plays', {

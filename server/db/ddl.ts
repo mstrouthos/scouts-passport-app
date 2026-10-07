@@ -556,6 +556,23 @@ CREATE TABLE IF NOT EXISTS registrations (
   created_at TEXT NOT NULL,
   UNIQUE (scout_id, year)
 );
+CREATE TABLE IF NOT EXISTS fun_bag (
+  id SERIAL PRIMARY KEY,
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  item TEXT NOT NULL,
+  qty INTEGER NOT NULL DEFAULT 0,
+  UNIQUE (scout_id, item)
+);
+CREATE TABLE IF NOT EXISTS fun_grants (
+  id SERIAL PRIMARY KEY,
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  items TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  ref TEXT NOT NULL,
+  seen BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TEXT NOT NULL,
+  UNIQUE (scout_id, reason, ref)
+);
 CREATE TABLE IF NOT EXISTS kim_plays (
   id SERIAL PRIMARY KEY,
   scout_id INTEGER NOT NULL REFERENCES scouts(id),

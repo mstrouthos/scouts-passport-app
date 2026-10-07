@@ -4,6 +4,7 @@ import { requireLeader } from '../../utils/guard'
 import { faceOf } from '../../utils/face'
 import { normalizeAvatar, randomAvatar } from '../../../utils/avatar'
 import { kimDay } from '../../../utils/kim'
+import { dailyBag, bagOf, unseenGrants } from '../../utils/funBag'
 import { FUN_LIMIT_DAY, cyprusDayStart, cyprusWeekStart, funPaused, potatoTick, activePotato, potatoPool, potatoCycle, potatoTargets } from '../../utils/leaderFun'
 
 /** The playground: every Βαθμοφόρος of every sector, standing; what has
@@ -53,7 +54,12 @@ export default defineEventHandler(async (event) => {
   const lastBurn = (await db.select().from(s.hotPotato)).filter(p => p.endedAt && p.endedAt > twoDays).sort((a, b) => b.id - a.id)[0]
   const pool = pot ? await potatoPool() : []
   const kimToday = (await db.select().from(s.kimPlays).where(eq(s.kimPlays.scoutId, me.id))).find(p => p.day === kimDay() && p.answeredAt)
+  // the backpack: today's free things first, then what is in it, and what is new
+  await dailyBag(me.id)
+  const bag = await bagOf(me.id)
+  const grants = await unseenGrants(me.id)
   return {
+    bag, grants,
     kim: kimToday ? { correct: kimToday.correct } : null,
     paused: await funPaused(), canPause: me.role === 'troop_leader',
     me: { id: me.id, pref: me.funPref, sentToday: recent.filter(r => r.fromId === me.id && r.createdAt >= today && !r.auto).length, limit: FUN_LIMIT_DAY,

@@ -4,6 +4,8 @@
    away, and which four must be picked from ten. Then the score, a dare to
    someone who has not played yet, and how everyone did today and this week. */
 import { kimImage, kimObject, KIM_MISSING, KIM_COVER_MS } from '~/utils/kim'
+import { funAction } from '~/utils/fun'
+const emojiOf = (k: string) => funAction(k)?.emoji ?? k
 
 const { t, locale } = useI18n()
 const { show } = useToast()
@@ -146,6 +148,7 @@ async function dare(l: any) {
         <div class="big">{{ result.correct === KIM_MISSING ? '🏆' : result.correct >= 2 ? '👏' : '🙈' }}</div>
         <b>{{ result.correct }}/{{ KIM_MISSING }} · {{ secs(result.ms) }}</b>
         <span class="grid">{{ grid }}</span>
+        <div v-if="result.won && Object.keys(result.won).length" class="won">🎁 {{ t('kimWon') }} <b>{{ Object.entries(result.won).map(([k, n]) => `${n}× ${emojiOf(k)}`).join(' ') }}</b></div>
         <small class="muted">{{ t('kimTomorrow') }}</small>
       </div>
 
@@ -203,6 +206,7 @@ async function dare(l: any) {
 .big{font-size:44px; line-height:1}
 .score b{font-size:24px}
 .grid{font-size:22px; letter-spacing:2px}
+.won{font-size:13.5px; background:#FFF4E0; border-radius:12px; padding:7px 12px}
 
 .tray-wrap{display:flex; flex-direction:column; gap:8px}
 .timer{height:8px; border-radius:4px; background:rgba(0,0,0,.08); overflow:hidden}

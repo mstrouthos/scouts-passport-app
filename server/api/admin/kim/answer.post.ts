@@ -4,6 +4,7 @@ import { requireLeader } from '../../../utils/guard'
 import { now } from '../../../utils/passcode'
 import { kimDay, kimTray, KIM_COVER_MS, KIM_MISSING } from '../../../../utils/kim'
 import { tellFun } from '../../../utils/leaderFun'
+import { grant, randomItems, addItems } from '../../../utils/funBag'
 
 /** What I say went missing from today's tray. Scored here: how many of the
     four I got, and how long it all took from the tray's uncovering (less
@@ -28,17 +29,24 @@ export default defineEventHandler(async (event) => {
     .where(and(eq(s.kimPlays.id, play.id), isNull(s.kimPlays.answeredAt))).returning()
   if (!done.length) throw createError({ statusCode: 409, message: 'Το σημερινό ταψί το έπαιξες ήδη — ξανά αύριο! 🧠' })
 
-  // whoever dared me hears how it went
+  // the prize: 4/4 three things, one of them rare; 3/4 two; 2/4 one
+  const prize = correct >= 4 ? addItems(randomItems(2, { rareChance: 0 }), { pie: 1 }) : correct === 3 ? randomItems(2) : correct === 2 ? randomItems(1, { tier: 'common' }) : {}
+  const won = Object.keys(prize).length ? await grant(me.id, prize, 'kim', day) : null
+
+  // whoever dared me hears how it went — and whoever won the dare gets two more
   const secs = (n: number) => (n / 1000).toFixed(1).replace('.', ',')
   for (const d of (await db.select().from(s.kimChallenges).where(and(eq(s.kimChallenges.toId, me.id), eq(s.kimChallenges.day, day))))) {
     const theirs = (await db.select().from(s.kimPlays)).find(p => p.scoutId === d.fromId && p.day === day)
     const beat = theirs?.correct == null ? null
       : correct > theirs.correct || (correct === theirs.correct && ms < (theirs.ms ?? 0)) ? 'σε νίκησε! 😱'
       : correct === theirs.correct && ms === theirs.ms ? 'ισοπαλία! 🤝' : 'δεν σε έφτασε 😎'
+    // I beat them, or they held me off (a draw is theirs: I had to do better)
+    const iWon = theirs?.correct != null && (correct > theirs.correct || (correct === theirs.correct && ms < (theirs.ms ?? 0)))
+    await grant(iWon ? me.id : d.fromId, randomItems(2), 'kim-dare', String(d.id))
     await tellFun(d.fromId, {
       title: '🧠 Το Ταψί του Κιμ', kind: 'kim', refId: d.id,
-      body: `${me.firstName} έπαιξε: ${correct}/${KIM_MISSING} σε ${secs(ms)}″${beat ? ' — ' + beat : ''}`
+      body: `${me.firstName} έπαιξε: ${correct}/${KIM_MISSING} σε ${secs(ms)}″${beat ? ' — ' + beat : ''}${iWon ? '' : ' Κέρδισες 2 για το σακίδιο 🎒'}`
     })
   }
-  return { correct, ms, picks, gone }
+  return { correct, ms, picks, gone, won }
 })

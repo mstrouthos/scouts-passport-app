@@ -71,3 +71,37 @@ export const funAction = (key: string) => FUN_ACTIONS.find(a => a.key === key) |
 export const isPlay = (a: FunAction | undefined) => !!a && (a.motion === 'throw' || a.motion === 'shove' || a.motion === 'kind')
 /** Whether someone takes this kind of thing: everything, only the kind ones, or nothing. */
 export const funAllowed = (pref: string | null | undefined, a: FunAction) => pref === 'off' ? false : pref === 'kind' ? a.motion === 'kind' : true
+
+/* ---- the backpack 🎒: what can be thrown is earned, not free ----
+   Kind things and shoves cost nothing. Each throwable has a rarity: the
+   common ones come often, the rare one (the pie) seldom. */
+export type Tier = 'common' | 'uncommon' | 'rare'
+export const ITEM_TIER: Record<string, Tier> = {
+  tomato: 'common', snowball: 'common', pinecone: 'common',
+  water: 'uncommon', marshmallow: 'uncommon', mud: 'uncommon',
+  pie: 'rare'
+}
+export const THROWABLES = Object.keys(ITEM_TIER)
+export const isThrowable = (key: string) => key in ITEM_TIER
+/** At most this many things in a backpack. */
+export const BAG_MAX = 20
+/** Free every day, so nobody is ever left with nothing. */
+export const DAILY_FREE = { tomato: 2 } as Record<string, number>
+/** Once, to start with. */
+export const WELCOME = { tomato: 5, snowball: 2, water: 1 } as Record<string, number>
+
+/* the hot potato's danger pay: one thing for every half hour it is held —
+   counted only from 07:00 to midnight — paid when it is passed on, lost if
+   it bursts first; at most POUCH_MAX on one hold */
+export const POUCH_EVERY_MS = 30 * 60_000
+export const POUCH_MAX = 6
+const cyHourOf = (t: number) => Number(new Date(t).toLocaleString('en-GB', { timeZone: 'Europe/Nicosia', hour: '2-digit', hour12: false }))
+/** How much of a hold counts: its time between 07:00 and midnight. */
+export function wakingMs(fromIso: string, to = Date.now()) {
+  const STEP = 5 * 60_000
+  let n = 0
+  for (let t = Date.parse(fromIso); t + STEP <= to && n < 400 * STEP; t += STEP) if (cyHourOf(t) >= 7) n += STEP
+  return n
+}
+/** How many things a hold has earned so far. */
+export const pouchOf = (gotAt: string, to = Date.now()) => Math.min(POUCH_MAX, Math.floor(wakingMs(gotAt, to) / POUCH_EVERY_MS))

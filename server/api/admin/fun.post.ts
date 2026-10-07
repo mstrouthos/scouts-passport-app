@@ -2,7 +2,8 @@ import { and, eq, gt } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { requireLeader } from '../../utils/guard'
 import { now } from '../../utils/passcode'
-import { funAction, funAllowed, isPlay, anonNote } from '../../../utils/fun'
+import { funAction, funAllowed, isPlay, anonNote, isThrowable } from '../../../utils/fun'
+import { dailyBag, take, bagOf } from '../../utils/funBag'
 import { FUN_LIMIT_DAY, FUN_PER_TARGET_DAY, FUN_COOLDOWN_MS, cyprusDayStart, cyprusWeekStart, funPaused, tellFun } from '../../utils/leaderFun'
 
 /** One Βαθμοφόρος does something to another — a tomato, a high five — and
@@ -46,7 +47,12 @@ export default defineEventHandler(async (event) => {
   if (mine.filter(r => r.toId === to).length >= FUN_PER_TARGET_DAY) throw createError({ statusCode: 429, message: `Αρκετά στον/στην ${target.firstName} για σήμερα 😄` })
   if (mine.some(r => r.toId === to && r.action === act.key && Date.now() - Date.parse(r.createdAt) < FUN_COOLDOWN_MS))
     throw createError({ statusCode: 429, message: 'Πάρε μια ανάσα πρώτα 😄' })
+  // a throwable comes out of the backpack (kind things and shoves are free)
+  if (isThrowable(act.key)) {
+    await dailyBag(me.id)
+    if (!(await take(me.id, act.key))) throw createError({ statusCode: 409, message: `Δεν έχεις άλλο ${act.emoji} στο σακίδιο 🎒 — κέρδισε κι άλλα στην καυτή πατάτα και στο Ταψί του Κιμ` })
+  }
   const [row] = await db.insert(s.leaderFun).values({ fromId: me.id, toId: to, action: act.key, createdAt: now(), anon }).returning()
   await tellFun(to, { body: anon ? anonNote(act) : act.noteEl.replace('{name}', me.firstName), refId: row.id })
-  return { ok: true, id: row.id, left: FUN_LIMIT_DAY - mine.length - 1 }
+  return { ok: true, id: row.id, left: FUN_LIMIT_DAY - mine.length - 1, bag: await bagOf(me.id) }
 })

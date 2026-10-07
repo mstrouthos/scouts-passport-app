@@ -2,7 +2,8 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader } from '../../../utils/guard'
 import { now } from '../../../utils/passcode'
-import { FUN_GAME } from '../../../../utils/fun'
+import { FUN_GAME, pouchOf } from '../../../../utils/fun'
+import { grant, randomItems, type Items } from '../../../utils/funBag'
 import { activePotato, potatoTick, potatoBurstAt, potatoChallenges, announcePotato, potatoPool, potatoCycle, potatoTargets, funPaused, tellFun } from '../../../utils/leaderFun'
 
 /** The hot potato (server/utils/leaderFun.ts). With none in play, anyone who
@@ -33,11 +34,15 @@ export default defineEventHandler(async (event) => {
   const round = (cycle: number[]) => pool.every(id => cycle.includes(id)) ? [to] : cycle
   let cycle: number[]
   let started: typeof s.hotPotato.$inferSelect | null = null
+  let paid: Items | null = null
   if (p) {
     if (p.holderId !== me.id) throw createError({ statusCode: 409, message: 'Την πατάτα την έχει άλλος 🥔' })
     if (!potatoTargets(pool, potatoCycle(p), me.id).includes(to))
       throw createError({ statusCode: 400, message: `${target.firstName} την είχε ήδη σε αυτόν τον γύρο — διάλεξε κάποιον που δεν την έχει πιάσει 🥔` })
     cycle = round([...potatoCycle(p), to])
+    // danger pay: a thing for every half hour held, now that it is safely passed on
+    const n = pouchOf(p.gotAt)
+    if (n) paid = await grant(me.id, randomItems(n), 'potato', `${p.id}:${p.passes}`)
     await db.update(s.hotPotato).set({ holderId: to, prevId: me.id, gotAt: t, passes: p.passes + 1, cycle: JSON.stringify(cycle) })
       .where(eq(s.hotPotato.id, p.id))
   } else {
@@ -54,5 +59,5 @@ export default defineEventHandler(async (event) => {
   await tellFun(to, { body: started ? `${note} Όποιον σκάσει: «${started.challenge}»` : note, refId: row.id }, true)
   // a new round: everyone hears it has begun, and what is at stake
   if (started) await announcePotato(started, me.firstName)
-  return { ok: true, id: row.id, newRound: cycle.length === 1, started: !!started }
+  return { ok: true, id: row.id, newRound: cycle.length === 1, started: !!started, paid }
 })

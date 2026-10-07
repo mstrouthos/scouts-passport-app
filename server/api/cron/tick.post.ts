@@ -12,6 +12,7 @@ import { localDay, bonusEarned, currentStreak } from '../../utils/streak'
 import { deleteFormFiles } from '../../utils/formFiles'
 import { eventInSections, eventSectionIds } from '../../utils/eventScope'
 import { potatoTick } from '../../utils/leaderFun'
+import { kimPrizes } from '../../utils/kimRewards'
 
 /** Hit by host cron every few minutes with the token:
     curl -X POST -H "x-cron-token: $TOKEN" https://.../api/cron/tick */
@@ -172,6 +173,8 @@ export default defineEventHandler(async (event) => {
 
   // the hot potato: it bursts when its secret moment has come
   const potato = await potatoTick()
+  // Το Ταψί του Κιμ: yesterday's best, and on Mondays last week's
+  const kimPrize = await kimPrizes()
 
   // opened notifications, a day old: swept out so the bell stays the news
   const cutoff = new Date(Date.now() - READ_TTL_MS).toISOString()
@@ -188,6 +191,7 @@ export default defineEventHandler(async (event) => {
   return {
     ok: true, notified, announced, purged: purgedWho.length, swept, at: t,
     ...(potato ? { potato } : {}),
+    ...(kimPrize.length ? { kimPrize } : {}),
     ...(sent.length ? { sent } : {}),
     ...(purgedWho.length ? { purgedWho } : {})
   }

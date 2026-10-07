@@ -5,12 +5,14 @@ import { faceOf } from '../../utils/face'
 import { normalizeAvatar } from '../../../utils/avatar'
 import { kimDay, kimTray, KIM_VIEW_MS } from '../../../utils/kim'
 import { funPaused } from '../../utils/leaderFun'
+import { kimPrizes } from '../../utils/kimRewards'
 
 /** Το Ταψί του Κιμ: how today stands. My own play (the tray only once I have
     started — no peeking), today's results, the week's, who dared me and
     whom I dared, and the Βαθμοφόροι I could still dare. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
+  await kimPrizes()
   const db = await useDb()
   const day = kimDay()
   const people = (await db.select().from(s.scouts)).filter(r => r.role !== 'scout' && r.isActive && !r.deletedAt && (!r.isHidden || r.id === me.id))

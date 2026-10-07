@@ -6,7 +6,7 @@
    out too, live; what was done to you while you were away plays when you
    come back. Tapping yourself sets how much of it you want. */
 import { avatarSvg, DEFAULT_AVATAR } from '~/utils/avatar'
-import { FUN_ACTIONS, FUN_GAME, FUN_IMPACT, FUN_SPARKLE, FUN_KIND_SCREEN, funAction, funAllowed, isPlay, type FunAction, type FunMotion } from '~/utils/fun'
+import { FUN_ACTIONS, FUN_GAME, FUN_IMPACT, FUN_SPARKLE, FUN_KIND_SCREEN, funAction, funAllowed, isPlay, isThrowable, THROWABLES, ITEM_TIER, BAG_MAX, pouchOf, type FunAction, type FunMotion } from '~/utils/fun'
 
 const { t, locale } = useI18n()
 const { show } = useToast()
@@ -71,6 +71,7 @@ async function act(to: any, a: FunAction) {
     const r = await $fetch<any>('/api/admin/fun', { method: 'POST', body: { to: to.id, action: a.key, anon: asAnon } })
     played.add(r.id)
     if (data.value?.me) data.value.me.sentToday++
+    if (r.bag && data.value) data.value.bag = r.bag
     await play(a, myId.value!, to.id)
     await refresh()
   } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
@@ -125,6 +126,28 @@ const heldFor = computed(() => {
   const m = potato.value.active ? Math.max(0, Math.floor((clock.value - Date.parse(potato.value.active.gotAt)) / 60_000)) : 0
   return m < 60 ? `${m}′` : `${Math.floor(m / 60)} ${t('funHoursShort')} ${m % 60}′`
 })
+/* ---- the backpack 🎒 ---- */
+const bag = computed<Record<string, number>>(() => data.value?.bag || {})
+const bagCount = computed(() => Object.values(bag.value).reduce((n, x) => n + x, 0))
+const have = (a: FunAction) => !isThrowable(a.key) || (bag.value[a.key] || 0) > 0
+const itemsText = (items: Record<string, number>) => Object.entries(items).map(([k, n]) => `${funAction(k)?.emoji ?? k}×${n}`).join(' ')
+const bagHelp = ref(false)
+/** What the hold has earned so far — paid when the potato is passed on. */
+const pouch = computed(() => holdIt.value ? pouchOf(potato.value.active.gotAt, clock.value) : 0)
+/* what was put in the backpack while away: told once, then marked seen */
+const REASON: Record<string, string> = { welcome: 'bagWelcome', potato: 'bagFromPotato', 'kim-dare': 'bagFromDare', 'kim-day': 'bagFromKimDay', 'kim-week': 'bagFromKimWeek' }
+watch(() => data.value?.grants, async gs => {
+  if (!import.meta.client || !gs?.length) return
+  await new Promise(r => setTimeout(r, 1800))
+  // one at a time, so each is read
+  for (const g of gs) {
+    sfx('unlock')
+    show(`🎒 ${t(REASON[g.reason] || 'bagGift')}: +${itemsText(g.items)}`, 3000)
+    await new Promise(r => setTimeout(r, 3200))
+  }
+  try { await $fetch('/api/admin/fun/grants-seen', { method: 'POST', body: { ids: gs.map((g: any) => g.id) } }) } catch {}
+  if (data.value) data.value.grants = []
+}, { immediate: true })
 /* the rules, for anyone who asks; the Αρχηγός ends a round, and writes the challenges */
 const rulesOpen = ref(false)
 async function stopRound() {
@@ -158,6 +181,7 @@ async function throwPotato(to: any) {
     played.add(r.id)
     await play(FUN_GAME[0], myId.value!, to.id)
     if (r.newRound) show('🥔 ' + t('funPotatoNewRound', { name: to.firstName }), 3200)
+    if (r.paid && Object.keys(r.paid).length) { sfx('unlock'); show(`🎒 ${t('bagFromPotato')}: +${itemsText(r.paid)}`, 3600) }
     await refresh()
   } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
 }
@@ -443,12 +467,24 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
       <span v-if="!data.paused && data.me.pref !== 'off'" class="ammo">{{ t('funLeft', { n: left }) }}</span>
     </div>
 
+    <!-- the backpack: what there is to throw, earned in the games -->
+    <button v-if="data.me.pref !== 'off'" class="bagbar" @click="bagHelp = true">
+      <span class="bagic">🎒</span>
+      <span class="bagitems">
+        <span v-for="k in THROWABLES.filter(k => bag[k])" :key="k" class="bi" :class="ITEM_TIER[k]">
+          <img v-if="funAction(k)?.art?.sprite" :src="funAction(k)!.art!.sprite" alt=""><span v-else>{{ funAction(k)?.emoji }}</span><b>{{ bag[k] }}</b>
+        </span>
+        <span v-if="!bagCount" class="tiny muted">{{ t('bagEmpty') }}</span>
+      </span>
+      <span class="bagn">{{ bagCount }}/{{ BAG_MAX }}</span>
+    </button>
+
     <!-- the hot potato: who has it (never when it bursts), what is at stake, or how the last one ended -->
     <div v-if="!data.paused && (potato.active || potato.last || (potato.canStart && data.me.pref === 'all'))" class="potato"
          :class="{ mine: holdIt, burst: !potato.active && potato.last?.burned }">
       <div class="prow">
         <span class="spud">{{ !potato.active && potato.last?.burned ? '💥' : '🥔' }}</span>
-        <div v-if="holdIt" class="ptxt"><b>{{ t('funPotatoYours') }}</b><span>{{ t('funPotatoYoursSub', { held: heldFor }) }}</span></div>
+        <div v-if="holdIt" class="ptxt"><b>{{ t('funPotatoYours') }}</b><span>{{ t('funPotatoYoursSub', { held: heldFor }) }}</span><span class="pouch">💰 {{ t('funPouch', { n: pouch }) }}</span></div>
         <div v-else-if="potato.active" class="ptxt"><b>{{ t('funPotatoAt', { name: potato.active.holderName }) }}</b><span>{{ t('funPotatoPasses', { n: potato.active.passes, m: stillToGo }) }}</span></div>
         <div v-else-if="potato.last?.burned" class="ptxt"><b>{{ t('funPotatoBurst', { name: potato.last.burned === myId ? t('funYouObj') : potato.last.burnedName }) }}</b><span>{{ t('funPotatoBurstSub', { n: potato.last.passes }) }}</span></div>
         <div v-else-if="potato.last?.stopped" class="ptxt"><b>{{ t('funPotatoWasStopped') }}</b><span>{{ t('funPotatoStartSub') }}</span></div>
@@ -542,7 +578,8 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
             <div v-for="g in groupsFor(target)" :key="g.motion" class="grp">
               <div class="tiny muted">{{ t(g.label) }}</div>
               <div class="acts">
-                <button v-for="a in g.actions" :key="a.key" class="act" :class="g.motion" :disabled="!left || busy || (anon && a.motion !== 'throw')" @click="act(target, a)">
+                <button v-for="a in g.actions" :key="a.key" class="act" :class="[g.motion, { none: !have(a) }]" :disabled="!left || busy || !have(a) || (anon && a.motion !== 'throw')" @click="act(target, a)">
+                  <i v-if="isThrowable(a.key)" class="cnt">{{ bag[a.key] || 0 }}</i>
                   <img v-if="a.art?.sprite" class="e" :src="a.art.sprite" :alt="a.emoji"><span v-else class="e emo">{{ a.emoji }}</span><span class="l">{{ text(a) }}</span>
                 </button>
               </div>
@@ -570,8 +607,21 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
       <div v-if="rulesOpen" class="sheet-backdrop" @click.self="rulesOpen = false">
         <div class="sheet fun-sheet">
           <h3 style="margin:0;font-size:17px;text-align:center">🥔 {{ t('funPotatoRulesTitle') }}</h3>
-          <ol class="rules"><li v-for="n in 9" :key="n">{{ t('funPotatoRule' + n) }}</li></ol>
+          <ol class="rules"><li v-for="n in 10" :key="n">{{ t('funPotatoRule' + n) }}</li></ol>
           <button class="btn ghost" @click="rulesOpen = false">{{ t('close') }}</button>
+        </div>
+      </div>
+      <!-- how the backpack fills -->
+      <div v-if="bagHelp" class="sheet-backdrop" @click.self="bagHelp = false">
+        <div class="sheet fun-sheet">
+          <h3 style="margin:0;font-size:17px;text-align:center">🎒 {{ t('bagTitle') }}</h3>
+          <div class="bagall">
+            <span v-for="k in THROWABLES" :key="k" class="bi" :class="[ITEM_TIER[k], { zero: !bag[k] }]">
+              <img v-if="funAction(k)?.art?.sprite" :src="funAction(k)!.art!.sprite" alt=""><b>{{ bag[k] || 0 }}</b><small>{{ t('tier_' + ITEM_TIER[k]) }}</small>
+            </span>
+          </div>
+          <ul class="rules"><li v-for="n in 6" :key="n">{{ t('bagHow' + n) }}</li></ul>
+          <button class="btn ghost" @click="bagHelp = false">{{ t('close') }}</button>
         </div>
       </div>
       <!-- the Αρχηγός's list of challenges, one a line -->
@@ -719,6 +769,24 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 @keyframes kind-rain{from{transform:translateY(-12vh) scale(.95); opacity:0} 15%{opacity:1} 80%{opacity:1} to{transform:translateY(8vh) scale(1.05); opacity:0}}
 @keyframes kind-front{0%{transform:scale(.2); opacity:0} 20%{transform:scale(1.15); opacity:1} 35%{transform:scale(1)} 80%{transform:translateY(-2vh); opacity:1} 100%{transform:translateY(-8vh) scale(.9); opacity:0}}
 
+/* the backpack */
+.bagbar{display:flex; align-items:center; gap:8px; width:100%; border:0; background:#fff; border-radius:14px; padding:7px 10px; margin-bottom:8px; box-shadow:0 1px 6px rgba(20,40,70,.06); cursor:pointer; text-align:left}
+.bagic{font-size:20px; flex:none}
+.bagitems{flex:1; min-width:0; display:flex; flex-wrap:wrap; gap:4px 8px; align-items:center}
+.bi{display:inline-flex; align-items:center; gap:2px; font-size:12px}
+.bi img{width:22px; height:22px; object-fit:contain}
+.bi.rare b{color:#B26A00}
+.bagn{flex:none; font-size:11px; color:var(--muted); font-weight:700}
+.bagall{display:grid; grid-template-columns:repeat(4, 1fr); gap:8px}
+.bagall .bi{flex-direction:column; background:#fff; border-radius:14px; padding:8px 4px; gap:2px}
+.bagall .bi img{width:36px; height:36px}
+.bagall .bi small{font-size:9.5px; color:var(--muted)}
+.bagall .bi.rare{box-shadow:inset 0 0 0 2px #E8BB3E}
+.bagall .bi.zero{opacity:.45}
+.act{position:relative}
+.act .cnt{position:absolute; top:4px; right:6px; font-style:normal; font-size:10.5px; font-weight:800; background:#2A2330; color:#fff; border-radius:999px; min-width:17px; padding:1px 4px; text-align:center}
+.act.none .cnt{background:#C9CED6}
+.pouch{display:block; margin-top:3px; font-weight:700; color:#7A2E0E}
 /* the hot potato */
 .potato .prow{display:flex; align-items:center; gap:10px}
 .potato.burst{background:linear-gradient(135deg,#FFE0D6,#FFD2C2)}
