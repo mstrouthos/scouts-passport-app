@@ -40,12 +40,12 @@ export async function funPaused() {
     first in an hour and never at night; the rest go quietly into the bell.
     `urgent` (the potato: it has a clock) buzzes past the hourly gap, but
     still never at night. */
-export async function tellFun(to: number, msg: { body: string, refId: number }, urgent = false) {
+export async function tellFun(to: number, msg: { body: string, refId: number, kind?: string, title?: string }, urgent = false) {
   const db = await useDb()
-  const full = { title: '🎪 Η παρέα των Βαθμοφόρων', body: msg.body, kind: 'fun', refId: msg.refId }
+  const full = { title: msg.title || '🎪 Η παρέα των Βαθμοφόρων', body: msg.body, kind: msg.kind || 'fun', refId: msg.refId }
   const lastHour = new Date(Date.now() - FUN_PUSH_GAP_MS).toISOString()
   const recent = (await db.select().from(s.notifications).where(and(eq(s.notifications.scoutId, to), gt(s.notifications.createdAt, lastHour))))
-    .filter(n => n.kind === 'fun')
+    .filter(n => n.kind === 'fun' || n.kind === 'kim')
   if (isQuietHour() || (!urgent && recent.length))
     await db.insert(s.notifications).values({ scoutId: to, kind: full.kind, refId: full.refId, title: full.title, body: full.body, createdAt: now() })
   else await sendPushTo([to], full)
@@ -53,8 +53,8 @@ export async function tellFun(to: number, msg: { body: string, refId: number }, 
 
 /* ---- the hot potato ---- */
 /** How long a holder has, counted in waking hours only. */
-export const POTATO_MS = 4 * 3600_000
-/** When the potato burns if it is not passed: four hours on, the clock
+export const POTATO_MS = 3 * 3600_000
+/** When the potato burns if it is not passed: three hours on, the clock
     stopped between 22:00 and 08:00. */
 export function potatoDeadline(from = new Date()) {
   const STEP = 5 * 60_000
@@ -95,4 +95,19 @@ export async function potatoTick() {
     return 'warned'
   }
   return null
+}
+
+/** Who plays the potato: every active Βαθμοφόρος who takes everything. */
+export async function potatoPool() {
+  const db = await useDb()
+  return (await db.select().from(s.scouts))
+    .filter(r => r.role !== 'scout' && r.isActive && !r.deletedAt && !r.isHidden && r.funPref === 'all').map(r => r.id)
+}
+/** Who has held it this round. */
+export const potatoCycle = (p: { cycle: string | null }) => { try { return (JSON.parse(p.cycle || '[]') as number[]) } catch { return [] } }
+/** Whom the holder may pass it to: anyone who has not had it this round —
+    and when there is no one left (someone has since dropped out), anyone. */
+export function potatoTargets(pool: number[], cycle: number[], holder: number) {
+  const fresh = pool.filter(id => id !== holder && !cycle.includes(id))
+  return fresh.length ? fresh : pool.filter(id => id !== holder)
 }

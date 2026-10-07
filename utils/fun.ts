@@ -42,7 +42,8 @@ export const FUN_ACTIONS: FunAction[] = [
 const ART = '/images/fun/'
 // what is drawn so far: the thing itself, the splat it leaves, and the one
 // across the whole screen (the rest show as their emoji until drawn)
-const DRAWN = ['tomato', 'pie', 'water', 'snowball', 'marshmallow', 'mud', 'pinecone']
+// (everything now; the shove and kind ones drawn on fal.ai)
+const DRAWN = FUN_ACTIONS.map(a => a.key)
 const SPLATS = ['tomato', 'pie', 'water', 'snowball', 'marshmallow', 'mud']
 const SCREENS = ['tomato', 'pie', 'water', 'snowball', 'marshmallow']
 for (const a of FUN_ACTIONS) a.art = {
@@ -50,16 +51,16 @@ for (const a of FUN_ACTIONS) a.art = {
   ...(SPLATS.includes(a.key) ? { splat: `${ART}${a.key}-splat.webp` } : {}),
   ...(SCREENS.includes(a.key) ? { screen: `${ART}${a.key}-screen.webp` } : SPLATS.includes(a.key) ? { screen: `${ART}${a.key}-splat.webp` } : {})
 }
-/** The shared art: the comic bang of a shove (or a bonk); the sparkle of a
-    kind thing, and its shower across the screen, are not drawn yet. */
+/** The shared art: the comic bang of a shove (or a bonk), and the sparkle of
+    a kind thing; a kind thing's shower across the screen is not drawn yet. */
 export const FUN_IMPACT = `${ART}impact.webp`
-export const FUN_SPARKLE: string | null = null
+export const FUN_SPARKLE: string | null = `${ART}sparkle.webp`
 export const FUN_KIND_SCREEN: string | null = null
 
 /* The games' own doings, in the feed and played out like the rest, but not
    on the buttons: the hot potato passed on, and burning in someone's hands. */
 export const FUN_GAME: FunAction[] = [
-  { key: 'potato', emoji: '🥔', motion: 'pass', el: 'Καυτή πατάτα', en: 'Hot potato', noteEl: '{name} σού πέταξε την καυτή πατάτα! 🥔 Έχεις 4 ώρες να την πετάξεις σε άλλον.', noteEn: '{name} threw you the hot potato! 🥔 You have 4 hours to pass it on.' },
+  { key: 'potato', emoji: '🥔', motion: 'pass', el: 'Καυτή πατάτα', en: 'Hot potato', noteEl: '{name} σού πέταξε την καυτή πατάτα! 🥔 Έχεις 3 ώρες να την πετάξεις σε άλλον.', noteEn: '{name} threw you the hot potato! 🥔 You have 3 hours to pass it on.' },
   { key: 'burn', emoji: '🔥', motion: 'burn', el: 'Κάηκε η πατάτα!', en: 'The potato burned!', noteEl: '🔥 Η καυτή πατάτα κάηκε στα χέρια σου!', noteEn: '🔥 The hot potato burned in your hands!' }
 ]
 /** A throw with no name on it: what the one it hit is told. */

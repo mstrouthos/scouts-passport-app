@@ -803,6 +803,27 @@ export const leaderFun = pgTable('leader_fun', {
   auto: boolean('auto').notNull().default(false)
 })
 
+/* Το Ταψί του Κιμ: one play a day each — when the tray was first shown, and
+   what they picked (utils/kim.ts makes the tray from the day) */
+export const kimPlays = pgTable('kim_plays', {
+  id: serial('id').primaryKey(),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  day: text('day').notNull(),
+  startedAt: text('started_at').notNull(),
+  answeredAt: text('answered_at'),
+  correct: integer('correct'),
+  ms: integer('ms'),
+  picks: text('picks')
+}, t => [uniqueIndex('kim_plays_scout_id_day_key').on(t.scoutId, t.day)])
+/* "can you beat that?": one Βαθμοφόρος daring another to today's tray */
+export const kimChallenges = pgTable('kim_challenges', {
+  id: serial('id').primaryKey(),
+  fromId: integer('from_id').notNull().references(() => scouts.id),
+  toId: integer('to_id').notNull().references(() => scouts.id),
+  day: text('day').notNull(),
+  createdAt: text('created_at').notNull()
+}, t => [uniqueIndex('kim_challenges_from_id_to_id_day_key').on(t.fromId, t.toId, t.day)])
+
 /* The hot potato: one at a time, passed from leader to leader; whoever holds
    it when its time runs out is burned. */
 export const hotPotato = pgTable('hot_potato', {
@@ -816,7 +837,9 @@ export const hotPotato = pgTable('hot_potato', {
   passes: integer('passes').notNull().default(0),
   startedAt: text('started_at').notNull(),
   endedAt: text('ended_at'),
-  burnedId: integer('burned_id').references(() => scouts.id)
+  burnedId: integer('burned_id').references(() => scouts.id),
+  // who has held it this round (JSON ids); when everyone has, a new round starts
+  cycle: text('cycle')
 })
 
 /* A 👏 from one member to another, for a win in their Ενωμοτία's feed — one

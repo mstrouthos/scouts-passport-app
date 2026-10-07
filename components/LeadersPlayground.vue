@@ -127,10 +127,14 @@ const potatoLeft = computed(() => {
   const s = Math.floor(d / 1000)
   return `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 })
-/** Whether I may throw the potato at them now: I hold it (and they did not
-    just give it to me), or none is in play and one may start. */
+/** Whether I may throw the potato at them now: I hold it and they have not
+    had it yet this round, or none is in play and one may start. */
 const canPotato = (l: any) => !!l && !l.me && l.pref === 'all' && data.value?.me?.pref === 'all' && !data.value?.paused
-  && (holdIt.value ? potato.value.active.prev !== l.id : !!potato.value.canStart)
+  && (holdIt.value ? !!potato.value.active.canGet?.includes(l.id) : !!potato.value.canStart)
+/** They had it this round already, so it cannot go to them yet. */
+const hadIt = (l: any) => !!l && holdIt.value && l.pref === 'all' && !potato.value.active.canGet?.includes(l.id) && !l.me
+/** How many have yet to hold it this round. */
+const stillToGo = computed(() => potato.value.active ? Math.max(0, (data.value?.leaders || []).filter((l: any) => l.pref === 'all' && !potato.value.active.had?.includes(l.id)).length) : 0)
 async function throwPotato(to: any) {
   target.value = null
   if (busy.value) return
@@ -139,6 +143,7 @@ async function throwPotato(to: any) {
     const r = await $fetch<any>('/api/admin/fun/potato', { method: 'POST', body: { to: to.id } })
     played.add(r.id)
     await play(FUN_GAME[0], myId.value!, to.id)
+    if (r.newRound) show('🥔 ' + t('funPotatoNewRound', { name: to.firstName }), 3200)
     await refresh()
   } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
 }
@@ -426,13 +431,20 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 
     <!-- the hot potato: who has it and how long they have, or the chance to start one -->
     <div v-if="!data.paused && (potato.active || potato.last || (potato.canStart && data.me.pref === 'all'))" class="potato" :class="{ mine: holdIt }">
-      <span class="spud">{{ potato.active ? '🥔' : potato.last ? '🔥' : '🥔' }}</span>
+      <span class="spud">{{ !potato.active && potato.last ? '🔥' : '🥔' }}</span>
       <div v-if="holdIt" class="ptxt"><b>{{ t('funPotatoYours') }}</b><span>{{ t('funPotatoYoursSub') }}</span></div>
-      <div v-else-if="potato.active" class="ptxt"><b>{{ t('funPotatoAt', { name: potato.active.holderName }) }}</b><span>{{ t('funPotatoPasses', { n: potato.active.passes }) }}</span></div>
+      <div v-else-if="potato.active" class="ptxt"><b>{{ t('funPotatoAt', { name: potato.active.holderName }) }}</b><span>{{ t('funPotatoPasses', { n: potato.active.passes, m: stillToGo }) }}</span></div>
       <div v-else-if="potato.last" class="ptxt"><b>{{ t('funPotatoBurned', { name: potato.last.burned === myId ? t('funYouObj') : potato.last.burnedName }) }}</b><span>{{ t('funPotatoBurnedSub', { n: potato.last.passes }) }}</span></div>
       <div v-else class="ptxt"><b>{{ t('funPotatoStart') }}</b><span>{{ t('funPotatoStartSub') }}</span></div>
       <span v-if="potato.active" class="pclock">⏳ {{ potatoLeft }}</span>
     </div>
+
+    <!-- the daily memory game -->
+    <NuxtLink to="/admin/kim" class="potato kimcard">
+      <img class="spud" src="/images/kim/compass.webp" alt="">
+      <div class="ptxt"><b>🧠 {{ t('kimCard') }}</b><span>{{ data.kim ? t('kimCardDone', { c: data.kim.correct, m: 4 }) : t('kimCardNew') }}</span></div>
+      <span class="chev">›</span>
+    </NuxtLink>
 
     <div ref="stage" class="stage" :class="{ paused: data.paused }">
       <span class="deco d1">🌲</span><span class="deco d2">⛺</span><span class="deco d3">🌲</span>
@@ -449,6 +461,7 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
             <span v-else class="stain" :style="{ left: s.x + '%', top: s.y + '%', width: s.s + 'px', height: s.s + 'px', background: s.color }" />
           </template>
           <span v-if="potato.active?.holder === l.id" class="held">🥔<i>💨</i></span>
+          <span v-else-if="potato.active?.had?.includes(l.id)" class="had" :title="t('funPotatoHad')">🥔</span>
           <span v-if="giftsAt(l.id).length" class="gifts"><template v-for="g in giftsAt(l.id)" :key="g.key"><img v-if="g.art?.sprite" :src="g.art.sprite" alt=""><span v-else>{{ g.emoji }}</span></template></span>
         </span>
         <span class="nm">{{ l.me ? t('funYou') : nameOf(l) }}</span>
@@ -498,6 +511,7 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
             <button v-if="canPotato(target)" class="potato-btn" :disabled="busy" @click="throwPotato(target)">
               🥔 {{ holdIt ? t('funPotatoPass', { name: target.firstName }) : t('funPotatoStartAt', { name: target.firstName }) }}
             </button>
+            <div v-else-if="hadIt(target)" class="note soft">🥔 {{ t('funPotatoHadIt', { name: target.firstName }) }}</div>
             <div v-if="target.pref === 'kind'" class="note soft">{{ t('funKindOnly') }}</div>
             <label v-if="data.me.anonLeft && target.pref === 'all'" class="anon" :class="{ on: anon }">
               <input v-model="anon" type="checkbox">
@@ -664,6 +678,10 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 @keyframes kind-front{0%{transform:scale(.2); opacity:0} 20%{transform:scale(1.15); opacity:1} 35%{transform:scale(1)} 80%{transform:translateY(-2vh); opacity:1} 100%{transform:translateY(-8vh) scale(.9); opacity:0}}
 
 /* the hot potato */
+.had{position:absolute; right:6%; bottom:4%; font-size:11px; opacity:.55; filter:grayscale(.4); pointer-events:none}
+.kimcard{text-decoration:none; color:inherit}
+.kimcard img.spud{width:30px; height:30px; object-fit:contain}
+.kimcard .chev{font-size:20px; color:var(--muted)}
 .potato{display:flex; align-items:center; gap:10px; background:#fff; border-radius:16px; padding:9px 12px; margin-bottom:8px; box-shadow:0 1px 6px rgba(20,40,70,.06)}
 .potato.mine{background:linear-gradient(135deg,#FFE3B8,#FFC3A0); animation:hot 1.1s ease-in-out infinite}
 .potato .spud{font-size:26px; flex:none}
