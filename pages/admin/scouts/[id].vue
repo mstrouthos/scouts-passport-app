@@ -321,6 +321,7 @@ async function setRegistered(on: boolean) {
                 </div>
               </div>
               <NuxtLink v-if="data.registration.done.responseId" :to="`/admin/forms/response/${data.registration.done.responseId}`" class="chip" style="align-self:flex-start;text-decoration:none">📄 {{ t('regOpenAnswer') }}</NuxtLink>
+              <div v-else-if="data.registration.done.formTitle" class="tiny muted">📄 {{ t('regAnswerIn', { form: data.registration.done.formTitle }) }}</div>
               <button v-else-if="data.registration.done.byHand" class="chip" style="align-self:flex-start" @click="setRegistered(false)">↩️ {{ t('regUndo') }}</button>
             </template>
             <template v-else>

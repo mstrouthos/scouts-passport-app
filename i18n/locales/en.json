@@ -1469,5 +1469,6 @@
   "formAutoMatched": "matched by name",
   "formTypedNotLinked": "wasn't matched for sure. Which child is it?",
   "formNoSuggestion": "No similar name — choose from “Which children it registers”",
-  "formChildNamePh": "The child's full name"
+  "formChildNamePh": "The child's full name",
+  "regAnswerIn": "The answer is in the form “{form}” — open to those who manage that form"
 }
