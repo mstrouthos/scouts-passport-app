@@ -20,18 +20,20 @@ export default defineEventHandler(async (event) => {
   const figure = (raw: string | null) => { try { return raw ? normalizeAvatar(JSON.parse(raw)) : null } catch { return null } }
   const face = (p: typeof people[number]) => ({ id: p.id, firstName: p.firstName, lastName: p.lastName, ...faceOf(p), figure: figure(p.avatar) })
 
-  const weekAgo = new Date(Date.now() - 6 * 86400_000)
-  const sinceDay = kimDay(weekAgo)
+  // the week as its prize counts it: since Monday (kimRewards.ts)
+  const dow = (new Date(`${day}T12:00:00Z`).getUTCDay() + 6) % 7
+  const sinceDay = new Date(Date.parse(`${day}T12:00:00Z`) - dow * 86400_000).toISOString().slice(0, 10)
   const plays = (await db.select().from(s.kimPlays)).filter(p => p.day >= sinceDay && p.answeredAt && person(p.scoutId))
   const todays = plays.filter(p => p.day === day).sort((a, b) => b.correct! - a.correct! || a.ms! - b.ms!)
   const mine = (await db.select().from(s.kimPlays).where(eq(s.kimPlays.scoutId, me.id))).find(p => p.day === day) || null
   const dares = (await db.select().from(s.kimChallenges).where(eq(s.kimChallenges.day, day)))
 
-  // the week: days played and things remembered, most first
+  // the week: things remembered, most first, then the fastest over the week —
+  // the same order its prize goes by
   const week = [...new Set(plays.map(p => p.scoutId))].map(id => {
     const ps = plays.filter(p => p.scoutId === id)
-    return { ...face(person(id)!), days: ps.length, correct: ps.reduce((n, p) => n + (p.correct || 0), 0) }
-  }).sort((a, b) => b.correct - a.correct || b.days - a.days)
+    return { ...face(person(id)!), days: ps.length, correct: ps.reduce((n, p) => n + (p.correct || 0), 0), ms: ps.reduce((n, p) => n + (p.ms || 0), 0), me: id === me.id }
+  }).sort((a, b) => b.correct - a.correct || a.ms - b.ms)
 
   const t = mine ? kimTray(day) : null
   return {

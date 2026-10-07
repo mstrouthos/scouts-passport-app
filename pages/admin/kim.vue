@@ -189,11 +189,11 @@ async function dare(l: any) {
     <template v-if="data?.week?.length">
       <div class="sec-title">{{ t('kimWeek') }}</div>
       <div class="card">
-        <div v-for="(p, i) in data.week" :key="p.id" class="row">
-          <span class="pos">{{ i + 1 }}</span>
+        <div v-for="(p, i) in data.week" :key="p.id" class="row" :class="{ me: p.me }">
+          <span class="pos">{{ i === 0 ? '🏆' : i + 1 }}</span>
           <Avatar :name="`${p.firstName} ${p.lastName}`" :photo="p.photo" :avatar="p.figure || p.avatar" :size="34" no-zoom />
           <span class="nm">{{ p.firstName }}</span>
-          <b>{{ p.correct }}</b><span class="muted">{{ t('kimDays', { n: p.days }) }}</span>
+          <b>{{ p.correct }}</b><span class="muted">{{ t('kimDays', { n: p.days }) }} · {{ secs(p.ms) }}</span>
         </div>
       </div>
     </template>
