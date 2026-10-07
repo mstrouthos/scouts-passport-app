@@ -6,7 +6,7 @@
    out too, live; what was done to you while you were away plays when you
    come back. Tapping yourself sets how much of it you want. */
 import { avatarSvg, DEFAULT_AVATAR } from '~/utils/avatar'
-import { FUN_ACTIONS, funAction, funAllowed, type FunAction, type FunMotion } from '~/utils/fun'
+import { FUN_ACTIONS, FUN_IMPACT, FUN_SPARKLE, FUN_KIND_SCREEN, funAction, funAllowed, type FunAction, type FunMotion } from '~/utils/fun'
 
 const { t, locale } = useI18n()
 const { show } = useToast()
@@ -36,7 +36,7 @@ function stainsOn(id: number) {
 function giftsAt(id: number) {
   const seen = new Set<string>()
   return recent.value.filter(r => r.to === id && funAction(r.action)?.motion === 'kind' && Date.now() - Date.parse(r.at) < 12 * HOURS)
-    .map(r => funAction(r.action)!.emoji).filter(e => !seen.has(e) && seen.add(e)).slice(0, 3)
+    .map(r => funAction(r.action)!).filter(a => !seen.has(a.key) && seen.add(a.key)).slice(0, 3)
 }
 
 /* ---- the sheet ---- */
@@ -107,12 +107,15 @@ function picture(src: string, cls: string) {
 }
 /* the drawn splat across the whole screen, when it is you they hit; it
    slides down the glass, and a tap wipes it off */
-const screenSplat = ref<{ src: string, key: number, wiping: boolean } | null>(null)
+type ScreenFx = { kind: 'splat' | 'pow' | 'kind', src: string, key: number, wiping: boolean }
+const screenSplat = ref<ScreenFx | null>(null)
 let splatTimer: any
-function splatScreen(src: string) {
+/* what lands on you fills the screen: a thrown thing's splat sliding down the
+   glass; a shove's bang with what did it; a kind thing in a shower of sparkles */
+function onScreen(src: string, kind: ScreenFx['kind']) {
   clearTimeout(splatTimer)
-  screenSplat.value = { src, key: Date.now(), wiping: false }
-  splatTimer = setTimeout(wipe, 4200)
+  screenSplat.value = { src, kind, key: Date.now(), wiping: false }
+  splatTimer = setTimeout(wipe, kind === 'splat' ? 4200 : kind === 'pow' ? 1500 : 2600)
 }
 function wipe() {
   if (!screenSplat.value || screenSplat.value.wiping) return
@@ -136,36 +139,41 @@ function shake(id: number, how: string) {
   setTimeout(() => { const h = { ...hit.value }; delete h[id]; hit.value = h }, 700)
 }
 
-/** One thing done by one to another, played out on the stage. */
+/** One thing done by one to another, played out on the stage, with its
+    drawn art and its own sound; when it is you they did it to, it fills
+    your screen too. */
 async function play(a: FunAction, fromId: number, toId: number) {
   if (!stage.value) return
   const to = spot(toId)
   if (!to) return
   const from = spot(fromId)
+  const atMe = toId === myId.value
   const sx = from?.x ?? stage.value.clientWidth / 2, sy = from?.y ?? stage.value.clientHeight + 20
+  const art = a.art || {}
   if (reduced()) {
-    sfx(a.motion === 'throw' ? 'splat' : a.motion === 'shove' ? 'thud' : 'twinkle')
-    burst(to.x, to.face, null, a.emoji, 1)
+    funSound(a.key, a.motion, atMe)
+    if (art.sprite) pop(art.sprite, to.x, to.face, 900)
+    else burst(to.x, to.face, null, a.emoji, 1)
     return
   }
   if (a.motion === 'throw') {
     sfx('whoosh')
-    const el = a.art ? picture(a.art.sprite, 'sprite pic') : sprite(a.emoji)
+    const el = thing(a, 'sprite')
     const dx = to.x - sx, dy = to.face - sy
     const lift = 70 + Math.hypot(dx, dy) * 0.25
+    const spin = a.key === 'water' || a.key === 'pie' ? 40 : 540
     const frames = Array.from({ length: 16 }, (_, i) => {
       const p = i / 15
-      return { transform: `translate(${sx + dx * p}px, ${sy + dy * p - 4 * lift * p * (1 - p)}px) rotate(${p * 540}deg) scale(${1 + p * 0.3})` }
+      return { transform: `translate(${sx + dx * p}px, ${sy + dy * p - 4 * lift * p * (1 - p)}px) rotate(${p * spin}deg) scale(${1 + p * 0.3})` }
     })
     await el.animate(frames, { duration: 620, easing: 'linear' }).finished
     el.remove()
-    const atMe = toId === myId.value
-    sfx(atMe && a.art ? 'bigSplat' : 'splat')
-    burst(to.x, to.face, a.stain || '#999', null, 11)
+    funSound(a.key, a.motion, atMe)
     shake(toId, 'splat')
-    if (a.art) {
+    if (art.splat) {
+      burst(to.x, to.face, a.stain || '#999', null, 11)
       // the splat lands on their face, holds a moment, and settles into the mark
-      const s = picture(a.art.splat, 'splatpic')
+      const s = picture(art.splat, 'splatpic')
       s.animate([
         { transform: `translate(${to.x}px, ${to.face}px) scale(.2) rotate(-20deg)`, opacity: 1 },
         { transform: `translate(${to.x}px, ${to.face}px) scale(1.15) rotate(4deg)`, opacity: 1, offset: 0.12 },
@@ -173,33 +181,75 @@ async function play(a: FunAction, fromId: number, toId: number) {
         { transform: `translate(${to.x}px, ${to.face + 14}px) scale(.9)`, opacity: 1, offset: 0.75 },
         { transform: `translate(${to.x}px, ${to.face + 20}px) scale(.85)`, opacity: 0 }
       ], { duration: 1600, easing: 'ease-out' }).finished.then(() => s.remove())
-      if (atMe) splatScreen(a.art.screen)
+      if (atMe && art.screen) onScreen(art.screen, 'splat')
+    } else {
+      // a pine cone does not splat: it bonks, and bounces off
+      pop(FUN_IMPACT, to.x, to.face - 6, 500, 0.8)
+      const b = thing(a, 'sprite')
+      b.animate([
+        { transform: `translate(${to.x}px, ${to.face}px) rotate(0deg)` },
+        { transform: `translate(${to.x + 30}px, ${to.face - 40}px) rotate(200deg)`, offset: 0.4 },
+        { transform: `translate(${to.x + 55}px, ${to.y + 60}px) rotate(420deg)`, opacity: 0 }
+      ], { duration: 800, easing: 'ease-in' }).finished.then(() => b.remove())
+      if (atMe) onScreen(art.sprite || a.emoji, 'pow')
     }
   } else if (a.motion === 'shove') {
-    const el = sprite(a.emoji)
+    const el = thing(a, 'sprite big')
     const side = sx <= to.x ? -1 : 1
-    const x0 = to.x + side * (to.w * 0.75)
-    await el.animate([
-      { transform: `translate(${x0}px, ${to.y}px) scale(.6)`, opacity: 0 },
-      { transform: `translate(${x0}px, ${to.y}px) scale(1.15)`, opacity: 1, offset: 0.35 },
-      { transform: `translate(${to.x + side * to.w * 0.25}px, ${to.y}px) scale(1.3)`, opacity: 1, offset: 0.6 },
-      { transform: `translate(${x0}px, ${to.y}px) scale(1)`, opacity: 0 }
-    ], { duration: 700, easing: 'ease-in-out' }).finished.then(() => el.remove())
-    sfx('thud')
+    const x0 = to.x + side * (to.w * 0.8)
+    const flip = side > 0 ? ' scaleX(-1)' : ''
+    if (a.key === 'mosquito') {
+      // it buzzes round their head before it bites
+      const f = Array.from({ length: 24 }, (_, i) => {
+        const p = i / 23, r = 26 * (1 - p * 0.6)
+        return { transform: `translate(${to.x + Math.cos(p * 14) * r}px, ${to.face - 10 + Math.sin(p * 14) * r * 0.6}px)${Math.cos(p * 14 + 1.6) > 0 ? '' : ' scaleX(-1)'}` }
+      })
+      funSound(a.key, a.motion, atMe)
+      await el.animate(f, { duration: 1100, easing: 'linear' }).finished
+    } else {
+      const jab = [
+        { transform: `translate(${x0}px, ${to.y}px)${flip} scale(.6)`, opacity: 0 },
+        { transform: `translate(${x0}px, ${to.y}px)${flip} scale(1.1)`, opacity: 1, offset: 0.35 },
+        { transform: `translate(${to.x + side * to.w * 0.2}px, ${to.y}px)${flip} scale(1.25)`, opacity: 1, offset: 0.6 },
+        { transform: `translate(${x0}px, ${to.y}px)${flip} scale(1)`, opacity: 0 }
+      ]
+      const done = el.animate(jab, { duration: 760, easing: 'ease-in-out' }).finished
+      await wait(440)
+      funSound(a.key, a.motion, atMe)
+      await done
+    }
+    el.remove()
+    pop(FUN_IMPACT, to.x - side * 6, to.y - 8, 420, 0.7)
     shake(toId, side < 0 ? 'pushR' : 'pushL')
+    if (atMe) onScreen(art.sprite || a.emoji, 'pow')
   } else {
-    sfx('twinkle')
-    const el = sprite(a.emoji)
-    burst(to.x, to.face, null, a.key === 'confetti' ? '🎊' : '✨', 7)
+    funSound(a.key, a.motion, atMe)
+    if (FUN_SPARKLE) pop(FUN_SPARKLE, to.x, to.face - 10, 1100, 1.2)
+    else burst(to.x, to.face, null, a.key === 'confetti' ? '🎊' : '✨', 7)
     shake(toId, 'glow')
+    const el = thing(a, 'sprite big')
     await el.animate([
       { transform: `translate(${to.x}px, ${to.face}px) scale(.3)`, opacity: 0 },
-      { transform: `translate(${to.x}px, ${to.face - 30}px) scale(1.5)`, opacity: 1, offset: 0.35 },
-      { transform: `translate(${to.x}px, ${to.face - 60}px) scale(1.2)`, opacity: 0 }
-    ], { duration: 1100, easing: 'cubic-bezier(.2,.8,.3,1)' }).finished
+      { transform: `translate(${to.x}px, ${to.face - 30}px) scale(1.4)`, opacity: 1, offset: 0.35 },
+      { transform: `translate(${to.x}px, ${to.face - 40}px) scale(1.25)`, opacity: 1, offset: 0.7 },
+      { transform: `translate(${to.x}px, ${to.face - 64}px) scale(1.1)`, opacity: 0 }
+    ], { duration: 1300, easing: 'cubic-bezier(.2,.8,.3,1)' }).finished
     el.remove()
+    if (atMe) onScreen(art.sprite || a.emoji, 'kind')
   }
   await wait(250)
+}
+/** What flies or appears: its drawing, or its emoji until it has one. */
+const thing = (a: FunAction, cls: string) => a.art?.sprite ? picture(a.art.sprite, cls + ' pic') : sprite(a.emoji, cls)
+/** A picture that pops up at a spot and fades. */
+function pop(src: string, x: number, y: number, ms: number, size = 1) {
+  const el = picture(src, 'poppic')
+  el.animate([
+    { transform: `translate(${x}px, ${y}px) scale(${0.2 * size})`, opacity: 1 },
+    { transform: `translate(${x}px, ${y}px) scale(${1.1 * size})`, opacity: 1, offset: 0.25 },
+    { transform: `translate(${x}px, ${y}px) scale(${1 * size})`, opacity: 1, offset: 0.6 },
+    { transform: `translate(${x}px, ${y}px) scale(${0.9 * size})`, opacity: 0 }
+  ], { duration: ms, easing: 'ease-out' }).finished.then(() => el.remove())
 }
 
 /* ---- what happened while I was away, and what happens now ---- */
@@ -234,7 +284,10 @@ watch(() => data.value?.recent, () => { if (import.meta.client) setTimeout(playN
 // live: a look every 20 seconds while the page is in front
 let timer: any
 onMounted(() => {
-  for (const a of FUN_ACTIONS) if (a.art) for (const src of Object.values(a.art)) new Image().src = src
+  // the small pictures now; the big full-screen splats a moment later
+  const load = (srcs: (string | null | undefined)[]) => { for (const src of srcs) if (src) new Image().src = src }
+  load([FUN_IMPACT, FUN_SPARKLE, ...FUN_ACTIONS.flatMap(a => [a.art?.sprite, a.art?.splat])])
+  setTimeout(() => load([FUN_KIND_SCREEN, ...FUN_ACTIONS.map(a => a.art?.screen)]), 3000)
 })
 onMounted(() => { timer = setInterval(() => { if (document.visibilityState === 'visible' && !busy.value) refresh() }, 20_000) })
 onBeforeUnmount(() => clearInterval(timer))
@@ -291,7 +344,7 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
             <img v-if="s.img" :src="s.img" alt="" class="stain pic" :style="{ left: s.x + '%', top: s.y + '%', width: s.s * 1.5 + 'px' }">
             <span v-else class="stain" :style="{ left: s.x + '%', top: s.y + '%', width: s.s + 'px', height: s.s + 'px', background: s.color }" />
           </template>
-          <span v-if="giftsAt(l.id).length" class="gifts">{{ giftsAt(l.id).join('') }}</span>
+          <span v-if="giftsAt(l.id).length" class="gifts"><template v-for="g in giftsAt(l.id)" :key="g.key"><img v-if="g.art?.sprite" :src="g.art.sprite" alt=""><span v-else>{{ g.emoji }}</span></template></span>
         </span>
         <span class="nm">{{ l.me ? t('funYou') : nameOf(l) }}</span>
         <span class="wh">{{ l.where }}</span>
@@ -302,15 +355,20 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
       <div class="tiny muted feed-t">{{ t('funFeed') }}</div>
       <div v-if="!feed.length" class="tiny muted">{{ t('funNone') }}</div>
       <div v-for="r in feed" :key="r.id" class="line">
-        <span class="em">{{ r.a!.emoji }}</span>
+        <img v-if="r.a!.art?.sprite" class="em" :src="r.a!.art.sprite" :alt="r.a!.emoji"><span v-else class="em emo">{{ r.a!.emoji }}</span>
         <span class="txt"><b>{{ r.fromLabel }}</b> → <b>{{ r.toLabel }}</b><small>{{ text(r.a!) }} · {{ ago(r.at) }}</small></span>
         <button v-if="r.canReturn && !data.paused && data.me.pref !== 'off'" class="back" :disabled="busy" @click="backTo(r)">↩️ {{ t('funBack') }}</button>
       </div>
     </div>
 
     <Teleport to="body">
-      <div v-if="screenSplat" :key="screenSplat.key" class="screen-splat" :class="{ wiping: screenSplat.wiping }" @click="wipe">
-        <img :src="screenSplat.src" alt="">
+      <div v-if="screenSplat" :key="screenSplat.key" class="screen-splat" :class="[screenSplat.kind, { wiping: screenSplat.wiping }]" @click="wipe">
+        <img v-if="screenSplat.kind === 'splat'" :src="screenSplat.src" alt="" class="splat">
+        <template v-else>
+          <img v-if="screenSplat.kind === 'pow' || FUN_KIND_SCREEN" :src="screenSplat.kind === 'pow' ? FUN_IMPACT : FUN_KIND_SCREEN!" alt="" class="fx-back">
+          <img v-if="screenSplat.src.startsWith('/')" :src="screenSplat.src" alt="" class="fx-front">
+          <span v-else class="fx-front emo">{{ screenSplat.src }}</span>
+        </template>
       </div>
       <div v-if="target" class="sheet-backdrop" @click.self="target = null">
         <div class="sheet fun-sheet">
@@ -334,7 +392,7 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
               <div class="tiny muted">{{ t(g.label) }}</div>
               <div class="acts">
                 <button v-for="a in g.actions" :key="a.key" class="act" :class="g.motion" :disabled="!left || busy" @click="act(target, a)">
-                  <span class="e">{{ a.emoji }}</span><span class="l">{{ text(a) }}</span>
+                  <img v-if="a.art?.sprite" class="e" :src="a.art.sprite" :alt="a.emoji"><span v-else class="e emo">{{ a.emoji }}</span><span class="l">{{ text(a) }}</span>
                 </button>
               </div>
             </div>
@@ -396,7 +454,9 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 .stain{position:absolute; transform:translate(-50%, -50%); border-radius:58% 42% 61% 39% / 45% 57% 43% 55%; opacity:.88; pointer-events:none;
   filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
 .stain.pic{border-radius:0; opacity:.95; height:auto; filter:drop-shadow(0 1px 1px rgba(0,0,0,.2))}
-.gifts{position:absolute; left:50%; bottom:-6px; transform:translateX(-50%); font-size:13px; white-space:nowrap; pointer-events:none}
+.gifts{position:absolute; left:50%; bottom:-6px; transform:translateX(-50%); display:flex; gap:1px; white-space:nowrap; pointer-events:none}
+.gifts img{width:15px; height:15px; object-fit:contain}
+.gifts span{font-size:12px; line-height:15px}
 .nm{font-size:12.5px; font-weight:700; margin-top:6px; color:var(--ink, #1d2b44); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .wh{font-size:10px; color:var(--muted); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
@@ -411,6 +471,8 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 
 .stage :deep(.sprite){position:absolute; left:0; top:0; margin:-16px 0 0 -16px; width:32px; height:32px; font-size:28px; line-height:32px; text-align:center; pointer-events:none; z-index:5}
 .stage :deep(.sprite.pic){width:34px; height:34px; margin:-17px 0 0 -17px; object-fit:contain}
+.stage :deep(.sprite.pic.big){width:44px; height:44px; margin:-22px 0 0 -22px}
+.stage :deep(.poppic){position:absolute; left:0; top:0; width:60px; margin:-30px 0 0 -30px; pointer-events:none; z-index:6}
 .stage :deep(.splatpic){position:absolute; left:0; top:0; width:64px; margin:-32px 0 0 -32px; pointer-events:none; z-index:6; filter:drop-shadow(0 2px 2px rgba(0,0,0,.2))}
 .stage :deep(.spark){position:absolute; left:0; top:0; margin:-9px 0 0 -9px; font-size:16px; pointer-events:none; z-index:5}
 .stage :deep(.drop){position:absolute; left:0; top:0; margin:-5px 0 0 -5px; width:10px; height:10px; border-radius:50%; pointer-events:none; z-index:5}
@@ -419,7 +481,8 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 .feed-t{font-weight:700; margin-bottom:4px}
 .line{display:flex; align-items:center; gap:8px; padding:6px 0; border-top:1px solid rgba(20,40,70,.06); font-size:13px}
 .line:first-of-type{border-top:0}
-.line .em{font-size:18px; flex:none}
+.line .em{width:24px; height:24px; object-fit:contain; flex:none}
+.line .em.emo{font-size:18px; line-height:24px; text-align:center}
 .line .txt{flex:1; min-width:0}
 .line .txt small{display:block; font-size:11.5px; color:var(--muted)}
 .back{flex:none; border:0; border-radius:999px; background:#FDECEC; color:#B3261E; font-weight:700; font-size:12px; padding:5px 10px}
@@ -437,7 +500,8 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 .act{border:0; background:#fff; border-radius:16px; padding:10px 4px 8px; display:flex; flex-direction:column; align-items:center; gap:4px; box-shadow:0 1px 4px rgba(20,40,70,.08)}
 .act:active{transform:scale(.94)}
 .act:disabled{opacity:.4}
-.act .e{font-size:26px; line-height:1}
+.act .e{width:34px; height:34px; object-fit:contain}
+.act .e.emo{font-size:27px; line-height:34px; text-align:center}
 .act .l{font-size:10.5px; font-weight:600; line-height:1.15; text-align:center; color:var(--ink, #1d2b44)}
 .act.kind{background:#FFF7E6}
 .prefs{display:flex; flex-direction:column; gap:8px}
@@ -446,14 +510,27 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 .pause{display:flex; align-items:center; justify-content:space-between; background:#fff; border-radius:14px; padding:12px; font-weight:700}
 .pause input{width:22px; height:22px}
 
-/* a tomato at you: across the whole screen, sliding down; tap to wipe */
+/* what lands on you, across the whole screen; a tap wipes it off */
 .screen-splat{position:fixed; inset:0; z-index:90; display:grid; place-items:center; cursor:pointer; overflow:hidden;
   animation:splat-shake .35s ease}
-.screen-splat img{width:min(118vw, 760px); max-height:120vh; object-fit:contain; transform-origin:50% 40%;
+.screen-splat > *{grid-area:1/1}
+.screen-splat .splat{width:min(118vw, 760px); max-height:120vh; object-fit:contain; transform-origin:50% 40%;
   animation:splat-hit .22s cubic-bezier(.2,1.6,.4,1), splat-slide 4.2s .25s ease-in forwards; filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))}
-.screen-splat.wiping img{animation:splat-wipe .45s ease-in forwards}
+.screen-splat.pow .fx-back{width:min(92vw, 520px); animation:pow-in .5s cubic-bezier(.2,1.6,.4,1), fade-late 1.5s forwards}
+.screen-splat.pow .fx-front{width:min(46vw, 260px); animation:pow-front .6s cubic-bezier(.2,1.6,.4,1), fade-late 1.5s forwards}
+.screen-splat.kind{background:radial-gradient(circle at 50% 45%, rgba(255,236,170,.45), transparent 65%); animation:none}
+.screen-splat.kind .fx-back{width:min(130vw, 820px); max-height:130vh; object-fit:contain; animation:kind-rain 2.6s ease-out forwards}
+.screen-splat .fx-front.emo{font-size:min(36vw, 200px); line-height:1}
+.screen-splat.kind .fx-front{width:min(44vw, 240px); animation:kind-front 2.6s cubic-bezier(.2,1.4,.4,1) forwards}
+.screen-splat.wiping{pointer-events:none}
+.screen-splat.wiping > *{animation:splat-wipe .45s ease-in forwards !important}
 @keyframes splat-hit{from{transform:scale(.15) rotate(-12deg); opacity:.6}}
 @keyframes splat-slide{0%{transform:none; opacity:1} 78%{transform:translateY(6vh) scaleY(1.05); opacity:1} 100%{transform:translateY(10vh) scaleY(1.07); opacity:0}}
 @keyframes splat-wipe{to{transform:translateX(-120vw) rotate(-8deg); opacity:0}}
 @keyframes splat-shake{20%{transform:translate(-6px, 4px)} 45%{transform:translate(5px, -3px)} 70%{transform:translate(-3px, 2px)}}
+@keyframes pow-in{from{transform:scale(.1) rotate(-30deg)}}
+@keyframes pow-front{from{transform:scale(2.4) translateX(40vw)} to{transform:none}}
+@keyframes fade-late{0%, 70%{opacity:1} 100%{opacity:0}}
+@keyframes kind-rain{from{transform:translateY(-12vh) scale(.95); opacity:0} 15%{opacity:1} 80%{opacity:1} to{transform:translateY(8vh) scale(1.05); opacity:0}}
+@keyframes kind-front{0%{transform:scale(.2); opacity:0} 20%{transform:scale(1.15); opacity:1} 35%{transform:scale(1)} 80%{transform:translateY(-2vh); opacity:1} 100%{transform:translateY(-8vh) scale(.9); opacity:0}}
 </style>

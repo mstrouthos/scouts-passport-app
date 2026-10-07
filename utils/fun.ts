@@ -10,15 +10,14 @@ export type FunAction = {
   noteEl: string, noteEn: string,
   // a thrown thing leaves this colour on them for a while
   stain?: string
-  // drawn art, where there is some (public/images/fun): what flies, the
-  // splat it leaves on them, and the one across the whole screen of whoever
-  // it hit
-  art?: { sprite: string, splat: string, screen: string }
+  // drawn art (public/images/fun, from Higgsfield): what flies or appears,
+  // the splat a thrown thing leaves on them, and the one across the whole
+  // screen of whoever it hit
+  art?: { sprite?: string, splat?: string, screen?: string }
 }
 
 export const FUN_ACTIONS: FunAction[] = [
-  { key: 'tomato', emoji: '🍅', motion: 'throw', el: 'Ντομάτα', en: 'Tomato', noteEl: '{name} μόλις σου πέταξε μια ντομάτα! 🍅', noteEn: '{name} just threw a tomato at you! 🍅', stain: '#D62C36',
-    art: { sprite: '/images/fun/tomato.webp', splat: '/images/fun/tomato-splat.webp', screen: '/images/fun/tomato-screen.webp' } },
+  { key: 'tomato', emoji: '🍅', motion: 'throw', el: 'Ντομάτα', en: 'Tomato', noteEl: '{name} μόλις σου πέταξε μια ντομάτα! 🍅', noteEn: '{name} just threw a tomato at you! 🍅', stain: '#D62C36' },
   { key: 'pie', emoji: '🥧', motion: 'throw', el: 'Τούρτα στη μούρη', en: 'Pie in the face', noteEl: '{name} σου πέταξε τούρτα στη μούρη! 🥧', noteEn: '{name} got you with a pie! 🥧', stain: '#FFF4D6' },
   { key: 'water', emoji: '💦', motion: 'throw', el: 'Μπαλόνι νερού', en: 'Water balloon', noteEl: '{name} σε μούσκεψε με μπαλόνι νερού! 💦', noteEn: '{name} soaked you with a water balloon! 💦', stain: '#5BB8F0' },
   { key: 'snowball', emoji: '❄️', motion: 'throw', el: 'Χιονόμπαλα', en: 'Snowball', noteEl: '{name} σου πέταξε μια χιονόμπαλα! ❄️', noteEn: '{name} threw a snowball at you! ❄️', stain: '#F2F8FF' },
@@ -40,6 +39,23 @@ export const FUN_ACTIONS: FunAction[] = [
   { key: 'chocolate', emoji: '🍫', motion: 'kind', el: 'Μισή σοκολάτα', en: 'Half my chocolate', noteEl: '{name} μοιράστηκε μαζί σου τη σοκολάτα! 🍫', noteEn: '{name} shared their chocolate with you! 🍫' },
   { key: 'confetti', emoji: '🎉', motion: 'kind', el: 'Κομφετί', en: 'Confetti', noteEl: '{name} σε γέμισε κομφετί! 🎉', noteEn: '{name} showered you with confetti! 🎉' }
 ]
+const ART = '/images/fun/'
+// what is drawn so far: the thing itself, the splat it leaves, and the one
+// across the whole screen (the rest show as their emoji until drawn)
+const DRAWN = ['tomato', 'pie', 'water', 'snowball', 'marshmallow', 'mud', 'pinecone']
+const SPLATS = ['tomato', 'pie', 'water', 'snowball', 'marshmallow', 'mud']
+const SCREENS = ['tomato', 'pie', 'water', 'snowball', 'marshmallow']
+for (const a of FUN_ACTIONS) a.art = {
+  ...(DRAWN.includes(a.key) ? { sprite: `${ART}${a.key}.webp` } : {}),
+  ...(SPLATS.includes(a.key) ? { splat: `${ART}${a.key}-splat.webp` } : {}),
+  ...(SCREENS.includes(a.key) ? { screen: `${ART}${a.key}-screen.webp` } : SPLATS.includes(a.key) ? { screen: `${ART}${a.key}-splat.webp` } : {})
+}
+/** The shared art: the comic bang of a shove (or a bonk); the sparkle of a
+    kind thing, and its shower across the screen, are not drawn yet. */
+export const FUN_IMPACT = `${ART}impact.webp`
+export const FUN_SPARKLE: string | null = null
+export const FUN_KIND_SCREEN: string | null = null
+
 export const funAction = (key: string) => FUN_ACTIONS.find(a => a.key === key)
 /** Whether someone takes this kind of thing: everything, only the kind ones, or nothing. */
 export const funAllowed = (pref: string | null | undefined, a: FunAction) => pref === 'off' ? false : pref === 'kind' ? a.motion === 'kind' : true

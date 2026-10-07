@@ -116,6 +116,127 @@ export function sfx(name: Sfx) {
   } catch { /* a sound is never worth an error */ }
 }
 
+/* ---- the playground's own: one sound for each thing a Βαθμοφόρος can do
+   to another, played when it lands. `big` is when it lands on you. ---- */
+type Play = (c: AudioContext, o: AudioNode, t: number, big: number) => void
+/* a buzzing wing: a thin saw that wavers */
+function buzzing(c: AudioContext, o: AudioNode, at: number, len: number, freq: number, vol: number) {
+  const osc = c.createOscillator(), lfo = c.createOscillator(), depth = c.createGain(), g = c.createGain()
+  osc.type = 'sawtooth'; osc.frequency.value = freq
+  lfo.frequency.value = 24; depth.gain.value = freq * 0.06
+  lfo.connect(depth).connect(osc.frequency)
+  g.gain.setValueAtTime(0.0001, at)
+  g.gain.exponentialRampToValueAtTime(vol, at + 0.08)
+  g.gain.setValueAtTime(vol, at + len * 0.4)
+  g.gain.exponentialRampToValueAtTime(vol * 2, at + len * 0.75)
+  g.gain.exponentialRampToValueAtTime(0.0001, at + len)
+  osc.connect(g).connect(o)
+  osc.start(at); lfo.start(at); osc.stop(at + len + 0.02); lfo.stop(at + len + 0.02)
+}
+const chord = (c: AudioContext, o: AudioNode, at: number, fs: number[], len: number, vol: number, type: OscillatorType = 'sine') =>
+  fs.forEach(f => note(c, o, f, at, len, type, vol))
+const FUN_SOUNDS: Record<string, Play> = {
+  tomato: (c, o, t, b) => splatAt(c, o, t, b, b > 1 ? [0.42, 0.7, 1.05] : [0.32]),
+  // a soft, creamy splotch
+  pie: (c, o, t, b) => {
+    noise(c, o, t, 0.14 * b, 1800, 380, 0.4 * b, 0.6); note(c, o, 140, t, 0.2, 'sine', 0.28, 55)
+    noise(c, o, t + 0.06, 0.3 * b, 240, 800, 0.14 * b, 4)
+  },
+  // a splash, and the bubbles after it
+  water: (c, o, t, b) => {
+    noise(c, o, t, 0.4 * b, 3200, 700, 0.42 * b, 0.45)
+    for (let i = 0; i < 6 * b; i++) note(c, o, 600 + Math.random() * 900, t + 0.12 + i * 0.05, 0.06, 'sine', 0.06, 1200 + Math.random() * 900)
+  },
+  // a crunchy puff
+  snowball: (c, o, t, b) => {
+    noise(c, o, t, 0.06, 5000, 3000, 0.35 * b, 0.8); noise(c, o, t + 0.03, 0.25 * b, 2600, 900, 0.22 * b, 0.6)
+    note(c, o, 220, t, 0.1, 'sine', 0.12, 90)
+  },
+  // a soft poof, and a gooey stretch
+  marshmallow: (c, o, t, b) => {
+    noise(c, o, t, 0.2, 900, 280, 0.25 * b, 0.6); note(c, o, 300, t, 0.15, 'sine', 0.14, 160)
+    note(c, o, 190, t + 0.12, 0.3 * b, 'triangle', 0.06, 430)
+  },
+  // a deep wet squelch
+  mud: (c, o, t, b) => {
+    noise(c, o, t, 0.28 * b, 700, 120, 0.45 * b, 0.6); note(c, o, 110, t, 0.25, 'sine', 0.32, 40)
+    noise(c, o, t + 0.08, 0.32 * b, 180, 650, 0.16 * b, 6)
+  },
+  // a wooden bonk
+  pinecone: (c, o, t, b) => {
+    note(c, o, 540, t, 0.12, 'triangle', 0.26 * b, 380); note(c, o, 810, t, 0.06, 'sine', 0.1); noise(c, o, t, 0.03, 3000, 2000, 0.2, 1)
+  },
+  // a shove: air, then a bump
+  push: (c, o, t, b) => { noise(c, o, t, 0.18, 400, 1600, 0.12, 0.9); note(c, o, 150, t + 0.12, 0.16, 'sine', 0.28 * b, 55) },
+  // boop
+  poke: (c, o, t, b) => { note(c, o, 620, t, 0.09, 'sine', 0.2 * b, 930); note(c, o, 930, t + 0.07, 0.05, 'sine', 0.08) },
+  // a wet slap
+  fish: (c, o, t, b) => {
+    noise(c, o, t, 0.07, 3200, 1200, 0.5 * b, 0.5); noise(c, o, t + 0.03, 0.16, 800, 300, 0.2, 2)
+    note(c, o, 320, t, 0.14, 'sine', 0.14, 140); note(c, o, 280, t + 0.22, 0.12, 'sine', 0.06, 200)
+  },
+  // a rope pulled tight
+  knot: (c, o, t, b) => {
+    noise(c, o, t, 0.16, 700, 3800, 0.12 * b, 3); note(c, o, 130, t + 0.12, 0.28, 'sawtooth', 0.03 * b, 95)
+    noise(c, o, t + 0.36, 0.05, 2400, 1800, 0.18, 1)
+  },
+  // bzzz… closer… BZZ
+  mosquito: (c, o, t, b) => buzzing(c, o, t, 1.1 * b, 640, 0.03 * b),
+  // the bugle: the first notes of the reveille
+  wakeup: (c, o, t, b) => {
+    const G4 = 392, C5 = 523.25, E5 = 659.25, G5 = 783.99
+    ;[[G4, 0, 0.12], [C5, 0.14, 0.12], [E5, 0.28, 0.12], [C5, 0.42, 0.12], [E5, 0.56, 0.12], [G5, 0.7, 0.34]]
+      .forEach(([f, d, l]) => { note(c, o, f, t + d, l, 'square', 0.035 * b); note(c, o, f, t + d, l, 'triangle', 0.08 * b) })
+  },
+  // pots and plates
+  dishes: (c, o, t, b) => {
+    for (let i = 0; i < 4; i++) {
+      const d = i * 0.07 + Math.random() * 0.03
+      noise(c, o, t + d, 0.05, 6000, 4000, 0.15 * b, 8); note(c, o, 1800 + Math.random() * 1600, t + d, 0.18, 'sine', 0.05)
+    }
+  },
+  // a clap
+  highfive: (c, o, t, b) => { noise(c, o, t, 0.07, 2600, 1400, 0.6 * b, 0.7); noise(c, o, t + 0.02, 0.05, 1800, 1200, 0.3, 0.8); chord(c, o, t + 0.08, [1046.5, 1318.5], 0.25, 0.05) },
+  // a warm "aww"
+  hug: (c, o, t, b) => { chord(c, o, t, [261.6, 329.6, 392], 0.7 * b, 0.07); note(c, o, 523.25, t + 0.12, 0.6, 'sine', 0.05) },
+  // poured, then "aah"
+  coffee: (c, o, t, b) => { noise(c, o, t, 0.45, 1300, 900, 0.1 * b, 4); note(c, o, 392, t + 0.5, 0.35, 'triangle', 0.08, 330) },
+  // a little fanfare
+  salute: (c, o, t, b) => [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => note(c, o, f, t + i * 0.09, i === 3 ? 0.4 : 0.12, 'triangle', 0.12 * b)),
+  // a firm handshake: two soft pats and a chime
+  handshake: (c, o, t, b) => { noise(c, o, t, 0.05, 1400, 900, 0.3, 0.7); noise(c, o, t + 0.13, 0.05, 1400, 900, 0.25, 0.7); chord(c, o, t + 0.25, [784, 1175], 0.35, 0.06 * b) },
+  // the wrapper, then something sweet
+  chocolate: (c, o, t, b) => {
+    for (let i = 0; i < 7; i++) noise(c, o, t + i * 0.035, 0.03, 5000, 3500, 0.1, 2)
+    chord(c, o, t + 0.3, [1318.5, 1568], 0.35, 0.06 * b)
+  },
+  // a party popper, and the sparkles coming down
+  confetti: (c, o, t, b) => {
+    noise(c, o, t, 0.08, 2000, 900, 0.5 * b, 0.7); note(c, o, 300, t, 0.08, 'sine', 0.2, 900)
+    for (let i = 0; i < 8; i++) note(c, o, 1400 + Math.random() * 1600, t + 0.12 + i * 0.06, 0.12, 'sine', 0.05)
+  }
+}
+const FUN_BUZZ: Record<string, number[]> = {
+  throw: [35, 30, 20], shove: [45], kind: [15, 40, 15]
+}
+
+/** The sound of one of the playground's things landing — on someone else, or
+    (`atMe`) on you, bigger. */
+export function funSound(key: string, motion: string, atMe = false) {
+  if (!import.meta.client) return
+  try {
+    if (sfxEnabled()) {
+      const c = audio()
+      const play = FUN_SOUNDS[key]
+      if (c && play) {
+        const out = c.createGain(); out.gain.value = 0.9; out.connect(c.destination)
+        play(c, out, c.currentTime + 0.01, atMe ? 1.5 : 1)
+      }
+    }
+    if (hapticsEnabled() && 'vibrate' in navigator) navigator.vibrate(atMe ? [70, 40, 40, 30, 25] : (FUN_BUZZ[motion] || 20))
+  } catch { /* a sound is never worth an error */ }
+}
+
 /** The settings' two switches. */
 export function useSfxPrefs() {
   const sound = ref(true), haptics = ref(true)
