@@ -1356,5 +1356,7 @@
   "evPickSector": "Pick a sector (or several).",
   "boardLeadersSub": "The standings of each of your sectors",
   "boardNone": "There is no league table for your sectors.",
-  "evLeadersAll": "A meeting of all the leaders."
+  "evLeadersAll": "A meeting of all the leaders.",
+  "notifSwipeHint": "← Swipe a notification left to clear it",
+  "notifSwipeHintParent": "← Swipe a notification left to clear it"
 }

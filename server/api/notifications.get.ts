@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     .where(eq(s.notifications.scoutId, me.id))
     .orderBy(desc(s.notifications.createdAt)).limit(60))
     // read a day ago or more: gone from the bell, whatever the sweep has done
-    .filter(n => stillListed(n))
+    .filter(n => stillListed(n) && !n.dismissedAt)
   return rows.map(n => ({
     id: n.id, kind: n.kind, refId: n.refId, title: n.title, body: n.body,
     createdAt: n.createdAt, read: n.readAt != null,

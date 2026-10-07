@@ -646,5 +646,7 @@ export const MIGRATIONS = [
   "ALTER TABLE forms ADD COLUMN IF NOT EXISTS parents_set_at TEXT",
   "ALTER TABLE forms ADD COLUMN IF NOT EXISTS parents_notified_at TEXT",
   "ALTER TABLE events ADD COLUMN IF NOT EXISTS extra_section_ids TEXT",
-  "ALTER TABLE events ADD COLUMN IF NOT EXISTS with_leaders BOOLEAN NOT NULL DEFAULT FALSE"
+  "ALTER TABLE events ADD COLUMN IF NOT EXISTS with_leaders BOOLEAN NOT NULL DEFAULT FALSE",
+  "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS dismissed_at TEXT",
+  "ALTER TABLE parent_notifications ADD COLUMN IF NOT EXISTS dismissed_at TEXT"
 ]

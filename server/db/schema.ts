@@ -538,7 +538,9 @@ export const parentNotifications = pgTable('parent_notifications', {
   title: text('title').notNull(),
   body: text('body').notNull(),
   createdAt: text('created_at').notNull(),
-  readAt: text('read_at')
+  readAt: text('read_at'),
+  // swiped away: read, and no longer in the bell
+  dismissedAt: text('dismissed_at')
 })
 
 export const notifications = pgTable('notifications', {
@@ -549,7 +551,9 @@ export const notifications = pgTable('notifications', {
   title: text('title').notNull(),
   body: text('body').notNull(),
   createdAt: text('created_at').notNull(),
-  readAt: text('read_at')
+  readAt: text('read_at'),
+  // swiped away: read, and no longer in the bell
+  dismissedAt: text('dismissed_at')
 })
 
 export const notificationLog = pgTable('notification_log', {

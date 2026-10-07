@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const rows = (await (await useDb()).select().from(s.parentNotifications)
     .where(eq(s.parentNotifications.parentId, p.id))
     .orderBy(desc(s.parentNotifications.createdAt)).limit(60))
-    .filter(n => stillListed(n))
+    .filter(n => stillListed(n) && !n.dismissedAt)
   return rows.map(n => ({
     id: n.id, kind: n.kind, refId: n.refId, title: n.title, body: n.body,
     createdAt: n.createdAt, read: n.readAt != null

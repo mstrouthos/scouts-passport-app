@@ -18,7 +18,12 @@ export function useNotifications() {
     n.read = true
     try { await $fetch(`/api/notifications/${id}/read`, { method: 'POST' }) } catch {}
   }
+  /** swiped away: read, and out of the bell for good */
+  async function dismiss(id: number) {
+    items.value = items.value.filter(x => x.id !== id)
+    try { await $fetch(`/api/notifications/${id}/dismiss`, { method: 'POST' }) } catch {}
+  }
   function reset() { items.value = []; loaded().value = false }
 
-  return { items, unread, load, markRead, reset }
+  return { items, unread, load, markRead, dismiss, reset }
 }

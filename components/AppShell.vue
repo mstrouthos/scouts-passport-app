@@ -8,7 +8,7 @@ const route = useRoute()
 const router = useRouter()
 const { locale, setLocale, t } = useI18n()
 const { msg } = useToast()
-const { items: notifs, unread, load: loadNotifs, markRead } = useNotifications()
+const { items: notifs, unread, load: loadNotifs, markRead, dismiss: dismissNotif } = useNotifications()
 const notifOpen = ref(false)
 const expanded = ref<number | null>(null)
 onMounted(() => loadNotifs())
@@ -190,7 +190,10 @@ function goBack() {
         <div class="sheet" style="max-height:80dvh;overflow:auto;display:flex;flex-direction:column;gap:10px">
           <h3 style="margin:0;font-size:17px;text-align:center">{{ t('notifications') }}</h3>
           <template v-if="notifs.length">
-            <button v-for="n in notifs" :key="n.id" class="notif-row" :class="{ unread: !n.read }" @click="toggleNotif(n)">
+            <div class="tiny muted" style="text-align:center;margin-top:-4px">{{ t('notifSwipeHint') }}</div>
+            <!-- swipe one left: read, and gone from the list -->
+            <SwipeRow v-for="n in notifs" :key="n.id" @swiped="dismissNotif(n.id)">
+            <button class="notif-row" :class="{ unread: !n.read }" @click="toggleNotif(n)">
               <div class="notif-dotmark" :class="{ on: !n.read }" />
               <div style="flex:1;min-width:0">
                 <div style="display:flex;justify-content:space-between;gap:8px">
@@ -204,6 +207,7 @@ function goBack() {
                 </p>
               </div>
             </button>
+            </SwipeRow>
           </template>
           <div v-else class="empty" style="display:flex;flex-direction:column;align-items:center;gap:6px"><img src="/images/art/phoenix/wave.webp" alt="" style="width:120px;height:120px;object-fit:contain"><span>{{ t('noNotifs') }}</span></div>
           <button class="btn ghost" @click="notifOpen = false">{{ t('close') }}</button>
