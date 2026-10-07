@@ -1520,5 +1520,7 @@
   "funPotatoRule10": "While you hold it you gather things for your backpack (one every half hour). You get them when you pass it on — if it bursts in your hands, they're lost!",
   "kimWon": "You won for your backpack:",
   "formLinkSearch": "🔍 Search a name or sector",
-  "formLinkNoMatch": "No child by that name"
+  "formLinkNoMatch": "No child by that name",
+  "funViewFaces": "Faces",
+  "funViewBodies": "Full body"
 }

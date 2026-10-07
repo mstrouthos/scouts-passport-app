@@ -19,9 +19,17 @@ const recent = computed<any[]>(() => data.value?.recent || [])
 const nameOf = (l: any) => l.firstName
 const text = (a: FunAction) => locale.value === 'en' ? a.en : a.el
 
-/* ---- the figures ---- */
+/* ---- the figures ----
+   faces, a round one each, to fit more on the screen; or, for whoever
+   prefers it, everyone standing in full — kept on this phone */
+const fullBody = ref(false)
+onMounted(() => { try { fullBody.value = localStorage.getItem('fun.view') === 'body' } catch {} })
+function toggleView() {
+  fullBody.value = !fullBody.value
+  try { localStorage.setItem('fun.view', fullBody.value ? 'body' : 'face') } catch {}
+}
 const svgs = computed(() => new Map((data.value?.leaders || []).map((l: any) =>
-  [l.id, avatarSvg(l.figure || DEFAULT_AVATAR, 'fun' + l.id, 'stand')])))
+  [l.id, avatarSvg(l.figure || DEFAULT_AVATAR, 'fun' + l.id, fullBody.value ? 'stand' : 'full')])))
 const initials = (l: any) => `${l.firstName?.[0] || ''}${l.lastName?.[0] || ''}`.toUpperCase()
 
 // a small number from an id, for where a mark lands on someone
@@ -30,7 +38,7 @@ const HOURS = 3600_000
 /** The marks still on someone: what was thrown at them in the last 12 hours. */
 function stainsOn(id: number) {
   return recent.value.filter(r => r.to === id && funAction(r.action)?.stain && Date.now() - Date.parse(r.at) < 12 * HOURS)
-    .slice(0, 6).map(r => ({ id: r.id, color: funAction(r.action)!.stain!, img: funAction(r.action)!.art?.splat, x: 32 + hash(r.id) * 36, y: 24 + hash(r.id + 7) * 34, s: 10 + hash(r.id + 3) * 7 }))
+    .slice(0, 6).map(r => ({ id: r.id, color: funAction(r.action)!.stain!, img: funAction(r.action)!.art?.splat, x: 32 + hash(r.id) * 36, y: fullBody.value ? 24 + hash(r.id + 7) * 34 : 28 + hash(r.id + 7) * 44, s: 10 + hash(r.id + 3) * 7 }))
 }
 /** The kind things lately done to them, at their feet. */
 function giftsAt(id: number) {
@@ -200,7 +208,7 @@ function spot(id: number) {
   const el = figs.get(id)
   if (!el) return null
   const r = el.getBoundingClientRect()
-  return { x: r.left - s.left + r.width / 2, y: r.top - s.top + r.height * 0.5, face: r.top - s.top + r.height * 0.28, w: r.width }
+  return { x: r.left - s.left + r.width / 2, y: r.top - s.top + r.height * 0.5, face: r.top - s.top + r.height * (fullBody.value ? 0.28 : 0.45), w: r.width }
 }
 function sprite(txt: string, cls = 'sprite') {
   const el = document.createElement('div')
@@ -504,13 +512,16 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
       <span class="chev">›</span>
     </NuxtLink>
 
-    <div ref="stage" class="stage" :class="{ paused: data.paused }">
+    <div ref="stage" class="stage" :class="{ paused: data.paused, faces: !fullBody }">
       <span class="deco d1">🌲</span><span class="deco d2">⛺</span><span class="deco d3">🌲</span>
+      <button class="viewtog" :aria-label="fullBody ? t('funViewFaces') : t('funViewBodies')" @click="toggleView">{{ fullBody ? '😀 ' + t('funViewFaces') : '🧍 ' + t('funViewBodies') }}</button>
       <button v-for="l in data.leaders" :key="l.id" class="who" :class="[hit[l.id], { me: l.me, off: l.pref === 'off' }]"
               :aria-label="`${l.firstName} ${l.lastName}`" @click="tap(l)">
         <span :ref="el => setFig(l.id, el)" class="fig">
-          <span class="body" v-html="svgs.get(l.id)" />
-          <span v-if="!l.figure" class="disc">
+          <!-- a face: their photo if they have one, else their avatar -->
+          <img v-if="!fullBody && l.photo" :src="l.photo" alt="" class="body photo" loading="lazy">
+          <span v-else class="body" v-html="svgs.get(l.id)" />
+          <span v-if="fullBody && !l.figure" class="disc">
             <img v-if="l.photo" :src="l.photo" alt="" loading="lazy">
             <template v-else>{{ initials(l) }}</template>
           </span>
@@ -673,6 +684,17 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 }
 .stage.paused{filter:grayscale(.7); opacity:.8}
 .deco{position:absolute; font-size:28px; opacity:.35; pointer-events:none}
+.viewtog{position:absolute; top:6px; left:8px; z-index:2; border:0; border-radius:999px; background:rgba(255,255,255,.85); font-size:11px; font-weight:700; padding:4px 9px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.stage{padding-top:34px}
+/* faces: a round one each, more to a row */
+.stage.faces{grid-template-columns:repeat(auto-fill, minmax(62px, 1fr)); gap:12px 2px}
+.stage.faces .fig{aspect-ratio:1; width:86%; max-width:58px; transform-origin:50% 50%}
+.stage.faces .fig::after{display:none}
+.stage.faces .body{border-radius:50%; overflow:hidden; box-shadow:0 2px 6px rgba(30,60,30,.18), 0 0 0 2px #fff}
+.stage.faces .body.photo{object-fit:cover}
+.stage.faces .who.me .body{box-shadow:0 2px 6px rgba(30,60,30,.18), 0 0 0 3px var(--green, #2E7D5B)}
+.stage.faces .held{right:-6px; top:auto; bottom:-4px}
+.stage.faces .had{right:-2px; bottom:-2px}
 .d1{left:8px; bottom:6px} .d2{right:10px; bottom:8px; font-size:24px} .d3{right:38%; top:6px; font-size:20px; opacity:.2}
 
 .who{position:relative; border:0; background:none; padding:0; display:flex; flex-direction:column; align-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent}
