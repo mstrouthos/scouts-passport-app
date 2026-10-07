@@ -158,8 +158,6 @@ watch(() => data.value?.grants, async gs => {
 }, { immediate: true })
 /* the rules, for anyone who asks; the Αρχηγός ends a round, and writes the challenges */
 const rulesOpen = ref(false)
-/* watched to the end here, it is not played again with a new round */
-const videoSeen = () => $fetch('/api/admin/fun/potato-video-seen', { method: 'POST' }).catch(() => {})
 async function stopRound() {
   if (!confirm(t('funPotatoStopQ'))) return
   try { await $fetch('/api/admin/fun/potato-stop', { method: 'POST' }); await refresh(); show('⏹ ' + t('funPotatoStopped')) } catch (e: any) { show(errMsg(e)) }
@@ -635,18 +633,7 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
       </div>
 
       <!-- how the hot potato is played -->
-      <div v-if="rulesOpen" class="sheet-backdrop" @click.self="rulesOpen = false">
-        <div class="sheet fun-sheet">
-          <h3 style="margin:0;font-size:17px;text-align:center">🥔 {{ t('funPotatoRulesTitle') }}</h3>
-          <video class="rules-video" src="/videos/hot-potato.mp4" poster="/videos/hot-potato.jpg"
-                 controls playsinline autoplay preload="auto" @ended="videoSeen" />
-          <details class="rules-more">
-            <summary>{{ t('funPotatoAllRules') }}</summary>
-            <ol class="rules"><li v-for="n in 10" :key="n">{{ t('funPotatoRule' + n) }}</li></ol>
-          </details>
-          <button class="btn ghost" @click="rulesOpen = false">{{ t('close') }}</button>
-        </div>
-      </div>
+      <PotatoRules v-if="rulesOpen" @close="rulesOpen = false" />
       <!-- how the backpack fills -->
       <div v-if="bagHelp" class="sheet-backdrop" @click.self="bagHelp = false">
         <div class="sheet fun-sheet">
@@ -863,9 +850,6 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 .chn{flex:none; width:22px; text-align:center; font-weight:800; color:var(--muted); font-size:13px}
 .chdel{flex:none; border:0; background:#fff; border-radius:10px; width:36px; height:36px; font-size:15px; cursor:pointer; box-shadow:0 1px 4px rgba(20,40,70,.08)}
 .rules{margin:0; padding-left:20px; display:flex; flex-direction:column; gap:7px; font-size:13.5px; line-height:1.5}
-.rules-video{display:block; margin:0 auto; height:min(62vh, 560px); aspect-ratio:9/16; max-width:100%; border-radius:16px; background:#fde68a; object-fit:contain}
-.rules-more summary{cursor:pointer; font-weight:700; font-size:14px; padding:4px 0}
-.rules-more .rules{margin-top:8px}
 .had{position:absolute; right:6%; bottom:4%; font-size:11px; opacity:.55; filter:grayscale(.4); pointer-events:none}
 .kimcard{text-decoration:none; color:inherit}
 .kimcard img.spud{width:30px; height:30px; object-fit:contain}
