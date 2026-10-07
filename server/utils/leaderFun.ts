@@ -2,7 +2,6 @@ import { and, eq, gt, isNull } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { now } from './passcode'
 import { sendPushTo } from './push'
-import { POTATO_SAFE_MS } from '../../utils/fun'
 
 /** How much fun a day holds: enough for a laugh, never a flood. */
 export const FUN_LIMIT_DAY = 10
@@ -54,8 +53,10 @@ export async function tellFun(to: number, msg: { body: string, refId: number, ki
 
 /* ---- the hot potato ----
    A round starts when someone throws it; at that moment a time is drawn for
-   it to burst — somewhere 3 to 30 hours on, never between midnight and
-   07:00 (which the players are not told) — and kept secret. It may be held as long as anyone likes, but whoever has
+   it to burst — usually 3 to 30 hours on, now and then (one round in ten)
+   sooner, but never in its first half hour, and never between midnight and
+   07:00 (which the players are not told) — and kept secret. No moment of a
+   round is ever safe. It may be held as long as anyone likes, but whoever has
    it when that moment comes is the one it bursts on: the longer you hold it,
    the likelier that is you. A challenge, drawn from the list the Αρχηγός
    Συστήματος keeps, is told to everyone when the round starts, and falls to
@@ -82,10 +83,15 @@ export async function potatoChallenges(): Promise<string[]> {
 }
 
 const cyHour = (at: Date) => Number(at.toLocaleString('en-GB', { timeZone: 'Europe/Nicosia', hour: '2-digit', hour12: false }))
-/** When a round bursts: 3 to 30 hours on, at a waking hour (07:00–23:59). */
+/** When a round bursts: one time in ten within its first 3 hours (but not
+    its first half hour), otherwise 3 to 30 hours on; always at a waking hour
+    (07:00–23:59). */
+export const POTATO_EARLY_CHANCE = 0.1
 export function potatoBurstAt(from = new Date()) {
+  const H = 3600_000
   for (let i = 0; i < 500; i++) {
-    const t = new Date(from.getTime() + POTATO_SAFE_MS + Math.random() * 27 * 3600_000)
+    const after = Math.random() < POTATO_EARLY_CHANCE ? 0.5 * H + Math.random() * 2.5 * H : 3 * H + Math.random() * 27 * H
+    const t = new Date(from.getTime() + after)
     const h = cyHour(t)
     if (h >= 7) return t.toISOString()
   }

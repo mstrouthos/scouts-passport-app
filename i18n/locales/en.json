@@ -1486,7 +1486,7 @@
   "funPotatoRulesTitle": "How the hot potato works",
   "funPotatoRule1": "Anyone set to \"Everything\" starts a round by throwing the potato at someone: tap them on the campsite → \"🥔 Start a hot potato\".",
   "funPotatoRule2": "When it starts, a challenge is drawn and everyone is told: that is what whoever it bursts on will have to do.",
-  "funPotatoRule3": "It bursts somewhere between 3 and 30 hours later — nobody knows when.",
+  "funPotatoRule3": "It bursts some time within 30 hours of the round's start — nobody knows when. Usually it takes a while, but it can even burst in the first hour!",
   "funPotatoRule4": "You can hold it as long as you like — but the longer you hold it, the likelier it bursts on you!",
   "funPotatoRule5": "To pass it: tap someone on the campsite → \"🥔 Throw the potato\".",
   "funPotatoRule6": "It only goes to someone who hasn't had it yet this round. Once everyone has, it can go to anyone again.",
@@ -1512,14 +1512,13 @@
   "tier_rare": "rare",
   "bagHow1": "Anything thrown (tomato, snowball, pie…) comes out of the backpack. Kind things (hug, coffee…) and teasing are free.",
   "bagHow2": "Every day you get 2 🍅 free.",
-  "bagHow3": "Hot potato: for every half hour you hold it, you earn something — from the round's 3rd hour on. You get it when you pass it on. If it bursts in your hands, it's lost!",
+  "bagHow3": "Hot potato: for every half hour you hold it, you earn something — you get it when you pass it on. If it bursts in your hands, it's lost!",
   "bagHow4": "Kim's Tray: 4/4 → 3 things (one rare 🥧), 3/4 → 2, 2/4 → 1. A won dare → +2.",
   "bagHow5": "Best of the day at Kim's Tray → something common. Best of the week → something rare.",
   "bagHow6": "It holds up to 20 things.",
   "funPouch": "In the pouch: {n} — yours when you pass it on",
-  "funPotatoRule10": "While you hold it you gather things for your backpack (one every half hour) — but only after the round's first 3 hours, once it can actually burst. You get them when you pass it on; if it bursts in your hands, they're lost!",
+  "funPotatoRule10": "While you hold it you gather things for your backpack (one every half hour). You get them when you pass it on — if it bursts in your hands, they're lost!",
   "kimWon": "You won for your backpack:",
   "formLinkSearch": "🔍 Search a name or sector",
-  "formLinkNoMatch": "No child by that name",
-  "funPouchSafe": "The round's first 3 hours don't pay — the pouch starts in {m}′"
+  "formLinkNoMatch": "No child by that name"
 }
