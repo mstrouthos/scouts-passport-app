@@ -10,10 +10,15 @@ export type FunAction = {
   noteEl: string, noteEn: string,
   // a thrown thing leaves this colour on them for a while
   stain?: string
+  // drawn art, where there is some (public/images/fun): what flies, the
+  // splat it leaves on them, and the one across the whole screen of whoever
+  // it hit
+  art?: { sprite: string, splat: string, screen: string }
 }
 
 export const FUN_ACTIONS: FunAction[] = [
-  { key: 'tomato', emoji: '🍅', motion: 'throw', el: 'Ντομάτα', en: 'Tomato', noteEl: '{name} μόλις σου πέταξε μια ντομάτα! 🍅', noteEn: '{name} just threw a tomato at you! 🍅', stain: '#D62C36' },
+  { key: 'tomato', emoji: '🍅', motion: 'throw', el: 'Ντομάτα', en: 'Tomato', noteEl: '{name} μόλις σου πέταξε μια ντομάτα! 🍅', noteEn: '{name} just threw a tomato at you! 🍅', stain: '#D62C36',
+    art: { sprite: '/images/fun/tomato.webp', splat: '/images/fun/tomato-splat.webp', screen: '/images/fun/tomato-screen.webp' } },
   { key: 'pie', emoji: '🥧', motion: 'throw', el: 'Τούρτα στη μούρη', en: 'Pie in the face', noteEl: '{name} σου πέταξε τούρτα στη μούρη! 🥧', noteEn: '{name} got you with a pie! 🥧', stain: '#FFF4D6' },
   { key: 'water', emoji: '💦', motion: 'throw', el: 'Μπαλόνι νερού', en: 'Water balloon', noteEl: '{name} σε μούσκεψε με μπαλόνι νερού! 💦', noteEn: '{name} soaked you with a water balloon! 💦', stain: '#5BB8F0' },
   { key: 'snowball', emoji: '❄️', motion: 'throw', el: 'Χιονόμπαλα', en: 'Snowball', noteEl: '{name} σου πέταξε μια χιονόμπαλα! ❄️', noteEn: '{name} threw a snowball at you! ❄️', stain: '#F2F8FF' },
