@@ -136,9 +136,9 @@ export function normalizeAvatar(raw: any): Avatar {
   return out
 }
 
-export function randomAvatar(): Avatar {
+export function randomAvatar(like?: string): Avatar {
   const pick = <T>(a: readonly T[]) => a[Math.floor(Math.random() * a.length)]
-  const gender = pick(AVATAR_OPTIONS.gender)
+  const gender = (like && (AVATAR_OPTIONS.gender as readonly string[]).includes(like) ? like : pick(AVATAR_OPTIONS.gender)) as typeof AVATAR_OPTIONS.gender[number]
   const hair = pick(optionsFor('hair', gender).filter(h => h !== 'none'))
   return normalizeAvatar({
     gender, hair,
@@ -294,12 +294,22 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       + `<rect x="${a - 2}" y="310" width="${b - a + 4}" height="22" rx="4" fill="${SOCK}"/><rect x="${a - 2}" y="310" width="${b - a + 4}" height="6" rx="3" fill="${SOCK_D}"/>`
       + `<path d="M${b - 4} 312 l5 0 l-1 9 l-3 -3 Z" fill="#C8303A"/>`
       + `<ellipse cx="${(a + b) / 2 + (a < 100 ? -4 : 4)}" cy="335" rx="${(b - a) / 2 + 8}" ry="9" fill="${BOOT}"/><ellipse cx="${(a + b) / 2 + (a < 100 ? -6 : 2)}" cy="332" rx="6" ry="2.5" fill="#fff" opacity=".18"/>`).join('')
+  /* standing, the body is drawn as for the bust and then narrowed to about
+     the head's width (SLIM), so it is a child's build and not a barrel; the
+     arms are drawn after, at the narrowed shoulders: a short sleeve, a thin
+     forearm hanging to the hip, a small hand */
+  const SLIM = 0.7
+  const slim = (s: string) => `<g transform="translate(${cx} 0) scale(${SLIM} 1) translate(${-cx} 0)">${s}</g>`
+  // the neckerchief and what hangs on it keep their shape, a little smaller
+  const smaller = (s: string) => `<g transform="translate(${cx} 141) scale(.8) translate(${-cx} -141)">${s}</g>`
   const standArms = !standing ? '' : [-1, 1].map(sd => {
     const X = (x: number) => cx + sd * (x - cx)
-    return `<path d="M${X(52)} 150 Q${X(34)} 158 ${X(28)} 200 L${X(44)} 204 Q${X(48)} 176 ${X(60)} 162 Z" fill="${cc}"/>`
-      + `<path d="M${X(52)} 150 Q${X(34)} 158 ${X(28)} 200 L${X(34)} 201 Q${X(38)} 170 ${X(52)} 156 Z" fill="${ccD}"/>`
-      + `<path d="M${X(29)} 199 L${X(43)} 203 L${X(41)} 238 L${X(30)} 237 Z" fill="${skin}"/>`
-      + `<circle cx="${X(35.5)}" cy="${242}" r="8.5" fill="${skin}"/><path d="M${X(29)} 244 Q${X(35.5)} 251 ${X(42)} 244" fill="none" stroke="${skinD}" stroke-width="2" stroke-linecap="round"/>`
+    return `<path d="M${X(66)} 146 Q${X(54)} 150 ${X(50)} 166 L${X(46)} 190 Q${X(53)} 194 ${X(61)} 192 L${X(63)} 170 Z" fill="${cc}"/>`
+      + `<path d="M${X(66)} 146 Q${X(54)} 150 ${X(50)} 166 L${X(46)} 190 Q${X(49)} 191.5 ${X(52)} 192 L${X(55)} 166 Q${X(58)} 154 ${X(66)} 150 Z" fill="${ccD}"/>`
+      + `<path d="M${X(47)} 191.5 Q${X(54)} 194.5 ${X(60.5)} 192.5" fill="none" stroke="${ccDD}" stroke-width="1.6" stroke-linecap="round" opacity=".5"/>`
+      + `<path d="M${X(48.5)} 192 L${X(59)} 193 L${X(56)} 252 L${X(47)} 251 Z" fill="${skin}"/>`
+      + `<path d="M${X(48.5)} 192 L${X(51.5)} 192.3 L${X(49.6)} 251.2 L${X(47)} 251 Z" fill="${skinD}" opacity=".7"/>`
+      + `<ellipse cx="${X(51.5)}" cy="256" rx="6.2" ry="7.4" fill="${skin}"/><path d="M${X(47)} 258 Q${X(51.5)} 263 ${X(56)} 258" fill="none" stroke="${skinD}" stroke-width="1.6" stroke-linecap="round"/>`
   }).join('')
   const neck = `<rect x="${cx - 15}" y="${y1 - 14}" width="30" height="${154 - y1 + 14}" rx="8" fill="${skinD}"/>`
     + `<ellipse cx="${cx}" cy="${y1 + 1}" rx="15" ry="5" fill="${skinDD}" opacity=".55"/>`
@@ -866,7 +876,9 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     + `</defs>`
     // standing, they stand on the page itself: no backdrop of their own
     + (standing ? '' : `<rect x="-40" y="-40" width="280" height="280" fill="${a.bg}"/>` + scenes[a.scene] + aura)
-    + hairBack + lowerBody + clothes[a.clothes] + standArms + scarfBack + neck + scarfFront + gear[a.gear] + pin + patch + cord
+    + hairBack + (standing
+      ? slim(lowerBody + clothes[a.clothes]) + standArms + smaller(scarfBack) + slim(neck + patch) + smaller(scarfFront + gear[a.gear] + pin + cord)
+      : clothes[a.clothes] + scarfBack + neck + scarfFront + gear[a.gear] + pin + patch + cord)
     + ears + head + earrings[a.earrings] + extras[a.extras] + eyes + nose + facialHair[a.facialHair] + (MOUTH[xp.mouth] || '')
     + hairFront + glasses[a.glasses] + (opts.party ? partyHat : headwear[a.headwear]) + companion
     + `</svg>`

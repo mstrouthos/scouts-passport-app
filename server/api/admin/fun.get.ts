@@ -1,8 +1,8 @@
-import { gt } from 'drizzle-orm'
+import { and, eq, gt, isNull } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { requireLeader } from '../../utils/guard'
 import { faceOf } from '../../utils/face'
-import { normalizeAvatar } from '../../../utils/avatar'
+import { normalizeAvatar, randomAvatar } from '../../../utils/avatar'
 import { FUN_LIMIT_DAY, cyprusDayStart, funPaused } from '../../utils/leaderFun'
 
 /** The playground: every Βαθμοφόρος of every sector, standing; what has
@@ -13,6 +13,15 @@ export default defineEventHandler(async (event) => {
   const [people, scopes, sections, patrols] = await Promise.all([
     db.select().from(s.scouts), db.select().from(s.leaderScopes), db.select().from(s.sections), db.select().from(s.patrols)])
   const leaders = people.filter(r => r.role !== 'scout' && r.isActive && !r.deletedAt && (!r.isHidden || r.id === me.id))
+  // a Βαθμοφόρος with no avatar yet is given one at random, the first time —
+  // theirs to change in the avatar builder. Its look starts from their first
+  // name (Greek men's names end in -ς), only as a first guess.
+  for (const l of leaders) if (!l.avatar) {
+    const like = /[ςσ]$/i.test(String(l.firstName || '').trim()) ? 'boy' : /[αηωάήώ]$/i.test(String(l.firstName || '').trim()) ? 'girl' : undefined
+    const avatar = JSON.stringify(randomAvatar(like))
+    await db.update(s.scouts).set({ avatar }).where(and(eq(s.scouts.id, l.id), isNull(s.scouts.avatar)))
+    l.avatar = avatar
+  }
   const secName = (id: number | null) => sections.find(x => x.id === id)?.nameEl
   const where = (l: typeof people[number]) => {
     if (l.role === 'troop_leader') return 'Όλο το Σύστημα'
