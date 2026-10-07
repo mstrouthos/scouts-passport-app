@@ -2,7 +2,7 @@ import { eq, inArray } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { requireParent } from '../../utils/parentGuard'
 import { isAccepting } from '../../utils/forms'
-import { familyOf, formIsFor } from '../../utils/familyForms'
+import { familyOf, formIsFor, parentSectionsOf } from '../../utils/familyForms'
 
 /** A parent's forms: those sent to them that still wait for an answer — from
     them or the other parent of the same child — and those they have sent from
@@ -28,7 +28,8 @@ export default defineEventHandler(async (event) => {
       .filter(f => !answered.has(f.id))
       .map(f => ({ f, at: invites.find(i => i.formId === f.id && i.parentId === p.id)?.sentAt || f.parentsSetAt || f.createdAt }))
       .sort((a, b) => b.at.localeCompare(a.at))
-      .map(({ f, at }) => ({ formId: f.id, title: f.titleEl, sentAt: at, closesAt: f.closesAt })),
+      // the sectors it is for, so the page shows it under the right child (null: from before, for the family)
+      .map(({ f, at }) => ({ formId: f.id, title: f.titleEl, sentAt: at, closesAt: f.closesAt, sectionIds: parentSectionsOf(f) })),
     done: sent
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .map(r => ({

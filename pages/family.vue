@@ -81,6 +81,8 @@ const children = computed<any[]>(() => me.value?.children || [])
 const child = computed(() => children.value.find((c: any) => c.id === childId.value) || children.value[0] || null)
 const childSection = computed(() => child.value?.section ?? me.value?.section ?? null)
 const forChild = (sectionId: number | null | undefined) => sectionId == null || sectionId === childSection.value?.id
+// a form for one sector waits under that child only, like the posts and the diary
+const shownForms = computed(() => forms.value.pending.filter((f: any) => !f.sectionIds || f.sectionIds.some((x: number) => forChild(x))))
 const shownPosts = computed(() => posts.value.filter(p => forChild(p.sectionId)))
 const isPast = (e: any) => eventEnded(e)
 // a joint event is in the diary of every sector it is for
@@ -216,9 +218,9 @@ async function enableNotifs() {
         </div>
 
         <!-- forms sent to the family that still wait for an answer -->
-        <template v-if="forms.pending.length">
+        <template v-if="shownForms.length">
           <div class="sec-title">📋 {{ t('formsPending') }}</div>
-          <button v-for="f in forms.pending" :key="f.formId" class="banner" style="width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer"
+          <button v-for="f in shownForms" :key="f.formId" class="banner" style="width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer"
                   :disabled="formBusy === f.formId" @click="openForm(f.formId)">
             <div class="ico">📝</div>
             <div style="flex:1;min-width:0">
