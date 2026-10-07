@@ -53,8 +53,8 @@ export async function tellFun(to: number, msg: { body: string, refId: number, ki
 
 /* ---- the hot potato ----
    A round starts when someone throws it; at that moment a time is drawn for
-   it to burst — somewhere 3 to 30 hours on, always between 09:00 and 21:00 —
-   and kept secret. It may be held as long as anyone likes, but whoever has
+   it to burst — somewhere 3 to 30 hours on, never between midnight and
+   07:00 (which the players are not told) — and kept secret. It may be held as long as anyone likes, but whoever has
    it when that moment comes is the one it bursts on: the longer you hold it,
    the likelier that is you. A challenge, drawn from the list the Αρχηγός
    Συστήματος keeps, is told to everyone when the round starts, and falls to
@@ -81,12 +81,12 @@ export async function potatoChallenges(): Promise<string[]> {
 }
 
 const cyHour = (at: Date) => Number(at.toLocaleString('en-GB', { timeZone: 'Europe/Nicosia', hour: '2-digit', hour12: false }))
-/** When a round bursts: 3 to 30 hours on, at a waking hour (09:00–21:00). */
+/** When a round bursts: 3 to 30 hours on, at a waking hour (07:00–23:59). */
 export function potatoBurstAt(from = new Date()) {
   for (let i = 0; i < 500; i++) {
     const t = new Date(from.getTime() + (3 + Math.random() * 27) * 3600_000)
     const h = cyHour(t)
-    if (h >= 9 && h < 21) return t.toISOString()
+    if (h >= 7) return t.toISOString()
   }
   return new Date(from.getTime() + 24 * 3600_000).toISOString()
 }
