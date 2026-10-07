@@ -11,6 +11,7 @@ import { cyprusTimeOnDayOf } from '../../utils/cyprusTime'
 import { localDay, bonusEarned, currentStreak } from '../../utils/streak'
 import { deleteFormFiles } from '../../utils/formFiles'
 import { eventInSections, eventSectionIds } from '../../utils/eventScope'
+import { potatoTick } from '../../utils/leaderFun'
 
 /** Hit by host cron every few minutes with the token:
     curl -X POST -H "x-cron-token: $TOKEN" https://.../api/cron/tick */
@@ -169,6 +170,9 @@ export default defineEventHandler(async (event) => {
   await deleteFormFiles((await db.select().from(s.formFiles)).filter(f =>
     (f.kind === 'upload' && !f.responseId && f.createdAt < dayAgo) || (f.kind === 'export' && f.createdAt < weekAgo)))
 
+  // the hot potato: burned if its time is up, its holder warned an hour before
+  const potato = await potatoTick()
+
   // opened notifications, a day old: swept out so the bell stays the news
   const cutoff = new Date(Date.now() - READ_TTL_MS).toISOString()
   const old = (n: { readAt: string | null }) => !!n.readAt && n.readAt <= cutoff
@@ -183,6 +187,7 @@ export default defineEventHandler(async (event) => {
   // the counts first, as before; then, by name, what this run actually did
   return {
     ok: true, notified, announced, purged: purgedWho.length, swept, at: t,
+    ...(potato ? { potato } : {}),
     ...(sent.length ? { sent } : {}),
     ...(purgedWho.length ? { purgedWho } : {})
   }

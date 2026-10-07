@@ -546,6 +546,19 @@ CREATE TABLE IF NOT EXISTS leader_fun (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS leader_fun_created_idx ON leader_fun(created_at);
+CREATE TABLE IF NOT EXISTS hot_potato (
+  id SERIAL PRIMARY KEY,
+  started_by INTEGER NOT NULL REFERENCES scouts(id),
+  holder_id INTEGER NOT NULL REFERENCES scouts(id),
+  prev_id INTEGER REFERENCES scouts(id),
+  got_at TEXT NOT NULL,
+  deadline TEXT NOT NULL,
+  warned BOOLEAN NOT NULL DEFAULT FALSE,
+  passes INTEGER NOT NULL DEFAULT 0,
+  started_at TEXT NOT NULL,
+  ended_at TEXT,
+  burned_id INTEGER REFERENCES scouts(id)
+);
 CREATE TABLE IF NOT EXISTS scout_kudos (
   id SERIAL PRIMARY KEY,
   from_id INTEGER NOT NULL REFERENCES scouts(id),
@@ -657,5 +670,11 @@ export const MIGRATIONS = [
   "ALTER TABLE events ADD COLUMN IF NOT EXISTS with_leaders BOOLEAN NOT NULL DEFAULT FALSE",
   "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS dismissed_at TEXT",
   "ALTER TABLE parent_notifications ADD COLUMN IF NOT EXISTS dismissed_at TEXT",
-  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS fun_pref TEXT NOT NULL DEFAULT 'all'"
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS fun_pref TEXT NOT NULL DEFAULT 'all'",
+  // the playground's "who did it?": a throw without a name, guessed at
+  "ALTER TABLE leader_fun ADD COLUMN IF NOT EXISTS anon BOOLEAN NOT NULL DEFAULT FALSE",
+  "ALTER TABLE leader_fun ADD COLUMN IF NOT EXISTS guesses INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE leader_fun ADD COLUMN IF NOT EXISTS outcome TEXT",
+  // done by the game itself (a throw-back, a potato passed): not counted in the day's ten
+  "ALTER TABLE leader_fun ADD COLUMN IF NOT EXISTS auto BOOLEAN NOT NULL DEFAULT FALSE"
 ]

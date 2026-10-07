@@ -210,6 +210,16 @@ const FUN_SOUNDS: Record<string, Play> = {
     for (let i = 0; i < 7; i++) noise(c, o, t + i * 0.035, 0.03, 5000, 3500, 0.1, 2)
     chord(c, o, t + 0.3, [1318.5, 1568], 0.35, 0.06 * b)
   },
+  // the hot potato landing in your hands: a sizzle, and "ow-ow"
+  potato: (c, o, t, b) => {
+    noise(c, o, t, 0.6 * b, 6500, 3500, 0.08 * b, 0.5)
+    note(c, o, 880, t + 0.05, 0.09, 'triangle', 0.1, 1250); note(c, o, 880, t + 0.18, 0.09, 'triangle', 0.1, 1250)
+  },
+  // it burned: a whoomph of flame, then crackling
+  burn: (c, o, t, b) => {
+    noise(c, o, t, 0.5 * b, 300, 90, 0.5 * b, 0.6); note(c, o, 90, t, 0.4, 'sine', 0.3, 40)
+    for (let i = 0; i < 10; i++) noise(c, o, t + 0.25 + Math.random() * 0.8, 0.02, 4000, 2500, 0.12, 1.5)
+  },
   // a party popper, and the sparkles coming down
   confetti: (c, o, t, b) => {
     noise(c, o, t, 0.08, 2000, 900, 0.5 * b, 0.7); note(c, o, 300, t, 0.08, 'sine', 0.2, 900)
@@ -217,7 +227,7 @@ const FUN_SOUNDS: Record<string, Play> = {
   }
 }
 const FUN_BUZZ: Record<string, number[]> = {
-  throw: [35, 30, 20], shove: [45], kind: [15, 40, 15]
+  throw: [35, 30, 20], shove: [45], kind: [15, 40, 15], pass: [30, 30, 30], burn: [80, 50, 80]
 }
 
 /** The sound of one of the playground's things landing — on someone else, or

@@ -793,7 +793,30 @@ export const leaderFun = pgTable('leader_fun', {
   fromId: integer('from_id').notNull().references(() => scouts.id),
   toId: integer('to_id').notNull().references(() => scouts.id),
   action: text('action').notNull(),
-  createdAt: text('created_at').notNull()
+  createdAt: text('created_at').notNull(),
+  // "who did it?": thrown without a name; the guesses made, and how it ended
+  // ('guessed' — found, and paid back; 'escaped' — never found)
+  anon: boolean('anon').notNull().default(false),
+  guesses: integer('guesses').notNull().default(0),
+  outcome: text('outcome'),
+  // done by the game itself, not by hand: not counted in the day's limit
+  auto: boolean('auto').notNull().default(false)
+})
+
+/* The hot potato: one at a time, passed from leader to leader; whoever holds
+   it when its time runs out is burned. */
+export const hotPotato = pgTable('hot_potato', {
+  id: serial('id').primaryKey(),
+  startedBy: integer('started_by').notNull().references(() => scouts.id),
+  holderId: integer('holder_id').notNull().references(() => scouts.id),
+  prevId: integer('prev_id').references(() => scouts.id),
+  gotAt: text('got_at').notNull(),
+  deadline: text('deadline').notNull(),
+  warned: boolean('warned').notNull().default(false),
+  passes: integer('passes').notNull().default(0),
+  startedAt: text('started_at').notNull(),
+  endedAt: text('ended_at'),
+  burnedId: integer('burned_id').references(() => scouts.id)
 })
 
 /* A 👏 from one member to another, for a win in their Ενωμοτία's feed — one

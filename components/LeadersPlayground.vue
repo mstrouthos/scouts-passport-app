@@ -6,7 +6,7 @@
    out too, live; what was done to you while you were away plays when you
    come back. Tapping yourself sets how much of it you want. */
 import { avatarSvg, DEFAULT_AVATAR } from '~/utils/avatar'
-import { FUN_ACTIONS, FUN_IMPACT, FUN_SPARKLE, FUN_KIND_SCREEN, funAction, funAllowed, type FunAction, type FunMotion } from '~/utils/fun'
+import { FUN_ACTIONS, FUN_GAME, FUN_IMPACT, FUN_SPARKLE, FUN_KIND_SCREEN, funAction, funAllowed, isPlay, type FunAction, type FunMotion } from '~/utils/fun'
 
 const { t, locale } = useI18n()
 const { show } = useToast()
@@ -52,18 +52,23 @@ const groupsFor = (l: any) => GROUPS.map(g => ({ ...g, actions: FUN_ACTIONS.filt
   .filter(g => g.actions.length)
 /** This week, between me and them. */
 function score(id: number) {
-  return { me: recent.value.filter(r => r.from === myId.value && r.to === id).length, them: recent.value.filter(r => r.from === id && r.to === myId.value).length }
+  const done = recent.value.filter(r => isPlay(funAction(r.action)) && !r.auto)
+  return { me: done.filter(r => r.from === myId.value && r.to === id).length, them: done.filter(r => r.from === id && r.to === myId.value).length }
 }
 
 /* ---- doing it ---- */
 const busy = ref(false)
 const played = new Set<number>()
+// "who did it?": the next throw goes without a name (once a week)
+const anon = ref(false)
+watch(target, () => { anon.value = false })
 async function act(to: any, a: FunAction) {
+  const asAnon = anon.value && a.motion === 'throw'
   target.value = null
   if (busy.value) return
   busy.value = true
   try {
-    const r = await $fetch<any>('/api/admin/fun', { method: 'POST', body: { to: to.id, action: a.key } })
+    const r = await $fetch<any>('/api/admin/fun', { method: 'POST', body: { to: to.id, action: a.key, anon: asAnon } })
     played.add(r.id)
     if (data.value?.me) data.value.me.sentToday++
     await play(a, myId.value!, to.id)
@@ -75,6 +80,67 @@ const backTo = (r: any) => {
   const l = data.value?.leaders?.find((x: any) => x.id === r.from)
   const a = funAction(r.action)
   if (l && a) act(l, a)
+}
+
+/* ---- "who did it?": guessing who threw it ---- */
+const guessing = ref<any>(null)
+const tried = ref<number[]>([])
+function openGuess(r: any) { guessing.value = r; tried.value = [] }
+async function guess(who: any) {
+  const r = guessing.value
+  if (!r || busy.value) return
+  busy.value = true
+  try {
+    const res = await $fetch<any>('/api/admin/fun/guess', { method: 'POST', body: { id: r.id, who: who.id } })
+    if (res.right) {
+      guessing.value = null
+      show(`🎯 ${t('funGuessRight', { name: res.fromName })}`, 3200)
+      played.add(res.backId)
+      const a = funAction(res.action)
+      if (a) await play(a, myId.value!, res.from)
+      await refresh()
+    } else if (res.left > 0) {
+      tried.value = [...tried.value, who.id]
+      r.guessesLeft = res.left
+      sfx('wrong')
+      show(`❌ ${t('funGuessWrong', { n: res.left })}`)
+    } else {
+      guessing.value = null
+      sfx('wrong')
+      show(`😎 ${t('funGuessEscaped', { name: res.fromName })}`, 3600)
+      await refresh()
+    }
+  } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
+}
+
+/* ---- the hot potato ---- */
+const potato = computed<any>(() => data.value?.potato || {})
+const holdIt = computed(() => potato.value.active?.holder === myId.value)
+const clock = ref(Date.now())
+let clockTimer: any
+onMounted(() => { clockTimer = setInterval(() => { clock.value = Date.now() }, 1000) })
+onBeforeUnmount(() => clearInterval(clockTimer))
+/** What is left on the potato's clock, as h:mm:ss (it stands still at night). */
+const potatoLeft = computed(() => {
+  const d = potato.value.active ? Date.parse(potato.value.active.deadline) - clock.value : 0
+  if (d <= 0) return '0:00:00'
+  const s = Math.floor(d / 1000)
+  return `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+})
+/** Whether I may throw the potato at them now: I hold it (and they did not
+    just give it to me), or none is in play and one may start. */
+const canPotato = (l: any) => !!l && !l.me && l.pref === 'all' && data.value?.me?.pref === 'all' && !data.value?.paused
+  && (holdIt.value ? potato.value.active.prev !== l.id : !!potato.value.canStart)
+async function throwPotato(to: any) {
+  target.value = null
+  if (busy.value) return
+  busy.value = true
+  try {
+    const r = await $fetch<any>('/api/admin/fun/potato', { method: 'POST', body: { to: to.id } })
+    played.add(r.id)
+    await play(FUN_GAME[0], myId.value!, to.id)
+    await refresh()
+  } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
 }
 
 /* ---- how it plays out ---- */
@@ -142,11 +208,11 @@ function shake(id: number, how: string) {
 /** One thing done by one to another, played out on the stage, with its
     drawn art and its own sound; when it is you they did it to, it fills
     your screen too. */
-async function play(a: FunAction, fromId: number, toId: number) {
+async function play(a: FunAction, fromId: number | null, toId: number) {
   if (!stage.value) return
   const to = spot(toId)
   if (!to) return
-  const from = spot(fromId)
+  const from = fromId != null ? spot(fromId) : null
   const atMe = toId === myId.value
   const sx = from?.x ?? stage.value.clientWidth / 2, sy = from?.y ?? stage.value.clientHeight + 20
   const art = a.art || {}
@@ -154,6 +220,32 @@ async function play(a: FunAction, fromId: number, toId: number) {
     funSound(a.key, a.motion, atMe)
     if (art.sprite) pop(art.sprite, to.x, to.face, 900)
     else burst(to.x, to.face, null, a.emoji, 1)
+    return
+  }
+  if (a.motion === 'pass') {
+    // the potato flies over, steaming, and stays in their hands
+    sfx('whoosh')
+    const el = sprite(a.emoji, 'sprite')
+    const dx = to.x - sx, dy = to.y - sy
+    const frames = Array.from({ length: 14 }, (_, i) => {
+      const p = i / 13
+      return { transform: `translate(${sx + dx * p}px, ${sy + dy * p - 4 * 80 * p * (1 - p)}px) rotate(${p * 360}deg)` }
+    })
+    await el.animate(frames, { duration: 650, easing: 'linear' }).finished
+    el.remove()
+    funSound(a.key, a.motion, atMe)
+    burst(to.x, to.y - 10, null, '💨', 5)
+    shake(toId, 'pushR')
+    if (atMe) onScreen(a.emoji, 'pow')
+    await wait(250)
+    return
+  }
+  if (a.motion === 'burn') {
+    funSound(a.key, a.motion, atMe)
+    burst(to.x, to.y, null, '🔥', 9)
+    shake(toId, 'splat')
+    if (atMe) onScreen('🔥', 'pow')
+    await wait(400)
     return
   }
   if (a.motion === 'throw') {
@@ -314,9 +406,11 @@ function ago(iso: string) {
 }
 const feed = computed(() => recent.value.slice(0, 12).map(r => ({
   ...r, a: funAction(r.action),
-  fromLabel: r.from === myId.value ? t('funYou') : r.fromName,
+  fromLabel: r.from == null ? `❓ ${t('funSomeone')}` : r.from === myId.value ? t('funYou') : r.fromName,
   toLabel: r.to === myId.value ? t('funYouObj') : r.toName,
-  canReturn: r.to === myId.value && r.from !== myId.value && Date.now() - Date.parse(r.at) < 24 * HOURS
+  // a throw with no name on it, at me, still to be guessed
+  canGuess: r.anon && r.from == null && r.to === myId.value,
+  canReturn: isPlay(funAction(r.action)) && !r.anon && r.from != null && r.to === myId.value && r.from !== myId.value && Date.now() - Date.parse(r.at) < 24 * HOURS
 })).filter(r => r.a))
 </script>
 
@@ -328,6 +422,16 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
         <span>{{ data.paused ? t('funPaused') : t('funSub') }}</span>
       </div>
       <span v-if="!data.paused && data.me.pref !== 'off'" class="ammo">{{ t('funLeft', { n: left }) }}</span>
+    </div>
+
+    <!-- the hot potato: who has it and how long they have, or the chance to start one -->
+    <div v-if="!data.paused && (potato.active || potato.last || (potato.canStart && data.me.pref === 'all'))" class="potato" :class="{ mine: holdIt }">
+      <span class="spud">{{ potato.active ? '🥔' : potato.last ? '🔥' : '🥔' }}</span>
+      <div v-if="holdIt" class="ptxt"><b>{{ t('funPotatoYours') }}</b><span>{{ t('funPotatoYoursSub') }}</span></div>
+      <div v-else-if="potato.active" class="ptxt"><b>{{ t('funPotatoAt', { name: potato.active.holderName }) }}</b><span>{{ t('funPotatoPasses', { n: potato.active.passes }) }}</span></div>
+      <div v-else-if="potato.last" class="ptxt"><b>{{ t('funPotatoBurned', { name: potato.last.burned === myId ? t('funYouObj') : potato.last.burnedName }) }}</b><span>{{ t('funPotatoBurnedSub', { n: potato.last.passes }) }}</span></div>
+      <div v-else class="ptxt"><b>{{ t('funPotatoStart') }}</b><span>{{ t('funPotatoStartSub') }}</span></div>
+      <span v-if="potato.active" class="pclock">⏳ {{ potatoLeft }}</span>
     </div>
 
     <div ref="stage" class="stage" :class="{ paused: data.paused }">
@@ -344,6 +448,7 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
             <img v-if="s.img" :src="s.img" alt="" class="stain pic" :style="{ left: s.x + '%', top: s.y + '%', width: s.s * 1.5 + 'px' }">
             <span v-else class="stain" :style="{ left: s.x + '%', top: s.y + '%', width: s.s + 'px', height: s.s + 'px', background: s.color }" />
           </template>
+          <span v-if="potato.active?.holder === l.id" class="held">🥔<i>💨</i></span>
           <span v-if="giftsAt(l.id).length" class="gifts"><template v-for="g in giftsAt(l.id)" :key="g.key"><img v-if="g.art?.sprite" :src="g.art.sprite" alt=""><span v-else>{{ g.emoji }}</span></template></span>
         </span>
         <span class="nm">{{ l.me ? t('funYou') : nameOf(l) }}</span>
@@ -356,8 +461,11 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
       <div v-if="!feed.length" class="tiny muted">{{ t('funNone') }}</div>
       <div v-for="r in feed" :key="r.id" class="line">
         <img v-if="r.a!.art?.sprite" class="em" :src="r.a!.art.sprite" :alt="r.a!.emoji"><span v-else class="em emo">{{ r.a!.emoji }}</span>
-        <span class="txt"><b>{{ r.fromLabel }}</b> → <b>{{ r.toLabel }}</b><small>{{ text(r.a!) }} · {{ ago(r.at) }}</small></span>
-        <button v-if="r.canReturn && !data.paused && data.me.pref !== 'off'" class="back" :disabled="busy" @click="backTo(r)">↩️ {{ t('funBack') }}</button>
+        <span v-if="r.action === 'burn'" class="txt"><b>{{ t('funBurnLine', { name: r.toLabel }) }}</b><small>{{ ago(r.at) }}</small></span>
+        <span v-else class="txt"><b>{{ r.fromLabel }}</b> → <b>{{ r.toLabel }}</b>
+          <small>{{ text(r.a!) }}<template v-if="r.anon"> · 🕶️ {{ r.outcome === 'guessed' ? t('funFound') : r.outcome === 'escaped' ? t('funEscaped') : t('funMystery') }}</template> · {{ ago(r.at) }}</small></span>
+        <button v-if="r.canGuess && !data.paused" class="back guess" :disabled="busy" @click="openGuess(r)">🕵️ {{ t('funGuess', { n: r.guessesLeft }) }}</button>
+        <button v-else-if="r.canReturn && !data.paused && data.me.pref !== 'off'" class="back" :disabled="busy" @click="backTo(r)">↩️ {{ t('funBack') }}</button>
       </div>
     </div>
 
@@ -387,17 +495,38 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
           <div v-else-if="data.me.pref === 'off'" class="note">{{ t('funPrefOff') }} · {{ t('funMine') }} ›</div>
           <div v-else-if="target.pref === 'off'" class="note">{{ target.firstName }}: {{ t('funOut') }}</div>
           <template v-else>
+            <button v-if="canPotato(target)" class="potato-btn" :disabled="busy" @click="throwPotato(target)">
+              🥔 {{ holdIt ? t('funPotatoPass', { name: target.firstName }) : t('funPotatoStartAt', { name: target.firstName }) }}
+            </button>
             <div v-if="target.pref === 'kind'" class="note soft">{{ t('funKindOnly') }}</div>
+            <label v-if="data.me.anonLeft && target.pref === 'all'" class="anon" :class="{ on: anon }">
+              <input v-model="anon" type="checkbox">
+              <span>🕶️ <b>{{ t('funAnon') }}</b><small>{{ t('funAnonSub') }}</small></span>
+            </label>
             <div v-for="g in groupsFor(target)" :key="g.motion" class="grp">
               <div class="tiny muted">{{ t(g.label) }}</div>
               <div class="acts">
-                <button v-for="a in g.actions" :key="a.key" class="act" :class="g.motion" :disabled="!left || busy" @click="act(target, a)">
+                <button v-for="a in g.actions" :key="a.key" class="act" :class="g.motion" :disabled="!left || busy || (anon && a.motion !== 'throw')" @click="act(target, a)">
                   <img v-if="a.art?.sprite" class="e" :src="a.art.sprite" :alt="a.emoji"><span v-else class="e emo">{{ a.emoji }}</span><span class="l">{{ text(a) }}</span>
                 </button>
               </div>
             </div>
             <div class="tiny muted" style="text-align:center">{{ t('funLeft', { n: left }) }}</div>
           </template>
+        </div>
+      </div>
+
+      <div v-if="guessing" class="sheet-backdrop" @click.self="guessing = null">
+        <div class="sheet fun-sheet">
+          <h3 style="margin:0;font-size:17px;text-align:center">🕵️ {{ t('funWhoDidIt') }}</h3>
+          <div class="tiny muted" style="text-align:center">{{ t('funWhoDidItSub', { n: guessing.guessesLeft }) }}</div>
+          <div class="suspects">
+            <button v-for="l in data.leaders.filter((x: any) => !x.me)" :key="l.id" class="suspect" :disabled="busy || tried.includes(l.id)" @click="guess(l)">
+              <Avatar :name="`${l.firstName} ${l.lastName}`" :photo="l.photo" :avatar="l.figure || l.avatar" :size="52" no-zoom />
+              <span>{{ tried.includes(l.id) ? '❌' : l.firstName }}</span>
+            </button>
+          </div>
+          <button class="btn ghost" @click="guessing = null">{{ t('close') }}</button>
         </div>
       </div>
 
@@ -533,4 +662,31 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 @keyframes fade-late{0%, 70%{opacity:1} 100%{opacity:0}}
 @keyframes kind-rain{from{transform:translateY(-12vh) scale(.95); opacity:0} 15%{opacity:1} 80%{opacity:1} to{transform:translateY(8vh) scale(1.05); opacity:0}}
 @keyframes kind-front{0%{transform:scale(.2); opacity:0} 20%{transform:scale(1.15); opacity:1} 35%{transform:scale(1)} 80%{transform:translateY(-2vh); opacity:1} 100%{transform:translateY(-8vh) scale(.9); opacity:0}}
+
+/* the hot potato */
+.potato{display:flex; align-items:center; gap:10px; background:#fff; border-radius:16px; padding:9px 12px; margin-bottom:8px; box-shadow:0 1px 6px rgba(20,40,70,.06)}
+.potato.mine{background:linear-gradient(135deg,#FFE3B8,#FFC3A0); animation:hot 1.1s ease-in-out infinite}
+.potato .spud{font-size:26px; flex:none}
+.potato.mine .spud{animation:jiggle .5s ease-in-out infinite}
+.ptxt{flex:1; min-width:0}
+.ptxt b{display:block; font-size:13.5px}
+.ptxt span{display:block; font-size:11.5px; color:var(--muted)}
+.pclock{flex:none; font-weight:800; font-variant-numeric:tabular-nums; font-size:14px}
+@keyframes hot{50%{box-shadow:0 0 0 4px rgba(255,120,60,.25)}}
+@keyframes jiggle{25%{transform:rotate(-12deg)} 75%{transform:rotate(12deg)}}
+.held{position:absolute; right:2%; top:56%; font-size:20px; pointer-events:none; animation:jiggle .6s ease-in-out infinite}
+.held i{position:absolute; left:4px; top:-14px; font-size:11px; font-style:normal; opacity:.8; animation:steam 1.4s ease-out infinite}
+@keyframes steam{from{transform:translateY(4px); opacity:.9} to{transform:translateY(-8px); opacity:0}}
+.potato-btn{border:0; border-radius:16px; padding:12px; font-weight:800; font-size:14.5px; color:#7A2E0E; background:linear-gradient(135deg,#FFE3B8,#FFB48A)}
+.potato-btn:active{transform:scale(.97)}
+/* who did it? */
+.anon{display:flex; align-items:center; gap:10px; background:#fff; border-radius:14px; padding:10px 12px; cursor:pointer}
+.anon.on{background:#2A2330; color:#fff}
+.anon input{width:20px; height:20px; flex:none}
+.anon b{font-size:13.5px}
+.anon small{display:block; font-size:11px; opacity:.75}
+.back.guess{background:#2A2330; color:#fff}
+.suspects{display:grid; grid-template-columns:repeat(auto-fill, minmax(70px, 1fr)); gap:10px}
+.suspect{border:0; background:#fff; border-radius:16px; padding:8px 4px; display:flex; flex-direction:column; align-items:center; gap:5px; font-size:12px; font-weight:700}
+.suspect:disabled{opacity:.45}
 </style>

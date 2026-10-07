@@ -2,7 +2,7 @@
    laugh. Each has its emoji, its name, what the other is told, and how it
    plays on screen — thrown across (and leaving its mark for a while), a
    shove, or something kind. */
-export type FunMotion = 'throw' | 'shove' | 'kind'
+export type FunMotion = 'throw' | 'shove' | 'kind' | 'pass' | 'burn'
 export type FunAction = {
   key: string, emoji: string, motion: FunMotion,
   el: string, en: string,
@@ -56,6 +56,17 @@ export const FUN_IMPACT = `${ART}impact.webp`
 export const FUN_SPARKLE: string | null = null
 export const FUN_KIND_SCREEN: string | null = null
 
-export const funAction = (key: string) => FUN_ACTIONS.find(a => a.key === key)
+/* The games' own doings, in the feed and played out like the rest, but not
+   on the buttons: the hot potato passed on, and burning in someone's hands. */
+export const FUN_GAME: FunAction[] = [
+  { key: 'potato', emoji: '🥔', motion: 'pass', el: 'Καυτή πατάτα', en: 'Hot potato', noteEl: '{name} σού πέταξε την καυτή πατάτα! 🥔 Έχεις 4 ώρες να την πετάξεις σε άλλον.', noteEn: '{name} threw you the hot potato! 🥔 You have 4 hours to pass it on.' },
+  { key: 'burn', emoji: '🔥', motion: 'burn', el: 'Κάηκε η πατάτα!', en: 'The potato burned!', noteEl: '🔥 Η καυτή πατάτα κάηκε στα χέρια σου!', noteEn: '🔥 The hot potato burned in your hands!' }
+]
+/** A throw with no name on it: what the one it hit is told. */
+export const anonNote = (a: FunAction) => `${a.emoji} Κάποιος σε πέτυχε… Μάντεψε ποιος! 🕵️ (3 προσπάθειες)`
+
+export const funAction = (key: string) => FUN_ACTIONS.find(a => a.key === key) || FUN_GAME.find(a => a.key === key)
+/** Whether it is one of the things done by hand (not a game's doing). */
+export const isPlay = (a: FunAction | undefined) => !!a && (a.motion === 'throw' || a.motion === 'shove' || a.motion === 'kind')
 /** Whether someone takes this kind of thing: everything, only the kind ones, or nothing. */
 export const funAllowed = (pref: string | null | undefined, a: FunAction) => pref === 'off' ? false : pref === 'kind' ? a.motion === 'kind' : true

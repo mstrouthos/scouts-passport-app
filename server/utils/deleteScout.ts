@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm'
+import { eq, inArray, or } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { childIdsOfParent } from './parents'
 
@@ -33,6 +33,11 @@ export async function cascadeDeleteScout(id: number) {
         await tx.delete(s.parents).where(eq(s.parents.id, p.id))
       }
     }
+    // what they saw, the 👏 they gave and got, the playground's doings
+    await tx.delete(s.contentViews).where(eq(s.contentViews.scoutId, id))
+    await tx.delete(s.scoutKudos).where(or(eq(s.scoutKudos.fromId, id), eq(s.scoutKudos.toId, id)))
+    await tx.delete(s.leaderFun).where(or(eq(s.leaderFun.fromId, id), eq(s.leaderFun.toId, id)))
+    await tx.delete(s.hotPotato).where(or(eq(s.hotPotato.startedBy, id), eq(s.hotPotato.holderId, id), eq(s.hotPotato.prevId, id), eq(s.hotPotato.burnedId, id)))
     await tx.delete(s.scouts).where(eq(s.scouts.id, id))
   })
 }

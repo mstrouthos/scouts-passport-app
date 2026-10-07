@@ -3,7 +3,7 @@ import { useDb, schema as s } from '../../db'
 import { requireLeader } from '../../utils/guard'
 import { faceOf } from '../../utils/face'
 import { normalizeAvatar, randomAvatar } from '../../../utils/avatar'
-import { FUN_LIMIT_DAY, cyprusDayStart, funPaused } from '../../utils/leaderFun'
+import { FUN_LIMIT_DAY, cyprusDayStart, cyprusWeekStart, funPaused, potatoTick, activePotato } from '../../utils/leaderFun'
 
 /** The playground: every Βαθμοφόρος of every sector, standing; what has
     been going on lately; and the marks still on anyone. */
@@ -36,12 +36,36 @@ export default defineEventHandler(async (event) => {
   // standing, the avatar shows even for one who uses a photo as their face
   const figure = (raw: string | null) => { try { return raw ? normalizeAvatar(JSON.parse(raw)) : null } catch { return null } }
   const today = cyprusDayStart()
+
+  /* "who did it?": a throw with no name keeps its thrower hidden from all
+     but the thrower, until guessed, given up on, or a day has gone by */
+  const DAY = 24 * 3600_000
+  const outcomeOf = (r: typeof recent[number]) => r.outcome || (r.anon && Date.now() - Date.parse(r.createdAt) > DAY ? 'escaped' : null)
+  const hidden = (r: typeof recent[number]) => r.anon && !outcomeOf(r) && r.fromId !== me.id
+  const anonUsed = recent.some(r => r.anon && r.fromId === me.id && r.createdAt >= cyprusWeekStart())
+
+  // the hot potato: burned first if its time is up
+  await potatoTick()
+  const pot = await activePotato()
+  const todays = (await db.select().from(s.hotPotato).where(gt(s.hotPotato.startedAt, today))).filter(p => p.endedAt)
+    .sort((a, b) => b.id - a.id)[0]
   return {
     paused: await funPaused(), canPause: me.role === 'troop_leader',
-    me: { id: me.id, pref: me.funPref, sentToday: recent.filter(r => r.fromId === me.id && r.createdAt >= today).length, limit: FUN_LIMIT_DAY },
+    me: { id: me.id, pref: me.funPref, sentToday: recent.filter(r => r.fromId === me.id && r.createdAt >= today && !r.auto).length, limit: FUN_LIMIT_DAY,
+      anonLeft: !anonUsed },
+    potato: {
+      active: pot ? { holder: pot.holderId, holderName: nameOf(pot.holderId), prev: pot.prevId, deadline: pot.deadline, passes: pot.passes } : null,
+      // one a day: a new one only when today's has not burned yet
+      canStart: !pot && !todays,
+      last: todays ? { burned: todays.burnedId, burnedName: nameOf(todays.burnedId!), passes: todays.passes, at: todays.endedAt } : null
+    },
     leaders: leaders.map(l => ({ id: l.id, firstName: l.firstName, lastName: l.lastName, ...faceOf(l), figure: figure(l.avatar), where: where(l), me: l.id === me.id, pref: l.funPref }))
       .sort((a, b) => Number(b.me) - Number(a.me) || a.firstName.localeCompare(b.firstName, 'el')),
     // what was done, newest first — the marks are worked out from it on the page
-    recent: recent.slice(0, 300).map(r => ({ id: r.id, from: r.fromId, fromName: nameOf(r.fromId), to: r.toId, toName: nameOf(r.toId), action: r.action, at: r.createdAt }))
+    recent: recent.slice(0, 300).map(r => ({
+      id: r.id, to: r.toId, toName: nameOf(r.toId), action: r.action, at: r.createdAt, auto: r.auto,
+      ...(hidden(r) ? { from: null, fromName: null, guessesLeft: 3 - r.guesses } : { from: r.fromId, fromName: nameOf(r.fromId) }),
+      ...(r.anon ? { anon: true, outcome: outcomeOf(r) } : {})
+    }))
   }
 })
