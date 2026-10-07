@@ -162,19 +162,28 @@ async function stopRound() {
   if (!confirm(t('funPotatoStopQ'))) return
   try { await $fetch('/api/admin/fun/potato-stop', { method: 'POST' }); await refresh(); show('⏹ ' + t('funPotatoStopped')) } catch (e: any) { show(errMsg(e)) }
 }
-const challenges = ref<string | null>(null)
+// the Αρχηγός's editable list (one row each); everyone else's read-only one
+const challenges = ref<string[] | null>(null)
 const challengeList = ref<string[] | null>(null)
 async function openChallenges() {
   try {
     const list = (await $fetch<any>('/api/admin/fun/potato-challenges')).challenges as string[]
     // the Αρχηγός writes them; everyone else reads them
-    if (potato.value.canStop) challenges.value = list.join('\n')
+    if (potato.value.canStop) challenges.value = [...list]
     else challengeList.value = list
   } catch (e: any) { show(errMsg(e)) }
 }
+async function addChallenge() {
+  challenges.value = [...(challenges.value || []), '']
+  // the new row, ready to type in
+  await nextTick()
+  const rows = document.querySelectorAll<HTMLInputElement>('.chrow input')
+  rows[rows.length - 1]?.focus()
+}
+const removeChallenge = (i: number) => { challenges.value = challenges.value!.filter((_, j) => j !== i) }
 async function saveChallenges() {
   try {
-    await $fetch('/api/admin/fun/potato-challenges', { method: 'PUT', body: { challenges: (challenges.value || '').split('\n') } })
+    await $fetch('/api/admin/fun/potato-challenges', { method: 'PUT', body: { challenges: (challenges.value || []).map(c => c.trim()).filter(Boolean) } })
     challenges.value = null; show('✅ ' + t('saved'))
   } catch (e: any) { show(errMsg(e)) }
 }
@@ -658,7 +667,15 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
         <div class="sheet fun-sheet">
           <h3 style="margin:0;font-size:17px;text-align:center">🥔 {{ t('funPotatoChallenges') }}</h3>
           <div class="tiny muted" style="text-align:center">{{ t('funPotatoChallengesNote') }}</div>
-          <textarea v-model="challenges" class="in" rows="12" />
+          <div class="chlist">
+            <div v-for="(c, i) in challenges" :key="i" class="chrow">
+              <span class="chn">{{ i + 1 }}</span>
+              <input v-model="challenges[i]" class="in" maxlength="200" :placeholder="t('funPotatoChallengePh')">
+              <button class="chdel" :aria-label="t('delete')" @click="removeChallenge(i)">🗑</button>
+            </div>
+            <div v-if="!challenges.length" class="tiny muted" style="text-align:center">{{ t('funPotatoChallengesEmpty') }}</div>
+          </div>
+          <button class="btn ghost" @click="addChallenge">＋ {{ t('funPotatoChallengeAdd') }}</button>
           <button class="btn" @click="saveChallenges">{{ t('save') }}</button>
           <button class="btn ghost" @click="challenges = null">{{ t('close') }}</button>
         </div>
@@ -833,6 +850,11 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 .pinfo{flex:none; border:0; background:none; font-size:18px; padding:2px; cursor:pointer}
 .pstake{font-size:12.5px; background:rgba(255,255,255,.65); border-radius:10px; padding:6px 9px; line-height:1.4}
 .pbtns{display:flex; flex-wrap:wrap; gap:6px}
+.chlist{display:flex; flex-direction:column; gap:8px}
+.chrow{display:flex; align-items:center; gap:8px}
+.chrow .in{flex:1; min-width:0}
+.chn{flex:none; width:22px; text-align:center; font-weight:800; color:var(--muted); font-size:13px}
+.chdel{flex:none; border:0; background:#fff; border-radius:10px; width:36px; height:36px; font-size:15px; cursor:pointer; box-shadow:0 1px 4px rgba(20,40,70,.08)}
 .rules{margin:0; padding-left:20px; display:flex; flex-direction:column; gap:7px; font-size:13.5px; line-height:1.5}
 .had{position:absolute; right:6%; bottom:4%; font-size:11px; opacity:.55; filter:grayscale(.4); pointer-events:none}
 .kimcard{text-decoration:none; color:inherit}

@@ -1482,7 +1482,7 @@
   "funPotatoStopQ": "End the round? Nobody will get the challenge.",
   "funPotatoStopped": "Round ended",
   "funPotatoChallenges": "Hot potato challenges",
-  "funPotatoChallengesNote": "One challenge a line. Each new round draws one. Empty: the app's own.",
+  "funPotatoChallengesNote": "Each new round draws one. Delete them all and the app's own apply.",
   "funPotatoRulesTitle": "How the hot potato works",
   "funPotatoRule1": "Anyone set to \"Everything\" starts a round by throwing the potato at someone: tap them on the campsite → \"🥔 Start a hot potato\".",
   "funPotatoRule2": "When it starts, a challenge is drawn and everyone is told: that is what whoever it bursts on will have to do.",
@@ -1524,5 +1524,8 @@
   "funViewFaces": "Faces",
   "funViewBodies": "Full body",
   "funPotatoChallengesBtn": "Challenges",
-  "funPotatoChallengesRead": "Each new round draws one of these — and everyone is told which."
+  "funPotatoChallengesRead": "Each new round draws one of these — and everyone is told which.",
+  "funPotatoChallengePh": "e.g. Tell a joke 😂",
+  "funPotatoChallengeAdd": "New challenge",
+  "funPotatoChallengesEmpty": "None — the app's own will apply"
 }
