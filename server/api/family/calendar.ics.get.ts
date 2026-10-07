@@ -1,6 +1,7 @@
 import { useDb, schema as s } from '../../db'
 import { requireParent } from '../../utils/parentGuard'
 import { buildIcs } from '../../utils/ics'
+import { eventInSections, eventSectionIds } from '../../utils/eventScope'
 
 /** A signed-in parent's diary as .ics, for their phone's calendar.
 
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
 
   const rows = (await db.select().from(s.events))
     .filter(e => e.scope !== 'leaders')
-    .filter(e => e.scope === 'troop' || (e.scope === 'section' && e.sectionId != null && sectionIds.includes(e.sectionId)))
+    .filter(e => e.scope === 'troop' || (e.scope === 'section' && eventInSections(e, sectionIds)))
     .filter(e => one == null ? new Date(e.endsAt || e.startsAt).getTime() > Date.now() - 86400_000 : e.id === one)
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
   if (one != null && !rows.length) throw createError({ statusCode: 404, message: 'Not found' })

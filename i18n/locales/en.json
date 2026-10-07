@@ -1350,5 +1350,8 @@
   "formNotifyGo": "Notify {n} parents",
   "formNotifyAllDone": "Everyone has been notified",
   "formNotifyQ": "Send a notification to {n} parents?",
-  "formNotified": "Notification sent to {n} parents"
+  "formNotified": "Notification sent to {n} parents",
+  "evNeedOwnSector": "Include your own sector too — you cannot set an event for other sectors alone.",
+  "evShared": "Joint event: {list}",
+  "evPickSector": "Pick a sector (or several)."
 }

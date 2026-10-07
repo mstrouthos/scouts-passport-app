@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { isAfter } from './passcode'
+import { eventInSections } from './eventScope'
 
 /** The Αγέλη's and Μικρή Αγέλη's own corner of the app. Those children never
     sign in — everything meant for them is read by their families — so both
@@ -31,7 +32,7 @@ export async function nextMeetingFor(sectionId: number) {
   const db = await useDb()
   const t = new Date().toISOString()
   const upcoming = (await db.select().from(s.events))
-    .filter(e => (e.scope === 'troop' || (e.scope === 'section' && e.sectionId === sectionId)))
+    .filter(e => (e.scope === 'troop' || (e.scope === 'section' && eventInSections(e, [sectionId]))))
     .filter(e => isAfter(e.startsAt, t))
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0]
   if (!upcoming) return null

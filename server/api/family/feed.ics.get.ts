@@ -1,5 +1,6 @@
 import { useDb, schema as s } from '../../db'
 import { buildIcs } from '../../utils/ics'
+import { eventInSections, eventSectionIds } from '../../utils/eventScope'
 
 /** Public parents' calendar as a downloadable .ics, scoped by section slug. */
 export default defineEventHandler(async (event) => {
@@ -11,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   const rows = (await db.select().from(s.events))
     .filter(e => e.scope !== 'leaders')
-    .filter(e => e.scope === 'troop' || (e.scope === 'section' && e.sectionId === current.id))
+    .filter(e => e.scope === 'troop' || (e.scope === 'section' && eventInSections(e, [current.id])))
     .filter(e => new Date(e.endsAt || e.startsAt).getTime() > Date.now() - 86400_000)
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
 

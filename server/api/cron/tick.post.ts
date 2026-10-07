@@ -10,6 +10,7 @@ import { READ_TTL_MS } from '../../utils/notifyRetention'
 import { cyprusTimeOnDayOf } from '../../utils/cyprusTime'
 import { localDay, bonusEarned, currentStreak } from '../../utils/streak'
 import { deleteFormFiles } from '../../utils/formFiles'
+import { eventInSections, eventSectionIds } from '../../utils/eventScope'
 
 /** Hit by host cron every few minutes with the token:
     curl -X POST -H "x-cron-token: $TOKEN" https://.../api/cron/tick */
@@ -119,7 +120,7 @@ export default defineEventHandler(async (event) => {
     const targets = scouts.filter(r => r.role === 'scout').filter(r =>
       e.scope === 'troop'
       || (e.scope === 'patrol' && r.patrolId === e.patrolId)
-      || (e.scope === 'section' && sectionOfWith(r as any, patrols) === e.sectionId))
+      || (e.scope === 'section' && eventInSections(e, [sectionOfWith(r as any, patrols) as number])))
     const msg = {
       title: 'Υπενθύμιση 📅',
       body: `Αύριο: ${e.titleEl}${e.location ? ' · ' + e.location : ''}`, kind: 'event_reminder', refId: e.id
@@ -128,8 +129,11 @@ export default defineEventHandler(async (event) => {
     notified += await sendPushTo(targets.map(r => r.id), msg, trace)
     let parentPushes = 0
     if (e.scope === 'troop') parentPushes = await sendPushToParents(null, msg)
-    else if (e.scope === 'section' && e.sectionId != null && famSections.includes(e.sectionId))
-      parentPushes = await sendPushToParents([e.sectionId], msg)
+    else if (e.scope === 'section') {
+      // the families of each sector it is for whose children never sign in
+      const fam = eventSectionIds(e).filter(x => famSections.includes(x))
+      if (fam.length) parentPushes = await sendPushToParents(fam, msg)
+    }
     notified += parentPushes
     report(`event reminder #${e.id}: ${e.titleEl}`, trace, parentPushes)
   }

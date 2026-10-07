@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader, scopedSectionIds, idParam } from '../../../utils/guard'
 import { canScheduleForGroup } from '../../../utils/groupScope'
-import { eventInScope } from '../../../utils/eventScope'
+import { eventInScope, sectorsForEvent } from '../../../utils/eventScope'
 import { assertCan } from '../../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
@@ -43,7 +43,8 @@ export default defineEventHandler(async (event) => {
   }
 
   // moving an event between sectors follows the same rules as creating one
-  if (b?.scope !== undefined || b?.sectionId !== undefined || b?.patrolId !== undefined || b?.groupId !== undefined) {
+  if (b?.scope !== undefined || b?.sectionId !== undefined || b?.sectionIds !== undefined || b?.patrolId !== undefined || b?.groupId !== undefined) {
+    set.extraSectionIds = null
     const secIds = await scopedSectionIds(me)
     const scope = ['troop', 'section', 'patrol', 'leaders', 'group'].includes(b.scope) ? b.scope : 'section'
     if (scope === 'group') {
@@ -64,7 +65,6 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 403, message: 'Only the Αρχηγός Συστήματος can set a Βαθμοφόροι event' })
       set.scope = 'leaders'; set.sectionId = sectionId; set.patrolId = null; set.groupId = null
     } else if (scope === 'troop') {
-      if (secIds !== null) throw createError({ statusCode: 403, message: 'Troop events are set by the Troop Leader' })
       set.scope = 'troop'; set.sectionId = null; set.patrolId = null; set.groupId = null
     } else if (scope === 'patrol') {
       const p = (await db.select().from(s.patrols)).find(x => x.id === Number(b.patrolId))
@@ -73,12 +73,8 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 403, message: 'Out of your sector' })
       set.scope = 'patrol'; set.patrolId = p.id; set.sectionId = p.sectionId; set.groupId = null
     } else {
-      const sectionId = Number(b.sectionId)
-      if (!(await db.select().from(s.sections)).some(x => x.id === sectionId))
-        throw createError({ statusCode: 400, message: 'Bad section' })
-      if (secIds !== null && !secIds.includes(sectionId))
-        throw createError({ statusCode: 403, message: 'Out of your sector' })
-      set.scope = 'section'; set.sectionId = sectionId; set.patrolId = null; set.groupId = null
+      const { sectionId, extraSectionIds } = await sectorsForEvent(secIds, b)
+      set.scope = 'section'; set.sectionId = sectionId; set.extraSectionIds = extraSectionIds; set.patrolId = null; set.groupId = null
     }
   }
 

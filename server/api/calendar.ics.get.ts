@@ -2,6 +2,7 @@ import { useDb, schema as s } from '../db'
 import { requireScout, sectionOf, visibleSectionIds } from '../utils/guard'
 import { buildIcs } from '../utils/ics'
 import { eventVisible } from '../utils/eventScope'
+import { eventSectionIds } from '../utils/eventScope'
 
 /** Authenticated person's calendar as a downloadable .ics.
 
@@ -40,7 +41,7 @@ export default defineEventHandler(async (event) => {
     .filter(e => one == null || e.id === one)
     .filter(e => e.scope === 'troop'
       || (e.scope === 'leaders' && isLeader && (e.sectionId == null || inMySectors(e.sectionId)))
-      || (e.scope === 'section' && inMySectors(e.sectionId))
+      || (e.scope === 'section' && eventSectionIds(e).some(x => inMySectors(x)))
       || (e.scope === 'patrol' && (e.patrolId === me.patrolId || (isLeader && inMySectors(e.sectionId))))
       || (e.scope === 'group' && e.groupId != null && myGroups.includes(e.groupId)))
     .filter(e => one != null || new Date(e.endsAt || e.startsAt).getTime() > Date.now() - 86400_000)

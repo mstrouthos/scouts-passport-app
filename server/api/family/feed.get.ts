@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
+import { eventInSections, eventSectionIds } from '../../utils/eventScope'
 
 /** Public parents' feed for the no-account sections (Αγέλη / Μικρή Αγέλη):
     which sections exist, their troop+section events, published info pages.
@@ -14,7 +15,7 @@ export default defineEventHandler(async (event) => {
 
   const events = (await db.select().from(s.events))
     .filter(e => e.scope !== 'leaders')
-    .filter(e => e.scope === 'troop' || (e.scope === 'section' && e.sectionId === current.id))
+    .filter(e => e.scope === 'troop' || (e.scope === 'section' && eventInSections(e, [current.id])))
     .filter(e => new Date(e.endsAt || e.startsAt).getTime() > Date.now() - 86400_000)
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
 

@@ -4,19 +4,25 @@ const me = useMe()
 const lx = useLx()
 const { show } = useToast()
 const isTroop = computed(() => me.value?.role === 'troop_leader')
-const { data: secs } = await useFetch<any>('/api/admin/contacts')     // sections in my scope
+const { data: secs } = await useFetch<any>('/api/admin/contacts?all=1')     // every sector, mine marked
 const { data: groups } = await useFetch<any[]>('/api/admin/groups')  // e.g. η μπάντα
 const form = reactive({
   titleEl: '', titleEn: '', location: '', themeEl: '', descriptionEl: '',
-  scope: isTroop.value ? 'troop' : 'section',
-  groupId: 0,
-  sectionId: 0,
-  leadersOnly: false,   // this sector's Βαθμοφόροι, not its members
   date: new Date().toISOString().slice(0, 10), start: '17:00',
   endDate: '', end: '19:00', remind: true,   // a camp ends on another day
   tracksAttendance: true
 })
-watchEffect(() => { if (!form.sectionId && secs.value?.length) form.sectionId = secs.value[0].id })
+/* who it is for: the whole troop, a sector or several, the Βαθμοφόροι, a group
+   — a sector leader's own sector picked to start with */
+const aud = ref({ scope: isTroop.value ? 'troop' : 'section', sectionIds: [] as number[], groupId: null as number | null, leadersOnly: false })
+watchEffect(() => {
+  if (aud.value.scope === 'section' && !aud.value.sectionIds.length && !isTroop.value && secs.value?.length) {
+    const own = secs.value.find((x: any) => x.mine)
+    if (own) aud.value.sectionIds = [own.id]
+  }
+})
+const audOk = computed(() => aud.value.scope !== 'section'
+  || (aud.value.sectionIds.length > 0 && aud.value.sectionIds.some(x => secs.value?.find((s: any) => s.id === x)?.mine)))
 
 async function save() {
   const startsAt = new Date(`${form.date}T${form.start}`).toISOString()
@@ -28,9 +34,10 @@ async function save() {
       method: 'POST',
       body: { titleEl: form.titleEl, titleEn: form.titleEn || null, location: form.location || null,
               themeEl: form.themeEl || null, descriptionEl: form.descriptionEl || null,
-              scope: form.scope === 'section' && form.leadersOnly ? 'leaders' : form.scope,
-              sectionId: form.scope === 'section' ? form.sectionId : null,
-              groupId: form.scope === 'group' ? form.groupId : null,
+              scope: aud.value.scope === 'section' && aud.value.leadersOnly ? 'leaders' : aud.value.scope,
+              sectionIds: aud.value.scope === 'section' ? aud.value.sectionIds : undefined,
+              sectionId: aud.value.scope === 'section' ? aud.value.sectionIds[0] : null,
+              groupId: aud.value.scope === 'group' ? aud.value.groupId : null,
               startsAt, endsAt, remindAt,
               tracksAttendance: form.tracksAttendance }
     })
@@ -56,25 +63,7 @@ async function save() {
           <input v-model="form.themeEl" class="in" :placeholder="t('meetingThemePh')">
           <div class="tiny muted" style="margin-top:4px">{{ t('meetingThemeNote') }}</div>
         </div>
-        <div>
-          <label class="lab">{{ t('scopeQ') }}</label>
-          <div class="chips">
-            <button v-if="isTroop" class="chip" :class="{ on: form.scope === 'troop' }"
-                    @click="form.scope = 'troop'">{{ t('wholeTroop') }}</button>
-            <button v-for="sec in secs" :key="sec.id" class="chip"
-                    :class="{ on: form.scope === 'section' && form.sectionId === sec.id }"
-                    @click="form.scope = 'section'; form.sectionId = sec.id">{{ lx(sec, 'name') }}</button>
-            <button v-if="isTroop" class="chip" :class="{ on: form.scope === 'leaders' }"
-                    @click="form.scope = 'leaders'">🎖️ {{ t('vathmoforoi') }}</button>
-            <button v-for="g in groups" :key="'g' + g.id" class="chip"
-                    :class="{ on: form.scope === 'group' && form.groupId === g.id }"
-                    @click="form.scope = 'group'; form.groupId = g.id">{{ g.emoji }} {{ g.nameEl }}</button>
-          </div>
-          <label v-if="form.scope === 'section'" class="tiny muted" style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:8px">
-            <input v-model="form.leadersOnly" type="checkbox"> {{ t('leadersOnly') }}
-          </label>
-          <div v-if="form.scope === 'section' && form.leadersOnly" class="tiny muted" style="margin-top:4px">{{ t('leadersOnlyNote') }}</div>
-        </div>
+        <EventAudience v-model="aud" :secs="secs || []" :groups="groups || []" :is-troop="isTroop" />
       </div>
       <div style="display:flex;flex-direction:column;gap:13px">
         <div style="display:flex;gap:8px">
@@ -94,7 +83,7 @@ async function save() {
           <div class="ico">📋</div><div class="txt"><b>{{ t('tracksAttendance') }}</b></div>
           <span class="sw" :class="{ off: !form.tracksAttendance }" />
         </button>
-        <button class="btn" :disabled="!form.titleEl" @click="save">{{ t('save') }}</button>
+        <button class="btn" :disabled="!form.titleEl || !audOk" @click="save">{{ t('save') }}</button>
       </div>
     </div>
   </AppShell>

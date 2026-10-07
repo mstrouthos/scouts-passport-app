@@ -1,5 +1,6 @@
 import { useDb, schema as s } from '../db'
 import { requireScout, sectionOf } from '../utils/guard'
+import { eventInSections, eventSectionIds } from '../utils/eventScope'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
@@ -13,7 +14,7 @@ export default defineEventHandler(async (event) => {
   // Βαθμοφόροι meetings are not theirs to read.
   const rows = (await db.select().from(s.events))
     .filter(e => e.scope === 'troop'
-      || (e.scope === 'section' && e.sectionId === mySection)
+      || (e.scope === 'section' && mySection != null && eventInSections(e, [mySection]))
       || (e.scope === 'patrol' && e.patrolId === me.patrolId)
       || (e.scope === 'group' && e.groupId != null && myGroups.includes(e.groupId)))
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))

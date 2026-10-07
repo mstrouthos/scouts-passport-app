@@ -3,6 +3,7 @@ import { requireLeader, scopedSectionIds } from '../../utils/guard'
 import { assertCan } from '../../utils/permissions'
 import { canScheduleForGroup } from '../../utils/groupScope'
 import { leadersForEvent, leadersToNotify } from '../../utils/rsvp'
+import { sectorsForEvent } from '../../utils/eventScope'
 import { sendPushTo } from '../../utils/push'
 import { noteError } from '../../utils/errorReport'
 
@@ -25,6 +26,7 @@ export default defineEventHandler(async (event) => {
   let sectionId: number | null = b.sectionId != null ? Number(b.sectionId) : null
   let patrolId: number | null = b.patrolId != null ? Number(b.patrolId) : null
   let groupId: number | null = b.groupId != null ? Number(b.groupId) : null
+  let extraSectionIds: string | null = null
 
   if (scope === 'group') {
     if (!Number.isInteger(groupId)) throw createError({ statusCode: 400, message: 'Bad group' })
@@ -45,7 +47,7 @@ export default defineEventHandler(async (event) => {
     } else if (me.role !== 'troop_leader' && secIds !== null)
       throw createError({ statusCode: 403, message: 'Only the Αρχηγός Συστήματος can add a Βαθμοφόροι event' })
   } else if (scope === 'troop') {
-    if (secIds !== null) throw createError({ statusCode: 403, message: 'Troop events are set by the Troop Leader' })
+    // any sector's leader may call the whole troop together
     sectionId = null; patrolId = null
   } else if (scope === 'patrol') {
     const p = (await db.select().from(s.patrols)).find(x => x.id === patrolId)
@@ -54,15 +56,13 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 403, message: 'Out of your sector' })
     sectionId = p.sectionId
   } else {
-    if (sectionId == null || !(await db.select().from(s.sections)).some(x => x.id === sectionId))
-      throw createError({ statusCode: 400, message: 'Bad section' })
-    if (secIds !== null && !secIds.includes(sectionId))
-      throw createError({ statusCode: 403, message: 'Out of your sector' })
+    // one sector, or theirs shared with others
+    ;({ sectionId, extraSectionIds } = await sectorsForEvent(secIds, b))
     patrolId = null
   }
 
   const [row] = (await db.insert(s.events).values({
-    scope, sectionId, patrolId, groupId: scope === 'group' ? groupId : null,
+    scope, sectionId, extraSectionIds, patrolId, groupId: scope === 'group' ? groupId : null,
     titleEl: String(b.titleEl), titleEn: b.titleEn || null,
     themeEl: b.themeEl ? String(b.themeEl).slice(0, 200) : null,
     location: b.location || null,

@@ -14,10 +14,11 @@ const evWords = computed(() => wordsFor(data.value?.event?.sectionSlug ?? mySlug
    event only the units of the sectors this leader runs. An Αγέλη leader must
    never be offered the Ομάδα's ενωμοτίες, whatever the event. */
 const eventPatrols = computed(() => {
-  const sid = data.value?.event?.sectionId
+  // a joint event: the units of its sectors — of those, the ones this leader runs
+  const sids: number[] = data.value?.event?.sectionIds?.length ? data.value.event.sectionIds : data.value?.event?.sectionId != null ? [data.value.event.sectionId] : []
   const mine = me.value?.scopeSections == null ? null : new Set((me.value.scopeSections as any[]).map(x => x.id))
   return (data.value?.patrols || []).filter((p: any) =>
-    sid != null ? p.sectionId === sid : (mine === null || mine.has(p.sectionId)))
+    (!sids.length || sids.includes(p.sectionId)) && (mine === null || mine.has(p.sectionId)))
 })
 const id = route.params.id
 // opened: counted for the administrators (?n=1 — from its notification)
@@ -46,7 +47,7 @@ const gameIcon = (a: any) => a.scoutId
   : (data.value?.patrols || []).find((p: any) => p.id === a.patrolId)?.emblem || '🏆'
 
 // ----- edit / delete -----
-const { data: secs } = await useFetch<any>('/api/admin/contacts')
+const { data: secs } = await useFetch<any>('/api/admin/contacts?all=1')   // every sector, mine marked
 const { data: groups } = await useFetch<any[]>('/api/admin/groups')
 const isTroop = computed(() => me.value?.role === 'troop_leader')
 const editing = ref(false)
@@ -54,8 +55,12 @@ const busy = ref(false)
 const meta = ref<any>(null)
 const form = reactive<any>({
   titleEl: '', location: '', themeEl: '', descriptionEl: '', startsAt: '', endsAt: '', isAllDay: false, leadersOnly: false,
-  tracksAttendance: true, scope: 'section', sectionId: null as number | null, groupId: null as number | null
+  tracksAttendance: true
 })
+/* who it is for (see EventAudience) */
+const aud = ref({ scope: 'section', sectionIds: [] as number[], groupId: null as number | null, leadersOnly: false })
+const audOk = computed(() => aud.value.scope !== 'section'
+  || (aud.value.sectionIds.length > 0 && aud.value.sectionIds.some(x => secs.value?.find((s: any) => s.id === x)?.mine)))
 function toLocal(iso: string | null) {
   if (!iso) return ''
   const d = new Date(iso)
@@ -68,6 +73,9 @@ async function loadMeta() {
   return meta.value
 }
 onMounted(loadMeta)
+// whether who it is for was changed in this edit
+const audSaved = ref('')
+const audTouched = computed(() => !!audSaved.value && JSON.stringify(aud.value) !== audSaved.value)
 async function openEdit() {
   const e = await loadMeta()
   form.titleEl = e.titleEl || ''
@@ -79,10 +87,13 @@ async function openEdit() {
   form.isAllDay = !!e.isAllDay
   form.tracksAttendance = !!e.tracksAttendance
   // one sector's Βαθμοφόροι is edited as that sector with the box ticked
-  form.leadersOnly = e.scope === 'leaders' && e.sectionId != null
-  form.scope = form.leadersOnly ? 'section' : e.scope
-  form.sectionId = e.sectionId ?? null
-  form.groupId = e.groupId ?? null
+  const leadersOnly = e.scope === 'leaders' && e.sectionId != null
+  aud.value = {
+    scope: leadersOnly ? 'section' : e.scope === 'patrol' ? 'section' : e.scope,
+    sectionIds: e.sectionIds?.length ? [...e.sectionIds] : e.sectionId != null ? [e.sectionId] : [],
+    groupId: e.groupId ?? null, leadersOnly
+  }
+  audSaved.value = JSON.stringify(aud.value)
   editing.value = true
 }
 async function saveEvent() {
@@ -97,8 +108,13 @@ async function saveEvent() {
         startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : null,
         endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
         isAllDay: form.isAllDay, tracksAttendance: form.tracksAttendance,
-        scope: form.scope === 'section' && form.leadersOnly ? 'leaders' : form.scope,
-        sectionId: form.sectionId, groupId: form.groupId
+        // who it is for, only when it was changed (a ενωμοτία's own event stays so otherwise)
+        ...(audTouched.value ? {
+          scope: aud.value.scope === 'section' && aud.value.leadersOnly ? 'leaders' : aud.value.scope,
+          sectionIds: aud.value.scope === 'section' ? aud.value.sectionIds : undefined,
+          sectionId: aud.value.scope === 'section' ? aud.value.sectionIds[0] : null,
+          groupId: aud.value.groupId
+        } : {})
       }
     })
     editing.value = false
@@ -372,27 +388,9 @@ const uniDefs = [
             <input v-model="form.tracksAttendance" type="checkbox"> {{ t('tracksAttendance') }}
           </label>
 
-          <div v-if="isTroop || (secs?.length || 0) > 1">
-            <label class="lab">{{ t('scopeQ') }}</label>
-            <div class="chips">
-              <button v-if="isTroop" class="chip" :class="{ on: form.scope === 'troop' }"
-                      @click="form.scope = 'troop'; form.sectionId = null">{{ t('wholeTroop') }}</button>
-              <button v-for="sec in secs" :key="sec.id" class="chip"
-                      :class="{ on: form.scope === 'section' && form.sectionId === sec.id }"
-                      @click="form.scope = 'section'; form.sectionId = sec.id">{{ lx(sec, 'name') }}</button>
-              <button v-if="isTroop" class="chip" :class="{ on: form.scope === 'leaders' }"
-                      @click="form.scope = 'leaders'; form.sectionId = null">🎖️ {{ t('vathmoforoi') }}</button>
-              <button v-for="g in groups" :key="'g' + g.id" class="chip"
-                      :class="{ on: form.scope === 'group' && form.groupId === g.id }"
-                      @click="form.scope = 'group'; form.groupId = g.id">{{ g.emoji }} {{ g.nameEl }}</button>
-            </div>
-          </div>
-          <!-- a single-sector Αρχηγός never picks a sector, but may still call their Βαθμοφόροι alone -->
-          <label v-if="form.scope === 'section'" class="tiny muted" style="display:flex;align-items:center;gap:6px;cursor:pointer">
-            <input v-model="form.leadersOnly" type="checkbox"> {{ t('leadersOnly') }}
-          </label>
+          <EventAudience v-model="aud" :secs="secs || []" :groups="groups || []" :is-troop="isTroop" />
 
-          <button class="btn" :disabled="!form.titleEl || !form.startsAt || busy" @click="saveEvent">
+          <button class="btn" :disabled="!form.titleEl || !form.startsAt || busy || (audTouched && !audOk)" @click="saveEvent">
             {{ busy ? t('loading') : t('save') }}
           </button>
 

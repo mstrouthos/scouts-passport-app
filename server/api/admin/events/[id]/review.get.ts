@@ -6,6 +6,7 @@ import { canEditEvent, eventVisible } from '../../../../utils/eventScope'
 import { attendanceIsOpen, attendanceOpensAt } from '../../../../utils/attendance'
 import { leadersForEvent, sectionsOfLeader } from '../../../../utils/rsvp'
 import { scopedSectionIds } from '../../../../utils/guard'
+import { eventInSections, eventSectionIds } from '../../../../utils/eventScope'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -29,8 +30,9 @@ export default defineEventHandler(async (event) => {
   // members to mark present at it.
   const ofEvent = (r: typeof s.scouts.$inferSelect) => {
     if (e.scope === 'troop' || e.scope === 'leaders') return true
-    if (e.sectionId == null) return true
-    return sectionOfWith(r as any, patrols) === e.sectionId
+    const secs = eventSectionIds(e)
+    if (!secs.length) return true
+    return secs.includes(sectionOfWith(r as any, patrols) as number)
   }
   // Whose attendance this event records, and who may record it:
   //  · a Βαθμοφόροι event lists the Βαθμοφόροι it concerns, marked by whoever
@@ -71,7 +73,7 @@ export default defineEventHandler(async (event) => {
   const leadersMeeting = e.scope === 'leaders'
   // a sector's own Βαθμοφόροι meeting is read by that sector's Αρχηγός too
   const ownsLeadersMeeting = myRank === 'admin' || e.createdBy === me.id
-    || (myRank === 'archigos' && e.sectionId != null && (mySections ?? []).includes(e.sectionId))
+    || (myRank === 'archigos' && eventInSections(e, mySections ?? []))
   const visibleToMe = async (leaderId: number) => {
     if (leadersMeeting) return ownsLeadersMeeting
     if (myRank === 'admin' || mySections === null) return true
@@ -103,7 +105,7 @@ export default defineEventHandler(async (event) => {
     event: {
       id: e.id, titleEl: e.titleEl, titleEn: e.titleEn, startsAt: e.startsAt, endsAt: e.endsAt, isAllDay: e.isAllDay, scope: e.scope, groupId: e.groupId,
       // the sector decides the words on this screen: an Αγέλη game is won by an εξάδα
-      sectionId: e.sectionId,
+      sectionId: e.sectionId, sectionIds: eventSectionIds(e),
       // the register opens on the day and stays open; before that there is
       // nothing to record and the screen says so instead of offering buttons
       attendanceOpen: attendanceIsOpen(e.startsAt),

@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { scopedSectionIds, sectionOfWith, type SessionScout } from './guard'
 import { groupsILead } from './groupScope'
+import { eventSectionIds } from './eventScope'
 
 type Ev = typeof s.events.$inferSelect
 
@@ -36,7 +37,7 @@ async function leadersOf(ev: Ev): Promise<{ told: number[]; asked: number[] }> {
     else if (ev.scope === 'group' && ev.groupId != null)
       ofTheirs = (await groupsILead(l as any)).includes(ev.groupId)
         || (ev.sectionId != null && sections.has(ev.sectionId))
-    else if (ev.sectionId != null) ofTheirs = sections.has(ev.sectionId)
+    else ofTheirs = eventSectionIds(ev).some(x => sections.has(x))
     if (ofTheirs) asked.push(l.id)
     if (ofTheirs || troopWide) told.push(l.id)
   }

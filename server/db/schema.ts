@@ -200,6 +200,8 @@ export const events = pgTable('events', {
   // 'group' = a custom group's own meeting, e.g. band practice
   scope: text('scope', { enum: ['troop', 'section', 'patrol', 'leaders', 'group'] }).notNull(),
   sectionId: integer('section_id').references(() => sections.id),
+  // a sector event shared with other sectors: their ids (JSON), beside sectionId
+  extraSectionIds: text('extra_section_ids'),
   patrolId: integer('patrol_id').references(() => patrols.id),
   groupId: integer('group_id'),
   // what the meeting is about, so families know before they come

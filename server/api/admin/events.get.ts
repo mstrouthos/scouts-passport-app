@@ -1,7 +1,7 @@
 import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds, rankOf } from '../../utils/guard'
 import { visibleGroupIds } from '../../utils/groupScope'
-import { leadersMeetingOf } from '../../utils/eventScope'
+import { leadersMeetingOf, eventInSections, eventSectionIds } from '../../utils/eventScope'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -20,20 +20,22 @@ export default defineEventHandler(async (event) => {
     .filter(e => e.scope === 'leaders' ? leadersMeetingOf(e, secIds)
       : seeAll || e.scope === 'troop'
       || (e.scope === 'group' && e.groupId != null && (myGroups ?? []).includes(e.groupId))
-      || (e.scope !== 'group' && e.sectionId != null && secIds!.includes(e.sectionId)))
+      || (e.scope !== 'group' && eventInSections(e, secIds!)))
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
     .map(e => {
-      const sec = e.sectionId != null ? sections.get(e.sectionId) : null
+      // a shared event names every sector it is for
+      const secs = (e.scope === 'section' ? eventSectionIds(e) : e.sectionId != null ? [e.sectionId] : []).map(x => sections.get(x)).filter(Boolean) as any[]
       return {
-        id: e.id, scope: e.scope, sectionId: e.sectionId, patrolId: e.patrolId,
-        sectionEl: sec?.nameEl ?? null, sectionEn: sec?.nameEn ?? null,
+        id: e.id, scope: e.scope, sectionId: e.sectionId, sectionIds: eventSectionIds(e), patrolId: e.patrolId,
+        sectionEl: secs.length ? secs.map(x => x.nameEl).join(' + ') : null, sectionEn: secs.length ? secs.map(x => x.nameEn || x.nameEl).join(' + ') : null,
         titleEl: e.titleEl, titleEn: e.titleEn, location: e.location,
         startsAt: e.startsAt, endsAt: e.endsAt, isAllDay: e.isAllDay, remindAt: e.remindAt,
         tracksAttendance: e.tracksAttendance,
         groupId: e.groupId,
         editable: secIds === null
           || (e.scope === 'group' && e.groupId != null && (myGroups ?? []).includes(e.groupId))
-          || (e.scope !== 'group' && e.sectionId != null && secIds.includes(e.sectionId)),
+          || e.createdBy === me.id
+          || (e.scope !== 'group' && eventInSections(e, secIds)),
         reviewed: reviews.some(r => r.eventId === e.id)
       }
     })

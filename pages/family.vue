@@ -83,9 +83,11 @@ const childSection = computed(() => child.value?.section ?? me.value?.section ??
 const forChild = (sectionId: number | null | undefined) => sectionId == null || sectionId === childSection.value?.id
 const shownPosts = computed(() => posts.value.filter(p => forChild(p.sectionId)))
 const isPast = (e: any) => eventEnded(e)
-const shownEvents = computed(() => events.value.filter(e => forChild(e.sectionId) && !isPast(e)))
+// a joint event is in the diary of every sector it is for
+const evForChild = (e: any) => e.sectionIds?.length ? e.sectionIds.some((x: number) => forChild(x)) : forChild(e.sectionId)
+const shownEvents = computed(() => events.value.filter(e => evForChild(e) && !isPast(e)))
 /* What already happened stays reachable — newest first, folded away until asked for. */
-const pastEvents = computed(() => events.value.filter(e => forChild(e.sectionId) && isPast(e)).reverse())
+const pastEvents = computed(() => events.value.filter(e => evForChild(e) && isPast(e)).reverse())
 const archiveOpen = ref(false)
 const shownInfo = computed(() => info.value.filter(p => forChild(p.sectionId)))
 const shownPacks = computed(() => (pack.value?.packs || []).filter((pk: any) => pk.sectionId === childSection.value?.id))
