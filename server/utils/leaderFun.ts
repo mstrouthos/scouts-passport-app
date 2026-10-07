@@ -38,7 +38,7 @@ export async function funPaused() {
    It waits in the game it came from (never the bell), and the phone is told
    too — but not of everything: the first couple go one by one, and after that
    whatever comes in is held and bundled into one push, at most once an hour
-   ("4 new: 🍅 2 in the Παρέα, 🥔 1 in the potato"). Never at night: the
+   ("4 new: 🍅 2 in Σπλατς, 🥔 1 in the potato"). Never at night: the
    night's news is one bundle in the morning. */
 const GAME_PUSH_KINDS = [...GAME_KINDS, 'game-digest']
 /** One by one: at most this many pushes in two hours, a quarter of an hour apart. */
@@ -60,7 +60,7 @@ async function gamePushes(scoutIds: number[] | null, sinceIso: string) {
     always buzzes — but still never at night. */
 export async function tellFun(to: number, msg: { body: string, refId: number, kind?: string, title?: string }, urgent = false) {
   const db = await useDb()
-  const full = { title: msg.title || '🎪 Η παρέα των Βαθμοφόρων', body: msg.body, kind: msg.kind || 'fun', refId: msg.refId }
+  const full = { title: msg.title || '🍅 Σπλατς', body: msg.body, kind: msg.kind || 'fun', refId: msg.refId }
   const recent = await gamePushes([to], new Date(Date.now() - 2 * 3600_000).toISOString())
   const last = recent.reduce((m, r) => r.sentAt > m ? r.sentAt : m, '')
   const solo = !isQuietHour() && (urgent ||
@@ -70,7 +70,7 @@ export async function tellFun(to: number, msg: { body: string, refId: number, ki
 }
 
 const GAME_PHRASE: Record<GameKey, (n: number) => string> = {
-  throw: n => `🍅 ${n} στην Παρέα`,
+  throw: n => `🍅 ${n} στο Σπλατς`,
   potato: n => `🥔 ${n} στην Καυτή Πατάτα`,
   kim: n => `🧠 ${n} στο Ταψί του Κιμ`
 }
