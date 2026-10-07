@@ -121,8 +121,20 @@ export async function announcePotato(p: { id: number, holderId: number, startedB
     challenge. Called by the cron and whenever the playground is looked at. */
 export async function potatoTick() {
   const db = await useDb()
-  const p = await activePotato()
-  if (!p || Date.parse(p.deadline) > Date.now()) return null
+  let p = await activePotato()
+  if (!p) return null
+  // a round from before there were challenges: it draws one now, and everyone hears it
+  if (!p.challenge) {
+    const list = await potatoChallenges()
+    const challenge = list[Math.floor(Math.random() * list.length)]
+    const set = await db.update(s.hotPotato).set({ challenge }).where(and(eq(s.hotPotato.id, p.id), isNull(s.hotPotato.challenge))).returning()
+    if (set.length) {
+      p = set[0]
+      const starter = (await db.select().from(s.scouts).where(eq(s.scouts.id, p.startedBy)).limit(1))[0]
+      await announcePotato({ ...p, startedBy: -1, holderId: -1 }, starter?.firstName ?? '—')
+    }
+  }
+  if (Date.parse(p.deadline) > Date.now()) return null
   // ended only once, even if two of these run together
   const done = await db.update(s.hotPotato).set({ endedAt: now(), burnedId: p.holderId })
     .where(and(eq(s.hotPotato.id, p.id), isNull(s.hotPotato.endedAt))).returning()

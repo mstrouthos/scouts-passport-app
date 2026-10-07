@@ -1522,5 +1522,7 @@
   "formLinkSearch": "🔍 Αναζήτηση ονόματος ή τομέα",
   "formLinkNoMatch": "Κανένα παιδί με αυτό το όνομα",
   "funViewFaces": "Πρόσωπα",
-  "funViewBodies": "Ολόσωμοι"
+  "funViewBodies": "Ολόσωμοι",
+  "funPotatoChallengesBtn": "Προκλήσεις",
+  "funPotatoChallengesRead": "Σε κάθε νέο γύρο κληρώνεται μία από αυτές — και όλοι μαθαίνουν ποια."
 }

@@ -1522,5 +1522,7 @@
   "formLinkSearch": "🔍 Search a name or sector",
   "formLinkNoMatch": "No child by that name",
   "funViewFaces": "Faces",
-  "funViewBodies": "Full body"
+  "funViewBodies": "Full body",
+  "funPotatoChallengesBtn": "Challenges",
+  "funPotatoChallengesRead": "Each new round draws one of these — and everyone is told which."
 }

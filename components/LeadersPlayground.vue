@@ -163,8 +163,14 @@ async function stopRound() {
   try { await $fetch('/api/admin/fun/potato-stop', { method: 'POST' }); await refresh(); show('⏹ ' + t('funPotatoStopped')) } catch (e: any) { show(errMsg(e)) }
 }
 const challenges = ref<string | null>(null)
+const challengeList = ref<string[] | null>(null)
 async function openChallenges() {
-  try { challenges.value = ((await $fetch<any>('/api/admin/fun/potato-challenges')).challenges as string[]).join('\n') } catch (e: any) { show(errMsg(e)) }
+  try {
+    const list = (await $fetch<any>('/api/admin/fun/potato-challenges')).challenges as string[]
+    // the Αρχηγός writes them; everyone else reads them
+    if (potato.value.canStop) challenges.value = list.join('\n')
+    else challengeList.value = list
+  } catch (e: any) { show(errMsg(e)) }
 }
 async function saveChallenges() {
   try {
@@ -502,7 +508,10 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
       <!-- what is at stake, from the start; what is owed, once it has burst -->
       <div v-if="potato.active?.challenge" class="pstake">🎯 {{ t('funPotatoStake') }} <b>«{{ potato.active.challenge }}»</b></div>
       <div v-else-if="!potato.active && potato.last?.challenge" class="pstake">🎯 {{ t('funPotatoOwes', { name: potato.last.burned === myId ? t('funYouCap') : potato.last.burnedName }) }} <b>«{{ potato.last.challenge }}»</b></div>
-      <button v-if="potato.active && potato.canStop" class="chip pstop" @click="stopRound">⏹ {{ t('funPotatoStop') }}</button>
+      <div class="pbtns">
+        <button class="chip" @click="openChallenges">🎯 {{ t('funPotatoChallengesBtn') }}</button>
+        <button v-if="potato.active && potato.canStop" class="chip" @click="stopRound">⏹ {{ t('funPotatoStop') }}</button>
+      </div>
     </div>
 
     <!-- the daily memory game -->
@@ -633,6 +642,15 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
           </div>
           <ul class="rules"><li v-for="n in 6" :key="n">{{ t('bagHow' + n) }}</li></ul>
           <button class="btn ghost" @click="bagHelp = false">{{ t('close') }}</button>
+        </div>
+      </div>
+      <!-- the challenges a round may draw, for anyone to read -->
+      <div v-if="challengeList" class="sheet-backdrop" @click.self="challengeList = null">
+        <div class="sheet fun-sheet">
+          <h3 style="margin:0;font-size:17px;text-align:center">🎯 {{ t('funPotatoChallenges') }}</h3>
+          <div class="tiny muted" style="text-align:center">{{ t('funPotatoChallengesRead') }}</div>
+          <ol class="rules"><li v-for="c in challengeList" :key="c">{{ c }}</li></ol>
+          <button class="btn ghost" @click="challengeList = null">{{ t('close') }}</button>
         </div>
       </div>
       <!-- the Αρχηγός's list of challenges, one a line -->
@@ -814,7 +832,7 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 .potato.burst{background:linear-gradient(135deg,#FFE0D6,#FFD2C2)}
 .pinfo{flex:none; border:0; background:none; font-size:18px; padding:2px; cursor:pointer}
 .pstake{font-size:12.5px; background:rgba(255,255,255,.65); border-radius:10px; padding:6px 9px; line-height:1.4}
-.pstop{align-self:flex-start}
+.pbtns{display:flex; flex-wrap:wrap; gap:6px}
 .rules{margin:0; padding-left:20px; display:flex; flex-direction:column; gap:7px; font-size:13.5px; line-height:1.5}
 .had{position:absolute; right:6%; bottom:4%; font-size:11px; opacity:.55; filter:grayscale(.4); pointer-events:none}
 .kimcard{text-decoration:none; color:inherit}
