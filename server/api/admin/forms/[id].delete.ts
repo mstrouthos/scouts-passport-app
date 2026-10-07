@@ -10,6 +10,8 @@ export default defineEventHandler(async (event) => {
   const { me } = await formForLeader(event, id)
   const db = await useDb()
   await deleteFormFiles(await db.select().from(s.formFiles).where(eq(s.formFiles.formId, id)))
+  // the registrations its answers ticked go with them (those marked by hand stay)
+  await db.delete(s.registrations).where(eq(s.registrations.formId, id))
   await db.delete(s.formResponses).where(eq(s.formResponses.formId, id))
   await db.delete(s.forms).where(eq(s.forms.id, id))
   await logAccess(id, me.id, 'delete-form')

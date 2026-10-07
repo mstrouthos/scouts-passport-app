@@ -1,5 +1,6 @@
 <script setup lang="ts">
-const { t } = useI18n()
+import { scoutYearLabel } from '~/utils/scoutYear'
+const { t, locale } = useI18n()
 const lx = useLx()
 const name = useName()
 const { show } = useToast()
@@ -198,6 +199,14 @@ async function deleteScout() {
     router.push('/admin/scouts')
   } catch (e: any) { show(errMsg(e)) }
 }
+/* registered on paper: marked here by hand, or taken off again */
+async function setRegistered(on: boolean) {
+  if (!on && !confirm(t('regUndoQ'))) return
+  try {
+    await $fetch(`/api/admin/scouts/${route.params.id}/registration`, { method: 'POST', body: { on } })
+    await refresh(); show('✅ ' + t('saved'))
+  } catch (e: any) { show(errMsg(e)) }
+}
 </script>
 
 <template>
@@ -294,6 +303,31 @@ async function deleteScout() {
           </template>
         </div>
 
+        </template>
+
+        <!-- registered for this scout year — leaders only -->
+        <template v-if="data.registration && (data.registration.hasForm || data.registration.done)">
+          <div class="sec-title">📋 {{ t('regTitle', { year: scoutYearLabel(data.registration.year) }) }}</div>
+          <div class="card regbox" :class="{ ok: data.registration.done }">
+            <template v-if="data.registration.done">
+              <div class="regline">
+                <span class="big">✅</span>
+                <div>
+                  <b>{{ t('regDone') }}</b>
+                  <div class="tiny muted">
+                    {{ fmtDate(data.registration.done.at, locale) }} ·
+                    {{ data.registration.done.byHand ? t('regByHand', { name: data.registration.done.markedBy || '—' }) : data.registration.done.parent ? t('regByParent', { name: data.registration.done.parent }) : t('regByForm') }}
+                  </div>
+                </div>
+              </div>
+              <NuxtLink v-if="data.registration.done.responseId" :to="`/admin/forms/response/${data.registration.done.responseId}`" class="chip" style="align-self:flex-start;text-decoration:none">📄 {{ t('regOpenAnswer') }}</NuxtLink>
+              <button v-else-if="data.registration.done.byHand" class="chip" style="align-self:flex-start" @click="setRegistered(false)">↩️ {{ t('regUndo') }}</button>
+            </template>
+            <template v-else>
+              <div class="regline"><span class="big">⏳</span><div><b>{{ t('regNotYet') }}</b><div class="tiny muted">{{ t('regNotYetSub') }}</div></div></div>
+              <button class="chip" style="align-self:flex-start" @click="setRegistered(true)">✍️ {{ t('regMarkPaper') }}</button>
+            </template>
+          </div>
         </template>
 
         <template v-if="me?.can?.parents !== false">
@@ -450,4 +484,8 @@ async function deleteScout() {
   font-size:10px; font-weight:800; color:var(--danger); background:var(--danger-soft)}
 .prow{display:flex; align-items:flex-start; gap:10px; padding-bottom:10px; border-bottom:1px solid var(--line)}
 .prow:last-of-type{border-bottom:0; padding-bottom:0}
+.regbox{display:flex; flex-direction:column; gap:10px}
+.regbox.ok{box-shadow:inset 0 0 0 2px rgba(46,125,91,.35)}
+.regline{display:flex; align-items:center; gap:12px}
+.regline .big{font-size:26px}
 </style>

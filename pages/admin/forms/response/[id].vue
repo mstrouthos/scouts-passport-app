@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { scoutYearLabel } from '~/utils/scoutYear'
 /* One form response in full, as it was sent: every module's questions and
    answers, their uploads, the tickboxes, the signature with who signed and
    when. As a PDF — to keep, or to print straight from here — with every
@@ -9,6 +10,18 @@ const { show } = useToast()
 const route = useRoute()
 const id = computed(() => Number(route.params.id))
 const { data: r } = await useFetch<any>(() => `/api/admin/forms/responses/${id.value}`)
+/* a registration's children, picked by a leader */
+const linking = ref<number[] | null>(null)
+const openLink = () => { linking.value = r.value.registration.children.map((k: any) => k.id) }
+const toggleKid = (id: number) => { linking.value = linking.value!.includes(id) ? linking.value!.filter(x => x !== id) : [...linking.value!, id] }
+async function saveLink() {
+  try {
+    await $fetch(`/api/admin/forms/responses/${id.value}/children`, { method: 'PUT', body: { scoutIds: linking.value } })
+    linking.value = null
+    await refreshNuxtData()
+    show('✅ ' + t('saved'))
+  } catch (e: any) { show(errMsg(e)) }
+}
 const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}`
 
 async function remove() {
@@ -70,7 +83,31 @@ async function print() {
       </div>
 
       <div v-if="r.fromParent" class="note noprint">📱 {{ t('formFromParent', { name: r.fromParent }) }}</div>
+      <!-- a registration: whom it registers — set by the parent's pick, or here -->
+      <div v-if="r.registration" class="card regcard noprint">
+        <div class="tiny muted">📋 {{ t('formRegistersFor', { year: scoutYearLabel(r.registration.year) }) }}</div>
+        <div class="kids">
+          <span v-for="k in r.registration.children" :key="k.id" class="chip on">✅ {{ k.name }}</span>
+          <span v-if="!r.registration.children.length" class="tiny warnline">⚠️ {{ t('formRegistersNone') }}</span>
+        </div>
+        <button class="chip" @click="openLink">✎ {{ t('formLinkChildren') }}</button>
+      </div>
       <FormAnswers :r="r" :fetch-file="fetchFormFile" />
+
+      <Teleport to="body">
+        <div v-if="linking" class="sheet-backdrop" @click.self="linking = null">
+          <div class="sheet" style="max-height:86dvh;overflow:auto;display:flex;flex-direction:column;gap:10px">
+            <h3 style="margin:0;font-size:17px;text-align:center">{{ t('formLinkChildren') }}</h3>
+            <div class="tiny muted" style="text-align:center">{{ t('formLinkChildrenNote') }}</div>
+            <label v-for="k in r.registration.options" :key="k.id" class="pick" :class="{ on: linking.includes(k.id) }">
+              <input type="checkbox" :checked="linking.includes(k.id)" @change="toggleKid(k.id)">
+              <span><b>{{ k.name }}</b><small>{{ k.section }}</small></span>
+            </label>
+            <button class="btn" @click="saveLink">{{ t('save') }}</button>
+            <button class="btn ghost" @click="linking = null">{{ t('close') }}</button>
+          </div>
+        </div>
+      </Teleport>
 
       <div class="tools noprint">
         <button class="btn" :disabled="!!making" @click="downloadPdf">{{ making === 'pdf' ? t('loading') : '📄 ' + t('formPdf') }}</button>
@@ -91,4 +128,13 @@ async function print() {
   .print-head{display:flex; flex-direction:column; gap:2px; margin-bottom:8px}
   .print-head b{font-size:18px}
 }
+.regcard{display:flex; flex-direction:column; gap:8px; margin-bottom:10px}
+.regcard .kids{display:flex; flex-wrap:wrap; gap:6px}
+.regcard > .chip{align-self:flex-start}
+.warnline{color:#B26A00; font-weight:600}
+.pick{display:flex; align-items:center; gap:10px; background:var(--card, #fff); border-radius:12px; padding:9px 12px; cursor:pointer}
+.pick.on{box-shadow:inset 0 0 0 2px var(--green, #2E7D5B)}
+.pick input{width:18px; height:18px}
+.pick span{display:flex; flex-direction:column}
+.pick small{font-size:11.5px; color:var(--muted)}
 </style>

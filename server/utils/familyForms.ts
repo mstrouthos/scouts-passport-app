@@ -3,6 +3,7 @@ import type { H3Event } from 'h3'
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { childIdsOfParent, sectionsOfParent } from './parents'
+import { sectionOfWith } from './guard'
 
 /* A form lives on its own address (forms.scouts30.org), where the family
    page's sign-in does not reach. So the link a parent opens from the app
@@ -76,11 +77,31 @@ export async function inviteStatus(formId: number) {
     const p = parents.find(x => x.id === pid)
     return p ? childIdsOfParent(p, links) : []
   }
+  /* a registration is done when every child of theirs in its sectors is
+     registered for the year — however (and by whichever parent) it was sent */
+  const reg = f?.registrationYear ? await (async () => {
+    const regs = await db.select().from(s.registrations).where(eq(s.registrations.year, f.registrationYear!))
+    const all = await db.select().from(s.scouts)
+    const patrols = await db.select().from(s.patrols)
+    const secs = parentSectionsOf(f)
+    const counts = (k: number) => {
+      const m = all.find(x => x.id === k)
+      if (!m || m.role !== 'scout' || !m.isActive || m.deletedAt) return false
+      const sec = sectionOfWith(m, patrols)
+      return !secs || (sec != null && secs.includes(sec))
+    }
+    return { counts, at: (k: number) => regs.find(r => r.scoutId === k)?.createdAt ?? null }
+  })() : null
   const rows = invites.map(i => {
     const p = parents.find(x => x.id === i.parentId)
     const kids = kidsOf(i.parentId)
     // an answer from them, or from a parent who shares a child with them
-    const by = sent.find(r => r.parentId === i.parentId || kidsOf(r.parentId!).some(k => kids.includes(k)))
+    let by: { parentId: number | null, createdAt: string } | undefined = sent.find(r => r.parentId === i.parentId || kidsOf(r.parentId!).some(k => kids.includes(k)))
+    if (reg) {
+      const theirs = kids.filter(reg.counts)
+      const dates = theirs.map(reg.at)
+      by = theirs.length && dates.every(Boolean) ? { parentId: i.parentId, createdAt: dates.sort().pop()! } : undefined
+    }
     return {
       parentId: i.parentId, name: p?.name ?? '—', active: !!p?.isActive,
       children: kids.map(k => scouts.find(x => x.id === k)?.firstName).filter(Boolean) as string[],

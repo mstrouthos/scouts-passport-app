@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { scoutYearLabel } from '~/utils/scoutYear'
 /* One form: building it (modules of questions, the tickboxes at the end, the
    signature), its settings (link, texts, open or closed), and what has come
    back. Nothing is saved until Save — the page says when there are changes. */
@@ -62,7 +63,7 @@ async function notifyParents() {
   } catch (e: any) { show(errMsg(e)) } finally { sendingParents.value = false }
 }
 const spec = ref<FormSpec>({ modules: [], ticks: [], signature: { enabled: false, required: true, label: '' } })
-const settings = reactive({ titleEl: '', slug: '', introEl: '', thanksEl: '', thanksTitleEl: '', isOpen: false, closesAt: '' })
+const settings = reactive({ titleEl: '', slug: '', introEl: '', thanksEl: '', thanksTitleEl: '', isOpen: false, closesAt: '', registrationYear: '' })
 const open = ref<string | null>(null)    // the question being edited
 let saved = ''
 const snapshot = () => JSON.stringify({ s: spec.value, x: settings })
@@ -73,7 +74,7 @@ function fill(f: any) {
   spec.value = JSON.parse(JSON.stringify(f.spec))
   Object.assign(settings, {
     titleEl: f.titleEl, slug: f.slug, introEl: f.introEl || '', thanksEl: f.thanksEl || '', thanksTitleEl: f.thanksTitleEl || '',
-    isOpen: f.isOpen, closesAt: f.closesAt ? toLocalInput(f.closesAt) : ''
+    isOpen: f.isOpen, closesAt: f.closesAt ? toLocalInput(f.closesAt) : '', registrationYear: f.registrationYear || ''
   })
   saved = snapshot(); dirty.value = false
 }
@@ -123,7 +124,7 @@ async function save() {
       q.options = q.type === 'yesno' ? [...YES_NO] : WITH_OPTIONS.includes(q.type) ? cleanOptions(q.options) : []
     await $fetch(`/api/admin/forms/${id}`, {
       method: 'PATCH',
-      body: { ...settings, closesAt: settings.closesAt ? new Date(settings.closesAt).toISOString() : null, spec: spec.value }
+      body: { ...settings, closesAt: settings.closesAt ? new Date(settings.closesAt).toISOString() : null, registrationYear: settings.registrationYear || null, spec: spec.value }
     })
     await refresh()
     show('✅ ' + t('saved'))
@@ -132,7 +133,7 @@ async function save() {
 
 /* building */
 const TYPE_ICON: Record<FieldType, string> = {
-  text: '✏️', textarea: '📝', number: '🔢', email: '✉️', phone: '📞', date: '📅', yesno: '👍', radio: '🔘', checkbox: '☑️', select: '🔽', file: '📎', gaps: '🧩', calc: '🧮'
+  text: '✏️', textarea: '📝', number: '🔢', email: '✉️', phone: '📞', date: '📅', yesno: '👍', radio: '🔘', checkbox: '☑️', select: '🔽', file: '📎', gaps: '🧩', calc: '🧮', child: '🧒'
 }
 function addModule() {
   spec.value.modules.push({ id: newId(), title: '', questions: [] })
@@ -565,6 +566,15 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
           <div class="tiny muted">{{ t('formClosesAtNote') }}</div>
         </div>
       </div>
+      <!-- the year's registration: its answers tick each child as registered -->
+      <div class="card mod">
+        <label class="tog">
+          <input type="checkbox" :checked="!!settings.registrationYear" @change="settings.registrationYear = ($event.target as HTMLInputElement).checked ? (settings.registrationYear || form?.thisYear) : ''">
+          <b>📋 {{ t('formRegistration', { year: scoutYearLabel(settings.registrationYear || form?.thisYear || '') }) }}</b>
+        </label>
+        <div class="tiny muted">{{ t('formRegistrationNote') }}</div>
+        <div v-if="settings.registrationYear && !spec.modules.some(m => m.questions.some(q => q.type === 'child'))" class="tiny warnline">⚠️ {{ t('formRegistrationNeedsChild') }}</div>
+      </div>
       <div class="card mod">
         <div class="sec-title" style="margin:0">♻️ {{ t('formReuse') }}</div>
         <div class="tiny muted">{{ t('formReuseNote') }}</div>
@@ -635,7 +645,7 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
           <span class="dot" :class="{ on: !r.isRead }" />
           <div style="flex:1;min-width:0">
             <b>{{ r.summary.join(' · ') || '#' + r.id }}</b>
-            <span>{{ stamp(r.createdAt) }}</span>
+            <span>{{ stamp(r.createdAt) }}<template v-if="r.children"> · {{ r.children.length ? '✅ ' + r.children.join(', ') : '⚠️ ' + t('formRegistersNone') }}</template></span>
           </div>
           <span class="chev">›</span>
         </NuxtLink>
@@ -725,4 +735,5 @@ select.in{appearance:auto}
 .crow.range .del{margin-left:auto}
 .cwhen{flex:none; max-width:42%; font-size:13.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .carrow{flex:none; color:var(--muted); font-weight:700}
+.warnline{color:#B26A00; font-weight:600}
 </style>

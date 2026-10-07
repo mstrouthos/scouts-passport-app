@@ -4,8 +4,14 @@
    questions; then the tickboxes at the end (consents, declarations); then,
    if asked for, a signature. */
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'phone' | 'date' | 'yesno' | 'radio' | 'checkbox' | 'select' | 'file' | 'gaps' | 'calc'
-export const FIELD_TYPES: FieldType[] = ['text', 'textarea', 'number', 'email', 'phone', 'date', 'yesno', 'radio', 'checkbox', 'select', 'file', 'gaps', 'calc']
+export type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'phone' | 'date' | 'yesno' | 'radio' | 'checkbox' | 'select' | 'file' | 'gaps' | 'calc' | 'child'
+export const FIELD_TYPES: FieldType[] = ['text', 'textarea', 'number', 'email', 'phone', 'date', 'yesno', 'radio', 'checkbox', 'select', 'file', 'gaps', 'calc', 'child']
+/* "Which child": a parent who opens the form from the app picks one of their
+   own children (sent as "c:<id>", checked by the server and kept as the
+   child's name, with a link to the member); anyone else types the name. In
+   a repeated run, each copy names its child — a registration's way of
+   saying whose answers these are. */
+export const CHILD_PICK = /^c:(\d+)$/
 
 /* Fill the gaps: the question is a sentence with blanks in it — "___" (three
    or more underscores) for a plain one, "[ονοματεπώνυμο]" for one with a hint
@@ -266,6 +272,7 @@ export function questionError(q: FormQuestion, v: unknown): string | null {
     return null
   }
   if (q.type === 'calc') return null
+  if (q.type === 'child') return String(v).trim().length > 120 ? 'invalid' : null
   if (q.type === 'gaps') {
     // every blank answered when the question is required, and none too long
     const a = Array.isArray(v) ? v.map(x => String(x ?? '').trim()) : []

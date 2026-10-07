@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../../db'
 import { requireParent } from '../../utils/parentGuard'
 import { isAccepting } from '../../utils/forms'
 import { familyOf, formIsFor, parentSectionsOf } from '../../utils/familyForms'
+import { familyChildren } from '../../utils/registrations'
 
 /** A parent's forms: those sent to them that still wait for an answer — from
     them or the other parent of the same child — and those they have sent from
@@ -23,9 +24,16 @@ export default defineEventHandler(async (event) => {
   const forms = all.filter(f => mine.includes(f) || sent.some(r => r.formId === f.id))
   const names = new Map((family.length > 1 ? await db.select({ id: s.parents.id, name: s.parents.name }).from(s.parents).where(inArray(s.parents.id, family)) : []).map(x => [x.id, x.name]))
   const answered = new Set(sent.map(r => r.formId))
+  // a registration waits until every child of theirs it is for is registered
+  const regs = await db.select().from(s.registrations)
+  const stillToRegister = new Set<number>()
+  for (const f of mine.filter(x => x.registrationYear)) {
+    const kids = await familyChildren(p.id, f)
+    if (kids.some(k => !regs.some(r => r.scoutId === k.id && r.year === f.registrationYear))) stillToRegister.add(f.id)
+  }
   return {
     pending: mine
-      .filter(f => !answered.has(f.id))
+      .filter(f => f.registrationYear ? stillToRegister.has(f.id) : !answered.has(f.id))
       .map(f => ({ f, at: invites.find(i => i.formId === f.id && i.parentId === p.id)?.sentAt || f.parentsSetAt || f.createdAt }))
       .sort((a, b) => b.at.localeCompare(a.at))
       // the sectors it is for, so the page shows it under the right child (null: from before, for the family)

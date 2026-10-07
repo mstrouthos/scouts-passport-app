@@ -2,7 +2,7 @@ import { and, eq, gt, inArray, isNull } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 import { specOf, isAccepting } from '../../../../utils/forms'
 import { seal, ipHash } from '../../../../utils/seal'
-import { checkAnswers, baseId, repeatGroups, copiesOf, emailCopyAddress } from '../../../../../utils/formSpec'
+import { checkAnswers, baseId, repeatGroups, copiesOf, emailCopyAddress, CHILD_PICK } from '../../../../../utils/formSpec'
 import { emailReady } from '../../../../utils/email'
 import { sendResponseCopy } from '../../../../utils/formCopy'
 import { now } from '../../../../utils/passcode'
@@ -10,6 +10,7 @@ import { sendPushTo } from '../../../../utils/push'
 import { administratorIds } from '../../../../utils/infoNotify'
 import { noteError } from '../../../../utils/errorReport'
 import { parentOfTicket } from '../../../../utils/familyForms'
+import { familyChildren, registerChildren } from '../../../../utils/registrations'
 
 /** Someone sends a form. Checked against the form's own questions, kept
     encrypted with a copy of them, and the administrators are told. */
@@ -50,16 +51,39 @@ export default defineEventHandler(async (event) => {
     else clean.answers[k] = mine.map(x => `f:${x!.id}`)
   }
   if (Object.keys(bad).length) throw createError({ statusCode: 422, message: 'Κάποιο αρχείο δεν ανέβηκε σωστά — ανεβάστε το ξανά', data: { errors: bad } })
-  // the date it was signed is the moment it was sent, by the server's clock
-  const sent = now()
-  const data = { ...clean, signedAt: clean.signature ? sent : null }
-
   // opened from a parent's app: kept as theirs, for them to read again
   let parentId = parentOfTicket(body?.k, f.id)
   if (parentId) {
     const p = (await db.select({ isActive: s.parents.isActive }).from(s.parents).where(eq(s.parents.id, parentId)).limit(1))[0]
     if (!p?.isActive) parentId = null
   }
+
+  // "which child": one of their own children, picked in the app — kept by
+  // name with the answers, and linked to the member; a typed name stays as
+  // typed (a leader links it by hand)
+  const childQs = new Set(spec.modules.flatMap(m => m.questions).filter(q => q.type === 'child').map(q => q.id))
+  const kids = childQs.size && parentId ? await familyChildren(parentId, f) : []
+  const picked: number[] = []
+  const notTheirs: Record<string, string> = {}
+  for (const k of Object.keys(clean.answers).filter(k => childQs.has(baseId(k)))) {
+    const m = CHILD_PICK.exec(String(clean.answers[k]))
+    if (!m) continue
+    const kid = kids.find(x => x.id === Number(m[1]))
+    if (!kid) { notTheirs[k] = 'invalid'; continue }
+    clean.answers[k] = `${kid.firstName} ${kid.lastName}`
+    picked.push(kid.id)
+  }
+  if (Object.keys(notTheirs).length) throw createError({ statusCode: 422, message: 'Διαλέξτε ένα από τα παιδιά σας', data: { errors: notTheirs } })
+  // a registration with no "which child" question, from a family with one
+  // child in its sectors: that child, of course
+  if (f.registrationYear && !childQs.size && parentId) {
+    const only = await familyChildren(parentId, f)
+    if (only.length === 1) picked.push(only[0].id)
+  }
+
+  // the date it was signed is the moment it was sent, by the server's clock
+  const sent = now()
+  const data = { ...clean, signedAt: clean.signature ? sent : null }
   const [row] = await db.insert(s.formResponses).values({
     formId: f.id, sealed: seal(data), spec: JSON.stringify(spec), ipHash: who, parentId, createdAt: sent
   }).returning({ id: s.formResponses.id })
@@ -67,6 +91,8 @@ export default defineEventHandler(async (event) => {
     await db.update(s.formFiles).set({ responseId: row.id, token: null })
       .where(inArray(s.formFiles.id, waiting.map(w => w.id)))
   }
+  // the year's registration: each child it names is ticked as registered
+  if (f.registrationYear && picked.length) await registerChildren(picked, f.registrationYear, { formId: f.id, responseId: row.id })
 
   // the administrators hear of it; the bell names the form, never the answers
   try {

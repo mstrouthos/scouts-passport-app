@@ -3,6 +3,7 @@ import { formForLeader, specOf, isAccepting, isArchigosFor, formSections } from 
 import { useDb, schema as s } from '../../../db'
 import { emailReady } from '../../../utils/email'
 import { parentSectionsOf } from '../../../utils/familyForms'
+import { scoutYear } from '../../../../utils/scoutYear'
 
 export default defineEventHandler(async (event) => {
   const { me, f } = await formForLeader(event, idParam(event))
@@ -21,6 +22,8 @@ export default defineEventHandler(async (event) => {
       .sort((a, b) => a.sortOrder - b.sortOrder).map(x => ({ id: x.id, nameEl: x.nameEl })),
     allSections: secs === null,
     // the sectors whose parents see it, and when they were last told
-    parentSections: parentSectionsOf(f), parentsNotifiedAt: f.parentsNotifiedAt
+    parentSections: parentSectionsOf(f), parentsNotifiedAt: f.parentsNotifiedAt,
+    // the scout year it registers members for, if it does; and this year's
+    registrationYear: f.registrationYear, thisYear: scoutYear()
   }
 })

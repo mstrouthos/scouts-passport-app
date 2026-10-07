@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { scoutYearLabel } from '~/utils/scoutYear'
 const NuxtLinkC = resolveComponent('NuxtLink')
 const { t } = useI18n()
 const me = useMe()
@@ -175,12 +176,24 @@ async function deletePatrol() {
     await refresh(); show('✅ ' + t('saved'))
   } catch (e: any) { show(errMsg(e)) }
 }
+/* this scout year's registrations: the count, and a filter for those missing */
+const onlyUnregistered = ref(false)
+const shownReg = (r: any) => !onlyUnregistered.value || (r.isActive && !r.registered)
+const regCount = computed(() => {
+  const all = (data.value?.sections || []).flatMap((s: any) => [...s.patrols.flatMap((p: any) => p.scouts), ...s.loose]).filter((r: any) => r.isActive)
+  return { all: all.length, done: all.filter((r: any) => r.registered).length }
+})
 </script>
 
 <template>
   <AppShell :title="sectorWords.members"
             :sub="`${activeCount} ${t('activeN')}`">
     <div style="display:flex;flex-direction:column;gap:10px">
+      <!-- this scout year's registrations: how many, and only those still missing -->
+      <div v-if="data?.registration" class="regbar">
+        <span>📋 <b>{{ t('regCount', { year: scoutYearLabel(data.registration.year), n: regCount.done, of: regCount.all }) }}</b></span>
+        <button class="chip" :class="{ on: onlyUnregistered }" @click="onlyUnregistered = !onlyUnregistered">{{ t('regOnlyMissing') }}</button>
+      </div>
       <template v-for="sec in data?.sections" :key="sec.id">
         <div class="srow sector-hdr" role="button" tabindex="0"
              @click="toggleSector(sec.id)" @keydown.enter="toggleSector(sec.id)">
@@ -197,10 +210,10 @@ async function deletePatrol() {
               <button v-if="sec.canManage" class="chip" style="flex:none;font-size:9.5px;padding:5px 9px"
                       @click="editPatrol(p, sec.id)">✎ {{ t('edit') }}</button>
             </div>
-            <NuxtLink v-for="r in p.scouts" :key="r.id" :to="`/admin/scouts/${r.id}`" class="it">
+            <NuxtLink v-for="r in p.scouts.filter(shownReg)" :key="r.id" :to="`/admin/scouts/${r.id}`" class="it">
               <Avatar :name="name(r)" :tone="r.isActive ? 'accent' : 'blue'" :avatar="r.avatar" />
               <div style="flex:1;min-width:0">
-                <b>{{ name(r) }}</b>
+                <b>{{ name(r) }}<span v-if="data?.registration && r.registered" class="regtick" :title="t('regDone')">✅</span></b>
                 <span>
                   <!-- the unit's own head, named for what this sector calls it -->
                   <template v-if="r.patrolRole">
@@ -218,9 +231,9 @@ async function deletePatrol() {
           </button>
           <div v-if="sec.loose.length" class="adm">
             <div class="hdr">{{ t('members') }}</div>
-            <NuxtLink v-for="r in sec.loose" :key="r.id" :to="`/admin/scouts/${r.id}`" class="it">
+            <NuxtLink v-for="r in sec.loose.filter(shownReg)" :key="r.id" :to="`/admin/scouts/${r.id}`" class="it">
               <Avatar :name="name(r)" :tone="r.isActive ? 'accent' : 'blue'" :avatar="r.avatar" />
-              <div style="flex:1;min-width:0"><b>{{ name(r) }}</b><span>{{ r.points }} {{ t('pts') }}</span></div>
+              <div style="flex:1;min-width:0"><b>{{ name(r) }}<span v-if="data?.registration && r.registered" class="regtick" :title="t('regDone')">✅</span></b><span>{{ r.points }} {{ t('pts') }}</span></div>
               <span class="pill" :class="r.isActive ? 'ok' : 'draft'">{{ r.isActive ? t('active') : t('inactive') }}</span>
             </NuxtLink>
           </div>
@@ -356,4 +369,6 @@ async function deletePatrol() {
 .sector-hdr{ cursor:pointer }
 .sector-hdr .chev{ transition:transform .2s }
 .sector-hdr .chev.open{ transform:rotate(90deg) }
+.regtick{font-size:11px; margin-left:5px; vertical-align:1px}
+.regbar{display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--card, #fff); border-radius:14px; padding:9px 12px; font-size:13px; box-shadow:var(--shadow)}
 </style>

@@ -4,6 +4,8 @@ import { useDb, schema as s } from '../../../db'
 import { requireLeader, assertScoutInScope, idParam, pointTotals, sectionOf } from '../../../utils/guard'
 import { can } from '../../../utils/permissions'
 import { unitNames } from '../../../utils/unitNames'
+import { registrationOf, hasRegistrationForm } from '../../../utils/registrations'
+import { scoutYear } from '../../../../utils/scoutYear'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -40,6 +42,10 @@ export default defineEventHandler(async (event) => {
     hasBadges: section?.slug === 'omada',
     hasVenture: section?.slug === 'koinotita',
     patrolRole: r.patrolRole ?? null,
+    // registered for this scout year (leaders only): by a form's answer, or by hand
+    registration: r.role === 'scout' ? {
+      year: scoutYear(), hasForm: await hasRegistrationForm(), done: await registrationOf(r.id)
+    } : null,
     points: (await pointTotals()).get(id) || 0,
     badges: badges.filter(b => !b.isArchived).sort((a, b) => a.sortOrder - b.sortOrder).map(b => ({
       id: b.id, icon: b.iconEmoji, art: badgeArt(b.slug), titleEl: b.titleEl, titleEn: b.titleEn, earned: earnedIds.has(b.id)

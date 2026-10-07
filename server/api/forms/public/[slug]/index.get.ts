@@ -1,6 +1,8 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 import { specOf, isAccepting } from '../../../../utils/forms'
+import { parentOfTicket } from '../../../../utils/familyForms'
+import { familyChildren } from '../../../../utils/registrations'
 
 /** A form as the public sees it: its questions while it takes answers, only
     its title once it has closed. An administrator previewing it from the app
@@ -21,5 +23,13 @@ export default defineEventHandler(async (event) => {
   }
   const open = isAccepting(f)
   if (!open && !preview) return { titleEl: f.titleEl, open: false }
-  return { titleEl: f.titleEl, introEl: f.introEl, open, preview, spec: specOf(f) }
+  const spec = specOf(f)
+  // opened from a parent's app: their children, for a "which child" question
+  // to offer — first names and the member's id, nothing more
+  const parentId = parentOfTicket(getQuery(event).k, f.id)
+  const asksChild = spec.modules.some(m => m.questions.some(q => q.type === 'child'))
+  const children = parentId && asksChild
+    ? (await familyChildren(parentId, f)).map(k => ({ id: k.id, name: `${k.firstName} ${k.lastName}` }))
+    : null
+  return { titleEl: f.titleEl, introEl: f.introEl, open, preview, spec, children }
 })

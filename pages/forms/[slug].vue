@@ -18,7 +18,10 @@ const loadError = ref('')
 async function load() {
   if (!slug.value) { loadError.value = t('formNotFound'); return }
   try {
-    data.value = await $fetch(`/api/forms/public/${encodeURIComponent(slug.value)}`, { query: route.query.preview ? { preview: 1 } : {} })
+    // the parent's ticket goes with it, so a "which child" question can offer their children
+    let k = String(route.query.k || '')
+    try { k = k || sessionStorage.getItem(`form-k:${slug.value}`) || '' } catch {}
+    data.value = await $fetch(`/api/forms/public/${encodeURIComponent(slug.value)}`, { query: { ...(route.query.preview ? { preview: 1 } : {}), ...(k ? { k } : {}) } })
   } catch (e: any) { loadError.value = e?.statusCode === 404 ? t('formNotFound') : (errMsg(e)) }
 }
 onMounted(load)
@@ -103,6 +106,7 @@ const idsOf = (p: Page) => p.kind === 'module'
 function copyName(g: RepeatGroup, n: number) {
   for (let j = g.start; j <= g.end; j++) for (const q of spec.value!.modules[j].questions) {
     const v = answers[`${q.id}@${n}`]
+    if (q.type === 'child' && v) return childName(String(v))
     if (typeof v === 'string' && v.trim() && ['text', 'textarea'].includes(q.type)) return v.trim()
   }
   return ''
@@ -195,12 +199,15 @@ async function send() {
     sendError.value = errMsg(e)
   } finally { busy.value = false }
 }
+/* "which child": their own children, when opened from the app */
+const children = computed<Array<{ id: number, name: string }> | null>(() => data.value?.children || null)
+const childName = (v: string) => { const m = /^c:(\d+)$/.exec(v); return m ? (children.value?.find(c => c.id === Number(m[1]))?.name || '') : v.trim() }
 const kOf = (q: { id: string }) => q.id + (page.value?.kind === 'module' ? page.value.inst.sfx : '')
 function toggleOption(id: string, o: string) {
   const list: string[] = answers[id] || []
   answers[id] = list.includes(o) ? list.filter(x => x !== o) : [...list, o]
 }
-const INPUT_TYPE: Record<string, string> = { text: 'text', number: 'text', email: 'email', phone: 'tel', date: 'date' }
+const INPUT_TYPE: Record<string, string> = { text: 'text', number: 'text', email: 'email', phone: 'tel', date: 'date', child: 'text' }
 const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', email: 'email' }
 </script>
 
@@ -252,6 +259,10 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
               <!-- worked out from an earlier answer; nothing to type -->
               <div v-else-if="q.type === 'calc'" class="calcbox" :class="{ empty: !answers[kOf(q)] }">🧮 {{ answers[kOf(q)] || t('formCalcWaiting') }}</div>
               <textarea v-else-if="q.type === 'textarea'" :id="'q' + kOf(q)" v-model="answers[kOf(q)]" class="in" rows="4" />
+              <select v-else-if="q.type === 'child' && children?.length" :id="'q' + kOf(q)" v-model="answers[kOf(q)]" class="in">
+                <option value="" disabled>{{ t('formChooseChild') }}</option>
+                <option v-for="c in children" :key="c.id" :value="'c:' + c.id">{{ c.name }}</option>
+              </select>
               <select v-else-if="q.type === 'select'" :id="'q' + kOf(q)" v-model="answers[kOf(q)]" class="in">
                 <option value="" disabled>{{ t('formChoose') }}</option>
                 <option v-for="o in q.options" :key="o" :value="o">{{ o }}</option>

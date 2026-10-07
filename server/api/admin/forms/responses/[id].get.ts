@@ -6,6 +6,7 @@ import { logAccess } from '../../../../utils/forms'
 import { unseal } from '../../../../utils/seal'
 import { normalizeSpec } from '../../../../../utils/formSpec'
 import { filesOfResponse } from '../../../../utils/formFiles'
+import { childrenOfResponse, registrationOptions } from '../../../../utils/registrations'
 
 /** One answer in full, with the questions as they were when it was sent.
     Opening it marks it read, and is recorded. */
@@ -26,7 +27,14 @@ export default defineEventHandler(async (event) => {
   const at = ids.indexOf(id)
   // sent by a parent from their app: named, so the leaders know whose it is
   const parent = r.parentId ? (await db.select({ name: s.parents.name }).from(s.parents).where(eq(s.parents.id, r.parentId)).limit(1))[0] : null
+  // a registration: the children it registers, and those it could
+  const registration = f.registrationYear ? {
+    year: f.registrationYear,
+    children: (await childrenOfResponse(id)).map(k => ({ id: k.id, name: `${k.firstName} ${k.lastName}` })),
+    options: await registrationOptions(me, f)
+  } : null
   return {
+    registration,
     fromParent: parent?.name ?? null,
     id: r.id, formId: r.formId, formTitle: f?.titleEl ?? '', createdAt: r.createdAt,
     spec: normalizeSpec(JSON.parse(r.spec)), data: unseal(r.sealed),

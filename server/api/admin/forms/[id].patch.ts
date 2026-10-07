@@ -5,6 +5,7 @@ import { formForLeader, formSections, isArchigosFor } from '../../../utils/forms
 import { toSlug } from '../../../utils/slug'
 import { now } from '../../../utils/passcode'
 import { normalizeSpec } from '../../../../utils/formSpec'
+import { isScoutYear } from '../../../../utils/scoutYear'
 
 /** Save a form: its texts, its link, whether it is open, and its questions.
     Answers already sent keep the questions they answered. */
@@ -48,6 +49,16 @@ export default defineEventHandler(async (event) => {
     set.slug = slug
   }
   if (b?.spec !== undefined) set.spec = JSON.stringify(normalizeSpec(b.spec))
+  // the year's registration: one form a year does it
+  if (b?.registrationYear !== undefined) {
+    const year = b.registrationYear ? String(b.registrationYear) : null
+    if (year && !isScoutYear(year)) throw createError({ statusCode: 400, message: 'Μη έγκυρη χρονιά' })
+    if (year) {
+      const other = (await db.select().from(s.forms).where(eq(s.forms.registrationYear, year))).find(x => x.id !== id)
+      if (other) throw createError({ statusCode: 409, message: `Η εγγραφή ${year.replace('-', '–')} γίνεται ήδη με τη φόρμα «${other.titleEl}»` })
+    }
+    set.registrationYear = year
+  }
   await db.update(s.forms).set(set).where(eq(s.forms.id, id))
   return { ok: true, slug: set.slug }
 })

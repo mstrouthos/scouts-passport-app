@@ -9,11 +9,14 @@ import { normalizeSpec, answerText, visibleParts, repeatGroups, copiesOf } from 
     the list can be read at a glance. */
 export default defineEventHandler(async (event) => {
   const id = idParam(event)
-  const { me } = await formForLeader(event, id)
+  const { me, f } = await formForLeader(event, id)
   const db = await useDb()
   const rows = (await db.select().from(s.formResponses).where(eq(s.formResponses.formId, id)))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   await logAccess(id, me.id, 'list')
+  // a registration: whom each answer registers, by first name
+  const regs = f.registrationYear ? await db.select().from(s.registrations).where(eq(s.registrations.formId, id)) : []
+  const kidNames = new Map(regs.length ? (await db.select({ id: s.scouts.id, firstName: s.scouts.firstName }).from(s.scouts)).map(k => [k.id, k.firstName]) : [])
   return rows.map(r => {
     let summary: string[] = []
     try {
@@ -27,6 +30,7 @@ export default defineEventHandler(async (event) => {
         .slice(0, 3).map(({ q, key }) => answerText(data.answers[key], q.type))
       for (const g of repeatGroups(spec)) summary.push(`${copiesOf(g, data.repeats)} × ${g.repeat.label}`)
     } catch { summary = ['⚠️'] }
-    return { id: r.id, createdAt: r.createdAt, isRead: r.isRead, summary }
+    const children = f.registrationYear ? regs.filter(x => x.responseId === r.id).map(x => kidNames.get(x.scoutId) || '') : null
+    return { id: r.id, createdAt: r.createdAt, isRead: r.isRead, summary, children }
   })
 })

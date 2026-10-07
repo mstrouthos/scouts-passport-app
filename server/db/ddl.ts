@@ -546,6 +546,16 @@ CREATE TABLE IF NOT EXISTS leader_fun (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS leader_fun_created_idx ON leader_fun(created_at);
+CREATE TABLE IF NOT EXISTS registrations (
+  id SERIAL PRIMARY KEY,
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  year TEXT NOT NULL,
+  form_id INTEGER,
+  response_id INTEGER,
+  marked_by INTEGER,
+  created_at TEXT NOT NULL,
+  UNIQUE (scout_id, year)
+);
 CREATE TABLE IF NOT EXISTS kim_plays (
   id SERIAL PRIMARY KEY,
   scout_id INTEGER NOT NULL REFERENCES scouts(id),
@@ -697,5 +707,7 @@ export const MIGRATIONS = [
   // done by the game itself (a throw-back, a potato passed): not counted in the day's ten
   "ALTER TABLE leader_fun ADD COLUMN IF NOT EXISTS auto BOOLEAN NOT NULL DEFAULT FALSE",
   // the potato's round: who has held it since everyone last had a turn
-  "ALTER TABLE hot_potato ADD COLUMN IF NOT EXISTS cycle TEXT"
+  "ALTER TABLE hot_potato ADD COLUMN IF NOT EXISTS cycle TEXT",
+  // the form that registers members for a scout year ("2026-27"), if it is one
+  "ALTER TABLE forms ADD COLUMN IF NOT EXISTS registration_year TEXT"
 ]

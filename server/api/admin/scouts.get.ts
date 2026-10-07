@@ -2,6 +2,8 @@ import { useDb, schema as s } from '../../db'
 import { requireLeader, scopedSectionIds, visibleSectionIds, pointTotals, sectionOf, sectionOfWith, canSeeHidden } from '../../utils/guard'
 import { unitNames } from '../../utils/unitNames'
 import { faceOf } from '../../utils/face'
+import { registeredIds, hasRegistrationForm } from '../../utils/registrations'
+import { scoutYear } from '../../../utils/scoutYear'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -15,6 +17,9 @@ export default defineEventHandler(async (event) => {
   const badgeCounts = new Map<number, number>()
   for (const a of await db.select().from(s.scoutAchievements))
     badgeCounts.set(a.scoutId, (badgeCounts.get(a.scoutId) || 0) + 1)
+  // who is registered for this scout year — once there is a registration form for it
+  const regForm = await hasRegistrationForm()
+  const registered = regForm ? await registeredIds() : new Set<number>()
   const scopes = (await db.select().from(s.leaderScopes))
   const leaderNames = new Map(all.filter(r => r.role !== 'scout').map(r => [r.id, r]))
 
@@ -30,7 +35,8 @@ export default defineEventHandler(async (event) => {
     isActive: r.isActive, points: totals.get(r.id) || 0, badges: badgeCounts.get(r.id) || 0,
     patrolRole: r.patrolRole ?? null,
     activated: !!r.firstLoginAt, lastLoginAt: r.lastLoginAt ?? null,
-    hasPhone: !!r.phone
+    hasPhone: !!r.phone,
+    registered: registered.has(r.id)
   })
 
   const sections = (await db.select().from(s.sections))
@@ -54,6 +60,7 @@ export default defineEventHandler(async (event) => {
     })
 
   return {
+    registration: regForm ? { year: scoutYear() } : null,
     sections,
     // every Βαθμοφόρος sees the others (who they are, their rank and sectors);
     // only the Αρχηγός Συστήματος opens and changes them

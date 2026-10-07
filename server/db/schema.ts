@@ -719,6 +719,9 @@ export const forms = pgTable('forms', {
   parentSections: text('parent_sections'),
   parentsSetAt: text('parents_set_at'),
   parentsNotifiedAt: text('parents_notified_at'),
+  // the scout year ('2026-27') this form registers members for; its answers
+  // tick each child they name as registered (server/utils/registrations.ts)
+  registrationYear: text('registration_year'),
   pendingApproval: boolean('pending_approval').notNull().default(false),
   approvedBy: integer('approved_by'),
   approvedAt: text('approved_at'),
@@ -802,6 +805,19 @@ export const leaderFun = pgTable('leader_fun', {
   // done by the game itself, not by hand: not counted in the day's limit
   auto: boolean('auto').notNull().default(false)
 })
+
+/* A member registered for a scout year: by a registration form's answer
+   (form and response), or marked by hand by a Βαθμοφόρος (marked_by: a
+   registration on paper). One per member per year; leaders only see it. */
+export const registrations = pgTable('registrations', {
+  id: serial('id').primaryKey(),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  year: text('year').notNull(),
+  formId: integer('form_id'),
+  responseId: integer('response_id'),
+  markedBy: integer('marked_by'),
+  createdAt: text('created_at').notNull()
+}, t => [uniqueIndex('registrations_scout_id_year_key').on(t.scoutId, t.year)])
 
 /* Το Ταψί του Κιμ: one play a day each — when the tray was first shown, and
    what they picked (utils/kim.ts makes the tray from the day) */
