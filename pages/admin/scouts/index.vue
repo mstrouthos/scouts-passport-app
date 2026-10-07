@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const NuxtLinkC = resolveComponent('NuxtLink')
 const { t } = useI18n()
 const me = useMe()
 const { words: sectorWords, wordsFor } = useSectorWords()
@@ -112,9 +113,13 @@ function scopeWhere(sc: any) {
   if (!sc || sc.scope === 'troop') return t('wholeTroop')
   if (sc.scope === 'patrol') {
     const p = (data.value?.sections || []).flatMap((s: any) => s.patrols).find((x: any) => x.id === sc.patrolId)
-    return p ? `${p.emblem} ${lx(p, 'name')}` : t('wholeTroop')
+    if (p) return `${p.emblem} ${lx(p, 'name')}`
+    // a unit in a sector this leader does not run: named by its sector
+    const ofSec = (data.value?.leaderSections || []).find((x: any) => x.patrolIds.includes(sc.patrolId))
+    return ofSec ? lx(ofSec, 'name') : t('wholeTroop')
   }
-  const sec = (data.value?.sections || []).find((x: any) => x.id === sc.sectionId)
+  // every sector by name, not just the ones this leader runs
+  const sec = (data.value?.leaderSections || data.value?.sections || []).find((x: any) => x.id === sc.sectionId)
   return sec ? lx(sec, 'name') : t('wholeTroop')
 }
 function leaderSub(l: any) {
@@ -135,10 +140,10 @@ const leaderGroups = computed(() => {
   if (troopWide.length)
     groups.push({ key: 'troop', label: t('wholeTroop'), emoji: '👑', people: troopWide })
 
-  for (const sec of (data.value?.sections || [])) {
+  for (const sec of (data.value?.leaderSections || data.value?.sections || [])) {
     const people = leaders.filter((l: any) => l.scopes.some((sc: any) =>
       (sc.scope === 'section' && sc.sectionId === sec.id) ||
-      (sc.scope === 'patrol' && (sec.patrols || []).some((p: any) => p.id === sc.patrolId))))
+      (sc.scope === 'patrol' && (sec.patrolIds || (sec.patrols || []).map((p: any) => p.id)).includes(sc.patrolId))))
     if (people.length) groups.push({ key: 's' + sec.id, label: lx(sec, 'name'), emoji: '🎖️', people })
   }
 
@@ -228,19 +233,21 @@ async function deletePatrol() {
              @click="toggleSector('leaders')" @keydown.enter="toggleSector('leaders')">
           <div class="ico">🎖️</div>
           <div class="txt"><b>{{ t('vathmoforoi') }}</b><span>{{ data.leaders.length }} {{ t('members') }}</span></div>
-          <button class="chip" style="flex:none" @click.stop="openAdd('leaders')">+ {{ t('newLeader') }}</button>
+          <button v-if="data.canManageLeaders" class="chip" style="flex:none" @click.stop="openAdd('leaders')">+ {{ t('newLeader') }}</button>
           <span class="chev" :class="{ open: openSectors.has('leaders') }">›</span>
         </div>
         <div v-if="openSectors.has('leaders')" style="display:flex;flex-direction:column;gap:11px">
           <template v-for="g in leaderGroups" :key="g.key">
             <div class="lgrp-hdr">{{ g.emoji }} {{ g.label }}</div>
             <div class="adm">
-              <NuxtLink v-for="r in g.people" :key="g.key + '-' + r.id" :to="`/admin/roles?open=${r.id}`" class="it">
+              <!-- the Αρχηγός Συστήματος opens their roles; everyone else just sees who they are -->
+              <component :is="data.canManageLeaders ? NuxtLinkC : 'div'" v-for="r in g.people" :key="g.key + '-' + r.id"
+                         :to="data.canManageLeaders ? `/admin/roles?open=${r.id}` : undefined" class="it" :style="data.canManageLeaders ? '' : 'cursor:default'">
                 <Avatar :name="name(r)" :tone="r.role === 'troop_leader' ? 'gold' : 'green'" :photo="r.photo" :avatar="r.avatar" />
                 <div style="flex:1;min-width:0"><b>{{ name(r) }}</b><span>{{ leaderSub(r) }}</span></div>
                 <span class="pill" :class="r.role === 'troop_leader' ? 'sched' : 'live'">{{ rankLabel(r) }}</span>
-                <span class="chev">›</span>
-              </NuxtLink>
+                <span v-if="data.canManageLeaders" class="chev">›</span>
+              </component>
             </div>
           </template>
         </div>

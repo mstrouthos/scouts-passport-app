@@ -48,10 +48,10 @@ const CONFETTI = Array.from({ length: 28 }, (_, i) => ({
         <div class="stagebox">
           <template v-if="m.type === 'rank'">
             <div class="podium" aria-hidden="true"><i class="s2" /><i class="s1" /><i class="s3" /></div>
-            <div class="jumper"><Avatar :name="me?.firstName || ''" :avatar="me?.avatar || {}" :size="92" /></div>
+            <div class="jumper"><Avatar :name="me?.firstName || ''" :avatar="me?.avatar || {}" :size="92" no-zoom /></div>
           </template>
           <div v-else-if="m.type === 'birthday'" class="jumper bday">
-            <Avatar :name="me?.firstName || ''" :avatar="me?.avatar || {}" :size="112" party />
+            <Avatar :name="me?.firstName || ''" :avatar="me?.avatar || {}" :size="112" party no-zoom />
           </div>
           <div v-else-if="m.type === 'patrolTop'" class="emblem">{{ m.emblem }}<span class="crown">👑</span></div>
           <div v-else-if="m.type === 'kudos'" class="emblem claps"><span v-for="i in Math.min(m.count, 5)" :key="i" :style="{ animationDelay: i * 90 + 'ms' }">👏</span></div>

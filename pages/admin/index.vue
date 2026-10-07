@@ -80,7 +80,7 @@ async function removePhoto() {
     <div class="pcard">
       <div class="who">
         <button class="me-photo" :aria-label="t('profilePicture')" :disabled="photoBusy" @click="photoMenu = true">
-          <Avatar :name="`${me?.firstName || ''} ${me?.lastName || ''}`" :photo="me?.photo" :avatar="me?.avatar" :size="64" tone="gold" />
+          <Avatar :name="`${me?.firstName || ''} ${me?.lastName || ''}`" :photo="me?.photo" :avatar="me?.avatar" :size="64" tone="gold" no-zoom />
           <span class="cam">{{ photoBusy ? '…' : '📷' }}</span>
         </button>
         <input ref="photoInput" type="file" accept="image/*" hidden @change="pickPhoto">

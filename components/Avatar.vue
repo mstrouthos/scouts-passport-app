@@ -7,7 +7,16 @@ const props = defineProps<{
   photo?: string | null, avatar?: Partial<Avatar> | null, size?: number
   // their birthday: a party hat, for the day
   party?: boolean
+  // tapping it opens it full screen — unless a tap there already does something else
+  noZoom?: boolean
 }>()
+const canZoom = computed(() => !props.noZoom && (!!(props.photo && !failed.value) || !!props.avatar))
+function enlarge(e: Event) {
+  if (!canZoom.value) return
+  // inside a link or a button, the picture opens rather than the row
+  e.preventDefault(); e.stopPropagation()
+  openAvatar({ name: props.name, photo: props.photo && !failed.value ? props.photo : null, avatar: props.avatar, party: props.party })
+}
 const initials = computed(() =>
   props.name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase())
 const uid = 'av' + useId().replace(/[^a-z0-9]/gi, '')
@@ -18,8 +27,8 @@ const dim = computed(() => props.size ? { width: props.size + 'px', height: prop
 </script>
 
 <template>
-  <img v-if="photo && !failed" :src="photo" :alt="name" class="avatar pic" :style="dim" loading="lazy" @error="failed = true">
-  <div v-else-if="svg" class="avatar art" :style="dim" role="img" :aria-label="name" v-html="svg" />
+  <img v-if="photo && !failed" :src="photo" :alt="name" class="avatar pic" :class="{ zoomable: canZoom }" :style="dim" loading="lazy" @error="failed = true" @click="enlarge">
+  <div v-else-if="svg" class="avatar art" :class="{ zoomable: canZoom }" :style="dim" role="img" :aria-label="name" @click="enlarge" v-html="svg" />
   <div v-else class="avatar" :class="tone || 'accent'" :style="dim">{{ initials }}</div>
 </template>
 
@@ -30,6 +39,7 @@ const dim = computed(() => props.size ? { width: props.size + 'px', height: prop
 }
 .avatar.pic{object-fit:cover;background:var(--hair)}
 .avatar.art{overflow:hidden}
+.avatar.zoomable{cursor:zoom-in}
 .avatar.art :deep(svg){width:100%;height:100%;display:block}
 .avatar.accent{background:var(--grad-lead)}
 .avatar.green{background:linear-gradient(145deg,#5FAE87,#2E7D5B)}

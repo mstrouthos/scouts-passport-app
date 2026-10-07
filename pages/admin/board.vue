@@ -30,7 +30,8 @@ const st = computed(() => current.value?.startsWith('p') ? (standings.value || [
     <div v-if="!tabs.length" class="empty">{{ t('boardNone') }}</div>
 
     <!-- a sector whose members use the app: the same podium and table they see -->
-    <LeagueBoard v-if="current?.startsWith('b') && data?.individual" :key="data.sectionId" :data="data" />
+    <!-- tapping someone opens where their points came from -->
+    <LeagueBoard v-if="current?.startsWith('b') && data?.individual" :key="data.sectionId" :data="data" :member-link="(r: any) => `/admin/scout-points/${r.id}`" />
 
     <!-- an Αγέλη: its standings, for its Βαθμοφόροι only -->
     <template v-else-if="st">

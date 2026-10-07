@@ -55,12 +55,17 @@ export default defineEventHandler(async (event) => {
 
   return {
     sections,
-    leaders: me.role === 'troop_leader'
-      ? all.filter(r => r.role !== 'scout').map(r => ({
-          id: r.id, firstName: r.firstName, lastName: r.lastName,
-          firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, role: r.role, isChief: !!r.isChief, ...faceOf(r),
-          scopes: scopes.filter(x => x.scoutId === r.id).map(x => ({ scope: x.scope, sectionId: x.sectionId, patrolId: x.patrolId, rank: x.rank }))
-        }))
-      : null
+    // every Βαθμοφόρος sees the others (who they are, their rank and sectors);
+    // only the Αρχηγός Συστήματος opens and changes them
+    canManageLeaders: me.role === 'troop_leader',
+    // every sector, to group the Βαθμοφόροι by (theirs or not)
+    leaderSections: (await db.select().from(s.sections)).sort((a, b) => a.sortOrder - b.sortOrder)
+      .map(x => ({ id: x.id, nameEl: x.nameEl, nameEn: x.nameEn, patrolIds: patrols.filter(p => p.sectionId === x.id).map(p => p.id) })),
+    // (a deactivated one only for the Αρχηγός Συστήματος, as before)
+    leaders: all.filter(r => r.role !== 'scout' && (r.isActive || me.role === 'troop_leader')).map(r => ({
+      id: r.id, firstName: r.firstName, lastName: r.lastName,
+      firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, role: r.role, isChief: !!r.isChief, ...faceOf(r),
+      scopes: scopes.filter(x => x.scoutId === r.id).map(x => ({ scope: x.scope, sectionId: x.sectionId, patrolId: x.patrolId, rank: x.rank }))
+    }))
   }
 })

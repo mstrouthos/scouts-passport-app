@@ -4,7 +4,9 @@
    right, and the viewer's own row picked out in green. Ties share a place.
    The same for the units. Members see their own sector's; the quiz sector's
    Βαθμοφόροι see it from their side, with no row of their own. */
-const props = defineProps<{ data: any }>()
+// for the Βαθμοφόροι: where tapping a member opens (their points)
+const props = defineProps<{ data: any, memberLink?: (r: any) => string }>()
+const NuxtLinkC = resolveComponent('NuxtLink')
 const data = toRef(props, 'data')
 const { t } = useI18n()
 const lx = useLx()
@@ -29,7 +31,7 @@ const myPatrol = computed(() => mine.value?.row?.patrolId ?? null)
 /* the podium: the first three, by first name, with their points */
 const firstName = (r: any) => name(r).split(' ')[0]
 const indPodium = computed(() => (data.value?.individual || []).slice(0, 3).map((r: any, i: number) => ({
-  key: r.id, name: firstName(r) + (r.birthday ? ' 🎂' : ''), sub: `${r.points} ${t('pts')}`, place: indPlaces.value[i], avatar: r.avatar, me: r.me, party: r.birthday
+  key: r.id, name: firstName(r) + (r.birthday ? ' 🎂' : ''), sub: `${r.points} ${t('pts')}`, place: indPlaces.value[i], avatar: r.avatar, me: r.me, party: r.birthday, to: props.memberLink?.(r)
 })))
 const patPodium = computed(() => (data.value?.patrols || []).slice(0, 3).map((p: any, i: number) => ({
   key: p.id, name: lx(p, 'name'), sub: `${p.score} ${isSum.value ? t('pts') : t('avg')}`, place: patPlaces.value[i], emblem: p.emblem || '⚜️', me: p.id === myPatrol.value
@@ -55,7 +57,8 @@ const MEDAL: Record<number, { face: string, rim: string, ribbon: string, ink: st
       <b>{{ t('boardYouAre', { n: mine.place }) }}</b>
     </div>
     <div class="league">
-      <div v-for="(r, i) in data?.individual" :key="r.id" class="row" :class="{ me: r.me }">
+      <component :is="memberLink ? NuxtLinkC : 'div'" v-for="(r, i) in data?.individual" :key="r.id" class="row" :class="{ me: r.me, link: !!memberLink }"
+                 :to="memberLink ? memberLink(r) : undefined">
         <div class="place">
           <svg v-if="MEDAL[indPlaces[i]]" class="medal" viewBox="0 0 32 36" aria-hidden="true">
             <path d="M8 22 4 34l5-2 3 4 4-12Z M24 22l4 12-5-2-3 4-4-12Z" :fill="MEDAL[indPlaces[i]].ribbon" />
@@ -71,7 +74,8 @@ const MEDAL: Record<number, { face: string, rim: string, ribbon: string, ink: st
           <span>{{ data?.patrolNames?.[r.patrolId]?.emblem }} {{ lx(data?.patrolNames?.[r.patrolId], 'name') }}{{ r.me ? ' · ' + t('you') : '' }}</span>
         </div>
         <div class="pts">{{ r.points }} <small>{{ t('pts') }}</small></div>
-      </div>
+        <span v-if="memberLink" class="chev">›</span>
+      </component>
     </div>
   </template>
 
@@ -101,6 +105,9 @@ const MEDAL: Record<number, { face: string, rim: string, ribbon: string, ink: st
 </template>
 
 <style scoped>
+.row.link{text-decoration:none; color:inherit; cursor:pointer}
+.row.link:active{transform:translateY(1px)}
+.row .chev{flex:none; color:var(--muted); font-size:18px; margin-left:2px}
 .where{display:flex; align-items:center; justify-content:center; gap:10px; padding:4px 0 2px}
 .where .cup{font-size:30px; line-height:1}
 .where b{font-size:18px; font-weight:800; letter-spacing:-.01em}

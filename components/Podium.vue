@@ -4,7 +4,7 @@
    each with a flat cartoon trophy in gold, silver or bronze, their avatar (or
    their unit's emblem) above it, and their name and points below. */
 import type { Avatar as AvatarCfg } from '~/utils/avatar'
-type Item = { key: string | number, name: string, sub: string, place: number, avatar?: Partial<AvatarCfg> | null, emblem?: string, me?: boolean, party?: boolean }
+type Item = { key: string | number, name: string, sub: string, place: number, avatar?: Partial<AvatarCfg> | null, emblem?: string, me?: boolean, party?: boolean, to?: string }
 const props = defineProps<{ items: Item[] }>()
 
 /* drawn order: second, first, third — whatever is there */
@@ -42,7 +42,11 @@ const metal = (place: number) => METAL[Math.min(Math.max(place, 1), 3)]
           <rect x="14" y="58" width="36" height="10" rx="4" :fill="metal(s.place).base" />
           <text x="32" y="28" text-anchor="middle" font-size="16" font-weight="900" :fill="metal(s.place).base">{{ s.place }}</text>
         </svg>
-        <div class="stand">
+        <NuxtLink v-if="s.to" :to="s.to" class="stand" style="text-decoration:none;color:inherit">
+          <b :class="{ me: s.me }">{{ s.name }}</b>
+          <span>{{ s.sub }} ›</span>
+        </NuxtLink>
+        <div v-else class="stand">
           <b :class="{ me: s.me }">{{ s.name }}</b>
           <span>{{ s.sub }}</span>
         </div>
