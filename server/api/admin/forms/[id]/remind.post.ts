@@ -25,8 +25,9 @@ export default defineEventHandler(async (event) => {
     inArray(s.notificationLog.scoutId, ids.map(id => -1_000_000 - id)),
     eq(s.notificationLog.kind, 'formReminder'), eq(s.notificationLog.refId, f.id)))
   await sendPushToParentIds(ids, { title: `⏰ ${f.titleEl}`, body: 'Υπενθύμιση: η φόρμα περιμένει να τη συμπληρώσετε.', kind: 'formReminder', refId: f.id })
-  await db.update(s.formInvites).set({ remindedAt: now() })
-    .where(and(eq(s.formInvites.formId, f.id), inArray(s.formInvites.parentId, ids)))
+  const t = now()
+  await db.insert(s.formInvites).values(ids.map(parentId => ({ formId: f.id, parentId, sentAt: t, remindedAt: t })))
+    .onConflictDoUpdate({ target: [s.formInvites.formId, s.formInvites.parentId], set: { remindedAt: t } })
   await logAccess(f.id, me.id, 'remind-parents')
   return { ok: true, parents: ids.length }
 })

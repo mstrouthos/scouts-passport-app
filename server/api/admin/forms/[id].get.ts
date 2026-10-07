@@ -2,6 +2,7 @@ import { idParam } from '../../../utils/guard'
 import { formForLeader, specOf, isAccepting, isArchigosFor, formSections } from '../../../utils/forms'
 import { useDb, schema as s } from '../../../db'
 import { emailReady } from '../../../utils/email'
+import { parentSectionsOf } from '../../../utils/familyForms'
 
 export default defineEventHandler(async (event) => {
   const { me, f } = await formForLeader(event, idParam(event))
@@ -18,6 +19,8 @@ export default defineEventHandler(async (event) => {
     // the sectors it may be moved to, and whose parents it may be sent to
     sections: (await db.select().from(s.sections)).filter(x => secs === null || secs.includes(x.id))
       .sort((a, b) => a.sortOrder - b.sortOrder).map(x => ({ id: x.id, nameEl: x.nameEl })),
-    allSections: secs === null
+    allSections: secs === null,
+    // the sectors whose parents see it, and when they were last told
+    parentSections: parentSectionsOf(f), parentsNotifiedAt: f.parentsNotifiedAt
   }
 })

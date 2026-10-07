@@ -1,7 +1,7 @@
 import { idParam } from '../../../../utils/guard'
 import { requireParent } from '../../../../utils/parentGuard'
 import { formById, isAccepting } from '../../../../utils/forms'
-import { formLink, parentTicket, familyOf } from '../../../../utils/familyForms'
+import { formLink, parentTicket, familyOf, formIsFor } from '../../../../utils/familyForms'
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 
@@ -14,8 +14,8 @@ export default defineEventHandler(async (event) => {
   // only a form that was sent to them (or to the other parent of their child)
   const db = await useDb()
   const family = await familyOf(p.id)
-  const invited = (await db.select().from(s.formInvites).where(eq(s.formInvites.formId, f.id))).some(i => family.includes(i.parentId))
-  if (!invited) throw createError({ statusCode: 404, message: 'Η φόρμα δεν βρέθηκε' })
+  const invited = new Set((await db.select().from(s.formInvites).where(eq(s.formInvites.formId, f.id))).map(i => i.parentId))
+  if (!formIsFor(f, family, p.sectionIds, invited)) throw createError({ statusCode: 404, message: 'Η φόρμα δεν βρέθηκε' })
   if (!isAccepting(f)) throw createError({ statusCode: 410, message: 'Η φόρμα έχει κλείσει' })
   return { url: formLink(event, f.slug, parentTicket(p.id, f.id)) }
 })

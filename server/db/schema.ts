@@ -702,6 +702,12 @@ export const forms = pgTable('forms', {
   // the sector it belongs to (null: the whole troop, the administrators');
   // one made by an Υπαρχηγός waits for an Αρχηγός to approve it before it opens
   sectionId: integer('section_id'),
+  // the sectors whose parents see it in the app (JSON list of ids; null:
+  // never chosen, or from before — then whoever it was sent to); setting
+  // them notifies nobody: that is its own step, and when it happened
+  parentSections: text('parent_sections'),
+  parentsSetAt: text('parents_set_at'),
+  parentsNotifiedAt: text('parents_notified_at'),
   pendingApproval: boolean('pending_approval').notNull().default(false),
   approvedBy: integer('approved_by'),
   approvedAt: text('approved_at'),

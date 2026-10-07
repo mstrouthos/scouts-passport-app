@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
-import { childIdsOfParent } from './parents'
+import { childIdsOfParent, sectionsOfParent } from './parents'
 
 /* A form lives on its own address (forms.scouts30.org), where the family
    page's sign-in does not reach. So the link a parent opens from the app
@@ -61,8 +61,12 @@ export async function ownResponse(parentId: number, id: number) {
     leaders of the form; names and children only, never answers. */
 export async function inviteStatus(formId: number) {
   const db = await useDb()
-  const invites = await db.select().from(s.formInvites).where(eq(s.formInvites.formId, formId))
-  if (!invites.length) return { invited: 0, answered: 0, pending: [], done: [], lastReminder: null as string | null }
+  const f = (await db.select().from(s.forms).where(eq(s.forms.id, formId)).limit(1))[0]
+  const allInvites = await db.select().from(s.formInvites).where(eq(s.formInvites.formId, formId))
+  const audience = f ? await audienceOf(f) : []
+  // one row per parent the form is for; `sentAt` is when they were notified, if they were
+  const invites = audience.map(pid => allInvites.find(i => i.parentId === pid) ?? { formId, parentId: pid, sentAt: '', remindedAt: null as string | null })
+  if (!invites.length) return { invited: 0, answered: 0, notified: 0, pending: [], done: [], lastReminder: null as string | null }
   const parents = await db.select().from(s.parents)
   const links = await db.select().from(s.parentChildren)
   const scouts = await db.select({ id: s.scouts.id, firstName: s.scouts.firstName }).from(s.scouts)
@@ -82,13 +86,39 @@ export async function inviteStatus(formId: number) {
       children: kids.map(k => scouts.find(x => x.id === k)?.firstName).filter(Boolean) as string[],
       answeredAt: by?.createdAt ?? null,
       answeredBy: by && by.parentId !== i.parentId ? parents.find(x => x.id === by.parentId)?.name ?? null : null,
-      remindedAt: i.remindedAt
+      remindedAt: i.remindedAt, notified: !!i.sentAt
     }
   }).filter(r => r.active).sort((a, b) => a.name.localeCompare(b.name, 'el'))
   const done = rows.filter(r => r.answeredAt)
   return {
-    invited: rows.length, answered: done.length,
+    invited: rows.length, answered: done.length, notified: rows.filter(r => r.notified).length,
     pending: rows.filter(r => !r.answeredAt), done,
     lastReminder: invites.map(i => i.remindedAt).filter(Boolean).sort().pop() ?? null
   }
+}
+
+type FormRow = typeof s.forms.$inferSelect
+/** The sectors whose parents see a form, or null when they were never chosen. */
+export function parentSectionsOf(f: FormRow): number[] | null {
+  if (!f.parentSections) return null
+  try { const v = JSON.parse(f.parentSections); return Array.isArray(v) ? v.map(Number).filter(Number.isInteger) : null } catch { return null }
+}
+
+/** The parents a form is for: those with a child in one of its sectors — so a
+    family that joins later sees it too — or, for a form whose sectors were
+    never chosen (sent before this existed), those it was sent to. */
+export async function audienceOf(f: FormRow): Promise<number[]> {
+  const db = await useDb()
+  const secs = parentSectionsOf(f)
+  if (secs === null) return (await db.select().from(s.formInvites).where(eq(s.formInvites.formId, f.id))).map(i => i.parentId)
+  if (!secs.length) return []
+  const [parents, links, scouts, patrols] = await Promise.all([
+    db.select().from(s.parents), db.select().from(s.parentChildren), db.select().from(s.scouts), db.select().from(s.patrols)])
+  return parents.filter(p => p.isActive && sectionsOfParent(p, links, scouts, patrols).some(x => secs.includes(x))).map(p => p.id)
+}
+
+/** Whether a family (any of its parents, in any of its sectors) is one a form is for. */
+export function formIsFor(f: FormRow, family: number[], familySections: number[], invited: Set<number>) {
+  const secs = parentSectionsOf(f)
+  return secs === null ? family.some(id => invited.has(id)) : secs.some(x => familySections.includes(x))
 }

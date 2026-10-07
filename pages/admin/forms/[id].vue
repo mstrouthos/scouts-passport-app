@@ -9,7 +9,7 @@ const { show } = useToast()
 const route = useRoute()
 const id = Number(route.params.id)
 
-const tab = ref<'build' | 'settings' | 'responses'>(route.query.tab === 'responses' ? 'responses' : 'build')
+const tab = ref<'build' | 'settings' | 'parents' | 'responses'>((['settings', 'parents', 'responses'] as const).find(x => x === route.query.tab) ?? 'build')
 watch(tab, v => navigateTo({ query: { ...route.query, tab: v } }, { replace: true }))
 
 const { data: form, refresh } = await useFetch<any>(`/api/admin/forms/${id}`)
@@ -23,43 +23,42 @@ async function approve() {
   } catch (e: any) { show(errMsg(e)) }
 }
 
-/* sending it to families in the app: the parents of the sectors picked */
-/* only the sectors picked: a sector's form starts with its own picked, a
-   troop-wide one with none — every sector is one tap on "all" — and
-   emptying the choice leaves it empty (it never fills itself back in) */
+/* the parents it is for, in the app: which sectors' parents see it (saved
+   on its own, telling nobody — it just appears among their forms to fill
+   in), and telling them, a separate step. Only the sectors picked; nothing
+   is ever ticked for you. */
 const parentSecs = ref<number[]>([])
-let secsSet = false
+let savedSecs = '[]'
+const key = (l: number[]) => JSON.stringify([...l].sort((a, b) => a - b))
 watch(form, f => {
-  if (!f || secsSet) return
-  secsSet = true
-  parentSecs.value = f.sectionId ? [f.sectionId] : []
+  if (!f) return
+  parentSecs.value = [...(f.parentSections || [])]
+  savedSecs = key(parentSecs.value)
 }, { immediate: true })
+const secsDirty = computed(() => key(parentSecs.value) !== savedSecs)
 const toggleSec = (sid: number) => { parentSecs.value = parentSecs.value.includes(sid) ? parentSecs.value.filter(x => x !== sid) : [...parentSecs.value, sid] }
 const allSecs = computed(() => !!form.value?.sections?.length && form.value.sections.every((x: any) => parentSecs.value.includes(x.id)))
 const toggleAll = () => { parentSecs.value = allSecs.value ? [] : form.value.sections.map((x: any) => x.id) }
-/* where it has gone already; a sector sent to by mistake can be taken back */
-const sentTo = ref<any[]>([])
-async function loadSentTo() { try { sentTo.value = await $fetch<any[]>(`/api/admin/forms/${id}/sent-to`) } catch {} }
-onMounted(loadSentTo)
-async function unsend(sec: any) {
-  if (!confirm(t('formUnsendQ', { name: sec.nameEl }))) return
-  try {
-    const r = await $fetch<any>(`/api/admin/forms/${id}/unsend`, { method: 'POST', body: { sectionId: sec.id } })
-    show('↩️ ' + t('formUnsent', { n: r.parents }))
-    loadSentTo(); loadInvites()
-  } catch (e: any) { show(errMsg(e)) }
-}
 const chosenNames = computed(() => (form.value?.sections || []).filter((x: any) => parentSecs.value.includes(x.id)).map((x: any) => x.nameEl).join(', '))
+const savingSecs = ref(false)
+async function saveParents() {
+  savingSecs.value = true
+  try {
+    const r = await $fetch<any>(`/api/admin/forms/${id}/parents`, { method: 'PUT', body: { sectionIds: parentSecs.value } })
+    show('✅ ' + t('formParentsSaved', { n: r.parents }))
+    await refresh(); await loadInvites()
+  } catch (e: any) { show(errMsg(e)) } finally { savingSecs.value = false }
+}
+// those it is for who have not been told yet (a family added since, say)
+const toNotify = computed(() => Math.max(0, (invites.value?.invited ?? 0) - (invites.value?.notified ?? 0)))
 const sendingParents = ref(false)
-async function sendToParents() {
-  if (!parentSecs.value.length || sendingParents.value) return
-  const names = form.value.sections.filter((x: any) => parentSecs.value.includes(x.id)).map((x: any) => x.nameEl).join(', ')
-  if (!confirm(t('formSendParentsQ', { list: names }))) return
+async function notifyParents() {
+  if (sendingParents.value || !confirm(t('formNotifyQ', { n: toNotify.value }))) return
   sendingParents.value = true
   try {
-    const r = await $fetch<any>(`/api/admin/forms/${id}/notify-parents`, { method: 'POST', body: { sectionIds: parentSecs.value } })
-    show('📣 ' + t('formSentParents', { n: r.parents }))
-    loadInvites(); loadSentTo()
+    const r = await $fetch<any>(`/api/admin/forms/${id}/notify-parents`, { method: 'POST' })
+    show('📣 ' + t('formNotified', { n: r.parents }))
+    await refresh(); await loadInvites()
   } catch (e: any) { show(errMsg(e)) } finally { sendingParents.value = false }
 }
 const spec = ref<FormSpec>({ modules: [], ticks: [], signature: { enabled: false, required: true, label: '' } })
@@ -300,13 +299,6 @@ async function saveTemplate() {
   } catch (e: any) { show(errMsg(e)) } finally { reuseBusy.value = false }
 }
 
-async function moveSection(v: string) {
-  try {
-    await $fetch(`/api/admin/forms/${id}`, { method: 'PATCH', body: { sectionId: v ? Number(v) : null } })
-    await refresh()
-  } catch (e: any) { show(errMsg(e)); await refresh() }
-}
-
 async function removeForm() {
   if (!confirm(t('formDeleteQ'))) return
   await $fetch(`/api/admin/forms/${id}`, { method: 'DELETE' })
@@ -339,7 +331,7 @@ async function remind() {
   } catch (e: any) { show(errMsg(e)) } finally { reminding.value = false }
 }
 const remindedToday = computed(() => !!invites.value?.lastReminder && Date.now() - Date.parse(invites.value.lastReminder) < 20 * 3600_000)
-watch(tab, v => { if (v === 'responses') { loadResponses(); loadInvites() } }, { immediate: true })
+watch(tab, v => { if (v === 'responses') { loadResponses(); loadInvites() } if (v === 'parents') loadInvites() }, { immediate: true })
 const exporting = ref(false)
 async function exportCsv() {
   exporting.value = true
@@ -353,10 +345,11 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
 
 <template>
   <AppShell :title="form?.titleEl || t('forms')" :sub="form?.accepting ? '🟢 ' + t('formOpen') : '⚪ ' + t('formClosedShort')" back="/admin/forms">
-    <div class="seg">
-      <button :class="{ on: tab === 'build' }" @click="tab = 'build'">🧩 {{ t('formTabBuild') }}</button>
-      <button :class="{ on: tab === 'settings' }" @click="tab = 'settings'">⚙️ {{ t('formTabSettings') }}</button>
-      <button :class="{ on: tab === 'responses' }" @click="tab = 'responses'">📥 {{ t('formTabResponses') }}</button>
+    <div class="seg tabs4">
+      <button :class="{ on: tab === 'build' }" @click="tab = 'build'"><span class="ti">🧩</span>{{ t('formTabBuild') }}</button>
+      <button :class="{ on: tab === 'settings' }" @click="tab = 'settings'"><span class="ti">⚙️</span>{{ t('formTabSettings') }}</button>
+      <button :class="{ on: tab === 'parents' }" @click="tab = 'parents'"><span class="ti">📣</span>{{ t('formTabParents') }}</button>
+      <button :class="{ on: tab === 'responses' }" @click="tab = 'responses'"><span class="ti">📥</span>{{ t('formTabResponses') }}</button>
     </div>
     <!-- an Υπαρχηγός's form: waiting for the Αρχηγός, who may approve it here -->
     <div v-if="form?.pendingApproval" class="approval">
@@ -578,36 +571,33 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
         <button class="btn ghost" :disabled="reuseBusy" @click="copyForm">⧉ {{ t('formCopyToNew') }}</button>
         <button class="btn ghost" :disabled="reuseBusy" @click="saveTemplate">⭐ {{ t('formSaveTemplate') }}</button>
       </div>
-      <!-- to the families, in the app: a notification that opens the form -->
+      <button class="btn danger" @click="removeForm">🗑 {{ t('formDelete') }}</button>
+    </template>
+
+    <!-- ===== the parents it is for ===== -->
+    <template v-else-if="tab === 'parents'">
       <div class="card mod">
-        <div class="sec-title" style="margin:0">📣 {{ t('formSendParents') }}</div>
-        <div class="tiny muted">{{ form?.accepting ? t('formSendParentsNote') : t('formSendParentsClosed') }}</div>
+        <div class="sec-title" style="margin:0">👪 {{ t('formParentsWho') }}</div>
+        <div class="tiny muted">{{ t('formParentsWhoNote') }}</div>
+        <div v-if="form?.parentSections === null && invites?.invited" class="note">{{ t('formParentsLegacy', { n: invites.invited }) }}</div>
         <div class="chips">
           <button v-if="(form?.sections?.length || 0) > 1" type="button" class="chip" :class="{ on: allSecs }" @click="toggleAll">{{ t('formAllSectors') }}</button>
           <button v-for="s in form?.sections" :key="s.id" type="button" class="chip" :class="{ on: parentSecs.includes(s.id) }" @click="toggleSec(s.id)">{{ s.nameEl }}</button>
         </div>
         <div class="tiny" :class="parentSecs.length ? '' : 'muted'">{{ parentSecs.length ? t('formSendTo', { list: allSecs ? t('formAllSectors') : chosenNames }) : t('formPickSectors') }}</div>
-        <button class="btn" :disabled="!form?.accepting || !parentSecs.length || sendingParents || dirty" @click="sendToParents">📣 {{ t('formSendParentsGo') }}</button>
-        <div v-if="dirty" class="tiny muted">{{ t('formSaveFirst') }}</div>
-        <template v-if="sentTo.length">
-          <div class="tiny muted">{{ t('formSentToNow') }}</div>
-          <div class="chips">
-            <button v-for="sec in sentTo" :key="sec.id" type="button" class="chip" @click="unsend(sec)">{{ sec.nameEl }} · {{ sec.parents }} ✕</button>
-          </div>
-        </template>
+        <button class="btn" :disabled="!secsDirty || savingSecs" @click="saveParents">{{ savingSecs ? t('loading') : secsDirty ? t('save') : '✓ ' + t('saved') }}</button>
       </div>
-      <div class="card mod">
-        <label class="lab">{{ t('formFor') }}</label>
-        <select class="in" :value="form?.sectionId ?? ''" @change="moveSection(($event.target as HTMLSelectElement).value)">
-          <option v-if="form?.allSections" value="">{{ t('formWholeTroop') }}</option>
-          <option v-for="s in form?.sections" :key="s.id" :value="s.id">{{ s.nameEl }}</option>
-        </select>
-      </div>
-      <button class="btn danger" @click="removeForm">🗑 {{ t('formDelete') }}</button>
-    </template>
 
-    <!-- ===== responses ===== -->
-    <template v-else>
+      <div class="card mod">
+        <div class="sec-title" style="margin:0">📣 {{ t('formNotifyTitle') }}</div>
+        <div class="tiny muted">{{ !form?.accepting ? t('formSendParentsClosed') : !form?.parentSections?.length ? t('formNotifyPickFirst') : t('formNotifyNote') }}</div>
+        <div v-if="form?.parentsNotifiedAt" class="tiny">✓ {{ t('formNotifiedOn', { when: stamp(form.parentsNotifiedAt) }) }}</div>
+        <button class="btn" :disabled="!form?.accepting || !form?.parentSections?.length || secsDirty || sendingParents || !toNotify" @click="notifyParents">
+          📣 {{ toNotify ? t('formNotifyGo', { n: toNotify }) : t('formNotifyAllDone') }}
+        </button>
+        <div v-if="secsDirty" class="tiny muted">{{ t('formSaveFirst') }}</div>
+      </div>
+
       <!-- sent to parents in the app: how many have answered, who is left, a reminder -->
       <div v-if="invites?.invited" class="card mod">
         <div class="inv-head">
@@ -629,6 +619,12 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
         </template>
         <div v-else class="tiny" style="color:var(--green);font-weight:700">✅ {{ t('formInvAllDone') }}</div>
       </div>
+    </template>
+
+    <!-- ===== responses ===== -->
+    <template v-else>
+      <!-- the parents it is for: how many have answered (all of it on the Γονείς tab) -->
+      <button v-if="invites?.invited" class="chip" style="align-self:flex-start" @click="tab = 'parents'">📣 {{ t('formInvAnswered', { a: invites.answered, n: invites.invited }) }} ›</button>
       <div class="rtools">
         <span class="tiny muted" style="flex:1">{{ responses?.length ?? '…' }} {{ t('formResponsesN', responses?.length ?? 2) }}</span>
         <button class="chip" :disabled="!responses?.length || exporting" @click="exportCsv">⬇️ {{ t('formExport') }}</button>
@@ -648,7 +644,7 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
     </template>
 
     <!-- the link, and saving, always at hand -->
-    <div v-if="tab !== 'responses'" class="savebar">
+    <div v-if="tab === 'build' || tab === 'settings'" class="savebar">
       <div class="linkrow">
         <span class="tiny">{{ link }}</span>
         <button class="chip" @click="copyLink">📋</button>
@@ -660,6 +656,9 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
 </template>
 
 <style scoped>
+/* four tabs: each an icon over its name, all the same shape */
+.tabs4 button{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; font-size:12px; line-height:1.15; padding-left:2px; padding-right:2px}
+.tabs4 .ti{font-size:15px}
 .mod{display:flex; flex-direction:column; gap:10px}
 .mhead{display:flex; align-items:center; gap:6px}
 .mhead .in{flex:1; font-weight:700}
