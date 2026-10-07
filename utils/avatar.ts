@@ -22,7 +22,8 @@ export const AVATAR_OPTIONS = {
   brows: ['normal', 'thin', 'thick'],
   nose: ['button', 'round', 'long', 'wide'],
   facialHairColor: ['#2A1E1A', '#4A3125', '#7B4A2A', '#B6763A', '#E3BC62', '#B5482A', '#9AA0A6', '#8E5BD6', '#3B82D6', '#E35D9A'],
-  expression: ['smile', 'grin', 'laugh', 'cool', 'surprised', 'silly', 'calm', 'determined'],
+  expression: ['smile', 'grin', 'laugh', 'cool', 'surprised', 'silly', 'calm', 'determined',
+    'serious', 'angry', 'sarcastic', 'sad', 'sleepy', 'unimpressed', 'nervous', 'confused'],
   extras: ['none', 'freckles', 'blush', 'plaster'],
   earrings: ['none', 'studs', 'hoops'],
   gear: ['none', 'whistle', 'compass', 'badges'],
@@ -145,7 +146,8 @@ export function randomAvatar(like?: string): Avatar {
     skin: pick(AVATAR_OPTIONS.skin), head: pick(AVATAR_OPTIONS.head),
     clothes: pick(AVATAR_OPTIONS.clothes), clothesColor: pick(AVATAR_OPTIONS.clothesColor),
     hairColor: pick(AVATAR_OPTIONS.hairColor.slice(0, 7)), eyeColor: pick(AVATAR_OPTIONS.eyeColor),
-    expression: pick(AVATAR_OPTIONS.expression),
+    // a first face is a happy one; the moods are for choosing
+    expression: pick(AVATAR_OPTIONS.expression.slice(0, 8)),
     extras: Math.random() < 0.35 ? pick(AVATAR_OPTIONS.extras.slice(1)) : 'none',
     earrings: gender === 'girl' && Math.random() < 0.4 ? pick(AVATAR_OPTIONS.earrings.slice(1)) : 'none',
     gear: Math.random() < 0.3 ? pick(AVATAR_OPTIONS.gear.slice(1)) : 'none',
@@ -541,7 +543,13 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     + `<ellipse cx="${eyeL - 6}" cy="${ey + 17}" rx="8" ry="4.5" fill="#F28B82" opacity=".3"/><ellipse cx="${eyeR + 6}" cy="${ey + 17}" rx="8" ry="4.5" fill="#F28B82" opacity=".3"/>`
 
   /* ---- the face: eyes, brows, nose, mouth, together by expression ---- */
-  type Ex = { eyes: 'open' | 'happy' | 'half' | 'wink' | 'wide', brows: 'soft' | 'up' | 'angry' | 'flat' | 'tilt', mouth: string }
+  type Ex = {
+    eyes: 'open' | 'happy' | 'half' | 'wink' | 'wide' | 'narrow' | 'sad' | 'roll' | 'side' | 'closed',
+    brows: 'soft' | 'up' | 'angry' | 'flat' | 'tilt' | 'sad' | 'raised' | 'furious' | 'low',
+    mouth: string,
+    // a comic mark beside the face: a vein, a tear, a drop of sweat, sleep
+    fx?: 'vein' | 'tear' | 'sweat' | 'zzz'
+  }
   const EXP: Record<string, Ex> = {
     smile: { eyes: 'open', brows: 'soft', mouth: 'smile' },
     grin: { eyes: 'open', brows: 'soft', mouth: 'grin' },
@@ -550,7 +558,15 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     surprised: { eyes: 'wide', brows: 'up', mouth: 'o' },
     silly: { eyes: 'wink', brows: 'tilt', mouth: 'tongue' },
     calm: { eyes: 'open', brows: 'flat', mouth: 'line' },
-    determined: { eyes: 'open', brows: 'angry', mouth: 'flat' }
+    determined: { eyes: 'open', brows: 'angry', mouth: 'flat' },
+    serious: { eyes: 'open', brows: 'low', mouth: 'flatShort' },
+    angry: { eyes: 'narrow', brows: 'furious', mouth: 'grimace', fx: 'vein' },
+    sarcastic: { eyes: 'roll', brows: 'raised', mouth: 'sideSmirk' },
+    sad: { eyes: 'sad', brows: 'sad', mouth: 'frown', fx: 'tear' },
+    sleepy: { eyes: 'closed', brows: 'flat', mouth: 'yawn', fx: 'zzz' },
+    unimpressed: { eyes: 'half', brows: 'flat', mouth: 'meh' },
+    nervous: { eyes: 'wide', brows: 'sad', mouth: 'wavy', fx: 'sweat' },
+    confused: { eyes: 'side', brows: 'raised', mouth: 'pursed' }
   }
   const xp = EXP[a.expression]
   const iris = a.eyeColor
@@ -559,15 +575,34 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   const eye = (x: number, s: number) => {
     const kind = xp.eyes === 'wink' ? (s > 0 ? 'happy' : 'open') : xp.eyes
     if (kind === 'happy') return `<path d="M${x - 8} ${ey + 2} Q${x} ${ey - 8} ${x + 8} ${ey + 2}" fill="none" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>`
+    // asleep: the lids shut, curved down, with a lash or two
+    if (kind === 'closed') return `<path d="M${x - 8} ${ey} Q${x} ${ey + 6} ${x + 8} ${ey}" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>`
+      + `<path d="M${x + s * 7} ${ey + 1} l${s * 3} 3" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>`
     // the eye's shape: round (big and friendly), almond (longer, narrower), small
     const sh = a.eyeShape
     const ry = kind === 'wide' ? 12.5 : sh === 'almond' ? 7.6 : sh === 'small' ? 8 : 11.2
     const rx = kind === 'wide' ? 10.5 : sh === 'almond' ? 10 : sh === 'small' ? 7.4 : 10
     const ir = kind === 'wide' ? 7.8 : sh === 'round' ? 7.6 : 6
-    const iy = ey + (sh === 'round' ? 1.5 : 0.8)
+    // where the eye looks: up and away (an eye-roll), to one side, or down (sad)
+    const lx = kind === 'roll' ? 2.5 : kind === 'side' ? rx * 0.42 : 0
+    const ly = kind === 'roll' ? -ry * 0.5 : kind === 'sad' ? 2 : 0
+    const iy = ey + (sh === 'round' ? 1.5 : 0.8) + ly, ix = x + 1 + lx
     const whites = `<ellipse cx="${x}" cy="${ey}" rx="${rx}" ry="${ry}" fill="#fff"/>`
-      + `<circle cx="${x + 1}" cy="${iy}" r="${ir}" fill="${iris}" stroke="${shade(iris, 0.6)}" stroke-width="1.2"/>`
-      + `<circle cx="${x + 1}" cy="${iy}" r="${ir / 1.7}" fill="${INK}"/><circle cx="${x + 3}" cy="${ey - 1.5}" r="${ir / 3}" fill="#fff"/><circle cx="${x - 1.6}" cy="${iy + ir * 0.45}" r="${ir / 6}" fill="#fff" opacity=".85"/>`
+      + `<g clip-path="url(#eye${s > 0 ? 'R' : 'L'}-${id})"><circle cx="${ix}" cy="${iy}" r="${ir}" fill="${iris}" stroke="${shade(iris, 0.6)}" stroke-width="1.2"/>`
+      + `<circle cx="${ix}" cy="${iy}" r="${ir / 1.7}" fill="${INK}"/><circle cx="${ix + 2}" cy="${iy - 2.3}" r="${ir / 3}" fill="#fff"/><circle cx="${ix - 2.6}" cy="${iy + ir * 0.45}" r="${ir / 6}" fill="#fff" opacity=".85"/></g>`
+    extraDefs.push(`<clipPath id="eye${s > 0 ? 'R' : 'L'}-${id}"><ellipse cx="${x}" cy="${ey}" rx="${rx}" ry="${ry}"/></clipPath>`)
+    extraDefs.push(`<clipPath id="lid${s > 0 ? 'R' : 'L'}-${id}"><ellipse cx="${x}" cy="${ey}" rx="${rx + 1.2}" ry="${ry + 1.2}"/></clipPath>`)
+    // a lid drawn down over the eye along a line: from the outer corner to the
+    // inner one (angry: low at the nose; sad: low at the outside; an eye-roll:
+    // level, halfway)
+    const outer = x + s * (rx + 1.5), inner = x - s * (rx + 1.5)
+    // kept inside the eye, so it reads as a lid and not a patch on the face
+    const lidOver = (yo: number, yi: number) => `<g clip-path="url(#lid${s > 0 ? 'R' : 'L'}-${id})">`
+      + `<path d="M${outer} ${ey - ry - 4} L${inner} ${ey - ry - 4} L${inner} ${yi} L${outer} ${yo} Z" fill="${skin}"/>`
+      + `<path d="M${outer} ${yo} L${inner} ${yi}" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/></g>`
+    if (kind === 'narrow') return whites + lidOver(ey - ry * 0.55, ey - ry * 0.05) + lash(x, s)
+    if (kind === 'sad') return whites + lidOver(ey - ry * 0.05, ey - ry * 0.6) + lash(x, s)
+    if (kind === 'roll') return whites + lidOver(ey - ry * 0.25, ey - ry * 0.25) + lash(x, s)
     // the upper lid drawn as a soft dark line, as the concept has it
     const upper = `<path d="M${x - rx + 0.5} ${ey - 1} Q${x} ${ey - ry * 1.28} ${x + rx - 0.5} ${ey - 1}" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round" opacity=".55"/>`
     const lid = kind === 'half'
@@ -578,8 +613,9 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   const browC = a.hair === 'none' ? shade(skin, 0.55) : shade(hairC, 0.85)
   const brow = (x: number, s: number) => {
     const b = xp.brows, by = ey - 17
-    const tilt = b === 'angry' ? s * 12 : b === 'tilt' ? (s > 0 ? -10 : 4) : b === 'soft' ? -s * 4 : 0
-    const lift = b === 'up' ? -4 : 0
+    const tilt = b === 'angry' ? s * 12 : b === 'furious' ? s * 20 : b === 'low' ? s * 5 : b === 'sad' ? -s * 14
+      : b === 'raised' ? (s > 0 ? -12 : s * 5) : b === 'tilt' ? (s > 0 ? -10 : 4) : b === 'soft' ? -s * 4 : 0
+    const lift = b === 'up' ? -4 : b === 'furious' ? 3 : b === 'low' ? 2.5 : b === 'sad' ? -2 : b === 'raised' ? (s > 0 ? -7 : 1.5) : 0
     const th = a.brows === 'thin' ? 2.6 : a.brows === 'thick' ? 6 : 4, bw = a.brows === 'thick' ? 20 : 17
     // a curved, tapering brow, thicker in the middle
     const yy = by + lift + 2
@@ -608,8 +644,31 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
     tongue: `<path d="M${cx - 13} ${my - 3} Q${cx} ${my + 8} ${cx + 13} ${my - 3}" fill="none" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>`
       + `<path d="M${cx - 2} ${my + 2} L${cx + 10} ${my + 1} Q${cx + 10} ${my + 14} ${cx + 4} ${my + 14} Q${cx - 2} ${my + 12} ${cx - 2} ${my + 2} Z" fill="#E26A6E"/>`,
     line: `<path d="M${cx - 9} ${my + 1} Q${cx} ${my + 4} ${cx + 9} ${my + 1}" fill="none" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>`,
-    flat: `<path d="M${cx - 10} ${my + 2} L${cx + 10} ${my + 2}" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>`
+    flat: `<path d="M${cx - 10} ${my + 2} L${cx + 10} ${my + 2}" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>`,
+    flatShort: `<path d="M${cx - 7} ${my + 3} L${cx + 7} ${my + 3}" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`,
+    frown: `<path d="M${cx - 11} ${my + 6} Q${cx} ${my - 3} ${cx + 11} ${my + 6}" fill="none" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>`,
+    // teeth clenched
+    grimace: `<rect x="${cx - 13}" y="${my - 3}" width="26" height="11" rx="4" fill="#fff" stroke="${INK}" stroke-width="2.6"/>`
+      + `<path d="M${cx - 12} ${my + 2.5} H${cx + 12} M${cx - 6} ${my - 2} V${my + 7} M${cx} ${my - 2} V${my + 7} M${cx + 6} ${my - 2} V${my + 7}" stroke="${INK}" stroke-width="1.4"/>`,
+    // flat, and up at one corner only
+    sideSmirk: `<path d="M${cx - 9} ${my + 3} L${cx + 5} ${my + 3} Q${cx + 10} ${my + 2.5} ${cx + 13} ${my - 3}" fill="none" stroke="${INK}" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>`,
+    meh: `<path d="M${cx - 8} ${my + 4} L${cx + 9} ${my + 1.5}" stroke="${INK}" stroke-width="3.8" stroke-linecap="round"/>`,
+    wavy: `<path d="M${cx - 12} ${my + 3} q3 -4 6 0 t6 0 t6 0 t6 0" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>`,
+    pursed: `<ellipse cx="${cx + 6}" cy="${my + 3}" rx="4.2" ry="3.4" fill="${INK}"/>`,
+    yawn: `<ellipse cx="${cx}" cy="${my + 3}" rx="6" ry="8" fill="${INK}"/><ellipse cx="${cx}" cy="${my + 7.5}" rx="3.6" ry="2.4" fill="#E26A6E"/>`
   }
+  /* the comic marks of a mood, beside the face */
+  const FX: Record<string, string> = {
+    vein: `<g transform="translate(${x1 - 13} ${y0 + 17})" stroke="#E0393E" stroke-width="3" fill="none" stroke-linecap="round">`
+      + `<path d="M-7 -2 Q-2 -2 -2 -7"/><path d="M2 -7 Q2 -2 7 -2"/><path d="M7 2 Q2 2 2 7"/><path d="M-2 7 Q-2 2 -7 2"/></g>`,
+    tear: `<path d="M${eyeR + 9} ${ey + 6} Q${eyeR + 4} ${ey + 14} ${eyeR + 9} ${ey + 17} Q${eyeR + 14} ${ey + 14} ${eyeR + 9} ${ey + 6} Z" fill="#7CC8F2" stroke="#3E8FC2" stroke-width="1"/>`
+      + `<circle cx="${eyeR + 7.6}" cy="${ey + 13}" r="1.3" fill="#fff"/>`,
+    sweat: `<path d="M${x1 - 4} ${y0 + 14} Q${x1 - 11} ${y0 + 25} ${x1 - 4} ${y0 + 29} Q${x1 + 3} ${y0 + 25} ${x1 - 4} ${y0 + 14} Z" fill="#9AD8F7" stroke="#3E8FC2" stroke-width="1.2"/>`
+      + `<path d="M${x1 - 6} ${y0 + 22} q-1 3 1 5" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/>`,
+    zzz: [[x1 - 8, y0 - 2, 1], [x1 + 1, y0 - 12, 0.8], [x1 + 8, y0 - 20, 0.6]].map(([zx, zy, k]) =>
+      `<path d="M${zx} ${zy} h${9 * k} l${-9 * k} ${10 * k} h${9 * k}" fill="none" stroke="#5A6B8C" stroke-width="${2.8 * k + 0.6}" stroke-linecap="round" stroke-linejoin="round"/>`).join('')
+  }
+  const faceFx = xp.fx ? FX[xp.fx] : ''
 
   const extras: Record<string, string> = {
     none: '',
@@ -880,7 +939,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
       ? slim(lowerBody + clothes[a.clothes]) + standArms + smaller(scarfBack) + slim(neck + patch) + smaller(scarfFront + gear[a.gear] + pin + cord)
       : clothes[a.clothes] + scarfBack + neck + scarfFront + gear[a.gear] + pin + patch + cord)
     + ears + head + earrings[a.earrings] + extras[a.extras] + eyes + nose + facialHair[a.facialHair] + (MOUTH[xp.mouth] || '')
-    + hairFront + glasses[a.glasses] + (opts.party ? partyHat : headwear[a.headwear]) + companion
+    + hairFront + faceFx + glasses[a.glasses] + (opts.party ? partyHat : headwear[a.headwear]) + companion
     + `</svg>`
 }
 
