@@ -731,5 +731,7 @@ export const MIGRATIONS = [
   // the form that registers members for a scout year ("2026-27"), if it is one
   "ALTER TABLE forms ADD COLUMN IF NOT EXISTS registration_year TEXT",
   // linked by the name a parent typed (a form sent by plain link), for a leader to check
-  "ALTER TABLE registrations ADD COLUMN IF NOT EXISTS auto BOOLEAN NOT NULL DEFAULT FALSE"
+  "ALTER TABLE registrations ADD COLUMN IF NOT EXISTS auto BOOLEAN NOT NULL DEFAULT FALSE",
+  // when a Βαθμοφόρος first saw the hot potato video (shown with their first new round)
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS potato_video_seen TEXT"
 ]

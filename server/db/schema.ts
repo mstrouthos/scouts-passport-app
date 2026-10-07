@@ -40,6 +40,9 @@ export const scouts = pgTable('scouts', {
   // the playground, for this Βαθμοφόρος: 'all', 'kind' (high fives and hugs, no
   // tomatoes), or 'off' (left out of it)
   funPref: text('fun_pref').notNull().default('all'),
+  // when they first saw the video that explains the hot potato: it plays with
+  // the first new round they are told of, and never again unasked
+  potatoVideoSeen: text('potato_video_seen'),
   birthday: text('birthday'),      // YYYY-MM-DD
   idNumber: text('id_number'),
   lastName: text('last_name').notNull(),

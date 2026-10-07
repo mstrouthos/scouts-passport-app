@@ -6,7 +6,8 @@ import { potatoTick } from '../../../utils/leaderFun'
 /** The latest hot potato round, for the announcement every Βαθμοφόρος sees
     when they open the app: a round has started (and what is at stake), or it
     has burst (on whom, and what they must now do), or it was ended. Two days
-    on, it is old news. Never when it bursts. */
+    on, it is old news. Never when it bursts. A Βαθμοφόρος who has never seen
+    the video that explains the game is shown it with a new round. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   if (me.funPref === 'off') return null
@@ -23,6 +24,8 @@ export default defineEventHandler(async (event) => {
     state: !p.endedAt ? 'active' : p.burnedId ? 'burst' : 'stopped',
     challenge: p.challenge,
     startedBy: name(p.startedBy), burned: name(p.burnedId), burnedIsMe: p.burnedId === me.id,
-    passes: p.passes
+    passes: p.passes,
+    // their first new round: the video that explains the game plays with it
+    video: !p.endedAt && !me.potatoVideoSeen
   }
 })

@@ -158,6 +158,8 @@ watch(() => data.value?.grants, async gs => {
 }, { immediate: true })
 /* the rules, for anyone who asks; the Αρχηγός ends a round, and writes the challenges */
 const rulesOpen = ref(false)
+/* watched to the end here, it is not played again with a new round */
+const videoSeen = () => $fetch('/api/admin/fun/potato-video-seen', { method: 'POST' }).catch(() => {})
 async function stopRound() {
   if (!confirm(t('funPotatoStopQ'))) return
   try { await $fetch('/api/admin/fun/potato-stop', { method: 'POST' }); await refresh(); show('⏹ ' + t('funPotatoStopped')) } catch (e: any) { show(errMsg(e)) }
@@ -637,7 +639,7 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
         <div class="sheet fun-sheet">
           <h3 style="margin:0;font-size:17px;text-align:center">🥔 {{ t('funPotatoRulesTitle') }}</h3>
           <video class="rules-video" src="/videos/hot-potato.mp4" poster="/videos/hot-potato.jpg"
-                 controls playsinline autoplay preload="auto" />
+                 controls playsinline autoplay preload="auto" @ended="videoSeen" />
           <details class="rules-more">
             <summary>{{ t('funPotatoAllRules') }}</summary>
             <ol class="rules"><li v-for="n in 10" :key="n">{{ t('funPotatoRule' + n) }}</li></ol>
