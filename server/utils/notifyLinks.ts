@@ -23,7 +23,7 @@ export function linkForNotification(kind: string, refId: number | null, who: 'me
   if (kind === 'eventRsvp') return `/admin/events/${refId}?n=1`
   // the playground: back to it, to answer in kind
   if (kind === 'fun') return `/admin?fun=${refId}`
-  if (kind === 'fun-warn') return '/admin'
+  if (kind === 'fun-warn' || kind === 'potato' || kind === 'potato-burst') return '/admin'
   if (kind === 'kim') return '/admin/kim'
   // a mission photo: checked (to the member), or waiting to be (to the leaders)
   if (kind === 'mission') return '/app/challenges?tab=missions'

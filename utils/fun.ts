@@ -60,7 +60,7 @@ export const FUN_KIND_SCREEN: string | null = null
 /* The games' own doings, in the feed and played out like the rest, but not
    on the buttons: the hot potato passed on, and burning in someone's hands. */
 export const FUN_GAME: FunAction[] = [
-  { key: 'potato', emoji: '🥔', motion: 'pass', el: 'Καυτή πατάτα', en: 'Hot potato', noteEl: '{name} σού πέταξε την καυτή πατάτα! 🥔 Έχεις 3 ώρες να την πετάξεις σε άλλον.', noteEn: '{name} threw you the hot potato! 🥔 You have 3 hours to pass it on.' },
+  { key: 'potato', emoji: '🥔', motion: 'pass', el: 'Καυτή πατάτα', en: 'Hot potato', noteEl: '{name} σού πέταξε την καυτή πατάτα! 🥔 Πέτα τη γρήγορα σε κάποιον — μπορεί να σκάσει οποιαδήποτε στιγμή 💣', noteEn: '{name} threw you the hot potato! 🥔 Pass it on quickly — it could burst at any moment 💣' },
   { key: 'burn', emoji: '🔥', motion: 'burn', el: 'Κάηκε η πατάτα!', en: 'The potato burned!', noteEl: '🔥 Η καυτή πατάτα κάηκε στα χέρια σου!', noteEn: '🔥 The hot potato burned in your hands!' }
 ]
 /** A throw with no name on it: what the one it hit is told. */

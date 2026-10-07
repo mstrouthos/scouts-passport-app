@@ -857,7 +857,12 @@ export const hotPotato = pgTable('hot_potato', {
   endedAt: text('ended_at'),
   burnedId: integer('burned_id').references(() => scouts.id),
   // who has held it this round (JSON ids); when everyone has, a new round starts
-  cycle: text('cycle')
+  cycle: text('cycle'),
+  // what whoever it bursts on must do (drawn when the round starts); and the
+  // Αρχηγός who ended the round before it burst, if one did. `deadline` is
+  // the secret moment it bursts.
+  challenge: text('challenge'),
+  stoppedBy: integer('stopped_by')
 })
 
 /* A 👏 from one member to another, for a win in their Ενωμοτία's feed — one

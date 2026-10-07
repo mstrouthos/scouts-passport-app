@@ -170,7 +170,7 @@ export default defineEventHandler(async (event) => {
   await deleteFormFiles((await db.select().from(s.formFiles)).filter(f =>
     (f.kind === 'upload' && !f.responseId && f.createdAt < dayAgo) || (f.kind === 'export' && f.createdAt < weekAgo)))
 
-  // the hot potato: burned if its time is up, its holder warned an hour before
+  // the hot potato: it bursts when its secret moment has come
   const potato = await potatoTick()
 
   // opened notifications, a day old: swept out so the bell stays the news

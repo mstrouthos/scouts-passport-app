@@ -45,56 +45,100 @@ export async function tellFun(to: number, msg: { body: string, refId: number, ki
   const full = { title: msg.title || '🎪 Η παρέα των Βαθμοφόρων', body: msg.body, kind: msg.kind || 'fun', refId: msg.refId }
   const lastHour = new Date(Date.now() - FUN_PUSH_GAP_MS).toISOString()
   const recent = (await db.select().from(s.notifications).where(and(eq(s.notifications.scoutId, to), gt(s.notifications.createdAt, lastHour))))
-    .filter(n => n.kind === 'fun' || n.kind === 'kim')
+    .filter(n => ['fun', 'kim', 'potato', 'potato-burst'].includes(n.kind))
   if (isQuietHour() || (!urgent && recent.length))
     await db.insert(s.notifications).values({ scoutId: to, kind: full.kind, refId: full.refId, title: full.title, body: full.body, createdAt: now() })
   else await sendPushTo([to], full)
 }
 
-/* ---- the hot potato ---- */
-/** How long a holder has, counted in waking hours only. */
-export const POTATO_MS = 3 * 3600_000
-/** When the potato burns if it is not passed: three hours on, the clock
-    stopped between 22:00 and 08:00. */
-export function potatoDeadline(from = new Date()) {
-  const STEP = 5 * 60_000
-  let t = from.getTime(), left = POTATO_MS
-  for (let i = 0; i < 2000 && left > 0; i++) {
-    if (!isQuietHour(new Date(t))) left -= STEP
-    t += STEP
+/* ---- the hot potato ----
+   A round starts when someone throws it; at that moment a time is drawn for
+   it to burst — somewhere 3 to 30 hours on, always between 09:00 and 21:00 —
+   and kept secret. It may be held as long as anyone likes, but whoever has
+   it when that moment comes is the one it bursts on: the longer you hold it,
+   the likelier that is you. A challenge, drawn from the list the Αρχηγός
+   Συστήματος keeps, is told to everyone when the round starts, and falls to
+   whoever it bursts on. The Αρχηγός can end a round before it bursts. */
+
+/** The challenges a burst potato hands out, unless the Αρχηγός has written his own. */
+export const POTATO_CHALLENGES = [
+  'Να κάνει φωνές μαϊμούς μπροστά σε όλους 🐒',
+  'Να τραγουδήσει σόλο ένα προσκοπικό τραγούδι στην επόμενη συγκέντρωση 🎤',
+  'Να φέρει γλυκά για όλους τους Βαθμοφόρους στην επόμενη συνάντηση 🍪',
+  'Να χορέψει τον χορό της κότας μπροστά σε όλους 🐔',
+  'Να φορέσει το καπέλο του ανάποδα σε όλη την επόμενη συνάντηση 🧢',
+  'Να πει ένα ανέκδοτο μπροστά σε όλους 😂',
+  'Να κάνει 20 κάμψεις μπροστά σε όλους 💪',
+  'Να κεράσει καφέ τον Αρχηγό ☕',
+  'Να μιλάει σαν πειρατής για 10 λεπτά στην επόμενη συνάντηση 🏴‍☠️',
+  'Να στήσει μόνος/η του τη σκηνή στην επόμενη εξόρμηση ⛺'
+]
+export async function potatoChallenges(): Promise<string[]> {
+  const db = await useDb()
+  const v = (await db.select().from(s.settings).where(eq(s.settings.key, 'potato.challenges')))[0]?.value
+  try { const list = JSON.parse(v || 'null'); if (Array.isArray(list) && list.length) return list.map(String) } catch {}
+  return POTATO_CHALLENGES
+}
+
+const cyHour = (at: Date) => Number(at.toLocaleString('en-GB', { timeZone: 'Europe/Nicosia', hour: '2-digit', hour12: false }))
+/** When a round bursts: 3 to 30 hours on, at a waking hour (09:00–21:00). */
+export function potatoBurstAt(from = new Date()) {
+  for (let i = 0; i < 500; i++) {
+    const t = new Date(from.getTime() + (3 + Math.random() * 27) * 3600_000)
+    const h = cyHour(t)
+    if (h >= 9 && h < 21) return t.toISOString()
   }
-  return new Date(t).toISOString()
+  return new Date(from.getTime() + 24 * 3600_000).toISOString()
 }
 /** The potato in play, if one is. */
 export async function activePotato() {
   const db = await useDb()
   return (await db.select().from(s.hotPotato).where(isNull(s.hotPotato.endedAt)))[0] || null
 }
-/** If the potato's time is up, it burns in its holder's hands: the round
-    ends, the feed says so, the holder is told. Called by the cron and
-    whenever the playground is looked at. An hour before, the holder is warned. */
+/** Everyone who should hear of a round: the active Βαθμοφόροι who have not left the fun. */
+async function potatoAudience() {
+  const db = await useDb()
+  return (await db.select().from(s.scouts))
+    .filter(r => r.role !== 'scout' && r.isActive && !r.deletedAt && !r.isHidden && r.funPref !== 'off').map(r => r.id)
+}
+/** A new round: everyone is told what the one it bursts on will have to do
+    (the first holder hears it with the throw itself). */
+export async function announcePotato(p: { id: number, holderId: number, startedBy: number, challenge: string | null }, starter: string) {
+  for (const id of (await potatoAudience()).filter(x => x !== p.holderId && x !== p.startedBy)) {
+    await tellFun(id, { title: '🥔 Νέος γύρος καυτής πατάτας!', kind: 'potato', refId: p.id,
+      body: `${starter} ξεκίνησε μια καυτή πατάτα! Όποιον σκάσει: «${p.challenge || '—'}»` }, true)
+  }
+}
+/** If its moment has come, the potato bursts in its holder's hands: the
+    round ends, the feed says so, and everyone hears who must now do the
+    challenge. Called by the cron and whenever the playground is looked at. */
 export async function potatoTick() {
   const db = await useDb()
   const p = await activePotato()
-  if (!p) return null
-  const t = Date.now()
-  if (Date.parse(p.deadline) <= t) {
-    // ended only once, even if two of these run together
-    const done = await db.update(s.hotPotato).set({ endedAt: now(), burnedId: p.holderId })
-      .where(and(eq(s.hotPotato.id, p.id), isNull(s.hotPotato.endedAt))).returning()
-    if (!done.length) return null
-    const [row] = await db.insert(s.leaderFun).values({ fromId: p.holderId, toId: p.holderId, action: 'burn', createdAt: now(), auto: true }).returning()
-    await tellFun(p.holderId, { body: `🔥 Η καυτή πατάτα κάηκε στα χέρια σου, μετά από ${p.passes} πάσες!`, refId: row.id }, true)
-    return 'burned'
+  if (!p || Date.parse(p.deadline) > Date.now()) return null
+  // ended only once, even if two of these run together
+  const done = await db.update(s.hotPotato).set({ endedAt: now(), burnedId: p.holderId })
+    .where(and(eq(s.hotPotato.id, p.id), isNull(s.hotPotato.endedAt))).returning()
+  if (!done.length) return null
+  await db.insert(s.leaderFun).values({ fromId: p.holderId, toId: p.holderId, action: 'burn', createdAt: now(), auto: true })
+  const who = (await db.select().from(s.scouts).where(eq(s.scouts.id, p.holderId)).limit(1))[0]
+  for (const id of await potatoAudience()) {
+    await tellFun(id, {
+      title: '💥 Η καυτή πατάτα έσκασε!', kind: 'potato-burst', refId: p.id,
+      body: id === p.holderId
+        ? `Έσκασε στα χέρια σου (πάσες: ${p.passes})!` + (p.challenge ? ` Η πρόκλησή σου: «${p.challenge}»` : '')
+        : `Έσκασε στα χέρια: ${who?.firstName ?? '—'} (πάσες: ${p.passes})!` + (p.challenge ? ` Η πρόκληση: «${p.challenge}»` : '')
+    }, true)
   }
-  if (!p.warned && Date.parse(p.deadline) - t < 3600_000 && !isQuietHour()) {
-    await db.update(s.hotPotato).set({ warned: true }).where(eq(s.hotPotato.id, p.id))
-    // its own kind: a push is sent once per kind and reference, and the pass
-    // that brought the potato has already been told
-    await sendPushTo([p.holderId], { title: '🥔 Η πατάτα καίει!', body: '⏰ Μία ώρα έμεινε για να πετάξεις την καυτή πατάτα σε κάποιον άλλον!', kind: 'fun-warn', refId: p.id * 1000 + p.passes })
-    return 'warned'
-  }
-  return null
+  return 'burst'
+}
+/** The Αρχηγός ends a round before it bursts: nobody gets the challenge. */
+export async function stopPotato(byId: number) {
+  const db = await useDb()
+  const p = await activePotato()
+  if (!p) return false
+  await db.update(s.hotPotato).set({ endedAt: now(), stoppedBy: byId }).where(and(eq(s.hotPotato.id, p.id), isNull(s.hotPotato.endedAt)))
+  return true
 }
 
 /** Who plays the potato: every active Βαθμοφόρος who takes everything. */

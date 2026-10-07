@@ -59,14 +59,21 @@ export default defineEventHandler(async (event) => {
     me: { id: me.id, pref: me.funPref, sentToday: recent.filter(r => r.fromId === me.id && r.createdAt >= today && !r.auto).length, limit: FUN_LIMIT_DAY,
       anonLeft: !anonUsed },
     potato: {
+      // never when it bursts: that is the game
       active: pot ? {
-        holder: pot.holderId, holderName: nameOf(pot.holderId), prev: pot.prevId, deadline: pot.deadline, passes: pot.passes,
+        id: pot.id, holder: pot.holderId, holderName: nameOf(pot.holderId), prev: pot.prevId, passes: pot.passes,
+        gotAt: pot.gotAt, startedAt: pot.startedAt, startedByName: nameOf(pot.startedBy), challenge: pot.challenge,
         // who has had it this round, and whom the holder may throw it to
         had: potatoCycle(pot), canGet: potatoTargets(pool, potatoCycle(pot), pot.holderId)
       } : null,
-      // a new one whenever none is in play: it runs until it burns on someone
+      // a new one whenever none is in play: it runs until it bursts on someone
       canStart: !pot,
-      last: lastBurn ? { burned: lastBurn.burnedId, burnedName: nameOf(lastBurn.burnedId!), passes: lastBurn.passes, at: lastBurn.endedAt } : null
+      // the Αρχηγός Συστήματος may end a round, and write the challenges
+      canStop: me.role === 'troop_leader',
+      last: lastBurn ? {
+        burned: lastBurn.burnedId, burnedName: lastBurn.burnedId ? nameOf(lastBurn.burnedId) : null, passes: lastBurn.passes, at: lastBurn.endedAt,
+        challenge: lastBurn.burnedId ? lastBurn.challenge : null, stopped: !!lastBurn.stoppedBy
+      } : null
     },
     leaders: leaders.map(l => ({ id: l.id, firstName: l.firstName, lastName: l.lastName, ...faceOf(l), figure: figure(l.avatar), where: where(l), me: l.id === me.id, pref: l.funPref }))
       .sort((a, b) => Number(b.me) - Number(a.me) || a.firstName.localeCompare(b.firstName, 'el')),

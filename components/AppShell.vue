@@ -140,6 +140,8 @@ function goBack() {
       <header class="hero" style="overflow:hidden">
         <!-- the season, for the members: snow, eggs, embers -->
         <FxSeason v-if="me && !isLeader" />
+        <!-- the hot potato's news, for the Βαθμοφόροι: a round started, or burst -->
+        <PotatoNews v-if="isLeader" />
         <div class="row" style="position:relative;z-index:1">
           <!-- the icons share the back row, so a long title has the full width
                to itself instead of running into them -->
