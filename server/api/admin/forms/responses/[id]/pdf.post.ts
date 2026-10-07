@@ -1,5 +1,5 @@
 import { requireLeader, idParam } from '../../../../../utils/guard'
-import { logAccess, canManageForm } from '../../../../../utils/forms'
+import { logAccess, responseAccess } from '../../../../../utils/forms'
 import { saveFormFile } from '../../../../../utils/formFiles'
 import { buildResponsePdf } from '../../../../../utils/formCopy'
 
@@ -9,7 +9,8 @@ export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const id = idParam(event)
   const { r, f, pdf } = await buildResponsePdf(id)
-  if (!f || !(await canManageForm(me, f))) throw createError({ statusCode: 404, message: 'Not found' })
+  // whoever may read the answer may take it as a PDF
+  if (!f || !(await responseAccess(me, f, id))) throw createError({ statusCode: 404, message: 'Not found' })
   const file = await saveFormFile({
     formId: r.formId, kind: 'export', responseId: null, name: `${f?.slug || 'forma'}-${r.id}.pdf`,
     mime: 'application/pdf', buf: pdf, createdBy: me.id

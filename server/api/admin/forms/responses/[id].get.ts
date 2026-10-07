@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../../db'
 import { requireLeader, idParam } from '../../../../utils/guard'
-import { canManageForm } from '../../../../utils/forms'
+import { responseAccess } from '../../../../utils/forms'
 import { logAccess } from '../../../../utils/forms'
 import { unseal } from '../../../../utils/seal'
 import { normalizeSpec } from '../../../../../utils/formSpec'
@@ -10,7 +10,10 @@ import { childrenOfResponse, registrationOptions, registrationPool, typedChildre
 import { nameScore, suggestions } from '../../../../utils/nameMatch'
 
 /** One answer in full, with the questions as they were when it was sent.
-    Opening it marks it read, and is recorded. */
+    Opening it marks it read, and is recorded. An Αρχηγός who only reads it
+    (a registration of a child of their sector) sees this one answer and no
+    more: no stepping to the others, no linking, and it stays unread for
+    those who manage the form. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const id = idParam(event)
@@ -18,11 +21,13 @@ export default defineEventHandler(async (event) => {
   const r = (await db.select().from(s.formResponses).where(eq(s.formResponses.id, id)).limit(1))[0]
   if (!r) throw createError({ statusCode: 404, message: 'Not found' })
   const f = (await db.select().from(s.forms).where(eq(s.forms.id, r.formId)).limit(1))[0]
-  if (!f || !(await canManageForm(me, f))) throw createError({ statusCode: 404, message: 'Not found' })
-  if (!r.isRead) await db.update(s.formResponses).set({ isRead: true }).where(eq(s.formResponses.id, id))
+  const access = f ? await responseAccess(me, f, id) : null
+  if (!f || !access) throw createError({ statusCode: 404, message: 'Not found' })
+  const manage = access === 'manage'
+  if (!r.isRead && manage) await db.update(s.formResponses).set({ isRead: true }).where(eq(s.formResponses.id, id))
   await logAccess(r.formId, me.id, 'view', id)
   // newer and older neighbours, to step through them without going back
-  const ids = (await db.select({ id: s.formResponses.id, createdAt: s.formResponses.createdAt })
+  const ids = !manage ? [id] : (await db.select({ id: s.formResponses.id, createdAt: s.formResponses.createdAt })
     .from(s.formResponses).where(eq(s.formResponses.formId, r.formId)))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(x => x.id)
   const at = ids.indexOf(id)
@@ -30,8 +35,9 @@ export default defineEventHandler(async (event) => {
   const parent = r.parentId ? (await db.select({ name: s.parents.name }).from(s.parents).where(eq(s.parents.id, r.parentId)).limit(1))[0] : null
   // a registration: the children it registers, and those it could
   const registration = f.registrationYear ? await (async () => {
-    const data = unseal(r.sealed)
     const linked = await childrenOfResponse(id)
+    if (!manage) return { year: f.registrationYear, children: linked.map(k => ({ id: k.id, name: `${k.firstName} ${k.lastName}`, auto: k.auto })), typed: [], options: [] }
+    const data = unseal(r.sealed)
     const options = await registrationOptions(me, f)
     const pool = (await registrationPool(f)).filter(c => options.some(o => o.id === c.id))
     // each child name typed (by plain link): is it linked yet, and if not, who it may be
@@ -50,6 +56,7 @@ export default defineEventHandler(async (event) => {
     }
   })() : null
   return {
+    canManage: manage,
     registration,
     fromParent: parent?.name ?? null,
     id: r.id, formId: r.formId, formTitle: f?.titleEl ?? '', createdAt: r.createdAt,

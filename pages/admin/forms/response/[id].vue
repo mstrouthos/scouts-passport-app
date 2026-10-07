@@ -84,9 +84,9 @@ async function print() {
 
 <template>
   <AppShell :title="r?.formTitle || t('forms')" :sub="r ? `#${r.id} · ${stamp(r.createdAt)}` : ''"
-            :back="r ? `/admin/forms/${r.formId}?tab=responses` : '/admin/forms'">
+            :back="r?.canManage ? `/admin/forms/${r.formId}?tab=responses` : r ? true : '/admin/forms'">
     <template v-if="r">
-      <div class="nav noprint">
+      <div v-if="r.canManage" class="nav noprint">
         <NuxtLink v-if="r.newer" :to="`/admin/forms/response/${r.newer}`" class="chip" replace>‹ {{ t('newer') }}</NuxtLink>
         <span class="tiny muted" style="flex:1;text-align:center">{{ r.position }} / {{ r.total }}</span>
         <NuxtLink v-if="r.older" :to="`/admin/forms/response/${r.older}`" class="chip" replace>{{ t('older') }} ›</NuxtLink>
@@ -106,14 +106,14 @@ async function print() {
           <span v-if="!r.registration.children.length" class="tiny warnline">⚠️ {{ t('formRegistersNone') }}</span>
         </div>
         <!-- names typed on a plain link that are not linked yet: the likely ones, a tap each -->
-        <div v-for="x in r.registration.typed.filter((x: any) => !x.linkedTo)" :key="x.name" class="typed">
+        <div v-for="x in r.canManage ? r.registration.typed.filter((x: any) => !x.linkedTo) : []" :key="x.name" class="typed">
           <div class="tiny"><b>✍️ «{{ x.name }}»</b> — {{ t('formTypedNotLinked') }}</div>
           <div class="kids">
             <button v-for="sg in x.suggestions" :key="sg.id" class="chip" @click="linkOne(sg.id)">➕ {{ sg.name }} <small>{{ sg.section }}</small></button>
             <span v-if="!x.suggestions.length" class="tiny muted">{{ t('formNoSuggestion') }}</span>
           </div>
         </div>
-        <button class="chip" @click="openLink">✎ {{ t('formLinkChildren') }}</button>
+        <button v-if="r.canManage" class="chip" @click="openLink">✎ {{ t('formLinkChildren') }}</button>
       </div>
       <FormAnswers :r="r" :fetch-file="fetchFormFile" />
 
@@ -139,7 +139,7 @@ async function print() {
       <div class="tools noprint">
         <button class="btn" :disabled="!!making" @click="downloadPdf">{{ making === 'pdf' ? t('loading') : '📄 ' + t('formPdf') }}</button>
         <button class="btn ghost" :disabled="!!making" @click="print">{{ making === 'print' ? t('loading') : '🖨️ ' + t('formPrint') }}</button>
-        <button class="btn danger" @click="remove">🗑 {{ t('formDeleteResponse') }}</button>
+        <button v-if="r.canManage" class="btn danger" @click="remove">🗑 {{ t('formDeleteResponse') }}</button>
       </div>
     </template>
   </AppShell>

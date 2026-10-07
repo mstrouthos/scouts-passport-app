@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import type { H3Event } from 'h3'
 import { requireLeader, scopedSectionIds, type SessionScout } from './guard'
 import { useDb, schema as s } from '../db'
@@ -23,6 +23,23 @@ export function isAccepting(f: FormRow) {
 export async function canManageForm(me: SessionScout, f: { sectionId: number | null }) {
   const secs = await scopedSectionIds(me)
   return secs === null || (f.sectionId != null && secs.includes(f.sectionId))
+}
+
+/** How far a Βαθμοφόρος reaches one answer: 'manage' — whoever manages its
+    form (read it, step through the rest, link, delete); 'read' — for a year's
+    registration, the Αρχηγός of a sector one of the children it registers
+    belongs to (read it and take its PDF, nothing more); or nothing at all. */
+export async function responseAccess(me: SessionScout, f: { sectionId: number | null, registrationYear?: string | null }, responseId: number): Promise<'manage' | 'read' | null> {
+  if (await canManageForm(me, f)) return 'manage'
+  if (!f.registrationYear) return null
+  const db = await useDb()
+  const mine = (await db.select().from(s.leaderScopes).where(eq(s.leaderScopes.scoutId, me.id)))
+    .filter(sc => sc.rank === 'archigos' && sc.scope === 'section' && sc.sectionId != null).map(sc => sc.sectionId!)
+  if (!mine.length) return null
+  const kids = (await db.select({ scoutId: s.registrations.scoutId }).from(s.registrations).where(eq(s.registrations.responseId, responseId))).map(x => x.scoutId)
+  if (!kids.length) return null
+  const theirs = await db.select({ sectionId: s.scouts.sectionId }).from(s.scouts).where(inArray(s.scouts.id, kids))
+  return theirs.some(k => k.sectionId != null && mine.includes(k.sectionId)) ? 'read' : null
 }
 
 /** The sectors this leader may make a form for; null: any, and the whole troop. */

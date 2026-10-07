@@ -5,7 +5,7 @@ import { requireLeader, assertScoutInScope, idParam, pointTotals, sectionOf } fr
 import { can } from '../../../utils/permissions'
 import { unitNames } from '../../../utils/unitNames'
 import { registrationOf, hasRegistrationForm } from '../../../utils/registrations'
-import { canManageForm } from '../../../utils/forms'
+import { responseAccess } from '../../../utils/forms'
 import { scoutYear } from '../../../../utils/scoutYear'
 
 export default defineEventHandler(async (event) => {
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
       const done = await registrationOf(r.id)
       // the answer opens only for those who may read that form's answers
       const form = done?.formId ? (await db.select().from(s.forms).where(eq(s.forms.id, done.formId)).limit(1))[0] : null
-      const canOpen = !!form && await canManageForm(me, form)
+      const canOpen = !!form && !!done?.responseId && !!(await responseAccess(me, form, done.responseId))
       return { year: scoutYear(), hasForm: await hasRegistrationForm(), done: done && { ...done, responseId: canOpen ? done.responseId : null, formTitle: form?.titleEl ?? null } }
     })() : null,
     points: (await pointTotals()).get(id) || 0,
