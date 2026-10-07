@@ -27,7 +27,9 @@ export default defineEventHandler(async (event) => {
       const secs = (e.scope === 'section' ? eventSectionIds(e) : e.sectionId != null ? [e.sectionId] : []).map(x => sections.get(x)).filter(Boolean) as any[]
       return {
         id: e.id, scope: e.scope, sectionId: e.sectionId, sectionIds: eventSectionIds(e), patrolId: e.patrolId,
-        sectionEl: secs.length ? secs.map(x => x.nameEl).join(' + ') : null, sectionEn: secs.length ? secs.map(x => x.nameEn || x.nameEl).join(' + ') : null,
+        sectionEl: secs.length ? [...secs.map(x => x.nameEl), ...(e.withLeaders ? ['Βαθμοφόροι'] : [])].join(' + ') : null,
+        sectionEn: secs.length ? [...secs.map(x => x.nameEn || x.nameEl), ...(e.withLeaders ? ['Leaders'] : [])].join(' + ') : null,
+        withLeaders: !!e.withLeaders,
         titleEl: e.titleEl, titleEn: e.titleEn, location: e.location,
         startsAt: e.startsAt, endsAt: e.endsAt, isAllDay: e.isAllDay, remindAt: e.remindAt,
         tracksAttendance: e.tracksAttendance,

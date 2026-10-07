@@ -58,7 +58,7 @@ const form = reactive<any>({
   tracksAttendance: true
 })
 /* who it is for (see EventAudience) */
-const aud = ref({ scope: 'section', sectionIds: [] as number[], groupId: null as number | null, leadersOnly: false })
+const aud = ref({ scope: 'section', sectionIds: [] as number[], groupId: null as number | null, leadersOnly: false, withLeaders: false })
 const audOk = computed(() => aud.value.scope !== 'section'
   || (aud.value.sectionIds.length > 0 && aud.value.sectionIds.some(x => secs.value?.find((s: any) => s.id === x)?.mine)))
 function toLocal(iso: string | null) {
@@ -91,7 +91,7 @@ async function openEdit() {
   aud.value = {
     scope: leadersOnly ? 'section' : e.scope === 'patrol' ? 'section' : e.scope,
     sectionIds: e.sectionIds?.length ? [...e.sectionIds] : e.sectionId != null ? [e.sectionId] : [],
-    groupId: e.groupId ?? null, leadersOnly
+    groupId: e.groupId ?? null, leadersOnly, withLeaders: !!e.withLeaders
   }
   audSaved.value = JSON.stringify(aud.value)
   editing.value = true
@@ -112,6 +112,7 @@ async function saveEvent() {
         ...(audTouched.value ? {
           scope: aud.value.scope === 'section' && aud.value.leadersOnly ? 'leaders' : aud.value.scope,
           sectionIds: aud.value.scope === 'section' ? aud.value.sectionIds : undefined,
+          withLeaders: aud.value.scope === 'section' && !!aud.value.withLeaders,
           sectionId: aud.value.scope === 'section' ? aud.value.sectionIds[0] : null,
           groupId: aud.value.groupId
         } : {})

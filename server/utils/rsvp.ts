@@ -37,7 +37,8 @@ async function leadersOf(ev: Ev): Promise<{ told: number[]; asked: number[] }> {
     else if (ev.scope === 'group' && ev.groupId != null)
       ofTheirs = (await groupsILead(l as any)).includes(ev.groupId)
         || (ev.sectionId != null && sections.has(ev.sectionId))
-    else ofTheirs = eventSectionIds(ev).some(x => sections.has(x))
+    // a sector event with the Βαθμοφόροι too asks every one of them
+    else ofTheirs = !!ev.withLeaders || eventSectionIds(ev).some(x => sections.has(x))
     if (ofTheirs) asked.push(l.id)
     if (ofTheirs || troopWide) told.push(l.id)
   }

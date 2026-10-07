@@ -202,6 +202,8 @@ export const events = pgTable('events', {
   sectionId: integer('section_id').references(() => sections.id),
   // a sector event shared with other sectors: their ids (JSON), beside sectionId
   extraSectionIds: text('extra_section_ids'),
+  // a sector event that is the Βαθμοφόροι's too: all of them are asked, and on the register
+  withLeaders: boolean('with_leaders').notNull().default(false),
   patrolId: integer('patrol_id').references(() => patrols.id),
   groupId: integer('group_id'),
   // what the meeting is about, so families know before they come

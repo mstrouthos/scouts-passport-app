@@ -45,6 +45,7 @@ export default defineEventHandler(async (event) => {
   // moving an event between sectors follows the same rules as creating one
   if (b?.scope !== undefined || b?.sectionId !== undefined || b?.sectionIds !== undefined || b?.patrolId !== undefined || b?.groupId !== undefined) {
     set.extraSectionIds = null
+    set.withLeaders = b.scope === 'section' && !!b.withLeaders
     const secIds = await scopedSectionIds(me)
     const scope = ['troop', 'section', 'patrol', 'leaders', 'group'].includes(b.scope) ? b.scope : 'section'
     if (scope === 'group') {

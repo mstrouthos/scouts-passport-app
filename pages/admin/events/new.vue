@@ -14,12 +14,14 @@ const form = reactive({
 })
 /* who it is for: the whole troop, a sector or several, the Βαθμοφόροι, a group
    — a sector leader's own sector picked to start with */
-const aud = ref({ scope: isTroop.value ? 'troop' : 'section', sectionIds: [] as number[], groupId: null as number | null, leadersOnly: false })
+const aud = ref({ scope: isTroop.value ? 'troop' : 'section', sectionIds: [] as number[], groupId: null as number | null, leadersOnly: false, withLeaders: false })
+// once, to start with — after that the choice is theirs, empty or not
+let started = false
 watchEffect(() => {
-  if (aud.value.scope === 'section' && !aud.value.sectionIds.length && !isTroop.value && secs.value?.length) {
-    const own = secs.value.find((x: any) => x.mine)
-    if (own) aud.value.sectionIds = [own.id]
-  }
+  if (started || !secs.value?.length) return
+  started = true
+  const own = secs.value.find((x: any) => x.mine)
+  if (aud.value.scope === 'section' && !isTroop.value && own) aud.value.sectionIds = [own.id]
 })
 const audOk = computed(() => aud.value.scope !== 'section'
   || (aud.value.sectionIds.length > 0 && aud.value.sectionIds.some(x => secs.value?.find((s: any) => s.id === x)?.mine)))
@@ -36,6 +38,7 @@ async function save() {
               themeEl: form.themeEl || null, descriptionEl: form.descriptionEl || null,
               scope: aud.value.scope === 'section' && aud.value.leadersOnly ? 'leaders' : aud.value.scope,
               sectionIds: aud.value.scope === 'section' ? aud.value.sectionIds : undefined,
+              withLeaders: aud.value.scope === 'section' && !!aud.value.withLeaders,
               sectionId: aud.value.scope === 'section' ? aud.value.sectionIds[0] : null,
               groupId: aud.value.scope === 'group' ? aud.value.groupId : null,
               startsAt, endsAt, remindAt,

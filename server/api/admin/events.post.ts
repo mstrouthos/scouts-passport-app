@@ -62,7 +62,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const [row] = (await db.insert(s.events).values({
-    scope, sectionId, extraSectionIds, patrolId, groupId: scope === 'group' ? groupId : null,
+    scope, sectionId, extraSectionIds, withLeaders: scope === 'section' && !!b.withLeaders, patrolId, groupId: scope === 'group' ? groupId : null,
     titleEl: String(b.titleEl), titleEn: b.titleEn || null,
     themeEl: b.themeEl ? String(b.themeEl).slice(0, 200) : null,
     location: b.location || null,

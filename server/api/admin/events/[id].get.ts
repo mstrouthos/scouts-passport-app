@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const data = await eventHasData(id)
   const past = new Date(ev.endsAt || ev.startsAt).getTime() < Date.now()
   return {
-    id: ev.id, scope: ev.scope, sectionId: ev.sectionId, sectionIds: eventSectionIds(ev), patrolId: ev.patrolId,
+    id: ev.id, scope: ev.scope, sectionId: ev.sectionId, sectionIds: eventSectionIds(ev), withLeaders: !!ev.withLeaders, patrolId: ev.patrolId,
     titleEl: ev.titleEl, titleEn: ev.titleEn, location: ev.location, themeEl: ev.themeEl, descriptionEl: ev.descriptionEl,
     groupId: ev.groupId,
     startsAt: ev.startsAt, endsAt: ev.endsAt, isAllDay: ev.isAllDay,

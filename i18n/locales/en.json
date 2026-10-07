@@ -1355,5 +1355,6 @@
   "evShared": "Joint event: {list}",
   "evPickSector": "Pick a sector (or several).",
   "boardLeadersSub": "The standings of each of your sectors",
-  "boardNone": "There is no league table for your sectors."
+  "boardNone": "There is no league table for your sectors.",
+  "evLeadersAll": "A meeting of all the leaders."
 }

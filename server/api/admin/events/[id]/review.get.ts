@@ -60,6 +60,11 @@ export default defineEventHandler(async (event) => {
   } else {
     roster = everyone.filter(r => r.role === 'scout' && mine.has(r.id) && (!onlyGroup || onlyGroup.has(r.id)) && ofEvent(r))
       .map(r => ({ ...r, canMark: true }))
+    // with the Βαθμοφόροι: they are on the register too, marked as at their own meetings
+    if (e.withLeaders) {
+      const ids = new Set(asked)
+      roster = roster.concat(everyone.filter(r => r.role !== 'scout' && ids.has(r.id)).map(r => ({ ...r, canMark: marksLeaders })))
+    }
   }
   // Who is coming. A ΒΑΘΜΟΦΟΡΟΙ meeting is read by the Αρχηγός Συστήματος and
   // by whoever called it, and by nobody else — a sector's Βαθμοφόρος answers
@@ -105,7 +110,7 @@ export default defineEventHandler(async (event) => {
     event: {
       id: e.id, titleEl: e.titleEl, titleEn: e.titleEn, startsAt: e.startsAt, endsAt: e.endsAt, isAllDay: e.isAllDay, scope: e.scope, groupId: e.groupId,
       // the sector decides the words on this screen: an Αγέλη game is won by an εξάδα
-      sectionId: e.sectionId, sectionIds: eventSectionIds(e),
+      sectionId: e.sectionId, sectionIds: eventSectionIds(e), withLeaders: !!e.withLeaders,
       // the register opens on the day and stays open; before that there is
       // nothing to record and the screen says so instead of offering buttons
       attendanceOpen: attendanceIsOpen(e.startsAt),
