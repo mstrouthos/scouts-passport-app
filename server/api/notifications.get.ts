@@ -1,13 +1,15 @@
-import { eq, desc } from 'drizzle-orm'
+import { and, eq, desc, notInArray } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { requireScout } from '../utils/guard'
 import { linkForNotification } from '../utils/notifyLinks'
 import { stillListed } from '../utils/notifyRetention'
+import { GAME_KINDS } from '../../utils/games'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
   const rows = (await (await useDb()).select().from(s.notifications)
-    .where(eq(s.notifications.scoutId, me.id))
+    // the mini-games' news waits in each game, not here
+    .where(and(eq(s.notifications.scoutId, me.id), notInArray(s.notifications.kind, GAME_KINDS)))
     .orderBy(desc(s.notifications.createdAt)).limit(60))
     // read a day ago or more: gone from the bell, whatever the sweep has done
     .filter(n => stillListed(n) && !n.dismissedAt)

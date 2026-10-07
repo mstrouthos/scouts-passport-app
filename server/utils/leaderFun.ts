@@ -1,7 +1,8 @@
-import { and, eq, gt, isNull } from 'drizzle-orm'
+import { and, eq, gt, inArray, isNull } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { now } from './passcode'
-import { sendPushTo } from './push'
+import { sendPushTo, deliverTo, onSurface } from './push'
+import { GAMES, GAME_KINDS, GAME_OF_KIND, type GameKey } from '../../utils/games'
 
 /** How much fun a day holds: enough for a laugh, never a flood. */
 export const FUN_LIMIT_DAY = 10
@@ -27,28 +28,91 @@ export function cyprusWeekStart(at = new Date()) {
   return cyprusDayStart(new Date(Date.parse(`${day}T12:00:00Z`) - dow * 86400_000))
 }
 
-/** A phone buzzes for the first in an hour; the rest wait in the bell. */
-export const FUN_PUSH_GAP_MS = 60 * 60_000
-
 /** Whether the Αρχηγός Συστήματος has paused the playground. */
 export async function funPaused() {
   const db = await useDb()
   return (await db.select().from(s.settings).where(eq(s.settings.key, 'fun.paused')))[0]?.value === '1'
 }
 
-/** Tell a Βαθμοφόρος what was done to them. Their phone buzzes only for the
-    first in an hour and never at night; the rest go quietly into the bell.
-    `urgent` (the potato: it has a clock) buzzes past the hourly gap, but
-    still never at night. */
+/* ---- the mini-games' news ----
+   It waits in the game it came from (never the bell), and the phone is told
+   too — but not of everything: the first couple go one by one, and after that
+   whatever comes in is held and bundled into one push, at most once an hour
+   ("4 new: 🍅 2 in the Παρέα, 🥔 1 in the potato"). Never at night: the
+   night's news is one bundle in the morning. */
+const GAME_PUSH_KINDS = [...GAME_KINDS, 'game-digest']
+/** One by one: at most this many pushes in two hours, a quarter of an hour apart. */
+export const GAME_SOLO_PER_2H = 2
+export const GAME_SOLO_GAP_MS = 15 * 60_000
+/** A bundle: at most one an hour after the last game push. */
+export const GAME_DIGEST_GAP_MS = 60 * 60_000
+
+async function gamePushes(scoutIds: number[] | null, sinceIso: string) {
+  const db = await useDb()
+  return (await db.select().from(s.notificationLog).where(and(
+    inArray(s.notificationLog.kind, GAME_PUSH_KINDS), gt(s.notificationLog.sentAt, sinceIso),
+    ...(scoutIds ? [inArray(s.notificationLog.scoutId, scoutIds)] : []))))
+}
+
+/** Tell a Βαθμοφόρος what was done to them in a game. Waits in that game;
+    the phone buzzes for it only while they have not had a couple already
+    (the rest wait for the bundle). `urgent` (the potato: it has a clock)
+    always buzzes — but still never at night. */
 export async function tellFun(to: number, msg: { body: string, refId: number, kind?: string, title?: string }, urgent = false) {
   const db = await useDb()
   const full = { title: msg.title || '🎪 Η παρέα των Βαθμοφόρων', body: msg.body, kind: msg.kind || 'fun', refId: msg.refId }
-  const lastHour = new Date(Date.now() - FUN_PUSH_GAP_MS).toISOString()
-  const recent = (await db.select().from(s.notifications).where(and(eq(s.notifications.scoutId, to), gt(s.notifications.createdAt, lastHour))))
-    .filter(n => ['fun', 'kim', 'potato', 'potato-burst'].includes(n.kind))
-  if (isQuietHour() || (!urgent && recent.length))
-    await db.insert(s.notifications).values({ scoutId: to, kind: full.kind, refId: full.refId, title: full.title, body: full.body, createdAt: now() })
-  else await sendPushTo([to], full)
+  const recent = await gamePushes([to], new Date(Date.now() - 2 * 3600_000).toISOString())
+  const last = recent.reduce((m, r) => r.sentAt > m ? r.sentAt : m, '')
+  const solo = !isQuietHour() && (urgent ||
+    (recent.length < GAME_SOLO_PER_2H && (!last || Date.now() - Date.parse(last) > GAME_SOLO_GAP_MS)))
+  if (solo) await sendPushTo([to], full)
+  else await db.insert(s.notifications).values({ scoutId: to, kind: full.kind, refId: full.refId, title: full.title, body: full.body, createdAt: now() })
+}
+
+const GAME_PHRASE: Record<GameKey, (n: number) => string> = {
+  throw: n => `🍅 ${n} στην Παρέα`,
+  potato: n => `🥔 ${n} στην Καυτή Πατάτα`,
+  kim: n => `🧠 ${n} στο Ταψί του Κιμ`
+}
+/** The bundle: for whoever has game news that never reached their phone,
+    one push saying how much and where — when the hour since their last one
+    is up, and not at night. Run by the cron. */
+export async function gameDigest(): Promise<{ to: number, n: number }[]> {
+  if (isQuietHour()) return []
+  const db = await useDb()
+  const since = new Date(Date.now() - 2 * 86400_000).toISOString()
+  const unread = await db.select().from(s.notifications).where(and(
+    inArray(s.notifications.kind, GAME_KINDS), isNull(s.notifications.readAt), isNull(s.notifications.dismissedAt), gt(s.notifications.createdAt, since)))
+  if (!unread.length) return []
+  const who = [...new Set(unread.map(n => n.scoutId))]
+  const logs = await gamePushes(who, since)
+  const subs = (await db.select().from(s.pushSubscriptions)).filter(x => x.scoutId != null && who.includes(x.scoutId) && onSurface(x, 'scouts'))
+  const done: { to: number, n: number }[] = []
+  for (const to of who) {
+    const mine = logs.filter(l => l.scoutId === to)
+    const last = mine.reduce((m, r) => r.sentAt > m ? r.sentAt : m, '')
+    if (last && Date.now() - Date.parse(last) < GAME_DIGEST_GAP_MS) continue
+    // what their phone was never told: not pushed by itself, nor in an earlier bundle
+    const pushed = new Set(mine.map(l => `${l.kind}:${l.refId}`))
+    const lastBundle = mine.filter(l => l.kind === 'game-digest').reduce((m, r) => r.sentAt > m ? r.sentAt : m, '')
+    const held = unread.filter(n => n.scoutId === to && (!lastBundle || n.createdAt > lastBundle) && !pushed.has(`${n.kind}:${n.refId}`))
+    if (!held.length) continue
+    const top = held.reduce((m, n) => Math.max(m, n.id), 0)
+    try { await db.insert(s.notificationLog).values({ scoutId: to, kind: 'game-digest', refId: top, sentAt: now() }) } catch { continue }
+    const per = new Map<GameKey, number>()
+    for (const n of held) { const g = GAME_OF_KIND[n.kind]!; per.set(g, (per.get(g) || 0) + 1) }
+    const most = [...per.entries()].sort((a, b) => b[1] - a[1])[0]![0]
+    const one = held.length === 1 ? held[0]! : null
+    const payload = {
+      title: one ? one.title : '🎮 Μίνι παιχνίδια',
+      body: one ? one.body : `${held.length} νέα: ${[...per.entries()].map(([g, n]) => GAME_PHRASE[g](n)).join(' · ')}`,
+      url: GAMES[most].path
+    }
+    const theirs = subs.filter(x => x.scoutId === to)
+    if (theirs.length) await deliverTo(theirs, JSON.stringify(payload))
+    done.push({ to, n: held.length })
+  }
+  return done
 }
 
 /* ---- the hot potato ----
@@ -103,7 +167,7 @@ export async function activePotato() {
   return (await db.select().from(s.hotPotato).where(isNull(s.hotPotato.endedAt)))[0] || null
 }
 /** Everyone who should hear of a round: the active Βαθμοφόροι who have not left the fun. */
-async function potatoAudience() {
+export async function potatoAudience() {
   const db = await useDb()
   return (await db.select().from(s.scouts))
     .filter(r => r.role !== 'scout' && r.isActive && !r.deletedAt && !r.isHidden && r.funPref !== 'off').map(r => r.id)

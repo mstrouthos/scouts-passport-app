@@ -5,6 +5,7 @@ import { faceOf } from '../../utils/face'
 import { normalizeAvatar, randomAvatar } from '../../../utils/avatar'
 import { kimDay } from '../../../utils/kim'
 import { dailyBag, bagOf, unseenGrants } from '../../utils/funBag'
+import { funDailyLast } from '../../utils/funDaily'
 import { FUN_LIMIT_DAY, cyprusDayStart, cyprusWeekStart, funPaused, potatoTick, activePotato, potatoPool, potatoCycle, potatoTargets } from '../../utils/leaderFun'
 
 /** The playground: every Βαθμοφόρος of every sector, standing; what has
@@ -58,8 +59,11 @@ export default defineEventHandler(async (event) => {
   await dailyBag(me.id)
   const bag = await bagOf(me.id)
   const grants = await unseenGrants(me.id)
+  // the day's target, until the next one (a day and a bit at most)
+  const daily = await funDailyLast()
   return {
     bag, grants,
+    daily: daily?.count && Date.now() - Date.parse(daily.at) < 26 * 3600_000 ? daily : null,
     kim: kimToday ? { correct: kimToday.correct } : null,
     paused: await funPaused(), canPause: me.role === 'troop_leader',
     me: { id: me.id, pref: me.funPref, sentToday: recent.filter(r => r.fromId === me.id && r.createdAt >= today && !r.auto).length, limit: FUN_LIMIT_DAY,

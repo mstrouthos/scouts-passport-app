@@ -101,7 +101,7 @@ async function dare(l: any) {
 </script>
 
 <template>
-  <AppShell :title="t('kimTitle')" :sub="t('kimSub')" back="/admin">
+  <GameScreen game="kim" :title="t('kimTitle')" :sub="t('kimSub')">
     <!-- the tray itself: what to remember, or what is gone -->
     <div v-if="play && phase !== 'intro'" class="tray-wrap">
       <div v-if="phase === 'view'" class="timer"><span :style="{ width: (remaining / (data?.viewMs || 20000) * 100) + '%' }" /></div>
@@ -197,7 +197,7 @@ async function dare(l: any) {
         </div>
       </div>
     </template>
-  </AppShell>
+  </GameScreen>
 </template>
 
 <style scoped>

@@ -54,7 +54,7 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVisible
         <p v-else-if="news.burnedIsMe">{{ t('potatoBurstOnMe', { n: news.passes }) }}</p>
         <p v-else>{{ t('potatoBurstOn', { name: news.burned || '—', n: news.passes }) }}</p>
         <div class="dare">«{{ news.challenge }}»</div>
-        <NuxtLink v-if="route.path !== '/admin'" to="/admin" class="btn" style="text-decoration:none;text-align:center" @click="close">{{ t('potatoGo') }}</NuxtLink>
+        <NuxtLink v-if="route.path !== '/admin/potato'" to="/admin/potato" class="btn" style="text-decoration:none;text-align:center" @click="close">{{ t('potatoGo') }}</NuxtLink>
         <button class="btn ghost" @click="close">OK</button>
       </div>
     </div>

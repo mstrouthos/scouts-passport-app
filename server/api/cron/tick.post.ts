@@ -11,8 +11,9 @@ import { cyprusTimeOnDayOf } from '../../utils/cyprusTime'
 import { localDay, bonusEarned, currentStreak } from '../../utils/streak'
 import { deleteFormFiles } from '../../utils/formFiles'
 import { eventInSections, eventSectionIds } from '../../utils/eventScope'
-import { potatoTick } from '../../utils/leaderFun'
+import { potatoTick, gameDigest } from '../../utils/leaderFun'
 import { kimPrizes } from '../../utils/kimRewards'
+import { funDailyTick } from '../../utils/funDaily'
 
 /** Hit by host cron every few minutes with the token:
     curl -X POST -H "x-cron-token: $TOKEN" https://.../api/cron/tick */
@@ -175,6 +176,10 @@ export default defineEventHandler(async (event) => {
   const potato = await potatoTick()
   // Το Ταψί του Κιμ: yesterday's best, and on Mondays last week's
   const kimPrize = await kimPrizes()
+  // 23:00: who had the most thrown at them today, told to everyone
+  const funDaily = await funDailyTick()
+  // the mini-games' held news, bundled into one push each
+  const gameBundles = await gameDigest()
 
   // opened notifications, a day old: swept out so the bell stays the news
   const cutoff = new Date(Date.now() - READ_TTL_MS).toISOString()
@@ -192,6 +197,8 @@ export default defineEventHandler(async (event) => {
     ok: true, notified, announced, purged: purgedWho.length, swept, at: t,
     ...(potato ? { potato } : {}),
     ...(kimPrize.length ? { kimPrize } : {}),
+    ...(funDaily ? { funDaily } : {}),
+    ...(gameBundles.length ? { gameBundles: gameBundles.length } : {}),
     ...(sent.length ? { sent } : {}),
     ...(purgedWho.length ? { purgedWho } : {})
   }

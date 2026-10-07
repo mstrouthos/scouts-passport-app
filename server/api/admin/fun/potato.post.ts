@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
   }
   const [row] = await db.insert(s.leaderFun).values({ fromId: me.id, toId: to, action: 'potato', createdAt: t, auto: true }).returning()
   const note = FUN_GAME[0].noteEl.replace('{name}', me.firstName)
-  await tellFun(to, { body: started ? `${note} Όποιον σκάσει: «${started.challenge}»` : note, refId: row.id }, true)
+  await tellFun(to, { title: '🥔 Η καυτή πατάτα', kind: 'potato-pass', body: started ? `${note} Όποιον σκάσει: «${started.challenge}»` : note, refId: row.id }, true)
   // a new round: everyone hears it has begun, and what is at stake
   if (started) await announcePotato(started, me.firstName)
   return { ok: true, id: row.id, newRound: cycle.length === 1, started: !!started, paid }

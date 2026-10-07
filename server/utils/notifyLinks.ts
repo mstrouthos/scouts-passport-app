@@ -2,6 +2,8 @@
 
    Kept apart from both push.ts and celebrate.ts: those two already depend on
    each other, and importing this from either would close the cycle. */
+import { GAMES, GAME_OF_KIND } from '../../utils/games'
+
 export function linkForNotification(kind: string, refId: number | null, who: 'member' | 'parent' = 'member'): string | null {
   if (refId == null) return null
   // a family's notices open on their own page — a form sent to them, the form
@@ -21,10 +23,10 @@ export function linkForNotification(kind: string, refId: number | null, who: 'me
   if (kind === 'poll') return `/admin/polls?poll=${refId}&n=1`
   if (kind === 'infoApproval' || kind === 'infoPublished') return `/admin/infopages?open=${refId}`
   if (kind === 'eventRsvp') return `/admin/events/${refId}?n=1`
-  // the playground: back to it, to answer in kind
-  if (kind === 'fun') return `/admin?fun=${refId}`
-  if (kind === 'fun-warn' || kind === 'potato' || kind === 'potato-burst') return '/admin'
-  if (kind === 'kim') return '/admin/kim'
+  // the mini-games: each opens its own game (a throw, to answer it in kind)
+  if (kind === 'fun') return `${GAMES.throw.path}?fun=${refId}`
+  if (kind === 'fun-daily') return `${GAMES.throw.path}?top=1`
+  if (GAME_OF_KIND[kind]) return GAMES[GAME_OF_KIND[kind]].path
   // a mission photo: checked (to the member), or waiting to be (to the leaders)
   if (kind === 'mission') return '/app/challenges?tab=missions'
   // a collection item earned with a run of meetings

@@ -95,7 +95,7 @@ async function removePhoto() {
       </div></div>
     </div>
 
-    <LeadersPlayground />
+    <MiniGames />
 
     <NuxtLink to="/admin/polls" class="banner">
       <div class="ico">🗳️</div>

@@ -4,9 +4,18 @@
    told, and it plays out here: the thing flies across, lands, and a thrown
    one leaves its mark on them for a while. What the others get up to plays
    out too, live; what was done to you while you were away plays when you
-   come back. Tapping yourself sets how much of it you want. */
+   come back. Tapping yourself sets how much of it you want.
+   Two games on the same campsite, each a full screen of its own: 'throw'
+   (the backpack, throws, shoves and hugs, and the day's target) and 'potato'
+   (only the hot potato: tap someone to throw it to them). */
 import { avatarSvg, DEFAULT_AVATAR } from '~/utils/avatar'
 import { FUN_ACTIONS, FUN_GAME, FUN_IMPACT, FUN_SPARKLE, FUN_KIND_SCREEN, funAction, funAllowed, isPlay, isThrowable, THROWABLES, ITEM_TIER, BAG_MAX, pouchOf, type FunAction, type FunMotion } from '~/utils/fun'
+
+const props = withDefaults(defineProps<{ game?: 'throw' | 'potato' }>(), { game: 'throw' })
+const isPotato = computed(() => props.game === 'potato')
+/** Whether a line of the feed (or a throw to replay) belongs to this game. */
+const POTATO_ACTIONS = ['potato', 'burn']
+const inGame = (action: string) => POTATO_ACTIONS.includes(action) === isPotato.value
 
 const { t, locale } = useI18n()
 const { show } = useToast()
@@ -186,6 +195,26 @@ async function saveChallenges() {
     await $fetch('/api/admin/fun/potato-challenges', { method: 'PUT', body: { challenges: (challenges.value || []).map(c => c.trim()).filter(Boolean) } })
     challenges.value = null; show('✅ ' + t('saved'))
   } catch (e: any) { show(errMsg(e)) }
+}
+/* ---- the day's target ----
+   who had the most thrown at them (told to all at 23:00); opened big once —
+   or when the notification is tapped — and a card until the next one */
+const dailyTop = computed<any[]>(() => (data.value?.daily?.top || [])
+  .map((id: number) => data.value?.leaders?.find((l: any) => l.id === id)).filter(Boolean))
+const dailyNames = computed(() => {
+  const n = dailyTop.value.map(l => l.me ? t('funYouCap') : l.firstName)
+  return n.length > 1 ? n.slice(0, -1).join(', ') + ` ${t('and')} ` + n.at(-1) : n[0] || ''
+})
+const dailyOpen = ref(false)
+watch(() => data.value?.daily?.day, (day) => {
+  if (!day || isPotato.value || !import.meta.client) return
+  let seen = ''
+  try { seen = localStorage.getItem('fun.daily.seen') || '' } catch {}
+  if (route.query.top || seen !== day) dailyOpen.value = true
+}, { immediate: true })
+function closeDaily() {
+  dailyOpen.value = false
+  try { localStorage.setItem('fun.daily.seen', data.value?.daily?.day || '') } catch {}
 }
 /** Whether I may throw the potato at them now: I hold it and they have not
     had it yet this round, or none is in play and one may start. */
@@ -426,11 +455,12 @@ async function playNew() {
     const seen = readSeen()
     const asked = Number(route.query.fun) || 0
     queue = rows.filter(r => r.to === myId.value && ((r.id > seen && Date.now() - Date.parse(r.at) < 24 * HOURS) || r.id === asked))
+    queue = queue.filter(r => inGame(r.action))
     if (queue.length) show(`${t('funAway')} ${[...new Set(queue.map(r => funAction(r.action)?.emoji))].join('')}`)
   } else queue = rows.filter(r => r.id > baseline)
   baseline = top
   writeSeen(top)
-  queue = queue.filter(r => !played.has(r.id)).sort((a, b) => a.id - b.id).slice(-4)
+  queue = queue.filter(r => !played.has(r.id) && inGame(r.action)).sort((a, b) => a.id - b.id).slice(-4)
   if (queue.length) await nextTick()
   for (const r of queue) {
     played.add(r.id)
@@ -470,7 +500,7 @@ function ago(iso: string) {
   if (m < 1440) return t('funHourAgo', { n: Math.floor(m / 60) })
   return t('funDayAgo', { n: Math.floor(m / 1440) })
 }
-const feed = computed(() => recent.value.slice(0, 12).map(r => ({
+const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 12).map(r => ({
   ...r, a: funAction(r.action),
   fromLabel: r.from == null ? `❓ ${t('funSomeone')}` : r.from === myId.value ? t('funYou') : r.fromName,
   toLabel: r.to === myId.value ? t('funYouObj') : r.toName,
@@ -483,15 +513,19 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 <template>
   <div v-if="data?.leaders?.length" class="fun">
     <div class="fun-head">
-      <div>
-        <b>🎪 {{ t('funTitle') }}</b>
-        <span>{{ data.paused ? t('funPaused') : t('funSub') }}</span>
-      </div>
-      <span v-if="!data.paused && data.me.pref !== 'off'" class="ammo">{{ t('funLeft', { n: left }) }}</span>
+      <span>{{ data.paused ? t('funPaused') : isPotato ? t('potatoGameSub') : t('funSub') }}</span>
+      <span v-if="!isPotato && !data.paused && data.me.pref !== 'off'" class="ammo">{{ t('funLeft', { n: left }) }}</span>
     </div>
 
+    <!-- the day's target: who had the most thrown at them, told to all at 23:00 -->
+    <button v-if="!isPotato && dailyTop.length" class="daily" @click="dailyOpen = true">
+      <span class="dfaces"><Avatar v-for="l in dailyTop.slice(0, 3)" :key="l.id" :name="`${l.firstName} ${l.lastName}`" :photo="l.photo" :avatar="l.figure || l.avatar" :size="40" no-zoom /></span>
+      <span class="dtxt"><b>🎯 {{ t('funDailyTitle') }}</b><span>{{ t('funDailyLine', { who: dailyNames, n: data.daily.count }) }}</span></span>
+      <span class="chev">›</span>
+    </button>
+
     <!-- the backpack: what there is to throw, earned in the games -->
-    <button v-if="data.me.pref !== 'off'" class="bagbar" @click="bagHelp = true">
+    <button v-if="!isPotato && data.me.pref !== 'off'" class="bagbar" @click="bagHelp = true">
       <span class="bagic">🎒</span>
       <span class="bagitems">
         <span v-for="k in THROWABLES.filter(k => bag[k])" :key="k" class="bi" :class="ITEM_TIER[k]">
@@ -503,7 +537,8 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
     </button>
 
     <!-- the hot potato: who has it (never when it bursts), what is at stake, or how the last one ended -->
-    <div v-if="!data.paused && (potato.active || potato.last || (potato.canStart && data.me.pref === 'all'))" class="potato"
+    <div v-if="isPotato && data.me.pref !== 'all' && !data.paused" class="note soft">🥔 {{ t('potatoNeedsAll') }}</div>
+    <div v-if="isPotato && !data.paused" class="potato"
          :class="{ mine: holdIt, burst: !potato.active && potato.last?.burned }">
       <div class="prow">
         <span class="spud">{{ !potato.active && potato.last?.burned ? '💥' : '🥔' }}</span>
@@ -522,13 +557,6 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
         <button v-if="potato.active && potato.canStop" class="chip" @click="stopRound">⏹ {{ t('funPotatoStop') }}</button>
       </div>
     </div>
-
-    <!-- the daily memory game -->
-    <NuxtLink to="/admin/kim" class="potato kimcard">
-      <img class="spud" src="/images/kim/compass.webp" alt="">
-      <div class="ptxt"><b>🧠 {{ t('kimCard') }}</b><span>{{ data.kim ? t('kimCardDone', { c: data.kim.correct, m: 4 }) : t('kimCardNew') }}</span></div>
-      <span class="chev">›</span>
-    </NuxtLink>
 
     <div ref="stage" class="stage" :class="{ paused: data.paused, faces: !fullBody }">
       <span class="deco d1">🌲</span><span class="deco d2">⛺</span><span class="deco d3">🌲</span>
@@ -586,7 +614,7 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
               <b>{{ target.firstName }} {{ target.lastName }}</b>
               <span class="tiny muted">{{ target.where }}</span>
             </div>
-            <div v-if="score(target.id).me + score(target.id).them" class="score">
+            <div v-if="!isPotato && score(target.id).me + score(target.id).them" class="score">
               <small>{{ t('funWeek') }}</small>
               <b>{{ score(target.id).me }} – {{ score(target.id).them }}</b>
             </div>
@@ -595,10 +623,15 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
           <div v-else-if="data.me.pref === 'off'" class="note">{{ t('funPrefOff') }} · {{ t('funMine') }} ›</div>
           <div v-else-if="target.pref === 'off'" class="note">{{ target.firstName }}: {{ t('funOut') }}</div>
           <template v-else>
+            <template v-if="isPotato">
             <button v-if="canPotato(target)" class="potato-btn" :disabled="busy" @click="throwPotato(target)">
               🥔 {{ holdIt ? t('funPotatoPass', { name: target.firstName }) : t('funPotatoStartAt', { name: target.firstName }) }}
             </button>
             <div v-else-if="hadIt(target)" class="note soft">🥔 {{ t('funPotatoHadIt', { name: target.firstName }) }}</div>
+            <div v-else class="note soft">🥔 {{ target.pref !== 'all' ? t('potatoTheyOut', { name: target.firstName })
+              : potato.active && !holdIt ? t('potatoNotYours', { name: potato.active.holderName }) : t('potatoNeedsAll') }}</div>
+            </template>
+            <template v-else>
             <div v-if="target.pref === 'kind'" class="note soft">{{ t('funKindOnly') }}</div>
             <label v-if="data.me.anonLeft && target.pref === 'all'" class="anon" :class="{ on: anon }">
               <input v-model="anon" type="checkbox">
@@ -614,7 +647,24 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
               </div>
             </div>
             <div class="tiny muted" style="text-align:center">{{ t('funLeft', { n: left }) }}</div>
+            </template>
           </template>
+        </div>
+      </div>
+
+      <div v-if="dailyOpen && dailyTop.length" class="sheet-backdrop" @click.self="closeDaily">
+        <div class="sheet fun-sheet dsheet">
+          <div class="dbig">🎯</div>
+          <h3>{{ t('funDailyTitle') }}</h3>
+          <div class="dwho">
+            <div v-for="l in dailyTop" :key="l.id" class="dperson">
+              <Avatar :name="`${l.firstName} ${l.lastName}`" :photo="l.photo" :avatar="l.figure || l.avatar" :size="dailyTop.length > 1 ? 72 : 110" no-zoom />
+              <b>{{ l.me ? t('funYouCap') : l.firstName }}</b>
+            </div>
+          </div>
+          <div class="dcount"><span>{{ data.daily.count }}</span>{{ data.daily.count === 1 ? t('funDailyThing') : t('funDailyThings') }} 🍅</div>
+          <div class="tiny muted" style="text-align:center">{{ dailyTop.length > 1 ? t('funDailySubMany') : dailyTop[0]?.me ? t('funDailySubMe') : t('funDailySub') }}</div>
+          <button class="btn" @click="closeDaily">OK</button>
         </div>
       </div>
 
@@ -697,7 +747,23 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 </template>
 
 <style scoped>
-.fun{margin:14px 0}
+.fun{margin:4px 0 14px}
+.daily{display:flex; align-items:center; gap:10px; width:100%; border:0; text-align:left; margin-bottom:10px;
+  background:linear-gradient(135deg,#FFF1C9,#FFD9C2); border-radius:18px; padding:10px 12px; box-shadow:0 2px 10px rgba(180,90,30,.15)}
+.dfaces{display:flex; flex:none}
+.dfaces > *:not(:first-child){margin-left:-12px}
+.dtxt{flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.25}
+.dtxt b{font-size:14px; color:#7A3A10}
+.dtxt span{font-size:12.5px; color:#8A5530}
+.dsheet{align-items:center; text-align:center}
+.dsheet h3{margin:0; font-size:19px}
+.dbig{font-size:46px; line-height:1; animation:dpop .7s cubic-bezier(.2,1.6,.4,1)}
+@keyframes dpop{from{transform:scale(.2) rotate(-25deg)}}
+.dwho{display:flex; flex-wrap:wrap; justify-content:center; gap:14px}
+.dperson{display:flex; flex-direction:column; align-items:center; gap:6px}
+.dperson b{font-size:15px}
+.dcount{font-size:15px; font-weight:700; color:#7A3A10; display:flex; align-items:baseline; gap:6px}
+.dcount span{font-size:40px; font-weight:900; color:#D2491D}
 .fun-head{display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin:0 2px 8px}
 .fun-head b{display:block; font-size:16px}
 .fun-head span{font-size:12.5px; color:var(--muted)}
@@ -851,9 +917,6 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 .chdel{flex:none; border:0; background:#fff; border-radius:10px; width:36px; height:36px; font-size:15px; cursor:pointer; box-shadow:0 1px 4px rgba(20,40,70,.08)}
 .rules{margin:0; padding-left:20px; display:flex; flex-direction:column; gap:7px; font-size:13.5px; line-height:1.5}
 .had{position:absolute; right:6%; bottom:4%; font-size:11px; opacity:.55; filter:grayscale(.4); pointer-events:none}
-.kimcard{text-decoration:none; color:inherit}
-.kimcard img.spud{width:30px; height:30px; object-fit:contain}
-.kimcard .chev{font-size:20px; color:var(--muted)}
 .potato{display:flex; align-items:center; gap:10px; background:#fff; border-radius:16px; padding:9px 12px; margin-bottom:8px; box-shadow:0 1px 6px rgba(20,40,70,.06)}
 .potato.mine{background:linear-gradient(135deg,#FFE3B8,#FFC3A0); animation:hot 1.1s ease-in-out infinite}
 .potato .spud{font-size:26px; flex:none}
@@ -861,7 +924,7 @@ const feed = computed(() => recent.value.slice(0, 12).map(r => ({
 .ptxt{flex:1; min-width:0}
 .ptxt b{display:block; font-size:13.5px}
 .ptxt span{display:block; font-size:11.5px; color:var(--muted)}
-.potato:not(.kimcard){flex-direction:column; align-items:stretch; gap:8px}
+.potato{flex-direction:column; align-items:stretch; gap:8px}
 @keyframes hot{50%{box-shadow:0 0 0 4px rgba(255,120,60,.25)}}
 @keyframes jiggle{25%{transform:rotate(-12deg)} 75%{transform:rotate(12deg)}}
 .held{position:absolute; right:2%; top:56%; font-size:20px; pointer-events:none; animation:jiggle .6s ease-in-out infinite}
