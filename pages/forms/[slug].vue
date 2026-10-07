@@ -284,7 +284,7 @@ const INPUT_MODE: Record<string, string> = { number: 'decimal', phone: 'tel', em
               </div>
               <FormFileUpload v-else-if="q.type === 'file'" :model-value="uploads[kOf(q)] || []" :slug="slug" :question-id="q.id"
                               :invalid="!!errors[kOf(q)]" @update:model-value="setUploads(kOf(q), $event)" />
-              <input v-else :id="'q' + kOf(q)" v-model="answers[kOf(q)]" class="in" :type="INPUT_TYPE[q.type]"
+              <input v-else :id="'q' + kOf(q)" v-model="answers[kOf(q)]" class="in" :type="INPUT_TYPE[q.type]" :placeholder="q.type === 'child' ? t('formChildNamePh') : undefined"
                      :inputmode="INPUT_MODE[q.type] as any" :autocomplete="q.type === 'email' ? 'email' : q.type === 'phone' ? 'tel' : 'off'">
               <div v-if="errors[kOf(q)]" class="err">{{ errText(errors[kOf(q)]) }}</div>
             </div>

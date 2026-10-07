@@ -28,11 +28,11 @@ export async function familyChildren(parentId: number, form?: typeof s.forms.$in
 
 /** Tick these members as registered for the year, from this answer (or by
     hand, `markedBy`). A later registration takes the place of an earlier one. */
-export async function registerChildren(scoutIds: number[], year: string, src: { formId?: number | null, responseId?: number | null, markedBy?: number | null }) {
+export async function registerChildren(scoutIds: number[], year: string, src: { formId?: number | null, responseId?: number | null, markedBy?: number | null, auto?: number[] }) {
   const db = await useDb()
   const t = now()
   for (const scoutId of [...new Set(scoutIds)]) {
-    const row = { formId: src.formId ?? null, responseId: src.responseId ?? null, markedBy: src.markedBy ?? null, createdAt: t }
+    const row = { formId: src.formId ?? null, responseId: src.responseId ?? null, markedBy: src.markedBy ?? null, auto: !!src.auto?.includes(scoutId), createdAt: t }
     await db.insert(s.registrations).values({ scoutId, year, ...row })
       .onConflictDoUpdate({ target: [s.registrations.scoutId, s.registrations.year], set: row })
   }
@@ -65,7 +65,7 @@ export async function childrenOfResponse(responseId: number) {
   if (!rows.length) return []
   const kids = await db.select({ id: s.scouts.id, firstName: s.scouts.firstName, lastName: s.scouts.lastName }).from(s.scouts)
     .where(inArray(s.scouts.id, rows.map(r => r.scoutId)))
-  return kids
+  return kids.map(k => ({ ...k, auto: !!rows.find(r => r.scoutId === k.id)?.auto }))
 }
 
 /** A member's registration for the year, with where it came from. */
@@ -77,7 +77,7 @@ export async function registrationOf(scoutId: number, year = scoutYear()) {
   const resp = r.responseId ? (await db.select({ parentId: s.formResponses.parentId }).from(s.formResponses).where(eq(s.formResponses.id, r.responseId)).limit(1))[0] : null
   const parent = resp?.parentId ? (await db.select({ name: s.parents.name }).from(s.parents).where(eq(s.parents.id, resp.parentId)).limit(1))[0] : null
   return {
-    at: r.createdAt, formId: r.formId, responseId: r.responseId,
+    at: r.createdAt, formId: r.formId, responseId: r.responseId, auto: r.auto,
     byHand: !!r.markedBy, markedBy: by ? `${by.firstName} ${by.lastName}` : null,
     parent: parent?.name ?? null
   }
@@ -96,4 +96,32 @@ export async function registrationOptions(me: any, form: typeof s.forms.$inferSe
     .filter(k => k.sectionId != null && (mine === null || mine.includes(k.sectionId)) && (!secs || secs.includes(k.sectionId)))
     .map(k => ({ id: k.id, name: `${k.firstName} ${k.lastName}`, section: sections.find(x => x.id === k.sectionId)?.nameEl ?? '' }))
     .sort((a, b) => a.section.localeCompare(b.section, 'el') || a.name.localeCompare(b.name, 'el'))
+}
+
+/** The members a registration form is for, whoever is looking: the active
+    members of its sectors — the pool a typed name is matched against. */
+export async function registrationPool(form: typeof s.forms.$inferSelect) {
+  const db = await useDb()
+  const secs = parentSectionsOf(form)
+  const [scouts, patrols] = await Promise.all([db.select().from(s.scouts), db.select().from(s.patrols)])
+  return scouts.filter(k => k.role === 'scout' && k.isActive && !k.deletedAt && !k.isHidden)
+    .filter(k => { const sec = sectionOfWith(k, patrols); return !secs || (sec != null && secs.includes(sec)) })
+    .map(k => ({ id: k.id, firstName: k.firstName, lastName: k.lastName, firstNameEn: k.firstNameEn, lastNameEn: k.lastNameEn, birthday: k.birthday }))
+}
+
+/** The child names typed into an answer (a form sent by plain link), each
+    with the date of birth given in the same copy, if the form asks one. */
+export function typedChildren(spec: any, answers: Record<string, any>) {
+  const out: Array<{ key: string, name: string, dob: string | null }> = []
+  const qs = (spec.modules || []).flatMap((m: any) => m.questions || [])
+  const childIds = new Set(qs.filter((q: any) => q.type === 'child').map((q: any) => q.id))
+  const dateIds = qs.filter((q: any) => q.type === 'date').map((q: any) => q.id)
+  for (const [key, v] of Object.entries(answers || {})) {
+    const [id, n] = key.split('@')
+    if (!childIds.has(id) || typeof v !== 'string' || !v.trim()) continue
+    const sfx = n ? '@' + n : ''
+    const dobKey = dateIds.map((d: string) => d + sfx).find((k: string) => /^\d{4}-\d{2}-\d{2}$/.test(String(answers[k] || '')))
+    out.push({ key, name: v.trim(), dob: dobKey ? String(answers[dobKey]) : null })
+  }
+  return out
 }

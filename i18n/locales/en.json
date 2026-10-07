@@ -1463,5 +1463,11 @@
   "regNotYetSub": "The parents haven't sent the registration form for this child",
   "regMarkPaper": "Registered on paper",
   "regCount": "Registrations {year}: {n}/{of}",
-  "regOnlyMissing": "Only those missing"
+  "regOnlyMissing": "Only those missing",
+  "formNeedsLink": "needs a child linked",
+  "formNeedsLinkN": "{n} registration answers need a child linked — open them to choose",
+  "formAutoMatched": "matched by name",
+  "formTypedNotLinked": "wasn't matched for sure. Which child is it?",
+  "formNoSuggestion": "No similar name — choose from “Which children it registers”",
+  "formChildNamePh": "The child's full name"
 }

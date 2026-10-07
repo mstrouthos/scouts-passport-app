@@ -10,7 +10,8 @@ import { sendPushTo } from '../../../../utils/push'
 import { administratorIds } from '../../../../utils/infoNotify'
 import { noteError } from '../../../../utils/errorReport'
 import { parentOfTicket } from '../../../../utils/familyForms'
-import { familyChildren, registerChildren } from '../../../../utils/registrations'
+import { familyChildren, registerChildren, registrationPool, typedChildren } from '../../../../utils/registrations'
+import { clearMatch } from '../../../../utils/nameMatch'
 
 /** Someone sends a form. Checked against the form's own questions, kept
     encrypted with a copy of them, and the administrators are told. */
@@ -74,6 +75,21 @@ export default defineEventHandler(async (event) => {
     picked.push(kid.id)
   }
   if (Object.keys(notTheirs).length) throw createError({ statusCode: 422, message: 'Διαλέξτε ένα από τα παιδιά σας', data: { errors: notTheirs } })
+  // a name typed instead (a form sent by plain link): linked to the member it
+  // clearly is — one match, no doubt — and marked so a leader can check it;
+  // anything less is left to a leader, who is shown the likely ones
+  const auto: number[] = []
+  if (f.registrationYear && childQs.size) {
+    const typed = typedChildren(spec, Object.fromEntries(Object.entries(clean.answers).filter(([, v]) => !CHILD_PICK.test(String(v)))))
+      .filter(x => !picked.length || !kids.some(k => `${k.firstName} ${k.lastName}` === x.name))
+    if (typed.length) {
+      const pool = await registrationPool(f)
+      for (const x of typed) {
+        const id = clearMatch(x.name, pool, x.dob)
+        if (id && !picked.includes(id)) { picked.push(id); auto.push(id) }
+      }
+    }
+  }
   // a registration with no "which child" question, from a family with one
   // child in its sectors: that child, of course
   if (f.registrationYear && !childQs.size && parentId) {
@@ -92,7 +108,7 @@ export default defineEventHandler(async (event) => {
       .where(inArray(s.formFiles.id, waiting.map(w => w.id)))
   }
   // the year's registration: each child it names is ticked as registered
-  if (f.registrationYear && picked.length) await registerChildren(picked, f.registrationYear, { formId: f.id, responseId: row.id })
+  if (f.registrationYear && picked.length) await registerChildren(picked, f.registrationYear, { formId: f.id, responseId: row.id, auto })
 
   // the administrators hear of it; the bell names the form, never the answers
   try {

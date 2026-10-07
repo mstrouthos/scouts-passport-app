@@ -13,6 +13,10 @@ const { data: r } = await useFetch<any>(() => `/api/admin/forms/responses/${id.v
 /* a registration's children, picked by a leader */
 const linking = ref<number[] | null>(null)
 const openLink = () => { linking.value = r.value.registration.children.map((k: any) => k.id) }
+async function linkOne(kid: number) {
+  linking.value = [...r.value.registration.children.map((k: any) => k.id), kid]
+  await saveLink()
+}
 const toggleKid = (id: number) => { linking.value = linking.value!.includes(id) ? linking.value!.filter(x => x !== id) : [...linking.value!, id] }
 async function saveLink() {
   try {
@@ -87,8 +91,16 @@ async function print() {
       <div v-if="r.registration" class="card regcard noprint">
         <div class="tiny muted">📋 {{ t('formRegistersFor', { year: scoutYearLabel(r.registration.year) }) }}</div>
         <div class="kids">
-          <span v-for="k in r.registration.children" :key="k.id" class="chip on">✅ {{ k.name }}</span>
+          <span v-for="k in r.registration.children" :key="k.id" class="chip on">✅ {{ k.name }}<small v-if="k.auto"> · 🔎 {{ t('formAutoMatched') }}</small></span>
           <span v-if="!r.registration.children.length" class="tiny warnline">⚠️ {{ t('formRegistersNone') }}</span>
+        </div>
+        <!-- names typed on a plain link that are not linked yet: the likely ones, a tap each -->
+        <div v-for="x in r.registration.typed.filter((x: any) => !x.linkedTo)" :key="x.name" class="typed">
+          <div class="tiny"><b>✍️ «{{ x.name }}»</b> — {{ t('formTypedNotLinked') }}</div>
+          <div class="kids">
+            <button v-for="sg in x.suggestions" :key="sg.id" class="chip" @click="linkOne(sg.id)">➕ {{ sg.name }} <small>{{ sg.section }}</small></button>
+            <span v-if="!x.suggestions.length" class="tiny muted">{{ t('formNoSuggestion') }}</span>
+          </div>
         </div>
         <button class="chip" @click="openLink">✎ {{ t('formLinkChildren') }}</button>
       </div>
@@ -130,6 +142,8 @@ async function print() {
 }
 .regcard{display:flex; flex-direction:column; gap:8px; margin-bottom:10px}
 .regcard .kids{display:flex; flex-wrap:wrap; gap:6px}
+.regcard .typed{display:flex; flex-direction:column; gap:6px; background:#FFF4E0; border-radius:12px; padding:8px 10px}
+.regcard small{opacity:.75}
 .regcard > .chip{align-self:flex-start}
 .warnline{color:#B26A00; font-weight:600}
 .pick{display:flex; align-items:center; gap:10px; background:var(--card, #fff); border-radius:12px; padding:9px 12px; cursor:pointer}

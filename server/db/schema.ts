@@ -816,6 +816,8 @@ export const registrations = pgTable('registrations', {
   formId: integer('form_id'),
   responseId: integer('response_id'),
   markedBy: integer('marked_by'),
+  // linked from the name a parent typed, not picked in the app
+  auto: boolean('auto').notNull().default(false),
   createdAt: text('created_at').notNull()
 }, t => [uniqueIndex('registrations_scout_id_year_key').on(t.scoutId, t.year)])
 

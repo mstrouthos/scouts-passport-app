@@ -6,7 +6,8 @@ import { logAccess } from '../../../../utils/forms'
 import { unseal } from '../../../../utils/seal'
 import { normalizeSpec } from '../../../../../utils/formSpec'
 import { filesOfResponse } from '../../../../utils/formFiles'
-import { childrenOfResponse, registrationOptions } from '../../../../utils/registrations'
+import { childrenOfResponse, registrationOptions, registrationPool, typedChildren } from '../../../../utils/registrations'
+import { nameScore, suggestions } from '../../../../utils/nameMatch'
 
 /** One answer in full, with the questions as they were when it was sent.
     Opening it marks it read, and is recorded. */
@@ -28,11 +29,26 @@ export default defineEventHandler(async (event) => {
   // sent by a parent from their app: named, so the leaders know whose it is
   const parent = r.parentId ? (await db.select({ name: s.parents.name }).from(s.parents).where(eq(s.parents.id, r.parentId)).limit(1))[0] : null
   // a registration: the children it registers, and those it could
-  const registration = f.registrationYear ? {
-    year: f.registrationYear,
-    children: (await childrenOfResponse(id)).map(k => ({ id: k.id, name: `${k.firstName} ${k.lastName}` })),
-    options: await registrationOptions(me, f)
-  } : null
+  const registration = f.registrationYear ? await (async () => {
+    const data = unseal(r.sealed)
+    const linked = await childrenOfResponse(id)
+    const options = await registrationOptions(me, f)
+    const pool = (await registrationPool(f)).filter(c => options.some(o => o.id === c.id))
+    // each child name typed (by plain link): is it linked yet, and if not, who it may be
+    const typed = typedChildren(normalizeSpec(JSON.parse(r.spec)), data.answers || {}).map(x => {
+      const to = linked.find(k => nameScore(x.name, k, null) >= 0.82)
+      return {
+        name: x.name, linkedTo: to?.id ?? null,
+        suggestions: to ? [] : suggestions(x.name, pool, x.dob).slice(0, 3)
+          .map(sg => ({ id: sg.c.id, name: `${sg.c.firstName} ${sg.c.lastName}`, section: options.find(o => o.id === sg.c.id)?.section ?? '', sure: Math.round(sg.score * 100) }))
+      }
+    })
+    return {
+      year: f.registrationYear,
+      children: linked.map(k => ({ id: k.id, name: `${k.firstName} ${k.lastName}`, auto: k.auto })),
+      typed, options
+    }
+  })() : null
   return {
     registration,
     fromParent: parent?.name ?? null,

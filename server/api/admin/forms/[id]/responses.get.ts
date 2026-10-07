@@ -4,6 +4,7 @@ import { idParam } from '../../../../utils/guard'
 import { formForLeader, logAccess } from '../../../../utils/forms'
 import { unseal } from '../../../../utils/seal'
 import { normalizeSpec, answerText, visibleParts, repeatGroups, copiesOf } from '../../../../../utils/formSpec'
+import { typedChildren } from '../../../../utils/registrations'
 
 /** A form's answers, newest first, each named by its first few answers so
     the list can be read at a glance. */
@@ -19,6 +20,7 @@ export default defineEventHandler(async (event) => {
   const kidNames = new Map(regs.length ? (await db.select({ id: s.scouts.id, firstName: s.scouts.firstName }).from(s.scouts)).map(k => [k.id, k.firstName]) : [])
   return rows.map(r => {
     let summary: string[] = []
+    let named = 0
     try {
       const spec = normalizeSpec(JSON.parse(r.spec))
       const data = unseal(r.sealed)
@@ -29,8 +31,11 @@ export default defineEventHandler(async (event) => {
         .filter(({ q, key }) => q.type !== 'textarea' && q.type !== 'file' && data.answers?.[key] != null)
         .slice(0, 3).map(({ q, key }) => answerText(data.answers[key], q.type))
       for (const g of repeatGroups(spec)) summary.push(`${copiesOf(g, data.repeats)} × ${g.repeat.label}`)
+      named = typedChildren(spec, data.answers || {}).length
     } catch { summary = ['⚠️'] }
     const children = f.registrationYear ? regs.filter(x => x.responseId === r.id).map(x => kidNames.get(x.scoutId) || '') : null
-    return { id: r.id, createdAt: r.createdAt, isRead: r.isRead, summary, children }
+    // a registration naming more children than it is linked to wants a leader
+    const needsLink = !!children && named > children.length
+    return { id: r.id, createdAt: r.createdAt, isRead: r.isRead, summary, children, needsLink }
   })
 })

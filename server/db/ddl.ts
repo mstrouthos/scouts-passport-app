@@ -709,5 +709,7 @@ export const MIGRATIONS = [
   // the potato's round: who has held it since everyone last had a turn
   "ALTER TABLE hot_potato ADD COLUMN IF NOT EXISTS cycle TEXT",
   // the form that registers members for a scout year ("2026-27"), if it is one
-  "ALTER TABLE forms ADD COLUMN IF NOT EXISTS registration_year TEXT"
+  "ALTER TABLE forms ADD COLUMN IF NOT EXISTS registration_year TEXT",
+  // linked by the name a parent typed (a form sent by plain link), for a leader to check
+  "ALTER TABLE registrations ADD COLUMN IF NOT EXISTS auto BOOLEAN NOT NULL DEFAULT FALSE"
 ]

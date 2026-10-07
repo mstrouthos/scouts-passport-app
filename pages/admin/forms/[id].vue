@@ -640,12 +640,13 @@ const stamp = (iso: string) => `${fmtDate(iso, locale.value)} · ${fmtTime(iso)}
         <button class="chip" :disabled="!responses?.length || exporting" @click="exportCsv">⬇️ {{ t('formExport') }}</button>
       </div>
       <div v-if="responses && !responses.length" class="empty">{{ t('formNoResponses') }}</div>
-      <div v-else-if="responses" class="adm">
+      <div v-if="responses?.some((r: any) => r.needsLink)" class="note warnnote">⚠️ {{ t('formNeedsLinkN', { n: responses.filter((r: any) => r.needsLink).length }) }}</div>
+      <div v-if="responses?.length" class="adm">
         <NuxtLink v-for="r in responses" :key="r.id" :to="`/admin/forms/response/${r.id}`" class="it">
           <span class="dot" :class="{ on: !r.isRead }" />
           <div style="flex:1;min-width:0">
             <b>{{ r.summary.join(' · ') || '#' + r.id }}</b>
-            <span>{{ stamp(r.createdAt) }}<template v-if="r.children"> · {{ r.children.length ? '✅ ' + r.children.join(', ') : '⚠️ ' + t('formRegistersNone') }}</template></span>
+            <span>{{ stamp(r.createdAt) }}<template v-if="r.children"> · <template v-if="r.children.length">✅ {{ r.children.join(', ') }}</template><b v-if="r.needsLink || !r.children.length" class="warnline"> ⚠️ {{ t('formNeedsLink') }}</b></template></span>
           </div>
           <span class="chev">›</span>
         </NuxtLink>
@@ -736,4 +737,5 @@ select.in{appearance:auto}
 .cwhen{flex:none; max-width:42%; font-size:13.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .carrow{flex:none; color:var(--muted); font-weight:700}
 .warnline{color:#B26A00; font-weight:600}
+.warnnote{background:#FFF4E0; color:#8A5200; font-weight:600}
 </style>

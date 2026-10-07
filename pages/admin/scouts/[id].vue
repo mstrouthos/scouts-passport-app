@@ -316,7 +316,7 @@ async function setRegistered(on: boolean) {
                   <b>{{ t('regDone') }}</b>
                   <div class="tiny muted">
                     {{ fmtDate(data.registration.done.at, locale) }} ·
-                    {{ data.registration.done.byHand ? t('regByHand', { name: data.registration.done.markedBy || '—' }) : data.registration.done.parent ? t('regByParent', { name: data.registration.done.parent }) : t('regByForm') }}
+                    {{ data.registration.done.byHand ? t('regByHand', { name: data.registration.done.markedBy || '—' }) : data.registration.done.parent ? t('regByParent', { name: data.registration.done.parent }) : t('regByForm') }}<template v-if="data.registration.done.auto"> · 🔎 {{ t('formAutoMatched') }}</template>
                   </div>
                 </div>
               </div>
