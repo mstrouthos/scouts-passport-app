@@ -592,6 +592,8 @@ export const shopItems = pgTable('shop_items', {
   stock: integer('stock'),
   visible: boolean('visible').notNull().default(true),
   sortOrder: integer('sort_order').notNull().default(0),
+  // its pictures: JSON [file id, …] (files), the first one its cover
+  images: text('images'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at')
 })

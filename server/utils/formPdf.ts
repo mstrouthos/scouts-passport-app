@@ -226,3 +226,6 @@ export async function responsePdf(p: {
   })
   return doc.save()
 }
+
+/* for the shop's PDFs too */
+export { fonts as pdfFonts, wrap as pdfWrap, clean as pdfClean }

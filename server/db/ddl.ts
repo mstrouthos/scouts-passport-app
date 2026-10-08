@@ -592,6 +592,7 @@ CREATE TABLE IF NOT EXISTS shop_items (
   stock INTEGER,
   visible BOOLEAN NOT NULL DEFAULT TRUE,
   sort_order INTEGER NOT NULL DEFAULT 0,
+  images TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT
 );
@@ -788,5 +789,7 @@ export const MIGRATIONS = [
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS shop_manager BOOLEAN NOT NULL DEFAULT FALSE",
   // the till's lines name who wrote and who cancelled them
   "ALTER TABLE shop_entries ADD COLUMN IF NOT EXISTS created_name TEXT NOT NULL DEFAULT ''",
-  "ALTER TABLE shop_entries ADD COLUMN IF NOT EXISTS voided_name TEXT"
+  "ALTER TABLE shop_entries ADD COLUMN IF NOT EXISTS voided_name TEXT",
+  // an item's pictures (JSON file ids, the first one its cover)
+  "ALTER TABLE shop_items ADD COLUMN IF NOT EXISTS images TEXT"
 ]

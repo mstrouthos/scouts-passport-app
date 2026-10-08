@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../db'
 import { requireScout, scopeKind, visibleSectionIds, rankOf, sectionOf } from '../utils/guard'
 import { can } from '../utils/permissions'
 import { faceOf } from '../utils/face'
+import { canSeeShop } from '../utils/shop'
 
 export default defineEventHandler(async (event) => {
   const me = await requireScout(event)
@@ -31,6 +32,8 @@ export default defineEventHandler(async (event) => {
     isChief: !!me.isChief,
     // runs the shop (its items, its till)
     shopManager: isLeader && !!me.shopManager,
+    // whether the shop is open to them (the Αρχηγός Συστήματος decides for whom)
+    shopVisible: await canSeeShop(me),
     // a hidden test account may try things out (drafts, a season out of season)
     isHidden: !!me.isHidden,
     canEditSelf: me.canEditSelf,

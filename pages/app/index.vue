@@ -102,6 +102,12 @@ function sub(e: any) {
       <div class="go">›</div>
     </NuxtLink>
 
+    <NuxtLink v-if="me?.shopVisible" to="/app/shop" class="banner">
+      <div class="ico">🛍️</div>
+      <div><b>{{ t('shop') }}</b><span>{{ t('shopSub') }}</span></div>
+      <div class="go">›</div>
+    </NuxtLink>
+
     <NuxtLink v-if="openChal" to="/app/challenges" class="banner">
       <div class="ico">🎯</div>
       <div><b>{{ t('newChallenge') }}</b><span>{{ lx(openChal) }} · {{ t('upToPts', { n: openChal.points }) }}</span></div>
