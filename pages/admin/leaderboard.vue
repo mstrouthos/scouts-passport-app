@@ -5,7 +5,7 @@ import { GAME_RANK } from '~/utils/games'
 const { t } = useI18n()
 const period = ref<'week' | 'year'>('week')
 const { data } = await useFetch<any>('/api/admin/games/rank', { query: { period }, lazy: true })
-const ICON = { potato: '🥔', kim: '🧠', north: '🧭' } as const
+const ICON = { north: '🧭', kim: '🧠', potato: '🥔', throw: '🎯' } as const
 const rows = computed(() => (data.value?.rows || []).map((r: any) => ({
   ...r, value: String(r.total), unit: t('pts'),
   sub: (Object.keys(ICON) as (keyof typeof ICON)[]).filter(k => r.parts[k]).map(k => `${ICON[k]} ${r.parts[k]}`).join(' · ')
@@ -22,9 +22,10 @@ const rows = computed(() => (data.value?.rows || []).map((r: any) => ({
     <div v-else-if="data" class="card tiny muted" style="text-align:center">{{ t('gamesRankEmpty') }}</div>
     <div class="card how">
       <b>{{ t('gamesRankHow') }}</b>
-      <span>🧭 {{ t('gamesRankNorth') }}</span>
+      <span>🧭 {{ t('gamesRankNorth', { n: GAME_RANK.northDiv }) }}</span>
       <span>🧠 {{ t('gamesRankKim', { n: GAME_RANK.kimPerThing }) }}</span>
       <span>🥔 {{ t('gamesRankPotato', { n: GAME_RANK.potatoPass, m: GAME_RANK.potatoSurvive }) }}</span>
+      <span>🎯 {{ t('gamesRankTarget', { n: GAME_RANK.dailyTarget }) }}</span>
     </div>
   </AppShell>
 </template>

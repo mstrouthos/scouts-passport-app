@@ -26,9 +26,10 @@ export const kindsOfGame = (g: GameKey) => GAME_KINDS.filter(k => GAME_OF_KIND[k
 export const isGameKind = (kind: string) => kind in GAME_OF_KIND
 export const isGameKey = (g: unknown): g is GameKey => typeof g === 'string' && g in GAMES
 
-/** What each game adds to the general table: a throw of the potato, and — for
-    everyone playing the potato when a round bursts, but the one it burst on,
-    whether they ever held it or not — surviving it; a thing remembered on
-    Kim's tray; the Βορράς counts its own 0–100 a day. Σπλατς is left out: it
-    is for fun, and what it throws was won in the other games. */
-export const GAME_RANK = { potatoPass: 1, potatoSurvive: 2, kimPerThing: 25 }
+/** What each game adds to the general table — kept small, so no one game
+    swamps the rest: the Βορράς its own 0–100 a day divided by 10 (0–10); a
+    thing remembered on Kim's tray 5 (20 a day at most); a throw of the potato
+    1, and 2 for everyone playing it when a round bursts but the one it burst
+    on (held it or not); and in Σπλατς 2 for the day's target — whoever had
+    the most thrown at them, as told at 23:00 (all of them, on a tie). */
+export const GAME_RANK = { northDiv: 10, kimPerThing: 5, potatoPass: 1, potatoSurvive: 2, dailyTarget: 2 }
