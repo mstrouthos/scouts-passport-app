@@ -101,7 +101,7 @@ const dragging = ref(false)
 const sending = ref(false)
 const pull = ref<number | null>(null)          // the flag where the finger has it: 0 at the foot … 1 at the top
 const hoist = computed(() => pull.value ?? (raised.value && !lowered.value ? 1 : 0))
-const TOP = 13, FOOT = 31                      // % of the stage: where the flag's top edge sits up, and hanging at the foot
+const TOP = 13, FOOT = 34                      // % of the stage: where the flag's top edge sits up, and hanging at the foot
 /* The cloth: the flag in thin upright slices, each riding a wave a moment
    behind the one before, more the further from the pole. Down at the foot
    it hangs limp — bunched up and sagging; on its way up it opens out and
@@ -254,7 +254,7 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
 .knob{position:absolute; left:50%; top:calc(12% - 8px); width:12px; height:12px; margin-left:-6px; border-radius:50%; background:radial-gradient(circle at 35% 35%,#fff3b0,#e3a51e)}
 .base{position:absolute; left:50%; top:calc(56% - 6px); width:36px; height:12px; margin-left:-18px; border-radius:50%; background:#9b8a6a}
 .rope{position:absolute; left:calc(50% + 3px); top:12%; width:2px; height:44%; background:repeating-linear-gradient(#f1ead6 0 4px,#cfc4a6 4px 6px)}
-.flag{position:absolute; left:calc(50% + 4px); width:34%; z-index:1; transition:top .3s ease-out}
+.flag{position:absolute; left:calc(50% + 4px); width:29%; z-index:1; transition:top .3s ease-out}
 .flag.live{transition:none}
 .cloth{display:flex; aspect-ratio:3/2; container-type:inline-size; transform-origin:0 0; transform:skewY(var(--sk)) scaleX(var(--sx)); transition:transform .5s ease-out;
   filter:drop-shadow(0 3px 3px rgba(0,0,0,.2))}
