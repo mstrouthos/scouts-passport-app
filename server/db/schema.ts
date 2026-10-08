@@ -1,4 +1,4 @@
-import { pgTable, text, integer, serial, boolean, index, uniqueIndex } from 'drizzle-orm/pg-core'
+import { pgTable, text, integer, serial, boolean, index, uniqueIndex, real } from 'drizzle-orm/pg-core'
 
 export const sections = pgTable('sections', {
   id: serial('id').primaryKey(),
@@ -855,6 +855,19 @@ export const kimPlays = pgTable('kim_plays', {
   ms: integer('ms'),
   picks: text('picks')
 }, t => [uniqueIndex('kim_plays_scout_id_day_key').on(t.scoutId, t.day)])
+/* Πού είναι ο Βορράς; — a Βαθμοφόρος's one try a day: where the phone pointed
+   (magnetic), how far that was from true north, the points, and how fast */
+export const northPlays = pgTable('north_plays', {
+  id: serial('id').primaryKey(),
+  scoutId: integer('scout_id').notNull().references(() => scouts.id),
+  day: text('day').notNull(),
+  startedAt: text('started_at').notNull(),
+  answeredAt: text('answered_at'),
+  heading: real('heading'),
+  error: real('error'),
+  points: integer('points'),
+  ms: integer('ms')
+}, t => [uniqueIndex('north_plays_scout_id_day_key').on(t.scoutId, t.day)])
 /* "can you beat that?": one Βαθμοφόρος daring another to today's tray */
 export const kimChallenges = pgTable('kim_challenges', {
   id: serial('id').primaryKey(),

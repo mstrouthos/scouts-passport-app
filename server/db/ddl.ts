@@ -584,6 +584,18 @@ CREATE TABLE IF NOT EXISTS kim_plays (
   picks TEXT,
   UNIQUE (scout_id, day)
 );
+CREATE TABLE IF NOT EXISTS north_plays (
+  id SERIAL PRIMARY KEY,
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  day TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  answered_at TEXT,
+  heading REAL,
+  error REAL,
+  points INTEGER,
+  ms INTEGER,
+  UNIQUE (scout_id, day)
+);
 CREATE TABLE IF NOT EXISTS kim_challenges (
   id SERIAL PRIMARY KEY,
   from_id INTEGER NOT NULL REFERENCES scouts(id),

@@ -92,6 +92,7 @@ defineExpose({ loadInbox })
   background:linear-gradient(180deg,#CFE9F7 0%,#E4F3E0 38%,#D5EBC8 100%)}
 .g-potato{background:linear-gradient(180deg,#FFE7C7 0%,#FFF1DE 40%,#F6E2C4 100%)}
 .g-kim{background:linear-gradient(180deg,#E9E3F7 0%,#F4F1E6 40%,#EDE5D3 100%)}
+.g-north{background:linear-gradient(180deg,#D3ECFA 0%,#EAF5EC 45%,#DCEBD0 100%)}
 .gbar{position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:10px;
   padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;
   background:rgba(255,255,255,.72); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);

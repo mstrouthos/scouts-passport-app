@@ -15,10 +15,12 @@ const tiles = computed(() => {
   const line: Record<GameKey, string> = {
     throw: d?.bag ? t('gameThrowBag', { n: d.bag }) : t('gameThrowSub'),
     potato: d?.potato ? (d.potato.mine ? t('gamePotatoMine') : t('gamePotatoAt', { name: d.potato.holderName || '—' })) : t('gamePotatoNone'),
-    kim: d?.kim ? t('gameKimDone', { c: d.kim.correct }) : t('gameKimNew')
+    kim: d?.kim ? t('gameKimDone', { c: d.kim.correct }) : t('gameKimNew'),
+    north: d?.north ? t('gameNorthDone', { p: d.north.points }) : t('gameNorthNew')
   }
-  return (['throw', 'potato', 'kim'] as GameKey[]).map(k => ({
-    key: k, ...GAMES[k], name: t(k === 'throw' ? 'gameThrow' : k === 'potato' ? 'gamePotato' : 'kimTitle'),
+  const NAME: Record<GameKey, string> = { throw: 'gameThrow', potato: 'gamePotato', kim: 'kimTitle', north: 'northTitle' }
+  return (['throw', 'potato', 'kim', 'north'] as GameKey[]).map(k => ({
+    key: k, ...GAMES[k], name: t(NAME[k]),
     line: line[k], unread: d?.unread?.[k] || 0, hot: k === 'potato' && !!d?.potato?.mine
   }))
 })
@@ -52,6 +54,7 @@ const tiles = computed(() => {
 .t-throw{background:linear-gradient(160deg,#FFE9E4,#FFD2C7)}
 .t-potato{background:linear-gradient(160deg,#FFF0D6,#FFD9A8)}
 .t-kim{background:linear-gradient(160deg,#ECE7FB,#D9E9D2)}
+.t-north{background:linear-gradient(160deg,#DDF0FB,#E6F2DA)}
 .ic{width:86px; height:86px; object-fit:contain; filter:drop-shadow(0 4px 6px rgba(0,0,0,.12))}
 .tile b{font-size:14.5px; line-height:1.2}
 .ln{font-size:11.5px; color:var(--muted); line-height:1.3; min-height:1.3em}
@@ -60,8 +63,8 @@ const tiles = computed(() => {
   box-shadow:0 2px 6px rgba(229,72,77,.4)}
 .hot .ic{animation:wobble 1.2s ease-in-out infinite}
 @keyframes wobble{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg) scale(1.05)}}
-.soon{background:#EEF1F4; box-shadow:none; justify-content:center}
-.soon .ic{filter:grayscale(1); opacity:.45}
+.soon{background:#EEF1F4; box-shadow:none; grid-column:1 / -1; flex-direction:row; justify-content:center; gap:14px; padding:8px 12px}
+.soon .ic{filter:grayscale(1); opacity:.45; width:64px; height:64px}
 .soonl{font-weight:700; color:#8A94A3; letter-spacing:.02em}
 @media (prefers-reduced-motion: reduce){ .hot .ic{animation:none} }
 </style>

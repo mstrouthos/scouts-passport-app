@@ -41,6 +41,7 @@ export async function cascadeDeleteScout(id: number) {
     await tx.delete(s.funGrants).where(eq(s.funGrants.scoutId, id))
     await tx.delete(s.registrations).where(eq(s.registrations.scoutId, id))
     await tx.delete(s.kimPlays).where(eq(s.kimPlays.scoutId, id))
+    await tx.delete(s.northPlays).where(eq(s.northPlays.scoutId, id))
     await tx.delete(s.kimChallenges).where(or(eq(s.kimChallenges.fromId, id), eq(s.kimChallenges.toId, id)))
     await tx.delete(s.hotPotato).where(or(eq(s.hotPotato.startedBy, id), eq(s.hotPotato.holderId, id), eq(s.hotPotato.prevId, id), eq(s.hotPotato.burnedId, id)))
     await tx.delete(s.scouts).where(eq(s.scouts.id, id))

@@ -4,12 +4,13 @@
    from. Shared by the server (where a notification belongs, where it opens)
    and the pages (the dashboard tiles, each game's own 🔔). */
 
-export type GameKey = 'throw' | 'potato' | 'kim'
+export type GameKey = 'throw' | 'potato' | 'kim' | 'north'
 
 export const GAMES: Record<GameKey, { path: string, icon: string, emoji: string }> = {
   throw: { path: '/admin/play', icon: '/images/games/throw.webp', emoji: '🍅' },
   potato: { path: '/admin/potato', icon: '/images/games/potato.webp', emoji: '🥔' },
-  kim: { path: '/admin/kim', icon: '/images/games/kim.webp', emoji: '🧠' }
+  kim: { path: '/admin/kim', icon: '/images/games/kim.webp', emoji: '🧠' },
+  north: { path: '/admin/north', icon: '/images/games/north.webp', emoji: '🧭' }
 }
 /** The one still to come, shown greyed out on the dashboard. */
 export const GAME_SOON_ICON = '/images/games/camp.webp'
