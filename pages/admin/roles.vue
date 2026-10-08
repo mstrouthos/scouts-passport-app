@@ -55,6 +55,13 @@ async function save() {
     await refresh(); await loadMe(); editing.value = null; show('✅ ' + t('saved'))
   } catch (e: any) { show(errMsg(e)) }
 }
+/* the running of the shop: given, or taken back, by the Αρχηγός Συστήματος */
+async function setShopManager(on: boolean) {
+  try {
+    await $fetch('/api/admin/shop/manager', { method: 'POST', body: { scoutId: editing.value.id, on } })
+    await refreshAndResync(); await loadMe(); show('✅ ' + t('saved'))
+  } catch (e: any) { show(errMsg(e)) }
+}
 async function demote(scoutId: number) {
   await $fetch('/api/admin/roles', { method: 'POST', body: { scoutId, role: 'scout' } })
   await refresh(); editing.value = null; show('✅ ' + t('saved'))
@@ -259,6 +266,12 @@ function appoint(r: any) { appointing.value = false; open({ ...r, role: 'leader'
           <button v-if="editing.role !== 'troop_leader'" class="btn ghost" @click="setAdmin(true)">⭐ {{ t('makeSuperAdmin') }}</button>
           <button v-else class="btn danger" @click="setAdmin(false)">{{ t('revokeSuperAdmin') }}</button>
           <div class="tiny muted">{{ t('superAdminNote') }}</div>
+          <!-- the shop: whoever runs its items and its till -->
+          <button class="srow" @click="setShopManager(!editing.shopManager)">
+            <div class="ico">🛒</div>
+            <div class="txt"><b>{{ t('shopManager') }}</b><span>{{ t('shopManagerSub') }}</span></div>
+            <span class="sw" :class="{ off: !editing.shopManager }" />
+          </button>
 
           <button v-if="editing.role !== 'troop_leader' && editing.scopes?.length" class="btn danger" @click="demote(editing.id)">{{ t('demote') }}</button>
           <button v-if="editing.role !== 'troop_leader'" class="btn danger" @click="deleteLeader">🗑️ {{ t('deletePermanently') }}</button>

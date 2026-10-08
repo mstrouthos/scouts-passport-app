@@ -584,6 +584,33 @@ CREATE TABLE IF NOT EXISTS kim_plays (
   picks TEXT,
   UNIQUE (scout_id, day)
 );
+CREATE TABLE IF NOT EXISTS shop_items (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  price_cents INTEGER NOT NULL,
+  stock INTEGER,
+  visible BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT
+);
+CREATE TABLE IF NOT EXISTS shop_entries (
+  id SERIAL PRIMARY KEY,
+  kind TEXT NOT NULL,
+  method TEXT,
+  amount_cents INTEGER NOT NULL,
+  payer TEXT,
+  note TEXT,
+  items TEXT,
+  created_by INTEGER NOT NULL,
+  created_name TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  voided_at TEXT,
+  voided_by INTEGER,
+  voided_name TEXT,
+  void_reason TEXT
+);
 CREATE TABLE IF NOT EXISTS north_plays (
   id SERIAL PRIMARY KEY,
   scout_id INTEGER NOT NULL REFERENCES scouts(id),
@@ -749,5 +776,10 @@ export const MIGRATIONS = [
   // left out by the Αρχηγός Συστήματος of the games that need others to take part (the potato, Kim's dares)
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS games_excluded BOOLEAN NOT NULL DEFAULT FALSE",
   // who was playing the potato when a round burst (JSON ids): each of them but the one it burst on scores
-  "ALTER TABLE hot_potato ADD COLUMN IF NOT EXISTS players TEXT"
+  "ALTER TABLE hot_potato ADD COLUMN IF NOT EXISTS players TEXT",
+  // the shop: who runs it (set by the Αρχηγός Συστήματος)
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS shop_manager BOOLEAN NOT NULL DEFAULT FALSE",
+  // the till's lines name who wrote and who cancelled them
+  "ALTER TABLE shop_entries ADD COLUMN IF NOT EXISTS created_name TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE shop_entries ADD COLUMN IF NOT EXISTS voided_name TEXT"
 ]

@@ -29,6 +29,8 @@ export default defineEventHandler(async (event) => {
     phone: me.phone, email: me.email, birthday: me.birthday,
     rank: isLeader ? await rankOf(me) : null,
     isChief: !!me.isChief,
+    // runs the shop (its items, its till)
+    shopManager: isLeader && !!me.shopManager,
     // a hidden test account may try things out (drafts, a season out of season)
     isHidden: !!me.isHidden,
     canEditSelf: me.canEditSelf,

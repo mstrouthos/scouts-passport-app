@@ -47,6 +47,9 @@ export const scouts = pgTable('scouts', {
   // part — the potato (it can't be thrown to them), Kim's dares — while the
   // ones they play alone stay theirs
   gamesExcluded: boolean('games_excluded').notNull().default(false),
+  // runs the shop: its items and prices, its till and the payments into it
+  // (set by the Αρχηγός Συστήματος)
+  shopManager: boolean('shop_manager').notNull().default(false),
   birthday: text('birthday'),      // YYYY-MM-DD
   idNumber: text('id_number'),
   lastName: text('last_name').notNull(),
@@ -576,6 +579,44 @@ export const notificationLog = pgTable('notification_log', {
   outcome: text('outcome'),
   error: text('error')
 }, t => [uniqueIndex('notification_uq').on(t.scoutId, t.kind, t.refId)])
+
+/* The shop: what it sells and for how much — shown to every Βαθμοφόρος, who
+   cannot buy or order through the app — and its till, which only those who
+   run the shop see and keep. Money in cents. */
+export const shopItems = pgTable('shop_items', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  priceCents: integer('price_cents').notNull(),
+  // how many are left, if the shop counts them (null: not counted)
+  stock: integer('stock'),
+  visible: boolean('visible').notNull().default(true),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at')
+})
+/* The till's book: a payment in (cash or bank), money out, cash taken to the
+   bank, or a count of the till that puts it right. Never deleted — a wrong
+   line is cancelled, with why, and stops counting. */
+export const shopEntries = pgTable('shop_entries', {
+  id: serial('id').primaryKey(),
+  // 'payment' | 'expense' | 'deposit' (cash to bank) | 'count' (the difference a count found)
+  kind: text('kind').notNull(),
+  method: text('method'),                 // 'cash' | 'bank'; none for a deposit
+  amountCents: integer('amount_cents').notNull(),   // signed only for a count
+  payer: text('payer'),
+  note: text('note'),
+  items: text('items'),                   // JSON [{ id, name, qty, priceCents }] sold in a payment
+  // who wrote it and who cancelled it, by name too: a money record outlives
+  // the account of whoever kept it
+  createdBy: integer('created_by').notNull(),
+  createdName: text('created_name').notNull(),
+  createdAt: text('created_at').notNull(),
+  voidedAt: text('voided_at'),
+  voidedBy: integer('voided_by'),
+  voidedName: text('voided_name'),
+  voidReason: text('void_reason')
+})
 
 /* Το μπαρ — a night's ordering system, kept per event so it can be reused. */
 export const barEvents = pgTable('bar_events', {

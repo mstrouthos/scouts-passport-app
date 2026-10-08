@@ -42,6 +42,9 @@ const seesBar = computed(() => me.value?.role === 'troop_leader'
     <NuxtLink v-if="me?.role === 'troop_leader'" to="/admin/launch" class="srow">
       <div class="ico">🚀</div><div class="txt"><b>{{ t('launch') }}</b><span>{{ t('launchSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>
+    <NuxtLink to="/admin/shop" class="srow">
+      <div class="ico">🛒</div><div class="txt"><b>{{ t('shop') }}</b><span>{{ me?.shopManager ? t('shopSubManager') : t('shopSub') }}</span></div><span class="chev">›</span>
+    </NuxtLink>
     <NuxtLink v-if="seesBar" to="/admin/bar" class="srow">
       <div class="ico">🍻</div><div class="txt"><b>{{ t('barTitle') }}</b><span>{{ t('barSub') }}</span></div><span class="chev">›</span>
     </NuxtLink>
