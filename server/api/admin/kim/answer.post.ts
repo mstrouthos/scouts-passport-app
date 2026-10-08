@@ -5,6 +5,7 @@ import { now } from '../../../utils/passcode'
 import { kimDay, kimTray, KIM_COVER_MS, KIM_MISSING } from '../../../../utils/kim'
 import { tellFun } from '../../../utils/leaderFun'
 import { grant, randomItems, addItems } from '../../../utils/funBag'
+import { shortName } from '../../../../utils/shortName'
 
 /** What I say went missing from today's tray. Scored here: how many of the
     four I got, and how long it all took from the tray's uncovering (less
@@ -45,7 +46,7 @@ export default defineEventHandler(async (event) => {
     await grant(iWon ? me.id : d.fromId, randomItems(2), 'kim-dare', String(d.id))
     await tellFun(d.fromId, {
       title: '🧠 Το Ταψί του Κιμ', kind: 'kim', refId: d.id,
-      body: `${me.firstName} έπαιξε: ${correct}/${KIM_MISSING} σε ${secs(ms)}″${beat ? ' — ' + beat : ''}${iWon ? '' : ' Κέρδισες 2 για το σακίδιο 🎒'}`
+      body: `${shortName(me)} έπαιξε: ${correct}/${KIM_MISSING} σε ${secs(ms)}″${beat ? ' — ' + beat : ''}${iWon ? '' : ' Κέρδισες 2 για το σακίδιο 🎒'}`
     })
   }
   return { correct, ms, picks, gone, won }

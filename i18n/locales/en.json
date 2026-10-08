@@ -1372,6 +1372,8 @@
   "funFeed": "What's been happening",
   "funNone": "All quiet… someone has to throw the first tomato 🍅",
   "funBack": "Throw it back",
+  "funBackDone": "You threw {e} back at {name}!",
+  "funBackNone": "No {e} left in your backpack — pick something else",
   "funKindOnly": "Takes only the kind ones 🤗",
   "funOut": "Not playing right now",
   "funMine": "The hangout, for you",

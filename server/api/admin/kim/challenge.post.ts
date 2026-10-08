@@ -4,6 +4,7 @@ import { requireLeader } from '../../../utils/guard'
 import { now } from '../../../utils/passcode'
 import { kimDay, KIM_MISSING } from '../../../../utils/kim'
 import { tellFun, funPaused } from '../../../utils/leaderFun'
+import { shortName } from '../../../../utils/shortName'
 
 /** "Can you beat that?": once I have played today's tray, I may dare up to
     three others who have not — each once. They are told my score. */
@@ -28,7 +29,7 @@ export default defineEventHandler(async (event) => {
   const secs = ((mine.ms ?? 0) / 1000).toFixed(1).replace('.', ',')
   await tellFun(to, {
     title: '🧠 Το Ταψί του Κιμ', kind: 'kim', refId: d.id,
-    body: `${me.firstName} θυμήθηκε ${mine.correct}/${KIM_MISSING} σε ${secs}″ στο σημερινό Ταψί του Κιμ. Μπορείς καλύτερα;`
+    body: `${shortName(me)} θυμήθηκε ${mine.correct}/${KIM_MISSING} σε ${secs}″ στο σημερινό Ταψί του Κιμ. Μπορείς καλύτερα;`
   })
   return { ok: true }
 })

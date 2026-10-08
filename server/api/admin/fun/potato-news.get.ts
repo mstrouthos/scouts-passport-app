@@ -2,6 +2,7 @@ import { desc } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader } from '../../../utils/guard'
 import { potatoTick } from '../../../utils/leaderFun'
+import { shortName } from '../../../../utils/shortName'
 
 /** The latest hot potato round, for the announcement every Βαθμοφόρος sees
     when they open the app: a round has started (and what is at stake), or it
@@ -17,8 +18,8 @@ export default defineEventHandler(async (event) => {
   if (!p) return null
   const since = Date.now() - 2 * 86400_000
   if (p.endedAt && Date.parse(p.endedAt) < since) return null
-  const people = await db.select({ id: s.scouts.id, firstName: s.scouts.firstName }).from(s.scouts)
-  const name = (id: number | null) => people.find(x => x.id === id)?.firstName ?? null
+  const people = await db.select({ id: s.scouts.id, firstName: s.scouts.firstName, lastName: s.scouts.lastName }).from(s.scouts)
+  const name = (id: number | null) => shortName(people.find(x => x.id === id)) || null
   return {
     id: p.id,
     state: !p.endedAt ? 'active' : p.burnedId ? 'burst' : 'stopped',

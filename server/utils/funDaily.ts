@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../db'
 import { sendPushTo } from './push'
 import { funAction } from '../../utils/fun'
 import { potatoAudience } from './leaderFun'
+import { shortName } from '../../utils/shortName'
 
 /* The day's target: at 23:00 every evening, every Βαθμοφόρος who plays is
    told who had the most thrown at them since 23:00 the evening before (all
@@ -44,8 +45,8 @@ export async function funDailyTick(force = false): Promise<FunDaily | null> {
     .onConflictDoUpdate({ target: s.settings.key, set: { value: JSON.stringify(result) }, ...(last ? { setWhere: eq(s.settings.value, JSON.stringify(last)) } : {}) })
     .returning()
   if (!saved.length || !count) return result
-  const names = (await db.select({ id: s.scouts.id, firstName: s.scouts.firstName }).from(s.scouts))
-    .filter(x => result.top.includes(x.id)).map(x => x.firstName)
+  const names = (await db.select({ id: s.scouts.id, firstName: s.scouts.firstName, lastName: s.scouts.lastName }).from(s.scouts))
+    .filter(x => result.top.includes(x.id)).map(x => shortName(x))
   const who = names.length > 1 ? names.slice(0, -1).join(', ') + ' και ' + names.at(-1) : names[0]
   const dayNo = Math.floor(until.getTime() / 86400_000)
   await sendPushTo(await potatoAudience(), {

@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../../../db'
 import { requireTroopLeader } from '../../../utils/guard'
 import { now } from '../../../utils/passcode'
 import { activePotato, potatoTick, potatoPool, potatoCycle, potatoTargets, stopPotato, tellFun } from '../../../utils/leaderFun'
+import { shortName } from '../../../../utils/shortName'
 
 /** The Αρχηγός Συστήματος leaves a Βαθμοφόρος out of the games that need them
     to take part — or lets them back in. Left out while they hold the potato,
@@ -34,10 +35,10 @@ export default defineEventHandler(async (event) => {
       if (moved.length) {
         // thrown for them, not by them: 'forced' keeps it out of the points
         const [row] = await db.insert(s.leaderFun).values({ fromId: id, toId: to, action: 'potato', createdAt: t, auto: true, outcome: 'forced' }).returning()
-        const target = (await db.select({ firstName: s.scouts.firstName }).from(s.scouts).where(eq(s.scouts.id, to)))[0]
-        passedTo = target?.firstName ?? null
+        const target = (await db.select({ firstName: s.scouts.firstName, lastName: s.scouts.lastName }).from(s.scouts).where(eq(s.scouts.id, to)))[0]
+        passedTo = shortName(target) || null
         await tellFun(to, { title: '🥔 Η καυτή πατάτα', kind: 'potato-pass', refId: row!.id,
-          body: `Η καυτή πατάτα πέρασε σε σένα — ${who.firstName} βγήκε από το παιχνίδι. Πέτα τη γρήγορα σε κάποιον! 💣${p.challenge ? ` Όποιον σκάσει: «${p.challenge}»` : ''}` }, true)
+          body: `Η καυτή πατάτα πέρασε σε σένα — ${shortName(who)} βγήκε από το παιχνίδι. Πέτα τη γρήγορα σε κάποιον! 💣${p.challenge ? ` Όποιον σκάσει: «${p.challenge}»` : ''}` }, true)
       }
     }
   }

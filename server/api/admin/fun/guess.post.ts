@@ -4,6 +4,7 @@ import { requireLeader } from '../../../utils/guard'
 import { now } from '../../../utils/passcode'
 import { funAction } from '../../../../utils/fun'
 import { tellFun } from '../../../utils/leaderFun'
+import { shortName } from '../../../../utils/shortName'
 
 /** "Who did it?": the one hit by a throw with no name guesses who threw it.
     Right, and the same thing flies straight back at the thrower; three
@@ -23,14 +24,14 @@ export default defineEventHandler(async (event) => {
     await db.update(s.leaderFun).set({ outcome: 'guessed', guesses: row.guesses + 1 }).where(eq(s.leaderFun.id, row.id))
     // paid back in kind, by the game itself
     const [back] = await db.insert(s.leaderFun).values({ fromId: me.id, toId: row.fromId, action: row.action, createdAt: now(), auto: true }).returning()
-    await tellFun(row.fromId, { body: `🎯 ${me.firstName} κατάλαβε ότι ήσουν εσύ — και σου την ανταπέδωσε! ${act.emoji}`, refId: back.id })
-    return { right: true, from: row.fromId, fromName: thrower?.firstName, backId: back.id, action: row.action }
+    await tellFun(row.fromId, { body: `🎯 ${shortName(me)} κατάλαβε ότι ήσουν εσύ — και σου την ανταπέδωσε! ${act.emoji}`, refId: back.id })
+    return { right: true, from: row.fromId, fromName: shortName(thrower), backId: back.id, action: row.action }
   }
   const guesses = row.guesses + 1
   if (guesses >= 3) {
     await db.update(s.leaderFun).set({ outcome: 'escaped', guesses }).where(eq(s.leaderFun.id, row.id))
-    await tellFun(row.fromId, { body: `😎 Γλίτωσες! ${me.firstName} δεν κατάλαβε ποιος του/της πέταξε ${act.el.toLowerCase()}.`, refId: row.id })
-    return { right: false, left: 0, from: row.fromId, fromName: thrower?.firstName }
+    await tellFun(row.fromId, { body: `😎 Γλίτωσες! ${shortName(me)} δεν κατάλαβε ποιος του/της πέταξε ${act.el.toLowerCase()}.`, refId: row.id })
+    return { right: false, left: 0, from: row.fromId, fromName: shortName(thrower) }
   }
   await db.update(s.leaderFun).set({ guesses }).where(eq(s.leaderFun.id, row.id))
   return { right: false, left: 3 - guesses }

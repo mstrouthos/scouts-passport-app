@@ -5,6 +5,7 @@ import { now } from '../../../utils/passcode'
 import { FUN_GAME, pouchOf } from '../../../../utils/fun'
 import { grant, randomItems, type Items } from '../../../utils/funBag'
 import { activePotato, potatoTick, potatoBurstAt, potatoChallenges, announcePotato, potatoPool, potatoCycle, potatoTargets, funPaused, tellFun } from '../../../utils/leaderFun'
+import { shortName } from '../../../../utils/shortName'
 
 /** The hot potato (server/utils/leaderFun.ts). With none in play, anyone who
     takes everything may start a round by throwing it at someone: its secret
@@ -56,9 +57,9 @@ export default defineEventHandler(async (event) => {
     started = n
   }
   const [row] = await db.insert(s.leaderFun).values({ fromId: me.id, toId: to, action: 'potato', createdAt: t, auto: true }).returning()
-  const note = FUN_GAME[0].noteEl.replace('{name}', me.firstName)
+  const note = FUN_GAME[0].noteEl.replace('{name}', shortName(me))
   await tellFun(to, { title: '🥔 Η καυτή πατάτα', kind: 'potato-pass', body: started ? `${note} Όποιον σκάσει: «${started.challenge}»` : note, refId: row.id }, true)
   // a new round: everyone hears it has begun, and what is at stake
-  if (started) await announcePotato(started, me.firstName)
+  if (started) await announcePotato(started, shortName(me))
   return { ok: true, id: row.id, newRound: cycle.length === 1, started: !!started, paid }
 })

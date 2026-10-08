@@ -9,6 +9,7 @@
    (the backpack, throws, shoves and hugs, and the day's target) and 'potato'
    (only the hot potato: tap someone to throw it to them). */
 import { avatarSvg, DEFAULT_AVATAR } from '~/utils/avatar'
+import { shortName } from '~/utils/shortName'
 import { FUN_ACTIONS, FUN_GAME, FUN_IMPACT, FUN_SPARKLE, FUN_KIND_SCREEN, funAction, funAllowed, isPlay, isThrowable, THROWABLES, ITEM_TIER, BAG_MAX, pouchOf, type FunAction, type FunMotion } from '~/utils/fun'
 
 const props = withDefaults(defineProps<{ game?: 'throw' | 'potato' }>(), { game: 'throw' })
@@ -25,7 +26,7 @@ const { data, refresh } = await useFetch<any>('/api/admin/fun', { lazy: true })
 const myId = computed<number | undefined>(() => data.value?.me?.id)
 const left = computed(() => Math.max(0, (data.value?.me?.limit ?? 0) - (data.value?.me?.sentToday ?? 0)))
 const recent = computed<any[]>(() => data.value?.recent || [])
-const nameOf = (l: any) => l.firstName
+const nameOf = (l: any) => shortName(l)
 const text = (a: FunAction) => locale.value === 'en' ? a.en : a.el
 
 /* ---- the figures ----
@@ -79,7 +80,7 @@ const played = new Set<number>()
 // "who did it?": the next throw goes without a name (once a week)
 const anon = ref(false)
 watch(target, () => { anon.value = false })
-async function act(to: any, a: FunAction) {
+async function act(to: any, a: FunAction, back = false) {
   const asAnon = anon.value && a.motion === 'throw'
   target.value = null
   if (busy.value) return
@@ -89,15 +90,22 @@ async function act(to: any, a: FunAction) {
     played.add(r.id)
     if (data.value?.me) data.value.me.sentToday++
     if (r.bag && data.value) data.value.bag = r.bag
+    if (back) show(`↩️ ${t('funBackDone', { e: a.emoji, name: shortName(to) })}`, 2600)
     await play(a, myId.value!, to.id)
     await refresh()
   } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
 }
-/** Send back to someone what they last sent you. */
-const backTo = (r: any) => {
+/** Send back to someone what they last sent you — up on the campsite, where
+    it can be seen landing. With none of it left in the backpack, their card
+    opens to send something else. */
+async function backTo(r: any) {
   const l = data.value?.leaders?.find((x: any) => x.id === r.from)
   const a = funAction(r.action)
-  if (l && a) act(l, a)
+  if (!l || !a) return
+  if (isThrowable(a.key) && !bag.value[a.key]) { show(t('funBackNone', { e: a.emoji })); target.value = l; return }
+  stage.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  await new Promise(res => setTimeout(res, 380))
+  await act(l, a, true)
 }
 
 /* ---- "who did it?": guessing who threw it ---- */
@@ -202,7 +210,7 @@ async function saveChallenges() {
 const dailyTop = computed<any[]>(() => (data.value?.daily?.top || [])
   .map((id: number) => data.value?.leaders?.find((l: any) => l.id === id)).filter(Boolean))
 const dailyNames = computed(() => {
-  const n = dailyTop.value.map(l => l.me ? t('funYouCap') : l.firstName)
+  const n = dailyTop.value.map(l => l.me ? t('funYouCap') : shortName(l))
   return n.length > 1 ? n.slice(0, -1).join(', ') + ` ${t('and')} ` + n.at(-1) : n[0] || ''
 })
 const dailyOpen = ref(false)
@@ -246,7 +254,7 @@ async function throwPotato(to: any) {
     const r = await $fetch<any>('/api/admin/fun/potato', { method: 'POST', body: { to: to.id } })
     played.add(r.id)
     await play(FUN_GAME[0], myId.value!, to.id)
-    if (r.newRound) show('🥔 ' + t('funPotatoNewRound', { name: to.firstName }), 3200)
+    if (r.newRound) show('🥔 ' + t('funPotatoNewRound', { name: shortName(to) }), 3200)
     if (r.paid && Object.keys(r.paid).length) { sfx('unlock'); show(`🎒 ${t('bagFromPotato')}: +${itemsText(r.paid)}`, 3600) }
     await refresh()
   } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
@@ -521,6 +529,7 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
   // a throw with no name on it, at me, still to be guessed
   canGuess: r.anon && r.from == null && r.to === myId.value,
   canReturn: isPlay(funAction(r.action)) && !r.anon && r.from != null && r.to === myId.value && r.from !== myId.value && Date.now() - Date.parse(r.at) < 24 * HOURS
+    && !recent.value.some(x => x.from === myId.value && x.to === r.from && Date.parse(x.at) > Date.parse(r.at))
 })).filter(r => r.a))
 </script>
 
@@ -595,7 +604,7 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
           <span v-else-if="potato.active?.had?.includes(l.id)" class="had" :title="t('funPotatoHad')">🥔</span>
           <span v-if="giftsAt(l.id).length" class="gifts"><template v-for="g in giftsAt(l.id)" :key="g.key"><img v-if="g.art?.sprite" :src="g.art.sprite" alt=""><span v-else>{{ g.emoji }}</span></template></span>
         </span>
-        <span class="nm">{{ l.me ? t('funYou') : nameOf(l) }}</span>
+        <span class="nm"><template v-if="l.me">{{ t('funYou') }}</template><template v-else><span class="fn">{{ l.firstName }}</span><span v-if="l.lastName" class="ln">{{ l.lastName.trim()[0]?.toLocaleUpperCase('el') }}.</span></template></span>
         <span class="wh">{{ l.where }}</span>
       </button>
     </div>
@@ -641,9 +650,9 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
           <template v-else>
             <template v-if="isPotato">
             <button v-if="canPotato(target)" class="potato-btn" :disabled="busy" @click="throwPotato(target)">
-              🥔 {{ holdIt ? t('funPotatoPass', { name: target.firstName }) : t('funPotatoStartAt', { name: target.firstName }) }}
+              🥔 {{ holdIt ? t('funPotatoPass', { name: shortName(target) }) : t('funPotatoStartAt', { name: shortName(target) }) }}
             </button>
-            <div v-else-if="hadIt(target)" class="note soft">🥔 {{ t('funPotatoHadIt', { name: target.firstName }) }}</div>
+            <div v-else-if="hadIt(target)" class="note soft">🥔 {{ t('funPotatoHadIt', { name: shortName(target) }) }}</div>
             <div v-else class="note soft">🥔 {{ target.excluded ? t('gamesExcludedThem', { name: target.firstName }) : target.pref !== 'all' ? t('potatoTheyOut', { name: target.firstName })
               : potato.active && !holdIt ? t('potatoNotYours', { name: potato.active.holderName }) : t('potatoNeedsAll') }}</div>
             </template>
@@ -678,7 +687,7 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
           <div class="dwho">
             <div v-for="l in dailyTop" :key="l.id" class="dperson">
               <Avatar :name="`${l.firstName} ${l.lastName}`" :photo="l.photo" :avatar="l.figure || l.avatar" :size="dailyTop.length > 1 ? 72 : 110" no-zoom />
-              <b>{{ l.me ? t('funYouCap') : l.firstName }}</b>
+              <b>{{ l.me ? t('funYouCap') : shortName(l) }}</b>
             </div>
           </div>
           <div class="dcount"><span>{{ data.daily.count }}</span>{{ data.daily.count === 1 ? t('funDailyThing') : t('funDailyThings') }} 🍅</div>
@@ -694,7 +703,7 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
           <div class="suspects">
             <button v-for="l in data.leaders.filter((x: any) => !x.me)" :key="l.id" class="suspect" :disabled="busy || tried.includes(l.id)" @click="guess(l)">
               <Avatar :name="`${l.firstName} ${l.lastName}`" :photo="l.photo" :avatar="l.figure || l.avatar" :size="52" no-zoom />
-              <span>{{ tried.includes(l.id) ? '❌' : l.firstName }}</span>
+              <span>{{ tried.includes(l.id) ? '❌' : shortName(l) }}</span>
             </button>
           </div>
           <button class="btn ghost" @click="guessing = null">{{ t('close') }}</button>
@@ -830,7 +839,10 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
 .gifts{position:absolute; left:50%; bottom:-6px; transform:translateX(-50%); display:flex; gap:1px; white-space:nowrap; pointer-events:none}
 .gifts img{width:15px; height:15px; object-fit:contain}
 .gifts span{font-size:12px; line-height:15px}
-.nm{font-size:12.5px; font-weight:700; margin-top:6px; color:var(--ink, #1d2b44); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+/* the first name, and under it the surname's initial — never cut in two */
+.nm{font-size:12px; font-weight:700; margin-top:6px; color:var(--ink, #1d2b44); max-width:100%; text-align:center; line-height:1.15; display:flex; flex-direction:column; align-items:center}
+.nm .fn{max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.nm .ln{font-size:11px; color:var(--muted)}
 .wh{font-size:10px; color:var(--muted); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
 .who.splat .fig{animation:splat .6s ease}

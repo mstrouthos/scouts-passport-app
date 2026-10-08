@@ -7,6 +7,7 @@ import { kimDay } from '../../../utils/kim'
 import { dailyBag, bagOf, unseenGrants } from '../../utils/funBag'
 import { funDailyLast } from '../../utils/funDaily'
 import { FUN_LIMIT_DAY, cyprusDayStart, cyprusWeekStart, funPaused, potatoTick, activePotato, potatoPool, potatoCycle, potatoTargets } from '../../utils/leaderFun'
+import { shortName } from '../../../utils/shortName'
 
 /** The playground: every Βαθμοφόρος of every sector, standing; what has
     been going on lately; and the marks still on anyone. */
@@ -35,7 +36,7 @@ export default defineEventHandler(async (event) => {
   const since = new Date(Date.now() - 7 * 86400_000).toISOString()
   const recent = (await db.select().from(s.leaderFun).where(gt(s.leaderFun.createdAt, since)))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  const nameOf = (id: number) => people.find(p => p.id === id)?.firstName ?? '—'
+  const nameOf = (id: number) => shortName(people.find(p => p.id === id)) || '—'
   // standing, the avatar shows even for one who uses a photo as their face
   const figure = (raw: string | null) => { try { return raw ? normalizeAvatar(JSON.parse(raw)) : null } catch { return null } }
   const today = cyprusDayStart()

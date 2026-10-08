@@ -5,6 +5,7 @@ import { now } from '../../utils/passcode'
 import { funAction, funAllowed, isPlay, anonNote, isThrowable } from '../../../utils/fun'
 import { dailyBag, take, bagOf } from '../../utils/funBag'
 import { FUN_LIMIT_DAY, FUN_PER_TARGET_DAY, FUN_COOLDOWN_MS, cyprusDayStart, cyprusWeekStart, funPaused, tellFun } from '../../utils/leaderFun'
+import { shortName } from '../../../utils/shortName'
 
 /** One Βαθμοφόρος does something to another — a tomato, a high five — and
     the other is told. The guardrails, so it stays a laugh and never a
@@ -53,6 +54,6 @@ export default defineEventHandler(async (event) => {
     if (!(await take(me.id, act.key))) throw createError({ statusCode: 409, message: `Δεν έχεις άλλο ${act.emoji} στο σακίδιο 🎒 — κέρδισε κι άλλα στην καυτή πατάτα και στο Ταψί του Κιμ` })
   }
   const [row] = await db.insert(s.leaderFun).values({ fromId: me.id, toId: to, action: act.key, createdAt: now(), anon }).returning()
-  await tellFun(to, { body: anon ? anonNote(act) : act.noteEl.replace('{name}', me.firstName), refId: row.id })
+  await tellFun(to, { body: anon ? anonNote(act) : act.noteEl.replace('{name}', shortName(me)), refId: row.id })
   return { ok: true, id: row.id, left: FUN_LIMIT_DAY - mine.length - 1, bag: await bagOf(me.id) }
 })

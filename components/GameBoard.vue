@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { shortName } from '~/utils/shortName'
 /* A mini-game's table, as the scouts' league shows one: the first three on
    the podium with their trophies, where I stand, then everyone with a medal
    for the first three places. The rows come ranked, each with its place
@@ -11,7 +12,7 @@ const props = defineProps<{ rows: Row[] }>()
 const { t } = useI18n()
 
 const podium = computed(() => props.rows.slice(0, 3).map(r => ({
-  key: r.id, name: r.firstName, sub: `${r.value}${r.unit ? ' ' + r.unit : ''}`, place: r.place,
+  key: r.id, name: shortName(r), sub: `${r.value}${r.unit ? ' ' + r.unit : ''}`, place: r.place,
   avatar: r.figure || r.avatar, photo: r.photo, me: r.me
 })))
 const mine = computed(() => props.rows.find(r => r.me) || null)

@@ -7,6 +7,7 @@ import { bagOf } from '../../utils/funBag'
 import { kimDay } from '../../../utils/kim'
 import { GAME_KINDS, GAME_OF_KIND, type GameKey } from '../../../utils/games'
 import { gameScores, totalOf } from '../../utils/gameRank'
+import { shortName } from '../../../utils/shortName'
 import { cyprusWeekStart } from '../../utils/leaderFun'
 
 /** The dashboard's mini-games, at a glance: what is new in each, where the
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
   for (const n of news) unread[GAME_OF_KIND[n.kind]!]++
   await potatoTick()
   const pot = await activePotato()
-  const holder = pot ? (await db.select({ firstName: s.scouts.firstName }).from(s.scouts).where(eq(s.scouts.id, pot.holderId)))[0] : null
+  const holder = pot ? (await db.select({ firstName: s.scouts.firstName, lastName: s.scouts.lastName }).from(s.scouts).where(eq(s.scouts.id, pot.holderId)))[0] : null
   const kim = (await db.select().from(s.kimPlays).where(eq(s.kimPlays.scoutId, me.id))).find(p => p.day === kimDay() && p.answeredAt)
   const bag = Object.values(await bagOf(me.id)).reduce((a, n) => a + n, 0)
   const north = (await db.select().from(s.northPlays).where(eq(s.northPlays.scoutId, me.id))).find(p => p.day === kimDay() && p.answeredAt)
@@ -31,7 +32,7 @@ export default defineEventHandler(async (event) => {
   return {
     rank: { total: mineTotal, place: mineTotal ? 1 + week.filter(x => x.total > mineTotal).length : null, of: week.length },
     unread,
-    potato: pot ? { mine: pot.holderId === me.id, holderName: holder?.firstName ?? null } : null,
+    potato: pot ? { mine: pot.holderId === me.id, holderName: shortName(holder) || null } : null,
     kim: kim ? { correct: kim.correct } : null,
     north: north ? { points: north.points, error: north.error } : null,
     bag

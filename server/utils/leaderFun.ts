@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../db'
 import { now } from './passcode'
 import { sendPushTo, deliverTo, onSurface } from './push'
 import { GAMES, GAME_KINDS, GAME_OF_KIND, type GameKey } from '../../utils/games'
+import { shortName } from '../../utils/shortName'
 
 /** How much fun a day holds: enough for a laugh, never a flood. */
 export const FUN_LIMIT_DAY = 10
@@ -195,7 +196,7 @@ export async function potatoTick() {
     if (set.length) {
       p = set[0]
       const starter = (await db.select().from(s.scouts).where(eq(s.scouts.id, p.startedBy)).limit(1))[0]
-      await announcePotato({ ...p, startedBy: -1, holderId: -1 }, starter?.firstName ?? '—')
+      await announcePotato({ ...p, startedBy: -1, holderId: -1 }, shortName(starter) || '—')
     }
   }
   if (Date.parse(p.deadline) > Date.now()) return null
@@ -210,7 +211,7 @@ export async function potatoTick() {
       title: '💥 Η καυτή πατάτα έσκασε!', kind: 'potato-burst', refId: p.id,
       body: id === p.holderId
         ? `Έσκασε στα χέρια σου (πάσες: ${p.passes})!` + (p.challenge ? ` Η πρόκλησή σου: «${p.challenge}»` : '')
-        : `Έσκασε στα χέρια: ${who?.firstName ?? '—'} (πάσες: ${p.passes})!` + (p.challenge ? ` Η πρόκληση: «${p.challenge}»` : '')
+        : `Έσκασε στα χέρια: ${shortName(who) || '—'} (πάσες: ${p.passes})!` + (p.challenge ? ` Η πρόκληση: «${p.challenge}»` : '')
     }, true)
   }
   return 'burst'
