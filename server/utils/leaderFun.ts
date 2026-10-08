@@ -71,7 +71,9 @@ export async function tellFun(to: number, msg: { body: string, refId: number, ki
 const GAME_PHRASE: Record<GameKey, (n: number) => string> = {
   throw: n => `🍅 ${n} στο Σπλατς`,
   potato: n => `🥔 ${n} στην Καυτή Πατάτα`,
-  kim: n => `🧠 ${n} στο Ταψί του Κιμ`
+  kim: n => `🧠 ${n} στο Ταψί του Κιμ`,
+  north: n => `🧭 ${n} στον Βορρά`,
+  flag: n => `🇬🇷 ${n} στη Σημαία`
 }
 /** The bundle: for whoever has game news that never reached their phone,
     one push saying how much and where — when the hour since their last one

@@ -900,6 +900,15 @@ export const kimPlays = pgTable('kim_plays', {
   ms: integer('ms'),
   picks: text('picks')
 }, t => [uniqueIndex('kim_plays_scout_id_day_key').on(t.scoutId, t.day)])
+/* Έπαρση Σημαίας — each day's flag: who raised it after sunrise, who lowered
+   it after sunset (the first to do each), and when */
+export const flagDays = pgTable('flag_days', {
+  day: text('day').primaryKey(),
+  raisedBy: integer('raised_by'),
+  raisedAt: text('raised_at'),
+  loweredBy: integer('lowered_by'),
+  loweredAt: text('lowered_at')
+})
 /* Πού είναι ο Βορράς; — a Βαθμοφόρος's one try a day: where the phone pointed
    (magnetic), how far that was from true north, the points, and how fast */
 export const northPlays = pgTable('north_plays', {

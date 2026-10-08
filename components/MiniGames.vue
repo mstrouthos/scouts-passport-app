@@ -10,18 +10,24 @@ const onVisible = () => { if (document.visibilityState === 'visible') refresh() 
 onMounted(() => document.addEventListener('visibilitychange', onVisible))
 onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVisible))
 
+const hm = (iso: string) => new Date(iso).toLocaleTimeString('el-GR', { timeZone: 'Europe/Nicosia', hour: '2-digit', minute: '2-digit', hour12: false })
 const tiles = computed(() => {
   const d = data.value
   const line: Record<GameKey, string> = {
     throw: d?.bag ? t('gameThrowBag', { n: d.bag }) : t('gameThrowSub'),
     potato: d?.potato ? (d.potato.mine ? t('gamePotatoMine') : t('gamePotatoAt', { name: d.potato.holderName || '—' })) : t('gamePotatoNone'),
     kim: d?.kim ? t('gameKimDone', { c: d.kim.correct }) : t('gameKimNew'),
-    north: d?.north ? t('gameNorthDone', { p: d.north.points }) : t('gameNorthNew')
+    north: d?.north ? t('gameNorthDone', { p: d.north.points }) : t('gameNorthNew'),
+    flag: !d?.flag ? '' : d.flag.phase === 'before' ? t('gameFlagAt', { t: hm(d.flag.sunrise) })
+      : d.flag.phase === 'day' ? (d.flag.raised ? t('gameFlagUp', { t: hm(d.flag.sunset) }) : t('gameFlagRaise'))
+      : d.flag.raised && !d.flag.lowered ? t('gameFlagLower') : t('gameFlagTomorrow')
   }
-  const NAME: Record<GameKey, string> = { throw: 'gameThrow', potato: 'gamePotato', kim: 'kimTitle', north: 'northTitle' }
-  return (['throw', 'potato', 'kim', 'north'] as GameKey[]).map(k => ({
+  const NAME: Record<GameKey, string> = { throw: 'gameThrow', potato: 'gamePotato', kim: 'kimTitle', north: 'northTitle', flag: 'flagTitle' }
+  // the flag waiting for whoever comes first
+  const flagOpen = !!d?.flag && ((d.flag.phase === 'day' && !d.flag.raised) || (d.flag.phase === 'evening' && d.flag.raised && !d.flag.lowered))
+  return (['throw', 'potato', 'kim', 'north', 'flag'] as GameKey[]).map(k => ({
     key: k, ...GAMES[k], name: t(NAME[k]),
-    line: line[k], unread: d?.unread?.[k] || 0, hot: k === 'potato' && !!d?.potato?.mine
+    line: line[k], unread: d?.unread?.[k] || 0, hot: (k === 'potato' && !!d?.potato?.mine) || (k === 'flag' && flagOpen)
   }))
 })
 </script>
@@ -36,15 +42,15 @@ const tiles = computed(() => {
         <b>{{ g.name }}</b>
         <span class="ln">{{ g.line }}</span>
       </NuxtLink>
+      <div class="tile soon" aria-disabled="true">
+        <img :src="GAME_SOON_ICON" alt="" class="ic">
+        <span class="ln soonl">{{ t('gameSoon') }}</span>
+      </div>
       <NuxtLink to="/admin/leaderboard" class="rankbar">
         <span class="rk">🏆</span>
         <span class="rt"><b>{{ t('gamesRank') }}</b><span>{{ data?.rank?.place ? t('gamesRankMine', { n: data.rank.place, p: data.rank.total }) : t('gamesRankSub') }}</span></span>
         <span class="chev">›</span>
       </NuxtLink>
-      <div class="tile soon" aria-disabled="true">
-        <img :src="GAME_SOON_ICON" alt="" class="ic">
-        <span class="ln soonl">{{ t('gameSoon') }}</span>
-      </div>
     </div>
   </section>
 </template>
@@ -60,6 +66,7 @@ const tiles = computed(() => {
 .t-potato{background:linear-gradient(160deg,#FFF0D6,#FFD9A8)}
 .t-kim{background:linear-gradient(160deg,#ECE7FB,#D9E9D2)}
 .t-north{background:linear-gradient(160deg,#DDF0FB,#E6F2DA)}
+.t-flag{background:linear-gradient(160deg,#DCE9FA,#F3F7FD)}
 .ic{width:86px; height:86px; object-fit:contain; filter:drop-shadow(0 4px 6px rgba(0,0,0,.12))}
 .tile b{font-size:14.5px; line-height:1.2}
 .ln{font-size:11.5px; color:var(--muted); line-height:1.3; min-height:1.3em}
@@ -75,8 +82,8 @@ const tiles = computed(() => {
 .rankbar .rt b{font-size:14.5px}
 .rankbar .rt span{font-size:12px; color:#7A5A10}
 .rankbar .chev{font-size:20px; color:#9A7A20}
-.soon{background:#EEF1F4; box-shadow:none; grid-column:1 / -1; flex-direction:row; justify-content:center; gap:14px; padding:8px 12px}
-.soon .ic{filter:grayscale(1); opacity:.45; width:64px; height:64px}
+.soon{background:#EEF1F4; box-shadow:none; justify-content:center}
+.soon .ic{filter:grayscale(1); opacity:.45}
 .soonl{font-weight:700; color:#8A94A3; letter-spacing:.02em}
 @media (prefers-reduced-motion: reduce){ .hot .ic{animation:none} }
 </style>

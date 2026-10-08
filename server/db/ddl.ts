@@ -611,6 +611,13 @@ CREATE TABLE IF NOT EXISTS shop_entries (
   voided_name TEXT,
   void_reason TEXT
 );
+CREATE TABLE IF NOT EXISTS flag_days (
+  day TEXT PRIMARY KEY,
+  raised_by INTEGER,
+  raised_at TEXT,
+  lowered_by INTEGER,
+  lowered_at TEXT
+);
 CREATE TABLE IF NOT EXISTS north_plays (
   id SERIAL PRIMARY KEY,
   scout_id INTEGER NOT NULL REFERENCES scouts(id),

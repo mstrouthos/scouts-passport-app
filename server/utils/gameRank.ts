@@ -11,7 +11,7 @@ import { potatoPool } from './leaderFun'
    (utils/games.ts), so the page can say it. */
 
 export type Parts = Record<GameKey, number>
-const empty = (): Parts => ({ throw: 0, potato: 0, kim: 0, north: 0 })
+const empty = (): Parts => ({ throw: 0, potato: 0, kim: 0, north: 0, flag: 0 })
 
 // Cyprus days, and an hour on one as an instant (+03:00 in summer, +02:00 in winter)
 const shift = (day: string, n: number) => new Date(Date.parse(`${day}T12:00:00Z`) + n * 86400_000).toISOString().slice(0, 10)
@@ -63,6 +63,12 @@ export async function gameScores(sinceIso: string): Promise<Map<number, Parts>> 
   // Κιμ: every thing remembered; Βορράς: its own points, a tenth of them
   for (const k of (await db.select().from(s.kimPlays)).filter(k => k.day >= sinceDay && k.answeredAt)) add(k.scoutId, 'kim', (k.correct || 0) * GAME_RANK.kimPerThing)
   for (const n of (await db.select().from(s.northPlays)).filter(n => n.day >= sinceDay && n.answeredAt)) add(n.scoutId, 'north', Math.round((n.points || 0) / GAME_RANK.northDiv))
+  // the flag: raising it, lowering it, and both on one day
+  for (const f of (await db.select().from(s.flagDays)).filter(f => f.day >= sinceDay)) {
+    if (f.raisedBy) add(f.raisedBy, 'flag', GAME_RANK.flagRaise)
+    if (f.loweredBy) add(f.loweredBy, 'flag', GAME_RANK.flagLower)
+    if (f.raisedBy && f.raisedBy === f.loweredBy) add(f.raisedBy, 'flag', GAME_RANK.flagBoth)
+  }
   return out
 }
-export const totalOf = (p: Parts) => p.throw + p.potato + p.kim + p.north
+export const totalOf = (p: Parts) => p.throw + p.potato + p.kim + p.north + p.flag

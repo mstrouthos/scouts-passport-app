@@ -5,7 +5,7 @@ import { GAME_RANK } from '~/utils/games'
 const { t } = useI18n()
 const period = ref<'week' | 'year'>('week')
 const { data } = await useFetch<any>('/api/admin/games/rank', { query: { period }, lazy: true })
-const ICON = { north: '🧭', kim: '🧠', potato: '🥔', throw: '🎯' } as const
+const ICON = { north: '🧭', kim: '🧠', potato: '🥔', throw: '🎯', flag: '🇬🇷' } as const
 const rows = computed(() => (data.value?.rows || []).map((r: any) => ({
   ...r, value: String(r.total), unit: t('pts'),
   sub: (Object.keys(ICON) as (keyof typeof ICON)[]).filter(k => r.parts[k]).map(k => `${ICON[k]} ${r.parts[k]}`).join(' · ')
@@ -26,6 +26,7 @@ const rows = computed(() => (data.value?.rows || []).map((r: any) => ({
       <span>🧠 {{ t('gamesRankKim', { n: GAME_RANK.kimPerThing }) }}</span>
       <span>🥔 {{ t('gamesRankPotato', { n: GAME_RANK.potatoPass, m: GAME_RANK.potatoSurvive }) }}</span>
       <span>🎯 {{ t('gamesRankTarget', { n: GAME_RANK.dailyTarget }) }}</span>
+      <span>🇬🇷 {{ t('gamesRankFlag', { r: GAME_RANK.flagRaise, l: GAME_RANK.flagLower, b: GAME_RANK.flagBoth }) }}</span>
     </div>
   </AppShell>
 </template>
