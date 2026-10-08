@@ -1,7 +1,7 @@
 import { asc, desc } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { requireLeader } from '../../utils/guard'
-import { isShopManager, tillOf } from '../../utils/shop'
+import { isShopManager, tillOf, trackStock } from '../../utils/shop'
 
 /** The shop: what it sells and for how much, for every Βαθμοφόρος (nothing
     can be bought or ordered here). Those who run it also get the items that
@@ -10,13 +10,15 @@ export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const manager = isShopManager(me)
   const db = await useDb()
+  const counting = await trackStock()
   const items = (await db.select().from(s.shopItems).orderBy(asc(s.shopItems.sortOrder), asc(s.shopItems.name)))
     .filter(i => manager || i.visible)
-    .map(i => ({ id: i.id, name: i.name, description: i.description, priceCents: i.priceCents, stock: i.stock, visible: i.visible, sortOrder: i.sortOrder }))
+    .map(i => ({ id: i.id, name: i.name, description: i.description, priceCents: i.priceCents, stock: counting ? i.stock : null, visible: i.visible, sortOrder: i.sortOrder }))
   if (!manager) return { manager: false, items }
+  // (what the stock was when last counted stays kept, for if counting comes back on)
   const entries = await db.select().from(s.shopEntries).orderBy(desc(s.shopEntries.createdAt), desc(s.shopEntries.id))
   return {
-    manager: true, items,
+    manager: true, items, trackStock: counting,
     till: await tillOf(entries),
     entries: entries.slice(0, 200).map(e => ({
       id: e.id, kind: e.kind, method: e.method, amountCents: e.amountCents, payer: e.payer, note: e.note,

@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3'
+import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { requireLeader, type SessionScout } from './guard'
 
@@ -34,6 +35,18 @@ export async function tillOf(entries?: Entry[]) {
   let cash = 0, bank = 0
   for (const e of list) if (!e.voidedAt) { const x = effectOf(e); cash += x.cash; bank += x.bank }
   return { cash, bank }
+}
+
+/** Whether the shop counts what it has (off unless its manager turns it on):
+    off, items carry no stock, and a sale takes nothing off the shelf. */
+export async function trackStock() {
+  const db = await useDb()
+  return (await db.select().from(s.settings).where(eq(s.settings.key, 'shop.trackStock')))[0]?.value === '1'
+}
+export async function setTrackStock(on: boolean) {
+  const db = await useDb()
+  await db.insert(s.settings).values({ key: 'shop.trackStock', value: on ? '1' : '0' })
+    .onConflictDoUpdate({ target: s.settings.key, set: { value: on ? '1' : '0' } })
 }
 
 /** A sum of money as sent: euros (12.5 or "12,50") into whole cents. */

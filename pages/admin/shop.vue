@@ -12,6 +12,11 @@ const tab = ref<'items' | 'till'>('items')
 const eur = (c: number | null | undefined) => ((c ?? 0) / 100).toLocaleString('el-GR', { style: 'currency', currency: 'EUR' })
 const when = (iso: string) => new Date(iso).toLocaleString('el-GR', { timeZone: 'Europe/Nicosia', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
 const shown = computed(() => (data.value?.items || []).filter((i: any) => i.visible))
+/* counting the stock: off unless the manager turns it on */
+const tracking = computed(() => !!data.value?.trackStock)
+async function setTracking(on: boolean) {
+  try { await $fetch('/api/admin/shop/settings', { method: 'POST', body: { trackStock: on } }); await refresh(); show('✅ ' + t('saved')) } catch (e: any) { show(errMsg(e)) }
+}
 
 /* ---- an item, new or changed ---- */
 const item = ref<any>(null)
@@ -23,7 +28,9 @@ function openItem(i?: any) {
 async function saveItem() {
   const it = item.value
   try {
-    const body = { name: it.name, description: it.description, price: it.price, stock: it.stock === '' ? null : it.stock, visible: it.visible }
+    // the stock only while it is counted; otherwise what was kept stays as it is
+    const body: any = { name: it.name, description: it.description, price: it.price, visible: it.visible }
+    if (tracking.value) body.stock = it.stock === '' ? null : it.stock
     if (it.id) await $fetch(`/api/admin/shop/items/${it.id}`, { method: 'PATCH', body })
     else await $fetch('/api/admin/shop/items', { method: 'POST', body })
     item.value = null; await refresh(); show('✅ ' + t('saved'))
@@ -97,6 +104,11 @@ const methodLabel = (m: string | null) => m === 'bank' ? t('shopBank') : m === '
     <template v-if="!manager || tab === 'items'">
       <div v-if="!manager" class="tiny muted" style="text-align:center">{{ t('shopNote') }}</div>
       <button v-if="manager" class="btn" @click="openItem()">＋ {{ t('shopItemAdd') }}</button>
+      <button v-if="manager" class="srow" @click="setTracking(!tracking)">
+        <div class="ico">📦</div>
+        <div class="txt"><b>{{ t('shopTrack') }}</b><span>{{ tracking ? t('shopTrackOn') : t('shopTrackOff') }}</span></div>
+        <span class="sw" :class="{ off: !tracking }" />
+      </button>
       <div v-if="(manager ? data?.items : shown)?.length" class="items">
         <component :is="manager ? 'button' : 'div'" v-for="i in (manager ? data.items : shown)" :key="i.id" class="item" :class="{ off: !i.visible, gone: i.stock === 0 }"
                    @click="manager && openItem(i)">
@@ -152,9 +164,9 @@ const methodLabel = (m: string | null) => m === 'bank' ? t('shopBank') : m === '
           <h3>{{ item.id ? t('shopItemEdit') : t('shopItemAdd') }}</h3>
           <div><label class="lab">{{ t('shopItemName') }}</label><input v-model="item.name" class="in" maxlength="120"></div>
           <div><label class="lab">{{ t('shopItemDesc') }} <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="item.description" class="in" maxlength="500"></div>
-          <div class="two">
+          <div :class="{ two: tracking }">
             <div><label class="lab">{{ t('shopItemPrice') }} (€)</label><input v-model="item.price" class="in" inputmode="decimal" placeholder="0,00"></div>
-            <div><label class="lab">{{ t('shopItemStock') }} <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="item.stock" class="in" inputmode="numeric" :placeholder="t('shopItemStockPh')"></div>
+            <div v-if="tracking"><label class="lab">{{ t('shopItemStock') }} <span class="tiny muted">({{ t('optional') }})</span></label><input v-model="item.stock" class="in" inputmode="numeric" :placeholder="t('shopItemStockPh')"></div>
           </div>
           <button class="srow" @click="item.visible = !item.visible">
             <div class="ico">👀</div><div class="txt"><b>{{ t('shopItemVisible') }}</b><span>{{ t('shopItemVisibleSub') }}</span></div>

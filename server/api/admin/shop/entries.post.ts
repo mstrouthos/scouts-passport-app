@@ -1,7 +1,7 @@
 import { eq, inArray, sql } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { now } from '../../../utils/passcode'
-import { requireShopManager, centsOf, tillOf } from '../../../utils/shop'
+import { requireShopManager, centsOf, tillOf, trackStock } from '../../../utils/shop'
 
 /** A line in the till's book:
     - 'payment': money in, cash or bank, from someone — for items of the shop
@@ -21,16 +21,18 @@ export default defineEventHandler(async (event) => {
   const payer = kind === 'payment' ? String(b?.payer || '').trim().slice(0, 120) || null : null
   const db = await useDb()
 
-  // what was sold, at today's prices
-  let sold: { id: number, name: string, qty: number, priceCents: number }[] = []
+  // what was sold, at today's prices — and, when the shop counts its stock,
+  // taken off the shelf (marked, so a cancelling puts back only what was taken)
+  const counting = await trackStock()
+  let sold: { id: number, name: string, qty: number, priceCents: number, counted?: boolean }[] = []
   if (kind === 'payment' && Array.isArray(b?.items) && b!.items.length) {
     const want = b!.items.map(x => ({ id: Number(x.id), qty: Math.max(0, Math.round(Number(x.qty))) })).filter(x => Number.isInteger(x.id) && x.qty > 0)
     const rows = want.length ? await db.select().from(s.shopItems).where(inArray(s.shopItems.id, want.map(x => x.id))) : []
-    sold = want.map(w => { const r = rows.find(x => x.id === w.id); return r ? { id: r.id, name: r.name, qty: w.qty, priceCents: r.priceCents } : null })
+    sold = want.map(w => { const r = rows.find(x => x.id === w.id); return r ? { id: r.id, name: r.name, qty: w.qty, priceCents: r.priceCents, ...(counting && r.stock != null ? { counted: true } : {}) } : null })
       .filter((x): x is NonNullable<typeof x> => !!x)
     for (const x of sold) {
       const r = rows.find(y => y.id === x.id)!
-      if (r.stock != null && r.stock < x.qty) throw createError({ statusCode: 409, message: `Από «${r.name}» έχουν μείνει μόνο ${r.stock}` })
+      if (counting && r.stock != null && r.stock < x.qty) throw createError({ statusCode: 409, message: `Από «${r.name}» έχουν μείνει μόνο ${r.stock}` })
     }
   }
   let amount: number
@@ -52,6 +54,6 @@ export default defineEventHandler(async (event) => {
     createdBy: me.id, createdName: `${me.firstName} ${me.lastName}`, createdAt: now()
   }).returning()
   // fewer left of what was sold
-  for (const x of sold) await db.update(s.shopItems).set({ stock: sql`${s.shopItems.stock} - ${x.qty}` }).where(eq(s.shopItems.id, x.id))
+  for (const x of sold) if (x.counted) await db.update(s.shopItems).set({ stock: sql`${s.shopItems.stock} - ${x.qty}` }).where(eq(s.shopItems.id, x.id))
   return { ok: true, id: row!.id, till: await tillOf() }
 })

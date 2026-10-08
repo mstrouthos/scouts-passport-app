@@ -15,8 +15,9 @@ export default defineEventHandler(async (event) => {
   const [row] = await db.update(s.shopEntries).set({ voidedAt: now(), voidedBy: me.id, voidedName: `${me.firstName} ${me.lastName}`, voidReason: reason })
     .where(and(eq(s.shopEntries.id, id), isNull(s.shopEntries.voidedAt))).returning()
   if (!row) throw createError({ statusCode: 409, message: 'Έχει ήδη ακυρωθεί' })
-  let sold: { id: number, qty: number }[] = []
+  let sold: { id: number, qty: number, counted?: boolean }[] = []
   try { sold = row.items ? JSON.parse(row.items) : [] } catch {}
-  for (const x of sold) await db.update(s.shopItems).set({ stock: sql`${s.shopItems.stock} + ${x.qty}` }).where(and(eq(s.shopItems.id, x.id), sql`${s.shopItems.stock} is not null`))
+  // only what was taken off the shelf goes back on it
+  for (const x of sold) if (x.counted) await db.update(s.shopItems).set({ stock: sql`${s.shopItems.stock} + ${x.qty}` }).where(and(eq(s.shopItems.id, x.id), sql`${s.shopItems.stock} is not null`))
   return { ok: true, till: await tillOf() }
 })
