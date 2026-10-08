@@ -86,7 +86,7 @@ export const isThrowable = (key: string) => key in ITEM_TIER
 /** At most this many things in a backpack. */
 export const BAG_MAX = 20
 /** Free every day, so nobody is ever left with nothing. */
-export const DAILY_FREE = { tomato: 2 } as Record<string, number>
+export const DAILY_FREE = { tomato: 3 } as Record<string, number>
 /** Once, to start with. */
 export const WELCOME = { tomato: 5, snowball: 2, water: 1 } as Record<string, number>
 

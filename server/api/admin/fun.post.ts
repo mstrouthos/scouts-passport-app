@@ -4,12 +4,13 @@ import { requireLeader } from '../../utils/guard'
 import { now } from '../../utils/passcode'
 import { funAction, funAllowed, isPlay, anonNote, isThrowable } from '../../../utils/fun'
 import { dailyBag, take, bagOf } from '../../utils/funBag'
-import { FUN_LIMIT_DAY, FUN_PER_TARGET_DAY, FUN_COOLDOWN_MS, cyprusDayStart, cyprusWeekStart, funPaused, tellFun } from '../../utils/leaderFun'
+import { FUN_LIMIT_DAY, FUN_COOLDOWN_MS, cyprusDayStart, cyprusWeekStart, funPaused, tellFun } from '../../utils/leaderFun'
 import { shortName } from '../../../utils/shortName'
 
 /** One Βαθμοφόρος does something to another — a tomato, a high five — and
     the other is told. The guardrails, so it stays a laugh and never a
-    nuisance: never to oneself; ten a day, three at any one person; not the
+    nuisance: never to oneself; fifteen a day (at whomever — all of them at one
+    person if you like); not the
     same thing at the same person twice in a breath; nothing they have opted
     out of (tomatoes, or all of it); a phone buzzes for the first in an hour,
     and never at night — the rest wait in the bell; and the Αρχηγός
@@ -45,7 +46,6 @@ export default defineEventHandler(async (event) => {
   // what the games did on their own (a throw-back, a potato) is not counted
   const mine = (await db.select().from(s.leaderFun).where(and(eq(s.leaderFun.fromId, me.id), gt(s.leaderFun.createdAt, today)))).filter(r => !r.auto)
   if (mine.length >= FUN_LIMIT_DAY) throw createError({ statusCode: 429, message: 'Αρκετά για σήμερα! Τα πυρομαχικά ξαναγεμίζουν αύριο 🍅' })
-  if (mine.filter(r => r.toId === to).length >= FUN_PER_TARGET_DAY) throw createError({ statusCode: 429, message: `Αρκετά στον/στην ${target.firstName} για σήμερα 😄` })
   if (mine.some(r => r.toId === to && r.action === act.key && Date.now() - Date.parse(r.createdAt) < FUN_COOLDOWN_MS))
     throw createError({ statusCode: 429, message: 'Πάρε μια ανάσα πρώτα 😄' })
   // a throwable comes out of the backpack (kind things and shoves are free)
