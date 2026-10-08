@@ -1,6 +1,5 @@
 import { and, gte, isNotNull } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
-import { FUN_ACTIONS } from '../../utils/fun'
 import { kimDay } from '../../utils/kim'
 import { GAME_RANK } from '../../utils/games'
 import type { GameKey } from '../../utils/games'
@@ -19,14 +18,10 @@ export async function gameScores(sinceIso: string): Promise<Map<number, Parts>> 
   const out = new Map<number, Parts>()
   const add = (id: number, g: GameKey, n: number) => { if (!n) return; const p = out.get(id) || empty(); p[g] += n; out.set(id, p) }
 
-  // Σπλατς: everything done by hand (the daily limit keeps it at most 20 a day);
-  // the potato: every throw of it
-  const plays = new Set(FUN_ACTIONS.map(a => a.key))
+  // the potato: every throw of it. Σπλατς counts for nothing here — it is
+  // for the fun of it, and what is thrown was won in the other games already
   const fun = await db.select().from(s.leaderFun).where(gte(s.leaderFun.createdAt, sinceIso))
-  for (const r of fun) {
-    if (r.action === 'potato') { if (r.outcome !== 'forced') add(r.fromId, 'potato', GAME_RANK.potatoPass) }
-    else if (plays.has(r.action) && !r.auto) add(r.fromId, 'throw', GAME_RANK.splat)
-  }
+  for (const r of fun) if (r.action === 'potato' && r.outcome !== 'forced') add(r.fromId, 'potato', GAME_RANK.potatoPass)
   // a round that burst: everyone who was playing the potato then — held it or
   // not, since being thrown it is up to the others — but the one it burst on.
   // (A round that burst before this was kept counts today's players.)
