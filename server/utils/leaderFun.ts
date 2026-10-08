@@ -170,7 +170,7 @@ export async function activePotato() {
 export async function potatoAudience() {
   const db = await useDb()
   return (await db.select().from(s.scouts))
-    .filter(r => r.role !== 'scout' && r.isActive && !r.deletedAt && !r.isHidden && r.funPref !== 'off').map(r => r.id)
+    .filter(r => r.role !== 'scout' && r.isActive && !r.deletedAt && !r.isHidden && r.funPref !== 'off' && !r.gamesExcluded).map(r => r.id)
 }
 /** A new round: everyone is told what the one it bursts on will have to do
     (the first holder hears it with the throw itself). */
@@ -224,11 +224,12 @@ export async function stopPotato(byId: number) {
   return true
 }
 
-/** Who plays the potato: every active Βαθμοφόρος who takes everything. */
+/** Who plays the potato: every active Βαθμοφόρος who takes everything, and
+    whom the Αρχηγός Συστήματος has not left out. */
 export async function potatoPool() {
   const db = await useDb()
   return (await db.select().from(s.scouts))
-    .filter(r => r.role !== 'scout' && r.isActive && !r.deletedAt && !r.isHidden && r.funPref === 'all').map(r => r.id)
+    .filter(r => r.role !== 'scout' && r.isActive && !r.deletedAt && !r.isHidden && r.funPref === 'all' && !r.gamesExcluded).map(r => r.id)
 }
 /** Who has held it this round. */
 export const potatoCycle = (p: { cycle: string | null }) => { try { return (JSON.parse(p.cycle || '[]') as number[]) } catch { return [] } }

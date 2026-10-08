@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   const target = (await db.select().from(s.scouts).where(eq(s.scouts.id, to)).limit(1))[0]
   if (!target || target.id === me.id || target.role === 'scout' || !target.isActive || target.deletedAt) throw createError({ statusCode: 404, message: 'Not found' })
   if (me.isHidden || target.isHidden) throw createError({ statusCode: 403, message: 'Οι δοκιμαστικοί λογαριασμοί δεν παίζουν με πραγματικούς Βαθμοφόρους' })
-  if (target.funPref === 'off') throw createError({ statusCode: 403, message: `${target.firstName} δεν παίζει τώρα` })
+  if (target.funPref === 'off' || target.gamesExcluded) throw createError({ statusCode: 403, message: `${target.firstName} δεν παίζει τώρα` })
   if (plays.some(p => p.scoutId === to && p.answeredAt)) throw createError({ statusCode: 409, message: `${target.firstName} το έπαιξε ήδη σήμερα` })
   const mineToday = (await db.select().from(s.kimChallenges).where(eq(s.kimChallenges.fromId, me.id))).filter(d => d.day === day)
   if (mineToday.some(d => d.toId === to)) throw createError({ statusCode: 409, message: `Τον/την ${target.firstName} τον/την προκάλεσες ήδη σήμερα` })

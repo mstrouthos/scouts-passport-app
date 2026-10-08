@@ -4,7 +4,7 @@
    each with a flat cartoon trophy in gold, silver or bronze, their avatar (or
    their unit's emblem) above it, and their name and points below. */
 import type { Avatar as AvatarCfg } from '~/utils/avatar'
-type Item = { key: string | number, name: string, sub: string, place: number, avatar?: Partial<AvatarCfg> | null, emblem?: string, me?: boolean, party?: boolean, to?: string }
+type Item = { key: string | number, name: string, sub: string, place: number, avatar?: Partial<AvatarCfg> | null, photo?: string | null, emblem?: string, me?: boolean, party?: boolean, to?: string }
 const props = defineProps<{ items: Item[] }>()
 
 /* drawn order: second, first, third — whatever is there */
@@ -25,7 +25,7 @@ const metal = (place: number) => METAL[Math.min(Math.max(place, 1), 3)]
       <template v-if="s">
         <div class="who">
           <div class="face" :style="{ boxShadow: `0 0 0 3px ${metal(s.place).body}` }">
-            <Avatar v-if="!s.emblem" :name="s.name" :avatar="s.avatar" :size="s.pos === 1 ? 52 : 44" :party="s.party" />
+            <Avatar v-if="!s.emblem" :name="s.name" :photo="s.photo" :avatar="s.avatar" :size="s.pos === 1 ? 52 : 44" :party="s.party" />
             <span v-else class="emblem" :class="{ big: s.pos === 1 }">{{ s.emblem }}</span>
           </div>
         </div>

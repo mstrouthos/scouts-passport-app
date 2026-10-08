@@ -36,6 +36,11 @@ const tiles = computed(() => {
         <b>{{ g.name }}</b>
         <span class="ln">{{ g.line }}</span>
       </NuxtLink>
+      <NuxtLink to="/admin/leaderboard" class="rankbar">
+        <span class="rk">🏆</span>
+        <span class="rt"><b>{{ t('gamesRank') }}</b><span>{{ data?.rank?.place ? t('gamesRankMine', { n: data.rank.place, p: data.rank.total }) : t('gamesRankSub') }}</span></span>
+        <span class="chev">›</span>
+      </NuxtLink>
       <div class="tile soon" aria-disabled="true">
         <img :src="GAME_SOON_ICON" alt="" class="ic">
         <span class="ln soonl">{{ t('gameSoon') }}</span>
@@ -63,6 +68,13 @@ const tiles = computed(() => {
   box-shadow:0 2px 6px rgba(229,72,77,.4)}
 .hot .ic{animation:wobble 1.2s ease-in-out infinite}
 @keyframes wobble{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg) scale(1.05)}}
+.rankbar{grid-column:1 / -1; display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:18px; text-decoration:none; color:var(--ink, #1d2b44);
+  background:linear-gradient(135deg,#FFF4CC,#FFE09A); box-shadow:0 2px 10px rgba(200,150,20,.18)}
+.rankbar .rk{font-size:28px; line-height:1}
+.rankbar .rt{flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.25}
+.rankbar .rt b{font-size:14.5px}
+.rankbar .rt span{font-size:12px; color:#7A5A10}
+.rankbar .chev{font-size:20px; color:#9A7A20}
 .soon{background:#EEF1F4; box-shadow:none; grid-column:1 / -1; flex-direction:row; justify-content:center; gap:14px; padding:8px 12px}
 .soon .ic{filter:grayscale(1); opacity:.45; width:64px; height:64px}
 .soonl{font-weight:700; color:#8A94A3; letter-spacing:.02em}

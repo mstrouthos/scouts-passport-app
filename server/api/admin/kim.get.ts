@@ -35,6 +35,9 @@ export default defineEventHandler(async (event) => {
     return { ...face(person(id)!), days: ps.length, correct: ps.reduce((n, p) => n + (p.correct || 0), 0), ms: ps.reduce((n, p) => n + (p.ms || 0), 0), me: id === me.id }
   }).sort((a, b) => b.correct - a.correct || a.ms - b.ms)
 
+  // places: the same score in the same time is the same place
+  const placed = <T extends { correct: number | null, ms: number | null }>(list: T[]) =>
+    list.map((x, i) => ({ ...x, place: 1 + list.filter((o, j) => j < i && (o.correct !== x.correct || o.ms !== x.ms)).length }))
   const t = mine ? kimTray(day) : null
   return {
     day, viewMs: KIM_VIEW_MS, paused: await funPaused(),
@@ -43,8 +46,8 @@ export default defineEventHandler(async (event) => {
       picks: mine.picks ? JSON.parse(mine.picks) : null,
       ...t
     } : null,
-    today: todays.map(p => ({ ...face(person(p.scoutId)!), correct: p.correct, ms: p.ms, me: p.scoutId === me.id })),
-    week,
+    today: placed(todays.map(p => ({ ...face(person(p.scoutId)!), correct: p.correct, ms: p.ms, me: p.scoutId === me.id }))),
+    week: placed(week),
     // who dared me today, and how they did
     daredBy: dares.filter(d => d.toId === me.id && person(d.fromId)).map(d => {
       const p = todays.find(x => x.scoutId === d.fromId)

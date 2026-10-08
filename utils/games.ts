@@ -25,3 +25,8 @@ export const GAME_KINDS = Object.keys(GAME_OF_KIND)
 export const kindsOfGame = (g: GameKey) => GAME_KINDS.filter(k => GAME_OF_KIND[k] === g)
 export const isGameKind = (kind: string) => kind in GAME_OF_KIND
 export const isGameKey = (g: unknown): g is GameKey => typeof g === 'string' && g in GAMES
+
+/** What each game adds to the general table: a thing done in Σπλατς, a throw
+    of the potato, being in a round that burst on someone else, a thing
+    remembered on Kim's tray; the Βορράς counts its own 0–100 a day. */
+export const GAME_RANK = { splat: 2, potatoPass: 5, potatoSurvive: 20, kimPerThing: 25 }

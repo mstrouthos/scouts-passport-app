@@ -745,5 +745,7 @@ export const MIGRATIONS = [
   // linked by the name a parent typed (a form sent by plain link), for a leader to check
   "ALTER TABLE registrations ADD COLUMN IF NOT EXISTS auto BOOLEAN NOT NULL DEFAULT FALSE",
   // when a Βαθμοφόρος first saw the hot potato video (shown with their first new round)
-  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS potato_video_seen TEXT"
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS potato_video_seen TEXT",
+  // left out by the Αρχηγός Συστήματος of the games that need others to take part (the potato, Kim's dares)
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS games_excluded BOOLEAN NOT NULL DEFAULT FALSE"
 ]

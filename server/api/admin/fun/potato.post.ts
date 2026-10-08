@@ -17,13 +17,14 @@ export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   if (await funPaused()) throw createError({ statusCode: 403, message: 'Η παρέα κάνει διάλειμμα' })
   if (me.funPref !== 'all') throw createError({ statusCode: 403, message: 'Η πατάτα είναι μόνο για όσους δέχονται τα πάντα 🥔' })
+  if (me.gamesExcluded) throw createError({ statusCode: 403, message: 'Ο Αρχηγός σε έχει βγάλει από την Καυτή Πατάτα για τώρα 🥔' })
   const to = Number((await readBody<{ to?: number }>(event))?.to)
   if (!Number.isInteger(to) || to === me.id) throw createError({ statusCode: 400, message: 'Σε κάποιον άλλον 😄' })
   const db = await useDb()
   const target = (await db.select().from(s.scouts).where(eq(s.scouts.id, to)).limit(1))[0]
   if (!target || target.role === 'scout' || !target.isActive || target.deletedAt) throw createError({ statusCode: 404, message: 'Not found' })
   if (me.isHidden || target.isHidden) throw createError({ statusCode: 403, message: 'Οι δοκιμαστικοί λογαριασμοί δεν παίζουν με πραγματικούς Βαθμοφόρους' })
-  if (target.funPref !== 'all') throw createError({ statusCode: 403, message: `${target.firstName} δεν παίζει με την πατάτα` })
+  if (target.funPref !== 'all' || target.gamesExcluded) throw createError({ statusCode: 403, message: `${target.firstName} δεν παίζει με την πατάτα` })
 
   await potatoTick()
   const p = await activePotato()

@@ -96,6 +96,8 @@ const mine = computed(() => result.value || (data.value?.mine?.answered ? data.v
 const lost = computed(() => !mine.value && data.value?.mine && !data.value.mine.answered && phase.value === 'intro')
 const deg = (n: number | null | undefined) => n == null ? '—' : `${Math.round(Math.abs(n))}°`
 const side = (e: number) => Math.abs(e) <= NORTH_BULLSEYE ? t('northSpot') : e > 0 ? t('northRight', { d: deg(e) }) : t('northLeft', { d: deg(e) })
+const todayRows = computed(() => (data.value?.today || []).map((p: any) => ({ ...p, value: `${p.off}°`, sub: `${p.points} ${t('northPoints')} · ${secs(p.ms)}` })))
+const weekRows = computed(() => (data.value?.week || []).map((p: any) => ({ ...p, value: `${p.avg}°`, unit: t('northAvg'), sub: t('kimDays', { n: p.days }) })))
 const secs = (ms: number | null | undefined) => ms == null ? '—' : `${(ms / 1000).toFixed(1).replace('.', ',')}″`
 </script>
 
@@ -156,28 +158,15 @@ const secs = (ms: number | null | undefined) => ms == null ? '—' : `${(ms / 10
       </template>
     </div>
 
-    <!-- today, and the week -->
-    <template v-if="data?.today?.length">
+    <!-- today, and the week: who was closest to north -->
+    <template v-if="todayRows.length">
       <div class="sec-title">{{ t('kimToday') }}</div>
-      <div class="card rows">
-        <div v-for="(p, i) in data.today" :key="p.id" class="row" :class="{ me: p.me }">
-          <span class="pos">{{ i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1 }}</span>
-          <Avatar :name="`${p.firstName} ${p.lastName}`" :photo="p.photo" :avatar="p.figure || p.avatar" :size="34" no-zoom />
-          <span class="nm">{{ p.firstName }}</span>
-          <b>{{ p.points }}</b><span class="muted">{{ deg(p.error) }} · {{ secs(p.ms) }}</span>
-        </div>
-      </div>
+      <GameBoard :rows="todayRows" />
     </template>
-    <template v-if="data?.week?.length">
+    <template v-if="weekRows.length">
       <div class="sec-title">{{ t('kimWeek') }}</div>
-      <div class="card rows">
-        <div v-for="(p, i) in data.week" :key="p.id" class="row" :class="{ me: p.me }">
-          <span class="pos">{{ i === 0 ? '🏆' : i + 1 }}</span>
-          <Avatar :name="`${p.firstName} ${p.lastName}`" :photo="p.photo" :avatar="p.figure || p.avatar" :size="34" no-zoom />
-          <span class="nm">{{ p.firstName }}</span>
-          <b>{{ p.points }}</b><span class="muted">{{ t('kimDays', { n: p.days }) }}</span>
-        </div>
-      </div>
+      <GameBoard :rows="weekRows" />
+      <div class="tiny muted" style="text-align:center">{{ t('northWeekNote') }}</div>
     </template>
   </GameScreen>
 </template>
@@ -207,13 +196,5 @@ const secs = (ms: number | null | undefined) => ms == null ? '—' : `${(ms / 10
 .legend{display:flex; gap:14px; font-size:12px; font-weight:700}
 .ly{color:#FF8A3D}
 .lt{color:#2F79B8}
-.rows{display:flex; flex-direction:column; padding:6px 12px}
-.row{display:flex; align-items:center; gap:10px; padding:7px 0; border-top:1px solid rgba(20,40,70,.06)}
-.row:first-child{border-top:0}
-.row.me .nm{font-weight:800}
-.pos{width:24px; text-align:center; font-weight:800}
-.nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.row b{font-size:15px}
-.row .muted{font-size:12px; min-width:76px; text-align:right}
 @media (prefers-reduced-motion: reduce){ .dial.turn{animation:none} }
 </style>

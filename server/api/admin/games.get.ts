@@ -6,6 +6,8 @@ import { potatoTick, activePotato } from '../../utils/leaderFun'
 import { bagOf } from '../../utils/funBag'
 import { kimDay } from '../../../utils/kim'
 import { GAME_KINDS, GAME_OF_KIND, type GameKey } from '../../../utils/games'
+import { gameScores, totalOf } from '../../utils/gameRank'
+import { cyprusWeekStart } from '../../utils/leaderFun'
 
 /** The dashboard's mini-games, at a glance: what is new in each, where the
     potato is, whether today's tray is done, what is in the backpack. */
@@ -23,7 +25,11 @@ export default defineEventHandler(async (event) => {
   const kim = (await db.select().from(s.kimPlays).where(eq(s.kimPlays.scoutId, me.id))).find(p => p.day === kimDay() && p.answeredAt)
   const bag = Object.values(await bagOf(me.id)).reduce((a, n) => a + n, 0)
   const north = (await db.select().from(s.northPlays).where(eq(s.northPlays.scoutId, me.id))).find(p => p.day === kimDay() && p.answeredAt)
+  // where I stand this week across all the games
+  const week = [...(await gameScores(cyprusWeekStart())).entries()].map(([id, p]) => ({ id, total: totalOf(p) })).filter(x => x.total > 0)
+  const mineTotal = week.find(x => x.id === me.id)?.total ?? 0
   return {
+    rank: { total: mineTotal, place: mineTotal ? 1 + week.filter(x => x.total > mineTotal).length : null, of: week.length },
     unread,
     potato: pot ? { mine: pot.holderId === me.id, holderName: holder?.firstName ?? null } : null,
     kim: kim ? { correct: kim.correct } : null,

@@ -18,6 +18,8 @@ const picks = ref<string[]>([])
 const result = ref<any>(null)
 const busy = ref(false)
 const name = (key: string) => { const o = kimObject(key); return o ? (locale.value === 'en' ? o.en : o.el) : key }
+const todayRows = computed(() => (data.value?.today || []).map((p: any) => ({ ...p, value: `${p.correct}/${KIM_MISSING}`, sub: secs(p.ms) })))
+const weekRows = computed(() => (data.value?.week || []).map((p: any) => ({ ...p, value: String(p.correct), sub: `${t('kimDays', { n: p.days })} · ${secs(p.ms)}` })))
 const secs = (ms: number | null | undefined) => ms == null ? '—' : (ms / 1000).toFixed(1).replace('.', locale.value === 'en' ? '.' : ',') + '″'
 
 /* where today stands when the page opens: played, half-way, or not yet */
@@ -175,27 +177,13 @@ async function dare(l: any) {
     </template>
 
     <!-- today, and the week -->
-    <template v-if="data?.today?.length">
+    <template v-if="todayRows.length">
       <div class="sec-title">{{ t('kimToday') }}</div>
-      <div class="card">
-        <div v-for="(p, i) in data.today" :key="p.id" class="row" :class="{ me: p.me }">
-          <span class="pos">{{ i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1 }}</span>
-          <Avatar :name="`${p.firstName} ${p.lastName}`" :photo="p.photo" :avatar="p.figure || p.avatar" :size="34" no-zoom />
-          <span class="nm">{{ p.firstName }}</span>
-          <b>{{ p.correct }}/{{ KIM_MISSING }}</b><span class="muted">{{ secs(p.ms) }}</span>
-        </div>
-      </div>
+      <GameBoard :rows="todayRows" />
     </template>
-    <template v-if="data?.week?.length">
+    <template v-if="weekRows.length">
       <div class="sec-title">{{ t('kimWeek') }}</div>
-      <div class="card">
-        <div v-for="(p, i) in data.week" :key="p.id" class="row" :class="{ me: p.me }">
-          <span class="pos">{{ i === 0 ? '🏆' : i + 1 }}</span>
-          <Avatar :name="`${p.firstName} ${p.lastName}`" :photo="p.photo" :avatar="p.figure || p.avatar" :size="34" no-zoom />
-          <span class="nm">{{ p.firstName }}</span>
-          <b>{{ p.correct }}</b><span class="muted">{{ t('kimDays', { n: p.days }) }} · {{ secs(p.ms) }}</span>
-        </div>
-      </div>
+      <GameBoard :rows="weekRows" />
     </template>
   </GameScreen>
 </template>

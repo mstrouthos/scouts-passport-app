@@ -65,7 +65,7 @@ export default defineEventHandler(async (event) => {
     bag, grants,
     daily: daily?.count && Date.now() - Date.parse(daily.at) < 26 * 3600_000 ? daily : null,
     kim: kimToday ? { correct: kimToday.correct } : null,
-    paused: await funPaused(), canPause: me.role === 'troop_leader',
+    paused: await funPaused(), canPause: me.role === 'troop_leader', canExclude: me.role === 'troop_leader',
     me: { id: me.id, pref: me.funPref, sentToday: recent.filter(r => r.fromId === me.id && r.createdAt >= today && !r.auto).length, limit: FUN_LIMIT_DAY,
       anonLeft: !anonUsed },
     potato: {
@@ -85,7 +85,7 @@ export default defineEventHandler(async (event) => {
         challenge: lastBurn.burnedId ? lastBurn.challenge : null, stopped: !!lastBurn.stoppedBy
       } : null
     },
-    leaders: leaders.map(l => ({ id: l.id, firstName: l.firstName, lastName: l.lastName, ...faceOf(l), figure: figure(l.avatar), where: where(l), me: l.id === me.id, pref: l.funPref }))
+    leaders: leaders.map(l => ({ id: l.id, firstName: l.firstName, lastName: l.lastName, ...faceOf(l), figure: figure(l.avatar), where: where(l), me: l.id === me.id, pref: l.funPref, excluded: l.gamesExcluded }))
       .sort((a, b) => Number(b.me) - Number(a.me) || a.firstName.localeCompare(b.firstName, 'el')),
     // what was done, newest first — the marks are worked out from it on the page
     recent: recent.slice(0, 300).map(r => ({

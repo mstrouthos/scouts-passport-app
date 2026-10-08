@@ -216,9 +216,23 @@ function closeDaily() {
   dailyOpen.value = false
   try { localStorage.setItem('fun.daily.seen', data.value?.daily?.day || '') } catch {}
 }
+/* the Αρχηγός Συστήματος leaves someone out of the games that need them to
+   take part, or lets them back; if they hold the potato it is thrown on */
+async function toggleExcluded(l: any) {
+  const out = !l.excluded
+  if (out && !confirm(t('gamesExcludeQ', { name: l.firstName }))) return
+  busy.value = true
+  try {
+    const r = await $fetch<any>('/api/admin/fun/exclude', { method: 'POST', body: { id: l.id, out } })
+    target.value = null
+    await refresh()
+    show(out ? (r.passedTo ? t('gamesExcludedPassed', { name: l.firstName, to: r.passedTo }) : r.ended ? t('gamesExcludedEnded', { name: l.firstName }) : t('gamesExcludedDone', { name: l.firstName })) : t('gamesIncludedDone', { name: l.firstName }))
+  } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
+}
 /** Whether I may throw the potato at them now: I hold it and they have not
     had it yet this round, or none is in play and one may start. */
-const canPotato = (l: any) => !!l && !l.me && l.pref === 'all' && data.value?.me?.pref === 'all' && !data.value?.paused
+const meExcluded = computed(() => !!data.value?.leaders?.find((l: any) => l.me)?.excluded)
+const canPotato = (l: any) => !!l && !l.me && l.pref === 'all' && !l.excluded && !meExcluded.value && data.value?.me?.pref === 'all' && !data.value?.paused
   && (holdIt.value ? !!potato.value.active.canGet?.includes(l.id) : !!potato.value.canStart)
 /** They had it this round already, so it cannot go to them yet. */
 const hadIt = (l: any) => !!l && holdIt.value && l.pref === 'all' && !potato.value.active.canGet?.includes(l.id) && !l.me
@@ -537,7 +551,8 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
     </button>
 
     <!-- the hot potato: who has it (never when it bursts), what is at stake, or how the last one ended -->
-    <div v-if="isPotato && data.me.pref !== 'all' && !data.paused" class="note soft">🥔 {{ t('potatoNeedsAll') }}</div>
+    <div v-if="isPotato && meExcluded && !data.paused" class="note soft">🚫 {{ t('gamesExcludedMe') }}</div>
+    <div v-else-if="isPotato && data.me.pref !== 'all' && !data.paused" class="note soft">🥔 {{ t('potatoNeedsAll') }}</div>
     <div v-if="isPotato && !data.paused" class="potato"
          :class="{ mine: holdIt, burst: !potato.active && potato.last?.burned }">
       <div class="prow">
@@ -575,6 +590,7 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
             <img v-if="s.img" :src="s.img" alt="" class="stain pic" :style="{ left: s.x + '%', top: s.y + '%', width: s.s * 1.5 + 'px' }">
             <span v-else class="stain" :style="{ left: s.x + '%', top: s.y + '%', width: s.s + 'px', height: s.s + 'px', background: s.color }" />
           </template>
+          <span v-if="isPotato && l.excluded" class="outmark" :title="t('gamesExcludedThem', { name: l.firstName })">🚫</span>
           <span v-if="potato.active?.holder === l.id" class="held">🥔<i>💨</i></span>
           <span v-else-if="potato.active?.had?.includes(l.id)" class="had" :title="t('funPotatoHad')">🥔</span>
           <span v-if="giftsAt(l.id).length" class="gifts"><template v-for="g in giftsAt(l.id)" :key="g.key"><img v-if="g.art?.sprite" :src="g.art.sprite" alt=""><span v-else>{{ g.emoji }}</span></template></span>
@@ -628,7 +644,7 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
               🥔 {{ holdIt ? t('funPotatoPass', { name: target.firstName }) : t('funPotatoStartAt', { name: target.firstName }) }}
             </button>
             <div v-else-if="hadIt(target)" class="note soft">🥔 {{ t('funPotatoHadIt', { name: target.firstName }) }}</div>
-            <div v-else class="note soft">🥔 {{ target.pref !== 'all' ? t('potatoTheyOut', { name: target.firstName })
+            <div v-else class="note soft">🥔 {{ target.excluded ? t('gamesExcludedThem', { name: target.firstName }) : target.pref !== 'all' ? t('potatoTheyOut', { name: target.firstName })
               : potato.active && !holdIt ? t('potatoNotYours', { name: potato.active.holderName }) : t('potatoNeedsAll') }}</div>
             </template>
             <template v-else>
@@ -649,6 +665,9 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
             <div class="tiny muted" style="text-align:center">{{ t('funLeft', { n: left }) }}</div>
             </template>
           </template>
+          <button v-if="data.canExclude" class="btn ghost exclude" :disabled="busy" @click="toggleExcluded(target)">
+            {{ target.excluded ? '✅ ' + t('gamesIncludeBtn') : '🚫 ' + t('gamesExcludeBtn') }}
+          </button>
         </div>
       </div>
 
@@ -748,6 +767,8 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
 
 <style scoped>
 .fun{margin:4px 0 14px}
+.exclude{font-size:13px; padding:10px}
+.outmark{position:absolute; right:-2px; top:-2px; font-size:16px; z-index:4}
 .daily{display:flex; align-items:center; gap:10px; width:100%; border:0; text-align:left; margin-bottom:10px;
   background:linear-gradient(135deg,#FFF1C9,#FFD9C2); border-radius:18px; padding:10px 12px; box-shadow:0 2px 10px rgba(180,90,30,.15)}
 .dfaces{display:flex; flex:none}

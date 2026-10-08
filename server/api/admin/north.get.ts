@@ -6,7 +6,7 @@ import { normalizeAvatar } from '../../../utils/avatar'
 import { kimDay } from '../../../utils/kim'
 
 /** Πού είναι ο Βορράς; — whether I have had today's go (and how it went), and
-    how everyone did today and this week. */
+    how everyone did today and this week, ranked by how far off north they were. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const db = await useDb()
@@ -22,14 +22,19 @@ export default defineEventHandler(async (event) => {
   const plays = (await db.select().from(s.northPlays)).filter(p => p.day >= sinceDay && p.answeredAt && person(p.scoutId))
   const mine = (await db.select().from(s.northPlays).where(eq(s.northPlays.scoutId, me.id))).find(p => p.day === day) || null
 
-  const today = plays.filter(p => p.day === day).sort((a, b) => b.points! - a.points! || Math.abs(a.error!) - Math.abs(b.error!) || a.ms! - b.ms!)
+  // ranked by how far off north: fewest degrees first (whole degrees — the
+  // same number is the same place), the quicker lock-in first within it
+  const off = (p: { error: number | null }) => Math.round(Math.abs(p.error ?? 180))
+  const today = plays.filter(p => p.day === day).sort((a, b) => off(a) - off(b) || a.ms! - b.ms!)
+  // the week: the average off over the days played; more days first on a tie
   const week = [...new Set(plays.map(p => p.scoutId))].map(id => {
     const ps = plays.filter(p => p.scoutId === id)
-    return { ...face(person(id)!), days: ps.length, points: ps.reduce((n, p) => n + (p.points || 0), 0), me: id === me.id }
-  }).sort((a, b) => b.points - a.points || a.days - b.days)
+    return { ...face(person(id)!), days: ps.length, avg: Math.round(ps.reduce((n, p) => n + Math.abs(p.error ?? 180), 0) / ps.length), points: ps.reduce((n, p) => n + (p.points || 0), 0), me: id === me.id }
+  }).sort((a, b) => a.avg - b.avg || b.days - a.days)
+  const placed = <T>(list: T[], key: (x: T) => number) => list.map((x, i) => ({ ...x, place: 1 + list.filter((o, j) => j < i && key(o) < key(x)).length }))
   return {
     mine: mine && { answered: !!mine.answeredAt, error: mine.error, points: mine.points, ms: mine.ms },
-    today: today.map(p => ({ ...face(person(p.scoutId)!), error: p.error, points: p.points, ms: p.ms, me: p.scoutId === me.id })),
-    week
+    today: placed(today.map(p => ({ ...face(person(p.scoutId)!), error: p.error, off: off(p), points: p.points, ms: p.ms, me: p.scoutId === me.id })), x => x.off),
+    week: placed(week, x => x.avg)
   }
 })
