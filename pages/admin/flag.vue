@@ -112,10 +112,17 @@ const CLOTH = `url("data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://
 const unfurl = computed(() => { const k = Math.min(1, hoist.value / .55); return k * k * (3 - 2 * k) })   // 0 hanging … 1 flying
 const clothStyle = computed(() => ({ '--wind': (.3 + .7 * unfurl.value).toFixed(3), opacity: unfurl.value.toFixed(3) }))
 const DRAPE = hangingFlag()
-let startY = 0, startHoist = 0
+let startY = 0, startHoist = 0, moved = 0
+/* how to pull: shown as soon as the handle is touched, until the finger has
+   actually pulled — and for a moment after a tap that did not */
+const tip = ref(false)
+let tipTimer: any = 0
+const showTip = (ms = 0) => { clearTimeout(tipTimer); tip.value = true; if (ms) tipTimer = setTimeout(() => { tip.value = false }, ms) }
+onBeforeUnmount(() => clearTimeout(tipTimer))
 function down(e: PointerEvent) {
   if (!canPull.value) return
-  dragging.value = true; startY = e.clientY; startHoist = hoist.value; pull.value = startHoist
+  dragging.value = true; startY = e.clientY; startHoist = hoist.value; pull.value = startHoist; moved = 0
+  showTip()
   try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) } catch {}
 }
 function move(e: PointerEvent) {
@@ -123,13 +130,19 @@ function move(e: PointerEvent) {
   const dy = (e.clientY - startY) / ((stage.value?.clientHeight || 400) * .3)
   const up = phase.value === 'day'
   pull.value = Math.max(0, Math.min(1, up ? startHoist + dy : startHoist - dy))
+  moved = Math.max(moved, Math.abs(pull.value - startHoist))
+  if (moved > .12) { clearTimeout(tipTimer); tip.value = false }
   if ((up && pull.value >= 1) || (!up && pull.value <= 0)) finish()
 }
 function up() {
   if (!dragging.value) return
   dragging.value = false
   if (!sending.value) pull.value = null       // let go too soon: the flag slides back
+  // a tap, or a pull that gave up: say how, for a little longer
+  if (!sending.value && moved < .5) showTip(3000)
+  else { clearTimeout(tipTimer); tip.value = false }
 }
+const handleTop = computed(() => 43 + 9 * (phase.value === 'day' ? hoist.value : 1 - hoist.value))
 function key(e: KeyboardEvent) {
   if (!canPull.value || !['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) return
   e.preventDefault()
@@ -197,8 +210,15 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
       </div>
       <div v-if="canPull" class="handle" :class="{ hint: !dragging }" role="slider" tabindex="0" :aria-label="t('flagRope')"
            :aria-valuenow="Math.round(hoist * 100)" aria-valuemin="0" aria-valuemax="100"
-           :style="{ top: `${43 + 9 * (phase === 'day' ? hoist : 1 - hoist)}%` }"
+           :style="{ top: `${handleTop}%` }"
            @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @keydown="key" />
+      <template v-if="canPull && tip">
+        <!-- the way to pull: an arrow running down from the handle, and what to do -->
+        <div class="pulltrack" :style="{ top: `calc(${handleTop}% + 24px)` }"><i>⬇</i></div>
+        <div class="pulltip" role="status" :style="{ top: `${handleTop}%` }">
+          {{ phase === 'day' ? t('flagTipUp') : t('flagTipDown') }}
+        </div>
+      </template>
       <div class="shade" :style="{ background: sky.shade }" />
     </div>
 
@@ -291,6 +311,17 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
   box-shadow:0 2px 10px rgba(0,0,0,.3); cursor:grab; touch-action:none; display:grid; place-items:center; transition:top .25s ease-out}
 .handle::after{content:"⇕"; font-weight:900; font-size:18px; color:#ff8a3d}
 .handle.hint{animation:tug 1.1s ease-in-out infinite}
+/* how to pull: a bubble beside the handle, and an arrow sliding down the way to go */
+.pulltip{position:absolute; z-index:2200; right:calc(50% + 50px); margin-top:-4px; max-width:46%; padding:7px 11px; border-radius:14px;
+  background:#1d2b44; color:#fff; font-size:12.5px; font-weight:800; line-height:1.3; text-align:center; pointer-events:none;
+  box-shadow:0 6px 16px rgba(0,0,0,.25); animation:tipin .25s ease-out both}
+.pulltip::after{content:""; position:absolute; right:-6px; top:16px; border:6px solid transparent; border-right:0; border-left-color:#1d2b44}
+@keyframes tipin{from{opacity:0; transform:translateX(6px)}}
+.pulltrack{position:absolute; z-index:2050; left:calc(50% - 24px); width:4px; height:22%; margin-left:-2px; border-radius:2px; pointer-events:none;
+  background:repeating-linear-gradient(rgba(255,138,61,.9) 0 6px, transparent 6px 11px)}
+.pulltrack i{position:absolute; left:50%; top:0; transform:translateX(-50%); font-style:normal; font-size:20px; line-height:1; color:#ff8a3d;
+  text-shadow:0 1px 3px rgba(0,0,0,.3); animation:slide 1.1s ease-in infinite}
+@keyframes slide{from{top:0; opacity:1}to{top:85%; opacity:0}}
 @keyframes tug{50%{transform:translateY(10px)}}
 .who{position:absolute; transform:translate(-50%,-100%); pointer-events:none}
 .fig{display:block}
@@ -306,5 +337,5 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
 .bonus{align-self:center; padding:3px 10px}
 .row{display:flex; justify-content:center; flex-wrap:wrap; gap:6px 16px; font-size:12px; color:var(--muted); font-weight:700; margin-top:2px}
 .rules{text-align:center; margin-top:12px; line-height:1.5}
-@media (prefers-reduced-motion: reduce){ .sl, .sl::after, .hang, .handle.hint, .who.salute .fig{animation:none} .sky, .sun, .flag, .handle{transition:none} }
+@media (prefers-reduced-motion: reduce){ .sl, .sl::after, .hang, .handle.hint, .pulltrack i, .who.salute .fig{animation:none} .sky, .sun, .flag, .handle{transition:none} }
 </style>

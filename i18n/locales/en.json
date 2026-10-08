@@ -1547,6 +1547,8 @@
   "gameFlagTomorrow": "Tomorrow at sunrise",
   "flagAria": "The Greek flag",
   "flagRope": "The flag's rope — pull it down",
+  "flagTipUp": "Drag it down ⬇️ to raise the flag",
+  "flagTipDown": "Drag it down ⬇️ to lower the flag",
   "flagYou": "You",
   "flagOff": "You're sitting the games out — change that in Splat to play",
   "flagWaitSun": "Waiting for sunrise",
