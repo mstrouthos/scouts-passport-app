@@ -2,9 +2,9 @@
 /* Έπαρση Σημαίας — the Βαθμοφόροι in a Π around the flagpole, open towards
    it, no names: the flag goes up from sunrise and comes down from sunset
    (Larnaca's, worked out on the server), by whoever gets there first. You
-   pull the rope's handle down, as at a real pole, and the flag follows your
-   finger; at the end of the pull it counts. No reminders: remembering is the
-   game. */
+   tap, and your figure walks out of the Π to the pole, raises (or lowers) the
+   flag, and walks back to its place; the tap is what counts. No reminders:
+   remembering is the game. */
 import { avatarSvg, DEFAULT_AVATAR } from '~/utils/avatar'
 import { GAME_RANK } from '~/utils/games'
 import { hangingFlag } from '~/utils/flagDrape'
@@ -21,7 +21,7 @@ let tick: any = 0, poll: any = 0
 const onVisible = () => { if (document.visibilityState === 'visible') refresh() }
 onMounted(() => {
   tick = setInterval(() => { now.value = Date.now() + skew.value }, 1000)
-  poll = setInterval(() => { if (document.visibilityState === 'visible' && !dragging.value && !sending.value) refresh() }, 20000)
+  poll = setInterval(() => { if (document.visibilityState === 'visible' && !sending.value) refresh() }, 20000)
   document.addEventListener('visibilitychange', onVisible)
 })
 onBeforeUnmount(() => { clearInterval(tick); clearInterval(poll); document.removeEventListener('visibilitychange', onVisible) })
@@ -90,17 +90,16 @@ const people = computed(() => {
   return order.map((l: any, i: number) => {
     const p = spots[i]!
     const s = .72 + (p.y - 60) / 36 * .3
-    return { l, x: p.x, y: p.y, w: w * s, z: Math.round(p.y * 10) }
+    return { l, x: p.x, y: p.y, w0: w, w: w * s, z: Math.round(p.y * 10) }
   })
 })
 const svgs = computed(() => new Map((data.value?.leaders || []).map((l: any) => [l.id, avatarSvg(l.figure || DEFAULT_AVATAR, 'flag' + l.id, 'stand')])))
 const heroes = computed(() => new Set([raised.value?.id, lowered.value?.id].filter(Boolean)))
 
-/* ---- the rope ---- */
+/* ---- the errand: tap, walk to the pole, raise (or lower) it, walk back ---- */
 const stage = ref<HTMLElement | null>(null)
-const dragging = ref(false)
-const sending = ref(false)
-const pull = ref<number | null>(null)          // the flag where the finger has it: 0 at the foot … 1 at the top
+const sending = ref(false)                     // from the tap until back in place
+const pull = ref<number | null>(null)          // the flag on its way: 0 at the foot … 1 at the top
 const hoist = computed(() => pull.value ?? (raised.value && !lowered.value ? 1 : 0))
 const TOP = 13, FOOT = 32                      // % of the stage: where the flag's top edge sits up, and hanging at the foot
 /* The cloth: the flag in thin upright slices, each riding a wave a moment
@@ -112,60 +111,68 @@ const CLOTH = `url("data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://
 const unfurl = computed(() => { const k = Math.min(1, hoist.value / .55); return k * k * (3 - 2 * k) })   // 0 hanging … 1 flying
 const clothStyle = computed(() => ({ '--wind': (.3 + .7 * unfurl.value).toFixed(3), opacity: unfurl.value.toFixed(3) }))
 const DRAPE = hangingFlag()
-let startY = 0, startHoist = 0, moved = 0
-/* how to pull: shown as soon as the handle is touched, until the finger has
-   actually pulled — and for a moment after a tap that did not */
-const tip = ref(false)
-let tipTimer: any = 0
-const showTip = (ms = 0) => { clearTimeout(tipTimer); tip.value = true; if (ms) tipTimer = setTimeout(() => { tip.value = false }, ms) }
-onBeforeUnmount(() => clearTimeout(tipTimer))
-function down(e: PointerEvent) {
+/** Where I am while out of the Π: walking (and how long the walk takes), or
+    at the pole with my hands on the rope. */
+const walker = ref<{ x: number, y: number, ms: number, walking: boolean, pulling: boolean } | null>(null)
+const AT_POLE = { x: 45, y: 58 }               // just in front of the pole, beside the rope
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+const still = () => import.meta.client && matchMedia('(prefers-reduced-motion: reduce)').matches
+const depth = (y: number) => .72 + (y - 60) / 36 * .3     // smaller further back, as in the Π
+async function walkTo(x: number, y: number) {
+  const mine = people.value.find(p => p.l.me)
+  const from = walker.value ?? (mine ? { x: mine.x, y: mine.y } : AT_POLE)
+  const ms = still() ? 0 : Math.max(500, Math.round(Math.hypot(x - from.x, (y - from.y) * 1.3) * 40))
+  walker.value = { x, y, ms, walking: true, pulling: false }
+  await sleep(ms)
+  if (walker.value) walker.value = { ...walker.value, walking: false }
+}
+/** The flag up (or down) the pole, eased, hand over hand. */
+function run(from: number, to: number, ms: number) {
+  return new Promise<void>(done => {
+    if (!ms) { pull.value = to; return done() }
+    const t0 = performance.now()
+    const step = () => {
+      const k = Math.min(1, (performance.now() - t0) / ms), e = k < .5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2
+      pull.value = from + (to - from) * e
+      if (k < 1) requestAnimationFrame(step); else done()
+    }
+    requestAnimationFrame(step)
+  })
+}
+const figStyle = (p: any) => {
+  const w = p.l.me ? walker.value : null
+  if (!w) return { left: p.x + '%', top: p.y + '%', width: p.w + '%', zIndex: p.z }
+  return { left: w.x + '%', top: w.y + '%', width: p.w0 * depth(w.y) + '%', zIndex: Math.round(w.y * 10),
+    transition: `left ${w.ms}ms linear, top ${w.ms}ms linear, width ${w.ms}ms linear` }
+}
+async function act() {
   if (!canPull.value) return
-  dragging.value = true; startY = e.clientY; startHoist = hoist.value; pull.value = startHoist; moved = 0
-  showTip()
-  try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) } catch {}
-}
-function move(e: PointerEvent) {
-  if (!dragging.value) return
-  const dy = (e.clientY - startY) / ((stage.value?.clientHeight || 400) * .3)
-  const up = phase.value === 'day'
-  pull.value = Math.max(0, Math.min(1, up ? startHoist + dy : startHoist - dy))
-  moved = Math.max(moved, Math.abs(pull.value - startHoist))
-  if (moved > .12) { clearTimeout(tipTimer); tip.value = false }
-  if ((up && pull.value >= 1) || (!up && pull.value <= 0)) finish()
-}
-function up() {
-  if (!dragging.value) return
-  dragging.value = false
-  if (!sending.value) pull.value = null       // let go too soon: the flag slides back
-  // a tap, or a pull that gave up: say how, for a little longer
-  if (!sending.value && moved < .5) showTip(3000)
-  else { clearTimeout(tipTimer); tip.value = false }
-}
-const handleTop = computed(() => 43 + 9 * (phase.value === 'day' ? hoist.value : 1 - hoist.value))
-function key(e: KeyboardEvent) {
-  if (!canPull.value || !['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) return
-  e.preventDefault()
-  pull.value = phase.value === 'day' ? 1 : 0
-  finish()
-}
-async function finish() {
-  dragging.value = false
-  if (sending.value) return
   sending.value = true
   const raising = phase.value === 'day'
-  try {
-    const r = await $fetch<any>(`/api/admin/flag/${raising ? 'raise' : 'lower'}`, { method: 'POST' })
+  // the tap is the moment that counts: ask at once, and walk meanwhile
+  const asked = $fetch<any>(`/api/admin/flag/${raising ? 'raise' : 'lower'}`, { method: 'POST' }).then(r => ({ r, e: null }), e => ({ r: null, e }))
+  const mine = people.value.find(p => p.l.me)
+  sfx('whoosh')
+  await walkTo(AT_POLE.x, AT_POLE.y)
+  const res = await asked
+  if (res.e) { sfx('wrong'); show(errMsg(res.e)); await refresh() }
+  else {
+    walker.value = { ...walker.value!, pulling: true }
+    await run(raising ? 0 : 1, raising ? 1 : 0, still() ? 0 : 2600)
+    walker.value = { ...walker.value!, pulling: false }
     sfx('fanfare')
     show(raising ? t('flagRaisedToast', { n: GAME_RANK.flagRaise })
-      : r?.both ? t('flagBothToast', { n: GAME_RANK.flagLower, b: GAME_RANK.flagBoth }) : t('flagLoweredToast', { n: GAME_RANK.flagLower }))
-  } catch (e: any) { sfx('wrong'); show(errMsg(e)) }
-  await refresh()
+      : res.r?.both ? t('flagBothToast', { n: GAME_RANK.flagLower, b: GAME_RANK.flagBoth }) : t('flagLoweredToast', { n: GAME_RANK.flagLower }))
+    await refresh()
+  }
   pull.value = null
+  if (mine) await walkTo(mine.x, mine.y)
+  walker.value = null
   sending.value = false
 }
 
 const who = (x: any) => x?.id === myId.value ? t('flagYou') : x?.name
+const byWho = (x: any) => x?.id === myId.value ? t('flagByYou') : x?.name   // «από εσένα»
 const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r, value: String(r.points), unit: 'XP', sub: `⬆️ ${r.up} · ⬇️ ${r.down}` })))
 </script>
 
@@ -185,7 +192,7 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
       <div class="pole" />
       <div class="knob" />
       <div class="rope" />
-      <svg class="hang" :class="{ live: dragging }" viewBox="-1 -1 26 102" aria-hidden="true"
+      <svg class="hang" :class="{ live: pull != null }" viewBox="-1 -1 26 102" aria-hidden="true"
            :style="{ top: `${FOOT - (FOOT - TOP) * hoist}%`, opacity: (1 - unfurl).toFixed(3) }">
         <defs>
           <linearGradient id="hangFold" gradientUnits="userSpaceOnUse" gradientTransform="rotate(-8)" x1="0" y1="0" x2="4.2" y2="0" spreadMethod="repeat">
@@ -199,26 +206,20 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
           <rect x="0" y="0" width="30" height="110" fill="url(#hangFold)" />
         </g>
       </svg>
-      <div class="flag" :class="{ live: dragging }" role="img" :aria-label="t('flagAria')" :style="{ top: `${FOOT - (FOOT - TOP) * hoist}%` }">
+      <div class="flag" :class="{ live: pull != null }" role="img" :aria-label="t('flagAria')" :style="{ top: `${FOOT - (FOOT - TOP) * hoist}%` }">
         <div class="cloth" :style="clothStyle">
           <span v-for="i in SLICES" :key="i" class="sl" :style="{ '--i': i - 1, backgroundImage: CLOTH, zIndex: SLICES - i }" />
         </div>
       </div>
-      <div v-for="p in people" :key="p.l.id" class="who" :class="{ me: p.l.me, star: heroes.has(p.l.id), salute: hoist > .98 }"
-           :style="{ left: p.x + '%', top: p.y + '%', width: p.w + '%', zIndex: p.z }">
+      <div v-for="p in people" :key="p.l.id" class="who"
+           :class="{ me: p.l.me, star: heroes.has(p.l.id), salute: hoist > .98 && !(p.l.me && walker), walking: p.l.me && walker?.walking, pulling: p.l.me && walker?.pulling }"
+           :style="figStyle(p)">
         <span class="fig" role="img" :aria-label="p.l.me ? t('flagYou') : ''" v-html="svgs.get(p.l.id)" />
       </div>
-      <div v-if="canPull" class="handle" :class="{ hint: !dragging }" role="slider" tabindex="0" :aria-label="t('flagRope')"
-           :aria-valuenow="Math.round(hoist * 100)" aria-valuemin="0" aria-valuemax="100"
-           :style="{ top: `${handleTop}%` }"
-           @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @keydown="key" />
-      <template v-if="canPull && tip">
-        <!-- the way to pull: an arrow running down from the handle, and what to do -->
-        <div class="pulltrack" :style="{ top: `calc(${handleTop}% + 24px)` }"><i>⬇</i></div>
-        <div class="pulltip" role="status" :style="{ top: `${handleTop}%` }">
-          {{ phase === 'day' ? t('flagTipUp') : t('flagTipDown') }}
-        </div>
-      </template>
+      <!-- tap here: you walk out to the pole and do it -->
+      <button v-if="canPull" class="go" :aria-label="phase === 'day' ? t('flagRaiseBtn') : t('flagLowerBtn')" @click="act">
+        <span>{{ phase === 'day' ? '⬆️' : '⬇️' }}</span>
+      </button>
       <div class="shade" :style="{ background: sky.shade }" />
     </div>
 
@@ -235,11 +236,12 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
       <template v-else-if="phase === 'day' && !raised">
         <div class="st">☀️ {{ t('flagSunUp') }}</div>
         <div class="sb">{{ t('flagPullUp') }}</div>
+        <button v-if="canPull" class="btn" @click="act">🇬🇷 {{ t('flagRaiseBtn') }}</button>
         <div class="sb">{{ t('flagFirst') }} <span class="xp">+{{ GAME_RANK.flagRaise }}</span></div>
       </template>
       <template v-else-if="phase === 'day'">
         <div class="st">🇬🇷 {{ t('flagFlying') }}</div>
-        <div class="sb">{{ t('flagFlyingSub', { who: who(raised), t: hhmm(raised.at), s: hhmm(data.sunset) }) }}</div>
+        <div class="sb">{{ t('flagFlyingSub', { who: byWho(raised), t: hhmm(raised.at), s: hhmm(data.sunset) }) }}</div>
       </template>
       <template v-else-if="!raised">
         <div class="st">😶 {{ t('flagNotRaised') }}</div>
@@ -248,12 +250,13 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
       <template v-else-if="!lowered">
         <div class="st">🌇 {{ t('flagSunDown') }}</div>
         <div class="sb">{{ t('flagPullDown') }}</div>
+        <button v-if="canPull" class="btn" @click="act">🌙 {{ t('flagLowerBtn') }}</button>
         <div class="sb">{{ t('flagFirst') }} <span class="xp">+{{ GAME_RANK.flagLower }}</span></div>
         <div v-if="raised.id === myId" class="tiny bonus">⭐ {{ t('flagBothHint', { b: GAME_RANK.flagBoth }) }}</div>
       </template>
       <template v-else>
         <div class="st">🌙 {{ t('flagDown') }}</div>
-        <div class="sb">{{ t('flagDownSub', { who: who(lowered), t: hhmm(lowered.at) }) }}</div>
+        <div class="sb">{{ t('flagDownSub', { who: byWho(lowered), t: hhmm(lowered.at) }) }}</div>
       </template>
       <div class="row">
         <span>⬆️ {{ raised ? `${who(raised)} · ${hhmm(raised.at)}` : t('flagFrom', { t: hhmm(data.sunrise) }) }}</span>
@@ -307,22 +310,15 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
 .sl::after{content:""; position:absolute; inset:0; background:#0b1d33; opacity:0; animation:shade 1.6s ease-in-out infinite; animation-delay:inherit}
 @keyframes ripple{0%,100%{transform:translateY(calc(var(--a) * -1))}50%{transform:translateY(var(--a))}}
 @keyframes shade{0%,100%{opacity:0}50%{opacity:.16}}
-.handle{position:absolute; z-index:2100; left:calc(50% - 24px); width:40px; height:40px; margin-left:-20px; border-radius:50%; background:#fff; border:3px solid #ff8a3d;
-  box-shadow:0 2px 10px rgba(0,0,0,.3); cursor:grab; touch-action:none; display:grid; place-items:center; transition:top .25s ease-out}
-.handle::after{content:"⇕"; font-weight:900; font-size:18px; color:#ff8a3d}
-.handle.hint{animation:tug 1.1s ease-in-out infinite}
-/* how to pull: a bubble beside the handle, and an arrow sliding down the way to go */
-.pulltip{position:absolute; z-index:2200; right:calc(50% + 50px); margin-top:-4px; max-width:46%; padding:7px 11px; border-radius:14px;
-  background:#1d2b44; color:#fff; font-size:12.5px; font-weight:800; line-height:1.3; text-align:center; pointer-events:none;
-  box-shadow:0 6px 16px rgba(0,0,0,.25); animation:tipin .25s ease-out both}
-.pulltip::after{content:""; position:absolute; right:-6px; top:16px; border:6px solid transparent; border-right:0; border-left-color:#1d2b44}
-@keyframes tipin{from{opacity:0; transform:translateX(6px)}}
-.pulltrack{position:absolute; z-index:2050; left:calc(50% - 24px); width:4px; height:22%; margin-left:-2px; border-radius:2px; pointer-events:none;
-  background:repeating-linear-gradient(rgba(255,138,61,.9) 0 6px, transparent 6px 11px)}
-.pulltrack i{position:absolute; left:50%; top:0; transform:translateX(-50%); font-style:normal; font-size:20px; line-height:1; color:#ff8a3d;
-  text-shadow:0 1px 3px rgba(0,0,0,.3); animation:slide 1.1s ease-in infinite}
-@keyframes slide{from{top:0; opacity:1}to{top:85%; opacity:0}}
-@keyframes tug{50%{transform:translateY(10px)}}
+.go{position:absolute; z-index:2100; left:calc(50% - 26px); top:47%; width:46px; height:46px; margin-left:-23px; border-radius:50%; border:3px solid #ff8a3d;
+  background:#fff; display:grid; place-items:center; font-size:20px; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.3); animation:beckon 1.6s ease-out infinite}
+@keyframes beckon{0%{box-shadow:0 2px 10px rgba(0,0,0,.3), 0 0 0 0 rgba(255,138,61,.55)}70%{box-shadow:0 2px 10px rgba(0,0,0,.3), 0 0 0 14px rgba(255,138,61,0)}100%{box-shadow:0 2px 10px rgba(0,0,0,.3), 0 0 0 0 rgba(255,138,61,0)}}
+.go:active{transform:scale(.92)}
+/* out of the Π: a step in the walk, and hands on the rope */
+.who.walking .fig{animation:step .32s ease-in-out infinite}
+@keyframes step{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-4%) rotate(2deg)}}
+.who.pulling .fig{animation:haul .55s ease-in-out infinite}
+@keyframes haul{0%,100%{transform:translateY(0)}50%{transform:translateY(3%) scaleY(.97)}}
 .who{position:absolute; transform:translate(-50%,-100%); pointer-events:none}
 .fig{display:block}
 .fig :deep(svg){display:block; width:100%; height:auto}
@@ -337,5 +333,5 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
 .bonus{align-self:center; padding:3px 10px}
 .row{display:flex; justify-content:center; flex-wrap:wrap; gap:6px 16px; font-size:12px; color:var(--muted); font-weight:700; margin-top:2px}
 .rules{text-align:center; margin-top:12px; line-height:1.5}
-@media (prefers-reduced-motion: reduce){ .sl, .sl::after, .hang, .handle.hint, .pulltrack i, .who.salute .fig{animation:none} .sky, .sun, .flag, .handle{transition:none} }
+@media (prefers-reduced-motion: reduce){ .sl, .sl::after, .hang, .go, .who.salute .fig, .who.walking .fig, .who.pulling .fig{animation:none} .sky, .sun, .flag{transition:none} }
 </style>
