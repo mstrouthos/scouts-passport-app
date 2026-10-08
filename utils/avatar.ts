@@ -714,7 +714,7 @@ export function avatarSvg(a0: Partial<Avatar> | null | undefined, id = 'a', crop
   const gc = a.glassesColor, gy = ey
   // a glint across each lens
   const glare = `<path d="M${eyeL + 2} ${gy - 8} l6 -2 M${eyeR + 2} ${gy - 8} l6 -2" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".7"/>`
-  const arms = `<path d=""M${eyeL - 13} ${gy - 3} L${x0 - 2} ${gy - 6} M${eyeR + 13} ${gy - 3} L${x1 + 2} ${gy - 6}" stroke="${gc}" stroke-width="3.4" stroke-linecap="round"/>`
+  const arms = `<path d="M${eyeL - 13} ${gy - 3} L${x0 - 2} ${gy - 6} M${eyeR + 13} ${gy - 3} L${x1 + 2} ${gy - 6}" stroke="${gc}" stroke-width="3.4" stroke-linecap="round"/>`
   const glasses: Record<string, string> = {
     none: '',
     round: `<g fill="#fff" fill-opacity=".18" stroke="${gc}" stroke-width="4"><circle cx="${eyeL}" cy="${gy}" r="13"/><circle cx="${eyeR}" cy="${gy}" r="13"/></g><path d="M${eyeL + 13} ${gy - 2} Q${cx} ${gy - 7} ${eyeR - 13} ${gy - 2}" fill="none" stroke="${gc}" stroke-width="3.4"/>` + arms + glare,
