@@ -200,7 +200,7 @@ export async function potatoTick() {
   }
   if (Date.parse(p.deadline) > Date.now()) return null
   // ended only once, even if two of these run together
-  const done = await db.update(s.hotPotato).set({ endedAt: now(), burnedId: p.holderId })
+  const done = await db.update(s.hotPotato).set({ endedAt: now(), burnedId: p.holderId, players: JSON.stringify(await potatoPool()) })
     .where(and(eq(s.hotPotato.id, p.id), isNull(s.hotPotato.endedAt))).returning()
   if (!done.length) return null
   await db.insert(s.leaderFun).values({ fromId: p.holderId, toId: p.holderId, action: 'burn', createdAt: now(), auto: true })

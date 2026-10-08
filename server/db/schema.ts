@@ -901,7 +901,10 @@ export const hotPotato = pgTable('hot_potato', {
   // Αρχηγός who ended the round before it burst, if one did. `deadline` is
   // the secret moment it bursts.
   challenge: text('challenge'),
-  stoppedBy: integer('stopped_by')
+  stoppedBy: integer('stopped_by'),
+  // who was playing the potato when it burst (JSON ids) — each of them but the
+  // one it burst on scores for it in the general table, held it or not
+  players: text('players')
 })
 
 /* A 👏 from one member to another, for a win in their Ενωμοτία's feed — one

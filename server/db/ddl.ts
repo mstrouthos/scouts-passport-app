@@ -747,5 +747,7 @@ export const MIGRATIONS = [
   // when a Βαθμοφόρος first saw the hot potato video (shown with their first new round)
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS potato_video_seen TEXT",
   // left out by the Αρχηγός Συστήματος of the games that need others to take part (the potato, Kim's dares)
-  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS games_excluded BOOLEAN NOT NULL DEFAULT FALSE"
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS games_excluded BOOLEAN NOT NULL DEFAULT FALSE",
+  // who was playing the potato when a round burst (JSON ids): each of them but the one it burst on scores
+  "ALTER TABLE hot_potato ADD COLUMN IF NOT EXISTS players TEXT"
 ]
