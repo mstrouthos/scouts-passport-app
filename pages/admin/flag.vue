@@ -7,6 +7,7 @@
    game. */
 import { avatarSvg, DEFAULT_AVATAR } from '~/utils/avatar'
 import { GAME_RANK } from '~/utils/games'
+import { hangingFlag } from '~/utils/flagDrape'
 
 const { t, locale } = useI18n()
 const { show } = useToast()
@@ -101,18 +102,16 @@ const dragging = ref(false)
 const sending = ref(false)
 const pull = ref<number | null>(null)          // the flag where the finger has it: 0 at the foot … 1 at the top
 const hoist = computed(() => pull.value ?? (raised.value && !lowered.value ? 1 : 0))
-const TOP = 13, FOOT = 34                      // % of the stage: where the flag's top edge sits up, and hanging at the foot
+const TOP = 13, FOOT = 32                      // % of the stage: where the flag's top edge sits up, and hanging at the foot
 /* The cloth: the flag in thin upright slices, each riding a wave a moment
    behind the one before, more the further from the pole. Down at the foot
-   it hangs limp — bunched up and sagging; on its way up it opens out and
-   catches the wind. */
+   it hangs limp along the pole (utils/flagDrape); on its way up it opens
+   out and catches the wind. */
 const SLICES = 44
 const CLOTH = `url("data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 27 18" preserveAspectRatio="none"><rect width="27" height="18" fill="#0D5EAF"/><g fill="#fff"><rect y="2" width="27" height="2"/><rect y="6" width="27" height="2"/><rect y="10" width="27" height="2"/><rect y="14" width="27" height="2"/></g><rect width="10" height="10" fill="#0D5EAF"/><g fill="#fff"><rect x="4" width="2" height="10"/><rect y="4" width="10" height="2"/></g></svg>')}")`
 const unfurl = computed(() => { const k = Math.min(1, hoist.value / .55); return k * k * (3 - 2 * k) })   // 0 hanging … 1 flying
-const clothStyle = computed(() => ({
-  '--sx': (.26 + .74 * unfurl.value).toFixed(3), '--sk': `${(40 * (1 - unfurl.value)).toFixed(1)}deg`,
-  '--wind': (.18 + .82 * unfurl.value).toFixed(3), '--folds': (.55 * (1 - unfurl.value)).toFixed(3)
-}))
+const clothStyle = computed(() => ({ '--wind': (.3 + .7 * unfurl.value).toFixed(3), opacity: unfurl.value.toFixed(3) }))
+const DRAPE = hangingFlag()
 let startY = 0, startHoist = 0
 function down(e: PointerEvent) {
   if (!canPull.value) return
@@ -173,6 +172,20 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
       <div class="pole" />
       <div class="knob" />
       <div class="rope" />
+      <svg class="hang" :class="{ live: dragging }" viewBox="-1 -1 26 102" aria-hidden="true"
+           :style="{ top: `${FOOT - (FOOT - TOP) * hoist}%`, opacity: (1 - unfurl).toFixed(3) }">
+        <defs>
+          <linearGradient id="hangFold" gradientUnits="userSpaceOnUse" gradientTransform="rotate(-8)" x1="0" y1="0" x2="4.2" y2="0" spreadMethod="repeat">
+            <stop offset="0" stop-color="#0b1d33" stop-opacity=".32" /><stop offset=".45" stop-color="#fff" stop-opacity=".14" />
+            <stop offset=".7" stop-color="#0b1d33" stop-opacity=".05" /><stop offset="1" stop-color="#0b1d33" stop-opacity=".32" />
+          </linearGradient>
+          <clipPath id="hangClip"><path :d="DRAPE.outline" /></clipPath>
+        </defs>
+        <g clip-path="url(#hangClip)">
+          <path v-for="(p, i) in DRAPE.parts" :key="i" :d="p.d" :fill="p.fill" />
+          <rect x="0" y="0" width="30" height="110" fill="url(#hangFold)" />
+        </g>
+      </svg>
       <div class="flag" :class="{ live: dragging }" role="img" :aria-label="t('flagAria')" :style="{ top: `${FOOT - (FOOT - TOP) * hoist}%` }">
         <div class="cloth" :style="clothStyle">
           <span v-for="i in SLICES" :key="i" class="sl" :style="{ '--i': i - 1, backgroundImage: CLOTH, zIndex: SLICES - i }" />
@@ -243,7 +256,10 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
 .stars{position:absolute; inset:0 0 50% 0; transition:opacity 1s; background-image:radial-gradient(1.5px 1.5px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 70% 20%,#fff,transparent),radial-gradient(1.5px 1.5px at 45% 12%,#fff,transparent),radial-gradient(1px 1px at 85% 40%,#fff,transparent),radial-gradient(1px 1px at 10% 55%,#fff,transparent),radial-gradient(1.5px 1.5px at 60% 45%,#fff,transparent)}
 .sun{position:absolute; width:46px; height:46px; margin:-23px 0 0 -23px; border-radius:50%; background:radial-gradient(circle,#fff6c9,#ffd35a 55%,#ffb43a); box-shadow:0 0 40px 12px rgba(255,200,80,.55); transition:left 1s, top 1s, opacity .6s}
 .moon{position:absolute; right:14%; top:12%; width:30px; height:30px; border-radius:50%; box-shadow:-8px 4px 0 0 #f4f1d6; transition:opacity 1s}
-.hills{position:absolute; left:-10%; right:-10%; top:40%; height:10%; background:radial-gradient(60% 100% at 30% 100%, #6aa865 60%, transparent 61%), radial-gradient(55% 100% at 80% 100%, #5e9c5a 60%, transparent 61%)}
+.hills{position:absolute; left:0; right:0; top:41%; height:9%}
+.hills::before, .hills::after{content:""; position:absolute; bottom:0; border-radius:50% 50% 0 0 / 100% 100% 0 0}
+.hills::before{left:-12%; width:80%; height:100%; background:#6aa865}
+.hills::after{right:-14%; width:72%; height:80%; background:#5e9c5a}
 .ground{position:absolute; inset:49% 0 0 0; background:linear-gradient(#8cc96a,#79b85c)}
 .parade{position:absolute; left:4%; right:4%; top:51%; height:47%; border-radius:50%/40%; background:radial-gradient(ellipse at center,#e3cf9e,#d4bb85)}
 .shade{position:absolute; inset:0; pointer-events:none; transition:background 1s; z-index:2000}
@@ -255,17 +271,20 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
 .base{position:absolute; left:50%; top:calc(56% - 6px); width:36px; height:12px; margin-left:-18px; border-radius:50%; background:#9b8a6a}
 .rope{position:absolute; left:calc(50% + 3px); top:12%; width:2px; height:44%; background:repeating-linear-gradient(#f1ead6 0 4px,#cfc4a6 4px 6px)}
 .flag{position:absolute; left:calc(50% + 4px); width:29%; z-index:1; transition:top .3s ease-out}
-.flag.live{transition:none}
-.cloth{display:flex; aspect-ratio:3/2; container-type:inline-size; transform-origin:0 0; transform:skewY(var(--sk)) scaleX(var(--sx)); transition:transform .5s ease-out;
+.flag.live, .hang.live{transition:none}
+/* hanging limp: along the rope at the foot of the pole, swaying a little */
+.hang{position:absolute; left:calc(50% + 3px); width:7.4%; height:auto; overflow:visible; z-index:1; transform-origin:0 0;
+  transition:top .3s ease-out, opacity .4s; animation:sway 5s ease-in-out infinite; filter:drop-shadow(1px 2px 1.5px rgba(0,0,0,.18))}
+@keyframes sway{0%,100%{transform:rotate(-1.2deg)}50%{transform:rotate(1.4deg)}}
+.cloth{display:flex; aspect-ratio:3/2; container-type:inline-size; transition:opacity .4s;
   filter:drop-shadow(0 3px 3px rgba(0,0,0,.2))}
 .flag.live .cloth{transition:none}
 .sl{position:relative; flex:none; width:calc(100cqw / 44 + 1.5px); margin-right:-1.5px; background-repeat:no-repeat;
   background-size:100cqw 100%; background-position:calc(var(--i) * -100cqw / 44) 0;
   --a:calc(var(--i) * .25px * var(--wind) + var(--i) * .05px);
   animation:ripple 1.6s ease-in-out infinite; animation-delay:calc(var(--i) * -.045s)}
-/* light and shade across the folds: rolling with the wave, and deep creases when it hangs */
+/* light and shade rolling with the wave */
 .sl::after{content:""; position:absolute; inset:0; background:#0b1d33; opacity:0; animation:shade 1.6s ease-in-out infinite; animation-delay:inherit}
-.sl::before{content:""; position:absolute; inset:0; z-index:1; background:#0b1d33; opacity:calc(var(--folds) * (.5 + .5 * sin(var(--i) * .7rad)))}
 @keyframes ripple{0%,100%{transform:translateY(calc(var(--a) * -1))}50%{transform:translateY(var(--a))}}
 @keyframes shade{0%,100%{opacity:0}50%{opacity:.16}}
 .handle{position:absolute; z-index:2100; left:calc(50% - 24px); width:40px; height:40px; margin-left:-20px; border-radius:50%; background:#fff; border:3px solid #ff8a3d;
@@ -287,5 +306,5 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
 .bonus{align-self:center; padding:3px 10px}
 .row{display:flex; justify-content:center; flex-wrap:wrap; gap:6px 16px; font-size:12px; color:var(--muted); font-weight:700; margin-top:2px}
 .rules{text-align:center; margin-top:12px; line-height:1.5}
-@media (prefers-reduced-motion: reduce){ .sl, .sl::after, .handle.hint, .who.salute .fig{animation:none} .sky, .sun, .flag, .handle{transition:none} }
+@media (prefers-reduced-motion: reduce){ .sl, .sl::after, .hang, .handle.hint, .who.salute .fig{animation:none} .sky, .sun, .flag, .handle{transition:none} }
 </style>
