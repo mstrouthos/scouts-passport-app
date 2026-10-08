@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
-import { rankOf, scopedSectionIds, type SessionScout } from './guard'
+import { rankOf, scopedSectionIds, sectionOfWith, type SessionScout } from './guard'
 
 /** Groups this leader runs. Being named a group's leader is a grant in its own
     right: whoever runs the band schedules band practice, whatever sector they
@@ -22,6 +22,31 @@ export async function visibleGroupIds(me: SessionScout): Promise<number[] | null
     .filter(g => g.sectionId != null && secIds.includes(g.sectionId))
     .map(g => g.id)
   return [...new Set([...mine, ...inSector])]
+}
+
+/** Groups this leader may send a notification to (null: every one — full
+    access): those they run, wherever they sit; those of their sectors; and a
+    troop-wide group whose members are all scouts of their sectors — it
+    reaches no one outside them. */
+export async function sendableGroupIds(me: SessionScout): Promise<number[] | null> {
+  const secs = await scopedSectionIds(me)
+  if (secs === null) return null
+  const db = await useDb()
+  const mine = await groupsILead(me)
+  const [groups, members, scouts, patrols] = await Promise.all([
+    db.select().from(s.notifyGroups), db.select().from(s.notifyGroupMembers), db.select().from(s.scouts), db.select().from(s.patrols)])
+  const byId = new Map(scouts.map(r => [r.id, r]))
+  return groups.filter(g => {
+    if (mine.includes(g.id)) return true
+    if (g.sectionId != null) return secs.includes(g.sectionId)
+    const ids = members.filter(m => m.groupId === g.id).map(m => m.scoutId)
+    return ids.length > 0 && ids.every(id => {
+      const r = byId.get(id)
+      if (!r || r.role !== 'scout') return false
+      const sec = sectionOfWith(r, patrols)
+      return sec != null && secs.includes(sec)
+    })
+  }).map(g => g.id)
 }
 
 /** May this leader put an event in this group's diary? */

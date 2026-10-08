@@ -3,6 +3,7 @@ import { requireLeader, scopedSectionIds, rankOf } from '../../utils/guard'
 import { dispatchAnnouncement } from '../../utils/announce'
 import { now } from '../../utils/passcode'
 import { legacyColumns, onlyLeaders, groupTargets, sectionTargets } from '../../utils/announceTargets'
+import { sendableGroupIds } from '../../utils/groupScope'
 
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
@@ -35,9 +36,12 @@ export default defineEventHandler(async (event) => {
     // a sector leader reaches only their own sections, and the groups in them
     if (targets.includes('troop') || targets.includes('leaders'))
       throw createError({ statusCode: 403, message: 'Only an administrator can send to everyone or to the Βαθμοφόροι' })
-    if (sectionTargets(targets).some(id => !secs?.includes(id)) ||
-      groupTargets(targets).some(id => { const g = groups.find(x => x.id === id)!; return secs !== null && (g.sectionId == null || !secs.includes(g.sectionId)) }))
-      throw createError({ statusCode: 403, message: 'Out of your sector' })
+    if (sectionTargets(targets).some(id => !secs?.includes(id)))
+      throw createError({ statusCode: 403, message: 'Μπορείτε να στείλετε μόνο στους τομείς σας' })
+    // a group: one they run, one of their sectors, or one wholly inside them
+    const sendable = await sendableGroupIds(me)
+    if (sendable && groupTargets(targets).some(id => !sendable.includes(id)))
+      throw createError({ statusCode: 403, message: 'Σε αυτή την ομάδα μπορεί να στείλει μόνο όποιος την τρέχει ή ο διαχειριστής' })
   }
   if (!targets.length) throw createError({ statusCode: 400, message: 'Choose who it is for' })
   const { audience, sectionId, groupId } = legacyColumns(targets, groups)

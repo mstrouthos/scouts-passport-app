@@ -7,7 +7,9 @@ const isAdmin = computed(() => me.value?.role === 'troop_leader')
 const isYparch = computed(() => me.value?.rank === 'yparchigos')
 const { data: roster } = await useFetch<any>('/api/admin/contacts')   // sections in my scope
 const { data: list, refresh } = await useFetch<any>('/api/admin/announcements')
-const { data: groups } = await useFetch<any>('/api/admin/groups')
+// only the groups a notification can go to from me
+const { data: allGroups } = await useFetch<any>('/api/admin/groups')
+const groups = computed(() => (allGroups.value || []).filter((g: any) => g.canSend))
 
 /* Who it is for: any number of targets at once — 'troop', 'leaders',
    's:<id>' a section, 'g:<id>' a notification group. Tapping one adds it or
