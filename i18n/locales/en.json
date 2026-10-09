@@ -1432,6 +1432,8 @@
   "kimWhatsGone": "Which {n} are gone?",
   "kimCheck": "That's them! ({n}/{m})",
   "kimTomorrow": "A new tray tomorrow",
+  "kimWasGone": "These were missing from the tray",
+  "kimYouPicked": "You picked these — they were still on the tray",
   "kimDare": "Dare someone",
   "kimDareSub": "Up to three who haven't played yet today — they'll see your score.",
   "kimDared": "Dare sent to {name}!",

@@ -88,6 +88,8 @@ async function answer() {
 const missingKeys = computed(() => play.value ? play.value.missing.map((i: number) => play.value.tray[i]) : [])
 /** The shareable line: a square for each pick, green if it was gone. */
 const grid = computed(() => (result.value?.picks || []).map((k: string) => missingKeys.value.includes(k) ? '🟩' : '🟥').join(''))
+/** The picks that were not missing at all — still on the tray. */
+const wrongPicks = computed(() => (result.value?.picks || []).filter((k: string) => !missingKeys.value.includes(k)))
 
 /* ---- daring someone ---- */
 async function dare(l: any) {
@@ -150,6 +152,26 @@ async function dare(l: any) {
         <div class="big">{{ result.correct === KIM_MISSING ? '🏆' : result.correct >= 2 ? '👏' : '🙈' }}</div>
         <b>{{ result.correct }}/{{ KIM_MISSING }} · {{ secs(result.ms) }}</b>
         <span class="grid">{{ grid }}</span>
+        <!-- what was gone, so a wrong guess shows what it should have been -->
+        <div class="answers">
+          <div class="tiny muted ah">{{ t('kimWasGone') }}</div>
+          <div class="arow">
+            <div v-for="key in missingKeys" :key="key" class="ans" :class="result.picks?.includes(key) ? 'hit' : 'miss'">
+              <img :src="kimImage(key)" :alt="name(key)">
+              <span>{{ name(key) }}</span>
+              <i>{{ result.picks?.includes(key) ? '✅' : '❌' }}</i>
+            </div>
+          </div>
+          <template v-if="wrongPicks.length">
+            <div class="tiny muted ah">{{ t('kimYouPicked') }}</div>
+            <div class="arow">
+              <div v-for="key in wrongPicks" :key="key" class="ans wrong">
+                <img :src="kimImage(key)" :alt="name(key)">
+                <span>{{ name(key) }}</span>
+              </div>
+            </div>
+          </template>
+        </div>
         <div v-if="result.won && Object.keys(result.won).length" class="won">🎁 {{ t('kimWon') }} <b>{{ Object.entries(result.won).map(([k, n]) => `${n}× ${emojiOf(k)}`).join(' ') }}</b></div>
         <small class="muted">{{ t('kimTomorrow') }}</small>
       </div>
@@ -215,6 +237,17 @@ async function dare(l: any) {
 .hint{display:flex; align-items:center; justify-content:space-between; gap:10px; font-weight:700; font-size:14px}
 .btn.small{padding:8px 14px; font-size:13px; width:auto}
 
+.answers{width:100%; display:flex; flex-direction:column; gap:6px; margin-top:4px}
+.ah{font-weight:700; text-align:center}
+.arow{display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:6px}
+.ans{position:relative; display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 4px; border-radius:12px; background:#F4F6F9}
+.ans img{width:44px; height:44px; object-fit:contain}
+.ans span{font-size:11px; font-weight:700; line-height:1.2; text-align:center}
+.ans i{position:absolute; top:2px; right:4px; font-style:normal; font-size:12px}
+.ans.hit{background:#E6F6EC}
+.ans.miss{background:#FDECEC}
+.ans.wrong{opacity:.75}
+.ans.wrong span{text-decoration:line-through; color:var(--muted)}
 .choices{display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:6px}
 .choice{border:0; background:var(--card, #fff); border-radius:14px; padding:6px 2px; display:flex; flex-direction:column; align-items:center; gap:3px; box-shadow:0 1px 4px rgba(20,40,70,.08)}
 .choice img{width:44px; height:44px; object-fit:contain}
