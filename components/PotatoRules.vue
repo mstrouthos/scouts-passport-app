@@ -38,7 +38,7 @@ onMounted(async () => {
           <span class="dare">«{{ news.challenge }}»</span>
         </div>
         <h3>🥔 {{ t('funPotatoRulesTitle') }}</h3>
-        <video ref="video" class="rules-video" src="/videos/hot-potato.mp4" poster="/videos/hot-potato.jpg"
+        <video ref="video" class="rules-video" src="/videos/hot-potato.mp4?v=2" poster="/videos/hot-potato.jpg"
                controls playsinline preload="auto" @ended="seen" />
         <details class="rules-more">
           <summary>{{ t('funPotatoAllRules') }}</summary>
