@@ -2,11 +2,11 @@
 /* Έπαρση Σημαίας — the Βαθμοφόροι in a Π around the flagpole, open towards
    it, no names: the flag goes up from sunrise and comes down from sunset
    (Larnaca's, worked out on the server), by whoever gets there first. You
-   tap, and your figure walks out of the Π to the pole, raises (or lowers) the
-   flag, and walks back to its place; the tap is what counts. No reminders:
-   remembering is the game. */
+   tap, your figure walks out of the Π to the pole, and then it is a race: tap
+   as fast as you can to haul the rope — whoever finishes hauling first has
+   the flag. Then back to your place. No reminders: remembering is the game. */
 import { avatarSvg, DEFAULT_AVATAR } from '~/utils/avatar'
-import { GAME_RANK } from '~/utils/games'
+import { GAME_RANK, FLAG_TAPS } from '~/utils/games'
 import { hangingFlag } from '~/utils/flagDrape'
 
 const { t, locale } = useI18n()
@@ -133,7 +133,7 @@ const depth = (y: number) => .72 + (y - 60) / 36 * .3     // smaller further bac
 async function walkTo(x: number, y: number) {
   const mine = people.value.find(p => p.l.me)
   const from = walker.value ?? (mine ? { x: mine.x, y: mine.y } : AT_POLE)
-  const ms = still() ? 0 : Math.max(500, Math.round(Math.hypot(x - from.x, (y - from.y) * 1.3) * 40))
+  const ms = still() ? 0 : Math.max(500, Math.round(Math.hypot(x - from.x, (y - from.y) * 1.3) * 24))
   walker.value = { x, y, ms, walking: true, pulling: false }
   await sleep(ms)
   if (walker.value) walker.value = { ...walker.value, walking: false }
@@ -157,26 +157,68 @@ const figStyle = (p: any) => {
   return { left: w.x + '%', top: w.y + '%', width: p.w0 * depth(w.y) + '%', zIndex: Math.round(w.y * 10),
     transition: `left ${w.ms}ms linear, top ${w.ms}ms linear, width ${w.ms}ms linear` }
 }
+/* the haul: every tap on the rope takes the flag a step up (or down); the
+   one who finishes first has it — so keep an eye on the others meanwhile */
+const haul = ref<{ taps: number, need: number, t0: number, raising: boolean, last: number } | null>(null)
+let haulEnd: ((how: 'done' | 'beaten' | 'idle') => void) | null = null
+let haulWatch: any = 0
+function tapRope() {
+  const h = haul.value
+  if (!h || h.taps >= h.need) return
+  h.taps++; h.last = performance.now()
+  pull.value = h.raising ? h.taps / h.need : 1 - h.taps / h.need
+  if (walker.value) walker.value = { ...walker.value, pulling: true }
+  if (h.taps % 5 === 0) sfx('pop')
+  if (h.taps >= h.need) haulEnd?.('done')
+}
+function ropeKey(e: KeyboardEvent) {
+  if (haul.value && [' ', 'Enter', 'ArrowUp', 'ArrowDown'].includes(e.key)) { e.preventDefault(); if (!e.repeat) tapRope() }
+}
+onMounted(() => window.addEventListener('keydown', ropeKey))
+onBeforeUnmount(() => { window.removeEventListener('keydown', ropeKey); clearInterval(haulWatch) })
+const haulSecs = (h: { t0: number }) => ((performance.now() - h.t0) / 1000).toFixed(1).replace('.', ',')
 async function act() {
   if (!canPull.value) return
   sending.value = true
   const raising = phase.value === 'day'
-  // the tap is the moment that counts: ask at once, and walk meanwhile
-  const asked = $fetch<any>(`/api/admin/flag/${raising ? 'raise' : 'lower'}`, { method: 'POST' }).then(r => ({ r, e: null }), e => ({ r: null, e }))
+  let need = FLAG_TAPS
+  try {
+    need = (await $fetch<any>('/api/admin/flag/start', { method: 'POST', body: { which: raising ? 'raise' : 'lower' } })).taps || FLAG_TAPS
+  } catch (e: any) { sfx('wrong'); show(errMsg(e)); await refresh(); sending.value = false; return }
   const mine = people.value.find(p => p.l.me)
   sfx('whoosh')
   await walkTo(AT_POLE.x, AT_POLE.y)
-  const res = await asked
-  if (res.e) { sfx('wrong'); show(errMsg(res.e)); await refresh() }
-  else {
-    walker.value = { ...walker.value!, pulling: true }
-    await run(raising ? 0 : 1, raising ? 1 : 0, still() ? 0 : 2600)
-    walker.value = { ...walker.value!, pulling: false }
-    sfx('fanfare')
-    show(raising ? t('flagRaisedToast', { n: GAME_RANK.flagRaise })
-      : res.r?.both ? t('flagBothToast', { n: GAME_RANK.flagLower, b: GAME_RANK.flagBoth }) : t('flagLoweredToast', { n: GAME_RANK.flagLower }))
-    await refresh()
-  }
+  // hands on the rope: tap, tap, tap
+  pull.value = raising ? 0 : 1
+  haul.value = { taps: 0, need, t0: performance.now(), raising, last: performance.now() }
+  const how = await new Promise<'done' | 'beaten' | 'idle'>(done => {
+    haulEnd = done
+    haulWatch = setInterval(async () => {
+      if (performance.now() - (haul.value?.last || 0) > 15000) return done('idle')
+      // someone else may finish first
+      await refresh()
+      if (raising ? raised.value : lowered.value) done('beaten')
+    }, 1500)
+  })
+  clearInterval(haulWatch); haulEnd = null
+  const secs = haul.value ? haulSecs(haul.value) : ''
+  haul.value = null
+  if (walker.value) walker.value = { ...walker.value, pulling: false }
+  let won = false
+  if (how === 'done') {
+    try {
+      const r = await $fetch<any>(`/api/admin/flag/${raising ? 'raise' : 'lower'}`, { method: 'POST' })
+      won = true
+      sfx('fanfare')
+      show((raising ? t('flagRaisedToast', { n: GAME_RANK.flagRaise })
+        : r?.both ? t('flagBothToast', { n: GAME_RANK.flagLower, b: GAME_RANK.flagBoth }) : t('flagLoweredToast', { n: GAME_RANK.flagLower })) + ' · ' + t('flagHaulTime', { s: secs }))
+    } catch (e: any) { sfx('wrong'); show(errMsg(e)) }
+  } else if (how === 'beaten') {
+    sfx('wrong'); show(t('flagBeaten', { name: (raising ? raised.value : lowered.value)?.name || '—' }))
+  } else show(t('flagHaulIdle'))
+  // lost or let go: the flag slides back where it was
+  if (!won) await run(pull.value ?? (raising ? 0 : 1), raising ? 0 : 1, still() ? 0 : 450)
+  await refresh()
   pull.value = null
   if (mine) await walkTo(mine.x, mine.y)
   walker.value = null
@@ -185,7 +227,10 @@ async function act() {
 
 const who = (x: any) => x?.id === myId.value ? t('flagYou') : x?.name
 const byWho = (x: any) => x?.id === myId.value ? t('flagByYou') : x?.name   // «από εσένα»
-const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r, value: String(r.points), unit: 'XP', sub: `⬆️ ${r.up} · ⬇️ ${r.down}` })))
+/* the week: how many each, the earliest after sunrise 🌅 and quickest after sunset 🌇 of the week, and streaks 🔥 */
+const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r, value: String(r.points), unit: 'XP',
+  sub: [`⬆️ ${r.up} · ⬇️ ${r.down}`, r.earlyUp ? `🌅 ${r.fastUp}′` : '', r.earlyDown ? `🌇 ${r.fastDown}′` : '', r.streak >= 2 ? `🔥 ${r.streak}` : ''].filter(Boolean).join(' · ') })))
+const mins = (m: number | null | undefined) => m == null ? '' : m < 1 ? t('flagInFirstMinute') : t('flagMinsAfter', { m })
 </script>
 
 <template>
@@ -232,6 +277,12 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
       <button v-if="canPull" class="go" :aria-label="phase === 'day' ? t('flagRaiseBtn') : t('flagLowerBtn')" @click="act">
         <span>{{ phase === 'day' ? '⬆️' : '⬇️' }}</span>
       </button>
+      <!-- the haul: the whole scene is the rope, tap it fast -->
+      <button v-if="haul" class="haulpad" type="button" :aria-label="t('flagHaulAria')" @pointerdown.prevent="tapRope" @click.prevent>
+        <span class="hp-go">👆 {{ t('flagHaulGo') }}</span>
+        <span class="hp-bar"><i :style="{ width: (haul.taps / haul.need * 100) + '%' }" /></span>
+        <span class="hp-n">{{ haul.taps }}/{{ haul.need }}</span>
+      </button>
       <div class="shade" :style="{ background: sky.shade }" />
     </div>
 
@@ -254,6 +305,7 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
       <template v-else-if="phase === 'day'">
         <div class="st">🇬🇷 {{ t('flagFlying') }}</div>
         <div class="sb">{{ t('flagFlyingSub', { who: byWho(raised), t: hhmm(raised.at), s: hhmm(data.sunset) }) }}</div>
+        <div class="when">⏱ {{ mins(raised.after) }} {{ t('flagAfterRise') }}</div>
       </template>
       <template v-else-if="!raised">
         <div class="st">😶 {{ t('flagNotRaised') }}</div>
@@ -269,16 +321,19 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
       <template v-else>
         <div class="st">🌙 {{ t('flagDown') }}</div>
         <div class="sb">{{ t('flagDownSub', { who: byWho(lowered), t: hhmm(lowered.at) }) }}</div>
+        <div class="when">⏱ {{ mins(lowered.after) }} {{ t('flagAfterSet') }}</div>
       </template>
       <div class="row">
         <span>⬆️ {{ raised ? `${who(raised)} · ${hhmm(raised.at)}` : t('flagFrom', { t: hhmm(data.sunrise) }) }}</span>
         <span>⬇️ {{ lowered ? `${who(lowered)} · ${hhmm(lowered.at)}` : t('flagFrom', { t: hhmm(data.sunset) }) }}</span>
       </div>
+      <div v-if="data.myStreak >= 2" class="streak">🔥 {{ t('flagStreak', { n: data.myStreak }) }}</div>
     </div>
 
     <template v-if="weekRows.length">
       <div class="sec-title">{{ t('kimWeek') }}</div>
       <GameBoard :rows="weekRows" />
+      <div class="tiny muted" style="text-align:center">{{ t('flagWeekLegend') }}</div>
     </template>
     <div class="tiny muted rules">{{ t('flagRules', { r: GAME_RANK.flagRaise, l: GAME_RANK.flagLower, b: GAME_RANK.flagBoth }) }}</div>
   </GameScreen>
@@ -322,6 +377,15 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
 .sl::after{content:""; position:absolute; inset:0; background:#0b1d33; opacity:0; animation:shade 1.6s ease-in-out infinite; animation-delay:inherit}
 @keyframes ripple{0%,100%{transform:translateY(calc(var(--a) * -1))}50%{transform:translateY(var(--a))}}
 @keyframes shade{0%,100%{opacity:0}50%{opacity:.16}}
+.haulpad{position:absolute; inset:0; z-index:2150; border:0; padding:0 0 9%; margin:0; background:rgba(255,255,255,.06); cursor:pointer; touch-action:manipulation;
+  -webkit-user-select:none; user-select:none; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:8px}
+.hp-go{background:#1d2b44; color:#fff; font:900 17px/1.2 inherit; padding:10px 18px; border-radius:999px; box-shadow:0 8px 20px rgba(0,0,0,.3); animation:hp-pulse .6s ease-in-out infinite}
+@keyframes hp-pulse{50%{transform:scale(1.06)}}
+.hp-bar{width:62%; height:12px; border-radius:999px; background:rgba(255,255,255,.75); overflow:hidden; box-shadow:inset 0 0 0 2px rgba(29,43,68,.25)}
+.hp-bar i{display:block; height:100%; background:linear-gradient(90deg,#ff8a3d,#E5484D); transition:width .08s linear}
+.hp-n{font:900 13px/1 inherit; color:#1d2b44; background:rgba(255,255,255,.85); padding:4px 10px; border-radius:999px; font-variant-numeric:tabular-nums}
+.when{font-size:12.5px; font-weight:800; color:#2F79B8}
+.streak{align-self:center; font-size:12.5px; font-weight:800; background:#FFF0E6; color:#B4470F; border-radius:999px; padding:3px 12px}
 .go{position:absolute; z-index:2100; left:calc(50% - 26px); top:47%; width:46px; height:46px; margin-left:-23px; border-radius:50%; border:3px solid #ff8a3d;
   background:#fff; display:grid; place-items:center; font-size:20px; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.3); animation:beckon 1.6s ease-out infinite}
 @keyframes beckon{0%{box-shadow:0 2px 10px rgba(0,0,0,.3), 0 0 0 0 rgba(255,138,61,.55)}70%{box-shadow:0 2px 10px rgba(0,0,0,.3), 0 0 0 14px rgba(255,138,61,0)}100%{box-shadow:0 2px 10px rgba(0,0,0,.3), 0 0 0 0 rgba(255,138,61,0)}}
@@ -345,5 +409,5 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
 .bonus{align-self:center; padding:3px 10px}
 .row{display:flex; justify-content:center; flex-wrap:wrap; gap:6px 16px; font-size:12px; color:var(--muted); font-weight:700; margin-top:2px}
 .rules{text-align:center; margin-top:12px; line-height:1.5}
-@media (prefers-reduced-motion: reduce){ .sl, .sl::after, .hang, .go, .who.salute .fig, .who.walking .fig, .who.pulling .fig{animation:none} .sky, .sun, .flag{transition:none} }
+@media (prefers-reduced-motion: reduce){ .sl, .sl::after, .hang, .go, .hp-go, .who.salute .fig, .who.walking .fig, .who.pulling .fig{animation:none} .sky, .sun, .flag{transition:none} }
 </style>

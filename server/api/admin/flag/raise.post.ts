@@ -3,10 +3,11 @@ import { requireLeader } from '../../../utils/guard'
 import { now } from '../../../utils/passcode'
 import { kimDay } from '../../../../utils/kim'
 import { sunTimes } from '../../../../utils/sun'
-import { flagWho, tellFlag } from '../../../utils/flag'
+import { flagWho, tellFlag, finishHaul } from '../../../utils/flag'
 
-/** The flag goes up: from sunrise until sunset, by whoever is first — the
-    day's row is made once, so two pulling at once cannot both have it. */
+/** The flag goes up: from sunrise until sunset, by whoever finishes hauling
+    it first (flag/start.post.ts) — the day's row is made once, so two
+    hauling at once cannot both have it. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   if (me.funPref === 'off' || me.isHidden) throw createError({ statusCode: 403, message: 'Δεν παίζεις τα μίνι παιχνίδια' })
@@ -14,6 +15,8 @@ export default defineEventHandler(async (event) => {
   if (t < Date.parse(sun.rise)) throw createError({ statusCode: 409, message: 'Ο ήλιος δεν έχει ανατείλει ακόμα 🌙' })
   if (t >= Date.parse(sun.set)) throw createError({ statusCode: 409, message: 'Ο ήλιος έδυσε — η έπαρση γίνεται το πρωί ☀️' })
   const db = await useDb()
+  const why = finishHaul(me.id, day, 'raise')
+  if (why) throw createError({ statusCode: 409, message: why })
   const done = await db.insert(s.flagDays).values({ day, raisedBy: me.id, raisedAt: now() }).onConflictDoNothing().returning()
   if (!done.length) throw createError({ statusCode: 409, message: `Πρόλαβε ${await flagWho(day, 'raised')} 🇬🇷` })
   await tellFlag(me, 'raised', day)

@@ -2,6 +2,24 @@ import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { shortName } from '../../utils/shortName'
 import { tellFun } from './leaderFun'
+import { FLAG_MIN_HAUL_MS, FLAG_MAX_HAUL_MS } from '../../utils/games'
+
+/* The haul: whoever taps ⬆️ starts hauling, and the flag is theirs only if
+   they finish first — after a real haul, at least FLAG_MIN_HAUL_MS of tapping
+   and within FLAG_MAX_HAUL_MS. The starts are kept here, in the one server
+   process: a haul cut short by a restart just has to be started again. */
+const hauls = new Map<number, { day: string, which: 'raise' | 'lower', at: number }>()
+export function startHaul(scoutId: number, day: string, which: 'raise' | 'lower') {
+  hauls.set(scoutId, { day, which, at: Date.now() })
+}
+/** Whether this one's haul may finish now; a reason in Greek if not. */
+export function finishHaul(scoutId: number, day: string, which: 'raise' | 'lower'): string | null {
+  const h = hauls.get(scoutId)
+  if (!h || h.day !== day || h.which !== which || Date.now() - h.at > FLAG_MAX_HAUL_MS) return 'Πάτα ξανά και τράβα το σχοινί από την αρχή'
+  if (Date.now() - h.at < FLAG_MIN_HAUL_MS) return 'Πιο γρήγορα κι από τον άνεμο; Τράβα το σχοινί κανονικά 😄'
+  hauls.delete(scoutId)
+  return null
+}
 
 /** Who raised (or lowered) the day's flag, by name — for "beaten to it by …". */
 export async function flagWho(day: string, which: 'raised' | 'lowered') {

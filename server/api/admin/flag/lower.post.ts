@@ -4,16 +4,18 @@ import { requireLeader } from '../../../utils/guard'
 import { now } from '../../../utils/passcode'
 import { kimDay } from '../../../../utils/kim'
 import { sunTimes } from '../../../../utils/sun'
-import { flagWho, tellFlag } from '../../../utils/flag'
+import { flagWho, tellFlag, finishHaul } from '../../../utils/flag'
 
-/** The flag comes down: from sunset until the day ends, by whoever is first —
-    and only a flag that went up. */
+/** The flag comes down: from sunset until the day ends, by whoever finishes
+    hauling it first (flag/start.post.ts) — and only a flag that went up. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   if (me.funPref === 'off' || me.isHidden) throw createError({ statusCode: 403, message: 'Δεν παίζεις τα μίνι παιχνίδια' })
   const day = kimDay(), sun = sunTimes(day)
   if (Date.now() < Date.parse(sun.set)) throw createError({ statusCode: 409, message: 'Η υποστολή γίνεται μετά τη δύση 🌇' })
   const db = await useDb()
+  const why = finishHaul(me.id, day, 'lower')
+  if (why) throw createError({ statusCode: 409, message: why })
   const done = await db.update(s.flagDays).set({ loweredBy: me.id, loweredAt: now() })
     .where(and(eq(s.flagDays.day, day), isNotNull(s.flagDays.raisedBy), isNull(s.flagDays.loweredBy))).returning()
   if (!done.length) {

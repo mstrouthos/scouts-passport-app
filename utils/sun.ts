@@ -14,6 +14,7 @@ export function sunTimes(day: string, place = LARNACA): { rise: string, set: str
     + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g)
   const r = Math.PI / 180, lat = place.lat * r
   const ha = Math.acos(Math.cos(90.833 * r) / (Math.cos(lat) * Math.cos(decl)) - Math.tan(lat) * Math.tan(decl)) / r
-  const at = (utcMinutes: number) => new Date(Date.UTC(y, m - 1, d) + Math.round(utcMinutes * 60) * 1000).toISOString()
+  // to the whole minute, down: the flag opens at the very minute the screen shows (18:19, not 18:19:40)
+  const at = (utcMinutes: number) => new Date(Date.UTC(y, m - 1, d) + Math.floor(utcMinutes) * 60_000).toISOString()
   return { rise: at(720 - 4 * (place.lon + ha) - eq), set: at(720 - 4 * (place.lon - ha) - eq) }
 }

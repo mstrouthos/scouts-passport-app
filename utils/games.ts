@@ -36,3 +36,9 @@ export const isGameKey = (g: unknown): g is GameKey => typeof g === 'string' && 
     2 more to whoever does both on the same day. Σπλατς scores nothing:
     banter is not points. */
 export const GAME_RANK = { northDiv: 10, kimPerThing: 5, potatoPass: 1, potatoSurvive: 2, flagRaise: 5, flagLower: 5, flagBoth: 2 }
+
+/** Έπαρση Σημαίας: the haul is the race — this many quick taps on the rope;
+    and no quicker than this, nor slower (one started is dropped after it). */
+export const FLAG_TAPS = 20
+export const FLAG_MIN_HAUL_MS = 2000
+export const FLAG_MAX_HAUL_MS = 90_000
