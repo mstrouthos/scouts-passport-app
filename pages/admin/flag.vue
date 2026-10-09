@@ -68,21 +68,31 @@ const people = computed(() => {
   const all = [...(data.value?.leaders || [])]
   const n = all.length
   if (!n) return []
-  const arm = n < 3 ? 0 : Math.min(7, Math.max(1, Math.round(n * .28)))
+  const arm = n < 3 ? 0 : Math.min(10, Math.max(1, Math.round(n * .28)))
   // an odd front row, so there is a middle for me: the left arm takes one more if need be
   const armL = arm + (arm && (n - 2 * arm) % 2 === 0 ? 1 : 0)
   const front = n - arm - armL
   const rows = front > 9 ? 2 : 1
   const spots: { x: number, y: number }[] = []
-  const armY = (i: number, of: number) => of === 1 ? 72 : 62 + i * (20 / (of - 1))
-  for (let i = 0; i < armL; i++) spots.push({ x: 13 + i * .6, y: armY(i, armL) })
+  /* an arm of the Π, back to front; a long one stands two abreast, staggered,
+     rather than one tall column of people on top of each other */
+  const armSpots = (count: number, left: boolean) => {
+    const cols = count > 4 ? 2 : 1, rowsN = Math.ceil(count / cols)
+    const step = rowsN > 1 ? 22 / (rowsN - 1) : 0
+    return Array.from({ length: count }, (_, i) => {
+      const c = cols === 2 ? i % 2 : 0, r = cols === 2 ? Math.floor(i / 2) : i
+      const y = rowsN === 1 ? 72 : Math.min(84, 61 + r * step + (c ? step / 2 : 0))
+      return { x: left ? 11 + c * 8 : 89 - c * 8, y }
+    })
+  }
+  spots.push(...armSpots(armL, true))
   const per = Math.ceil(front / rows)
   for (let r = 0; r < rows; r++) {
     const k = r === rows - 1 ? front - per * (rows - 1) : per
     const gap = k > 1 ? 56 / (k - 1) : 0, nudge = rows > 1 ? (r ? gap / 4 : -gap / 4) : 0   // two rows stand staggered
     for (let i = 0; i < k; i++) spots.push({ x: k === 1 ? 50 : 22 + i * gap + nudge, y: rows === 1 ? 91 : 88 + r * 7 })
   }
-  for (let i = 0; i < arm; i++) spots.push({ x: 87 - i * .6, y: armY(i, arm) })
+  spots.push(...armSpots(arm, false))
   // the middle of the (last) front row is mine
   const meAt = armL + per * (rows - 1) + Math.floor((front - per * (rows - 1)) / 2)
   const me = all.findIndex((l: any) => l.me)
@@ -275,7 +285,7 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
 </template>
 
 <style scoped>
-.stage{position:relative; width:100%; max-width:520px; margin:0 auto; aspect-ratio:4/5; border-radius:24px; overflow:hidden;
+.stage{position:relative; isolation:isolate; width:100%; max-width:520px; margin:0 auto; aspect-ratio:4/5; border-radius:24px; overflow:hidden;
   box-shadow:0 10px 30px -14px rgba(10,30,60,.45); user-select:none; -webkit-user-select:none}
 .sky{position:absolute; inset:0 0 50% 0; transition:background 1s}
 .stars{position:absolute; inset:0 0 50% 0; transition:opacity 1s; background-image:radial-gradient(1.5px 1.5px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 70% 20%,#fff,transparent),radial-gradient(1.5px 1.5px at 45% 12%,#fff,transparent),radial-gradient(1px 1px at 85% 40%,#fff,transparent),radial-gradient(1px 1px at 10% 55%,#fff,transparent),radial-gradient(1.5px 1.5px at 60% 45%,#fff,transparent)}
