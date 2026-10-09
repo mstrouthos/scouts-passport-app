@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   if (play.answeredAt) throw createError({ statusCode: 409, message: 'Τον σημερινό Βορρά τον έψαξες ήδη — ξανά αύριο! 🧭' })
   const late = Date.now() - Date.parse(play.startedAt) > (3 + NORTH_SECS + 12) * 1000
   const ok = Number.isFinite(heading) && heading >= 0 && heading < 360 && !late
-  const error = ok ? northError(heading, northTarget(play.day)) : 180
+  const error = ok ? northError(heading, northTarget(play.day, me.id)) : 180
   const points = ok ? northPoints(error) : 0
   const ms = Math.max(0, Math.min(NORTH_SECS * 1000, Math.round(Number(b?.ms) || NORTH_SECS * 1000)))
   const done = await db.update(s.northPlays).set({ answeredAt: now(), heading: ok ? heading : null, error, points, ms })

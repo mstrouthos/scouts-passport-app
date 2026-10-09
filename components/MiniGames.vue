@@ -17,7 +17,7 @@ const tiles = computed(() => {
     throw: d?.bag ? t('gameThrowBag', { n: d.bag }) : t('gameThrowSub'),
     potato: d?.potato ? (d.potato.mine ? t('gamePotatoMine') : t('gamePotatoAt', { name: d.potato.holderName || '—' })) : d?.potatoWaiting === 'next' ? t('potatoNextWeek') : t('potatoSoonShort'),
     kim: d?.kim ? t('gameKimDone', { c: d.kim.correct }) : t('gameKimNew'),
-    north: d?.north ? t('gameNorthDone', { p: d.north.points }) : d?.northTarget ? t('gameNorthToday', { d: d.northTarget }) : t('gameNorthNew'),
+    north: d?.north ? t('gameNorthDone', { p: d.north.points }) : t('gameNorthNew'),
     flag: !d?.flag ? '' : d.flag.phase === 'before' ? t('gameFlagAt', { t: hm(d.flag.sunrise) })
       : d.flag.phase === 'day' ? (d.flag.raised ? t('gameFlagUp', { t: hm(d.flag.sunset) }) : t('gameFlagRaise'))
       : d.flag.raised && !d.flag.lowered ? t('gameFlagLower') : t('gameFlagTomorrow'),

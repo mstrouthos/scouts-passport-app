@@ -16,13 +16,17 @@ export const NORTH_ZERO_AT = 60
 
 /** The first day whose bearing is not north (a day begun with north stays north). */
 export const NORTH_RANDOM_FROM = '2026-10-10'
-/** The day's bearing, in whole degrees from true north, clockwise (90 east):
-    north until NORTH_RANDOM_FROM, then one drawn from the day itself — never
-    within 15° of north, which would be the old game again. */
-export function northTarget(day: string): number {
+/** Whether the day asks for a bearing of its own (rather than north). */
+export const northRandomDay = (day: string) => day >= NORTH_RANDOM_FROM
+/** Someone's bearing for the day, in whole degrees from true north, clockwise
+    (90 east): north until NORTH_RANDOM_FROM, then one drawn from the day and
+    the person — so one who has played cannot tell the rest where to point —
+    never within 15° of north, which would be the old game again. It is shown
+    only once their go has begun. */
+export function northTarget(day: string, scoutId = 0): number {
   if (day < NORTH_RANDOM_FROM) return 0
   let h = 2166136261
-  for (const ch of `north:${day}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619)
+  for (const ch of `north:${day}:${scoutId}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619)
   h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h = (h ^ (h >>> 16)) >>> 0
   return 15 + h % 331
 }

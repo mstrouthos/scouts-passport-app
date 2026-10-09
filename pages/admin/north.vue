@@ -39,7 +39,16 @@ function listen(on: boolean) {
     else window.removeEventListener(ev, onOri, true)
   }
 }
-onBeforeUnmount(() => { listen(false); cancelAnimationFrame(raf) })
+onBeforeUnmount(() => { listen(false); cancelAnimationFrame(raf); document.removeEventListener('visibilitychange', away) })
+/* leaving the app mid-go (to look at a compass) loses it */
+function away() {
+  if (document.visibilityState !== 'hidden' || (phase.value !== 'count' && phase.value !== 'turn')) return
+  listen(false); cancelAnimationFrame(raf)
+  phase.value = 'intro'
+  show(t('northAway'))
+  refresh()
+}
+onMounted(() => document.addEventListener('visibilitychange', away))
 /** The heading at the moment of locking: the last few readings averaged (on
     the circle — 359° and 1° average to 0°, not 180°), as a hand shakes. */
 function lockedHeading() {
@@ -64,9 +73,12 @@ async function ready() {
   const t0 = Date.now()
   while (heading == null && Date.now() - t0 < 2500) await sleep(100)
   if (heading == null) { listen(false); phase.value = 'nosensor'; return }
-  try { await $fetch('/api/admin/north/start', { method: 'POST' }) } catch (e: any) { listen(false); phase.value = 'intro'; show(errMsg(e)); refresh(); return }
+  try {
+    const r = await $fetch<any>('/api/admin/north/start', { method: 'POST' })
+    started.value = Number(r?.target) || 0
+  } catch (e: any) { listen(false); phase.value = 'intro'; show(errMsg(e)); refresh(); return }
   phase.value = 'count'
-  for (const n of [3, 2, 1]) { count.value = n; sfx('pop'); await sleep(1000) }
+  for (const n of [3, 2, 1]) { count.value = n; sfx('pop'); await sleep(1000); if (phase.value !== 'count') return }
   phase.value = 'turn'; sfx('whoosh')
   turnStart = performance.now()
   tick()
@@ -93,7 +105,9 @@ async function lock() {
 }
 
 /* the day's bearing: 0 is north, as it always was until each day had its own */
-const target = computed(() => Number(data.value?.target) || 0)
+const started = ref<number | null>(null)          // told by the start of my go
+const target = computed(() => Number(started.value ?? data.value?.target) || 0)
+const random = computed(() => !!data.value?.random)
 // just the degrees: where that is, is the game
 const goal = computed(() => target.value ? t('northGoal', { d: target.value }) : '')
 
@@ -136,12 +150,11 @@ const secs = (ms: number | null | undefined) => ms == null ? '—' : `${(ms / 10
 
       <template v-else-if="phase === 'intro' || phase === 'arming'">
         <div class="emoji">🧭</div>
-        <h3>{{ target ? t('northHowT') : t('northHow') }}</h3>
-        <div v-if="target" class="goal">🎯 {{ goal }}</div>
+        <h3>{{ random ? t('northHowT') : t('northHow') }}</h3>
         <ul class="how">
           <li>{{ t('northHow1') }}</li>
-          <li>{{ target ? t('northHow2T', { s: NORTH_SECS, d: target }) : t('northHow2', { s: NORTH_SECS }) }}</li>
-          <li v-if="target">{{ t('northHowDeg') }}</li>
+          <li>{{ random ? t('northHow2T', { s: NORTH_SECS }) : t('northHow2', { s: NORTH_SECS }) }}</li>
+          <li v-if="random">{{ t('northHowDeg') }}</li>
           <li>{{ t('northHow3') }}</li>
           <li>{{ t('northHow4') }}</li>
         </ul>
