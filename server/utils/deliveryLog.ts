@@ -12,7 +12,7 @@ import { isGameKind } from '../../utils/games'
    of their own, NUXT_DISCORD_GAMES_WEBHOOK_URL, so they do not bury the rest;
    until it is set they stay with everything else. */
 
-type Outcome = { id: number, outcome: 'delivered' | 'failed' | 'no-device', errors: string[] }
+type Outcome = { id: number, outcome: 'delivered' | 'failed' | 'no-device' | 'muted', errors: string[] }
 type Entry = {
   msg: { title: string, body: string, kind: string }
   members: Outcome[], parents: Outcome[], anonymous: { sent: number, devices: number }
@@ -82,6 +82,7 @@ async function post(e: Entry) {
     if (by('failed').length) fields.push({ name: `${prefix}❌ Απέτυχε (${by('failed').length})`,
       value: clip(by('failed').map(x => `${name(x)} — ${[...new Set(x.errors)].join('; ')}`).join('\n'), 1000) })
     if (by('no-device').length) fields.push({ name: `${prefix}🔕 Χωρίς κινητό, μόνο στην εφαρμογή (${by('no-device').length})`, value: list(by('no-device').map(name)) })
+    if (by('muted').length) fields.push({ name: `${prefix}🔇 Σίγαση παιχνιδιών, μόνο στο παιχνίδι (${by('muted').length})`, value: list(by('muted').map(name)) })
   }
   add(e.members, scouts, '')
   add(e.parents, parents, '👪 Γονείς · ')

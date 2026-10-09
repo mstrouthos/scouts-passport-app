@@ -1,7 +1,7 @@
 import { and, eq, gt, inArray, isNull } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { now } from './passcode'
-import { sendPushTo, deliverTo, onSurface } from './push'
+import { sendPushTo, deliverTo, onSurface, gameMuted } from './push'
 import { GAMES, GAME_KINDS, GAME_OF_KIND, type GameKey } from '../../utils/games'
 import { shortName } from '../../utils/shortName'
 
@@ -85,7 +85,11 @@ export async function gameDigest(): Promise<{ to: number, n: number }[]> {
   const unread = await db.select().from(s.notifications).where(and(
     inArray(s.notifications.kind, GAME_KINDS), isNull(s.notifications.readAt), isNull(s.notifications.dismissedAt), gt(s.notifications.createdAt, since)))
   if (!unread.length) return []
-  const who = [...new Set(unread.map(n => n.scoutId))]
+  // (not for whoever keeps the games' news off their phone)
+  const all = [...new Set(unread.map(n => n.scoutId))]
+  const muted = await gameMuted(all)
+  const who = all.filter(id => !muted.has(id))
+  if (!who.length) return []
   const logs = await gamePushes(who, since)
   const subs = (await db.select().from(s.pushSubscriptions)).filter(x => x.scoutId != null && who.includes(x.scoutId) && onSurface(x, 'scouts'))
   const done: { to: number, n: number }[] = []

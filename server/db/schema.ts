@@ -47,6 +47,11 @@ export const scouts = pgTable('scouts', {
   // part — the potato (it can't be thrown to them), Kim's dares — while the
   // ones they play alone stay theirs
   gamesExcluded: boolean('games_excluded').notNull().default(false),
+  // the mini-games' news kept off their phone (it still waits in each game's
+  // own 🔔): by their own choice, or by the Αρχηγός Συστήματος's, which they
+  // cannot undo
+  gameNotifsOff: boolean('game_notifs_off').notNull().default(false),
+  gameNotifsBlocked: boolean('game_notifs_blocked').notNull().default(false),
   // runs the shop: its items and prices, its till and the payments into it
   // (set by the Αρχηγός Συστήματος)
   shopManager: boolean('shop_manager').notNull().default(false),

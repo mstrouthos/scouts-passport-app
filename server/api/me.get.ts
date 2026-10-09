@@ -34,6 +34,9 @@ export default defineEventHandler(async (event) => {
     shopManager: isLeader && !!me.shopManager,
     // whether the shop is open to them (the Αρχηγός Συστήματος decides for whom)
     shopVisible: await canSeeShop(me),
+    // the mini-games' news kept off their phone: by them, or by the Αρχηγός Συστήματος
+    gameNotifsOff: isLeader && !!me.gameNotifsOff,
+    gameNotifsBlocked: isLeader && !!me.gameNotifsBlocked,
     // a hidden test account may try things out (drafts, a season out of season)
     isHidden: !!me.isHidden,
     canEditSelf: me.canEditSelf,

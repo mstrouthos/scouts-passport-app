@@ -6,7 +6,18 @@ import { GAMES, type GameKey } from '~/utils/games'
 
 const props = defineProps<{ title: string, sub?: string, game: GameKey }>()
 const { t, locale } = useI18n()
-const { msg } = useToast()
+const { msg, show } = useToast()
+const me = useMe()
+/* the games' news on my phone, or only here — mine to choose, unless the
+   Αρχηγός Συστήματος has kept it off for me */
+const phoneOn = computed(() => !me.value?.gameNotifsOff && !me.value?.gameNotifsBlocked)
+async function setPhone(on: boolean) {
+  try {
+    await $fetch('/api/admin/games/notifs', { method: 'POST', body: { off: !on } })
+    await loadMe()
+    show(on ? t('gameNotifsOnDone') : t('gameNotifsOffDone'))
+  } catch (e: any) { show(errMsg(e)) }
+}
 const router = useRouter()
 
 /* ---- this game's own news ---- */
@@ -70,6 +81,11 @@ defineExpose({ loadInbox })
       <div v-if="inboxOpen" class="sheet-backdrop" @click.self="closeInbox">
         <div class="sheet" style="max-height:80dvh;overflow:auto;display:flex;flex-direction:column;gap:10px">
           <h3 style="margin:0;font-size:17px;text-align:center">{{ GAMES[game].emoji }} {{ title }} · {{ t('notifications') }}</h3>
+          <button class="srow" :disabled="!!me?.gameNotifsBlocked" @click="setPhone(!phoneOn)">
+            <div class="ico">📳</div>
+            <div class="txt"><b>{{ t('gameNotifsPhone') }}</b><span>{{ me?.gameNotifsBlocked ? t('gameNotifsBlocked') : phoneOn ? t('gameNotifsOnSub') : t('gameNotifsOffSub') }}</span></div>
+            <span class="sw" :class="{ off: !phoneOn }" />
+          </button>
           <template v-if="inbox.length">
             <button v-for="n in inbox" :key="n.id" class="gn" :class="{ unread: !n.read }" @click="follow(n)">
               <span class="gnd" :class="{ on: !n.read }" />

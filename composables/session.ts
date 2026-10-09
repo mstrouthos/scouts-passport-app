@@ -6,6 +6,9 @@ export type Me = {
   section?: { id: number, nameEl: string, nameEn?: string | null, slug?: string | null } | null,
   scopePatrols?: Array<{ id: number, nameEl: string, nameEn?: string | null, emblem: string }> | null,
   scopeSections?: Array<{ id: number, nameEl: string, nameEn?: string | null, slug?: string | null, hasApp?: boolean }> | null
+  shopManager?: boolean, shopVisible?: boolean
+  // the mini-games' news kept off their phone: by them, or by the Αρχηγός Συστήματος
+  gameNotifsOff?: boolean, gameNotifsBlocked?: boolean
 }
 
 export const useMe = () => useState<Me | null>('me', () => null)

@@ -791,5 +791,8 @@ export const MIGRATIONS = [
   "ALTER TABLE shop_entries ADD COLUMN IF NOT EXISTS created_name TEXT NOT NULL DEFAULT ''",
   "ALTER TABLE shop_entries ADD COLUMN IF NOT EXISTS voided_name TEXT",
   // an item's pictures (JSON file ids, the first one its cover)
-  "ALTER TABLE shop_items ADD COLUMN IF NOT EXISTS images TEXT"
+  "ALTER TABLE shop_items ADD COLUMN IF NOT EXISTS images TEXT",
+  // the mini-games' news off the phone: by choice, or by the Αρχηγός Συστήματος
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS game_notifs_off BOOLEAN NOT NULL DEFAULT FALSE",
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS game_notifs_blocked BOOLEAN NOT NULL DEFAULT FALSE"
 ]

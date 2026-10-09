@@ -1,5 +1,6 @@
 import webpush from 'web-push'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
+import { isGameKind } from '../../utils/games'
 import { useDb, schema as s } from '../db'
 import { now } from './passcode'
 import { linkForNotification } from './notifyLinks'
@@ -33,6 +34,15 @@ async function recordOutcome(key: number, msg: { kind: string, refId: number }, 
     .where(and(eq(s.notificationLog.scoutId, key), eq(s.notificationLog.kind, msg.kind), eq(s.notificationLog.refId, msg.refId)))
 }
 
+/** Who among these keeps the mini-games' news off their phone — by their own
+    choice or the Αρχηγός Συστήματος's. */
+export async function gameMuted(ids: number[]): Promise<Set<number>> {
+  if (!ids.length) return new Set()
+  const rows = await (await useDb()).select({ id: s.scouts.id, off: s.scouts.gameNotifsOff, blocked: s.scouts.gameNotifsBlocked })
+    .from(s.scouts).where(inArray(s.scouts.id, ids))
+  return new Set(rows.filter(r => r.off || r.blocked).map(r => r.id))
+}
+
 /** Exposed for the test push, which targets one known row. */
 export const deliverTo = (subs: Array<typeof s.pushSubscriptions.$inferSelect>, payload: string) => deliver(subs, payload)
 
@@ -52,7 +62,7 @@ const BAR = { urgency: 'high' as const, TTL: 5 * 60 }
     they had already been sent this very message. */
 export type PushTrace = {
   scoutId: number
-  outcome: 'delivered' | 'failed' | 'no-device' | 'already-sent'
+  outcome: 'delivered' | 'failed' | 'no-device' | 'already-sent' | 'muted'
   devices: number, delivered: number, errors: string[]
 }
 
@@ -105,8 +115,10 @@ export async function sendPushTo(scoutIds: number[], msg: { title: string, body:
   await db.insert(s.notifications).values(fresh.map(id => ({
     scoutId: id, kind: msg.kind, refId: msg.refId, title: msg.title, body: msg.body, createdAt: sentAt
   })))
+  // the mini-games' news stays off the phone of whoever has it muted (it waits in the game)
+  const muted = isGameKind(msg.kind) || msg.kind === 'game-digest' ? await gameMuted(fresh) : new Set<number>()
   const subs = (await db.select().from(s.pushSubscriptions))
-    .filter(x => x.scoutId != null && fresh.includes(x.scoutId) && onSurface(x, 'scouts'))
+    .filter(x => x.scoutId != null && fresh.includes(x.scoutId) && !muted.has(x.scoutId) && onSurface(x, 'scouts'))
   const url = linkForNotification(msg.kind, msg.refId)
   const per = new Map<number, PushTrace>(fresh.map(id => [id, { scoutId: id, outcome: 'no-device', devices: 0, delivered: 0, errors: [] }]))
   for (const x of subs) per.get(x.scoutId!)!.devices++
@@ -116,7 +128,7 @@ export async function sendPushTo(scoutIds: number[], msg: { title: string, body:
   })
   for (const p of per.values()) {
     if (p.devices && !p.delivered && !p.errors.length) p.errors.push('push is not configured on the server (VAPID keys)')
-    p.outcome = !p.devices ? 'no-device' : p.delivered ? 'delivered' : 'failed'
+    p.outcome = muted.has(p.scoutId) ? 'muted' : !p.devices ? 'no-device' : p.delivered ? 'delivered' : 'failed'
     trace?.push(p)
     await recordOutcome(p.scoutId, msg, p.outcome, p.errors)
   }

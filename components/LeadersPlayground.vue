@@ -226,6 +226,16 @@ function closeDaily() {
 }
 /* the Αρχηγός Συστήματος leaves someone out of the games that need them to
    take part, or lets them back; if they hold the potato it is thrown on */
+/* the games' news kept off someone's phone, by the Αρχηγός Συστήματος */
+async function toggleMuted(l: any) {
+  busy.value = true
+  try {
+    await $fetch('/api/admin/fun/mute', { method: 'POST', body: { id: l.id, muted: !l.muted } })
+    show(!l.muted ? t('gameNotifsMutedThem', { name: l.firstName }) : t('gameNotifsUnmutedThem', { name: l.firstName }))
+    target.value = null
+    await refresh()
+  } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
+}
 async function toggleExcluded(l: any) {
   const out = !l.excluded
   if (out && !confirm(t('gamesExcludeQ', { name: l.firstName }))) return
@@ -676,6 +686,9 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
           </template>
           <button v-if="data.canExclude" class="btn ghost exclude" :disabled="busy" @click="toggleExcluded(target)">
             {{ target.excluded ? '✅ ' + t('gamesIncludeBtn') : '🚫 ' + t('gamesExcludeBtn') }}
+          </button>
+          <button v-if="data.canExclude" class="btn ghost exclude" :disabled="busy" @click="toggleMuted(target)">
+            {{ target.muted ? '🔔 ' + t('gameNotifsUnmuteBtn') : '🔇 ' + t('gameNotifsMuteBtn') }}
           </button>
         </div>
       </div>

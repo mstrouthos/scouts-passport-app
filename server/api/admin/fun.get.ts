@@ -86,7 +86,7 @@ export default defineEventHandler(async (event) => {
         challenge: lastBurn.burnedId ? lastBurn.challenge : null, stopped: !!lastBurn.stoppedBy
       } : null
     },
-    leaders: leaders.map(l => ({ id: l.id, firstName: l.firstName, lastName: l.lastName, ...faceOf(l), figure: figure(l.avatar), where: where(l), me: l.id === me.id, pref: l.funPref, excluded: l.gamesExcluded }))
+    leaders: leaders.map(l => ({ id: l.id, firstName: l.firstName, lastName: l.lastName, ...faceOf(l), figure: figure(l.avatar), where: where(l), me: l.id === me.id, pref: l.funPref, excluded: l.gamesExcluded, muted: l.gameNotifsBlocked }))
       .sort((a, b) => Number(b.me) - Number(a.me) || a.firstName.localeCompare(b.firstName, 'el')),
     // what was done, newest first — the marks are worked out from it on the page
     recent: recent.slice(0, 300).map(r => ({

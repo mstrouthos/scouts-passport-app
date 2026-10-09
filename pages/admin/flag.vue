@@ -69,20 +69,22 @@ const people = computed(() => {
   const n = all.length
   if (!n) return []
   const arm = n < 3 ? 0 : Math.min(7, Math.max(1, Math.round(n * .28)))
-  const front = n - 2 * arm
+  // an odd front row, so there is a middle for me: the left arm takes one more if need be
+  const armL = arm + (arm && (n - 2 * arm) % 2 === 0 ? 1 : 0)
+  const front = n - arm - armL
   const rows = front > 9 ? 2 : 1
   const spots: { x: number, y: number }[] = []
-  const armY = (i: number) => arm === 1 ? 72 : 62 + i * (20 / (arm - 1))
-  for (let i = 0; i < arm; i++) spots.push({ x: 13 + i * .6, y: armY(i) })
+  const armY = (i: number, of: number) => of === 1 ? 72 : 62 + i * (20 / (of - 1))
+  for (let i = 0; i < armL; i++) spots.push({ x: 13 + i * .6, y: armY(i, armL) })
   const per = Math.ceil(front / rows)
   for (let r = 0; r < rows; r++) {
     const k = r === rows - 1 ? front - per * (rows - 1) : per
     const gap = k > 1 ? 56 / (k - 1) : 0, nudge = rows > 1 ? (r ? gap / 4 : -gap / 4) : 0   // two rows stand staggered
     for (let i = 0; i < k; i++) spots.push({ x: k === 1 ? 50 : 22 + i * gap + nudge, y: rows === 1 ? 91 : 88 + r * 7 })
   }
-  for (let i = 0; i < arm; i++) spots.push({ x: 87 - i * .6, y: armY(i) })
+  for (let i = 0; i < arm; i++) spots.push({ x: 87 - i * .6, y: armY(i, arm) })
   // the middle of the (last) front row is mine
-  const meAt = arm + per * (rows - 1) + Math.floor((front - per * (rows - 1)) / 2)
+  const meAt = armL + per * (rows - 1) + Math.floor((front - per * (rows - 1)) / 2)
   const me = all.findIndex((l: any) => l.me)
   const order = all.filter((_: any, i: number) => i !== me)
   if (me >= 0) order.splice(meAt, 0, all[me])
