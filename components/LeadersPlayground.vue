@@ -266,12 +266,10 @@ async function toggleExcluded(l: any) {
   } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
 }
 /** Whether I may throw the potato at them now: I hold it and they have not
-    had it yet this round, or none is in play and one may start. */
+    had it yet this round. (The round itself the app starts, once a week.) */
 const meExcluded = computed(() => !!data.value?.leaders?.find((l: any) => l.me)?.excluded)
 const canPotato = (l: any) => !!l && !l.me && l.pref === 'all' && !l.excluded && !meExcluded.value && data.value?.me?.pref === 'all' && !data.value?.paused
-  // a new round only Monday to Wednesday, once a week
-  && (!!potato.value.active || !potato.value.cantStart)
-  && (holdIt.value ? !!potato.value.active.canGet?.includes(l.id) : !!potato.value.canStart)
+  && holdIt.value && !!potato.value.active?.canGet?.includes(l.id)
 /** They had it this round already, so it cannot go to them yet. */
 const hadIt = (l: any) => !!l && holdIt.value && l.pref === 'all' && !potato.value.active.canGet?.includes(l.id) && !l.me
 /** How many have yet to hold it this round. */
@@ -639,9 +637,9 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
         <div v-if="holdIt" class="ptxt"><b>{{ t('funPotatoYours') }}</b><span>{{ t('funPotatoYoursSub', { held: heldFor }) }}</span><span class="pouch">💰 {{ t('funPouch', { n: pouch }) }}</span></div>
         <div v-else-if="potato.active" class="ptxt"><b>{{ t('funPotatoAt', { name: potato.active.holderName }) }}</b><span>{{ t('funPotatoPasses', { n: potato.active.passes, m: stillToGo }) }}</span></div>
         <div v-else-if="potato.last?.burned" class="ptxt"><b>{{ t('funPotatoBurst', { name: potato.last.burned === myId ? t('funYouObj') : potato.last.burnedName }) }}</b><span>{{ t('funPotatoBurstSub', { n: potato.last.passes }) }}</span></div>
-        <div v-else-if="potato.last?.stopped" class="ptxt"><b>{{ t('funPotatoWasStopped') }}</b><span>{{ t('funPotatoStartSub') }}</span></div>
-        <div v-else-if="potato.cantStart" class="ptxt"><b>{{ t('potatoNextWeek') }}</b><span>{{ t(potato.cantStart === 'done' ? 'potatoCantDone' : 'potatoCantLate') }}</span></div>
-        <div v-else class="ptxt"><b>{{ t('funPotatoStart') }}</b><span>{{ t('funPotatoStartSub') }}</span></div>
+        <div v-else-if="potato.last?.stopped" class="ptxt"><b>{{ t('funPotatoWasStopped') }}</b><span>{{ t('potatoNextWeekSub') }}</span></div>
+        <div v-else-if="potato.waiting === 'next'" class="ptxt"><b>{{ t('potatoNextWeek') }}</b><span>{{ t('potatoNextWeekSub') }}</span></div>
+        <div v-else class="ptxt"><b>{{ t('potatoSoon') }}</b><span>{{ t('potatoSoonSub') }}</span></div>
         <button class="pinfo" :aria-label="t('funPotatoRulesTitle')" @click="rulesOpen = true">ℹ️</button>
       </div>
       <!-- what is at stake, from the start; what is owed, once it has burst -->
@@ -728,12 +726,12 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
           <template v-else>
             <template v-if="isPotato">
             <button v-if="canPotato(target)" class="potato-btn" :disabled="busy" @click="throwPotato(target)">
-              🥔 {{ holdIt ? t('funPotatoPass', { name: shortName(target) }) : t('funPotatoStartAt', { name: shortName(target) }) }}
+              🥔 {{ t('funPotatoPass', { name: shortName(target) }) }}
             </button>
             <div v-else-if="hadIt(target)" class="note soft">🥔 {{ t('funPotatoHadIt', { name: shortName(target) }) }}</div>
             <div v-else class="note soft">🥔 {{ target.excluded ? t('gamesExcludedThem', { name: target.firstName }) : target.pref !== 'all' ? t('potatoTheyOut', { name: target.firstName })
               : potato.active && !holdIt ? t('potatoNotYours', { name: potato.active.holderName })
-              : !potato.active && potato.cantStart ? t(potato.cantStart === 'done' ? 'potatoCantDone' : 'potatoCantLate') : t('potatoNeedsAll') }}</div>
+              : !potato.active ? t(potato.waiting === 'next' ? 'potatoNextWeekSub' : 'potatoSoonSub') : t('potatoNeedsAll') }}</div>
             </template>
             <template v-else>
             <div v-if="target.pref === 'kind'" class="note soft">{{ t('funKindOnly') }}</div>

@@ -11,7 +11,7 @@ import { cyprusTimeOnDayOf } from '../../utils/cyprusTime'
 import { localDay, bonusEarned, currentStreak } from '../../utils/streak'
 import { deleteFormFiles } from '../../utils/formFiles'
 import { eventInSections, eventSectionIds } from '../../utils/eventScope'
-import { potatoTick, gameDigest } from '../../utils/leaderFun'
+import { potatoTick, potatoWeekly, gameDigest } from '../../utils/leaderFun'
 import { kimPrizes } from '../../utils/kimRewards'
 import { funDailyTick } from '../../utils/funDaily'
 import { refillTick } from '../../utils/funBag'
@@ -173,8 +173,10 @@ export default defineEventHandler(async (event) => {
   await deleteFormFiles((await db.select().from(s.formFiles)).filter(f =>
     (f.kind === 'upload' && !f.responseId && f.createdAt < dayAgo) || (f.kind === 'export' && f.createdAt < weekAgo)))
 
-  // the hot potato: it bursts when its secret moment has come
+  // the hot potato: it bursts when its secret moment has come; and the
+  // week's round is thrown by the app to someone at random when its moment comes
   const potato = await potatoTick()
+  const potatoStarted = await potatoWeekly()
   // Το Ταψί του Κιμ: yesterday's best, and on Mondays last week's
   const kimPrize = await kimPrizes()
   // 23:00: who had the most thrown at them today, told to everyone
@@ -199,6 +201,7 @@ export default defineEventHandler(async (event) => {
   return {
     ok: true, notified, announced, purged: purgedWho.length, swept, at: t,
     ...(potato ? { potato } : {}),
+    ...(potatoStarted ? { potatoStarted } : {}),
     ...(kimPrize.length ? { kimPrize } : {}),
     ...(funDaily ? { funDaily } : {}),
     ...(gameBundles.length ? { gameBundles: gameBundles.length } : {}),

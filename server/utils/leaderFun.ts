@@ -119,11 +119,10 @@ export async function gameDigest(): Promise<{ to: number, n: number }[]> {
 }
 
 /* ---- the hot potato ----
-   One round a week, started any day from Monday to Wednesday. A round starts
-   when someone throws it; at that moment a time is drawn for it to burst —
-   any moment in the next 30 hours, each as likely as the next, but never in
-   its first half hour, and never between midnight and 07:00 (which the
-   players are not told) — and kept secret. No moment of a
+   One round a week: the app throws it to someone at random, at a moment
+   drawn between Monday and Wednesday (potatoWeekly). At that moment a time
+   is drawn for it to burst — any moment in the next 30 hours, day or night,
+   each as likely as the next — and kept secret. No moment of a
    round is ever safe. It may be held as long as anyone likes, but whoever has
    it when that moment comes is the one it bursts on: the longer you hold it,
    the likelier that is you. A challenge, drawn from the list the Αρχηγός
@@ -153,29 +152,77 @@ export async function potatoChallenges(): Promise<string[]> {
 // one formatter, made once: building one per call (toLocaleString) is slow, and a burst time looks at hundreds of moments
 const CY_HOUR = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Nicosia', hour: '2-digit', hour12: false })
 const cyHour = (at: Date) => Number(CY_HOUR.format(at)) % 24
-/** When a round bursts: a moment drawn evenly from the waking hours
-    (07:00–23:59) between half an hour and 30 hours after it starts. */
+/** When a round bursts: any moment in the 30 hours after it starts, each as
+    likely as the next — day or night, even the first minute. */
 export const POTATO_WITHIN_MS = 30 * 3600_000
-const POTATO_SAFE_MS = 30 * 60_000
-export function potatoBurstAt(from = new Date()): string {
-  const STEP = 5 * 60_000, slots: number[] = []
-  for (let t = from.getTime() + POTATO_SAFE_MS; t < from.getTime() + POTATO_WITHIN_MS; t += STEP) if (cyHour(new Date(t)) >= 7) slots.push(t)
-  const at = slots.length ? slots[Math.floor(Math.random() * slots.length)]! + Math.floor(Math.random() * STEP) : from.getTime() + 24 * 3600_000
-  return new Date(at).toISOString()
-}
-/** Why no round can start now, if none can: it is past Wednesday, or this
-    week's has already been played (one the Αρχηγός ended early does not
-    count, so it may start again). */
-export async function potatoCantStart(at = new Date()): Promise<'late' | 'done' | null> {
-  const day = at.toLocaleDateString('en-CA', { timeZone: 'Europe/Nicosia' })
-  if ((new Date(`${day}T12:00:00Z`).getUTCDay() + 6) % 7 > 2) return 'late'          // Thursday to Sunday
-  const week = cyprusWeekStart(at)
+export const potatoBurstAt = (from = new Date()) => new Date(from.getTime() + Math.random() * POTATO_WITHIN_MS).toISOString()
+
+/* The week's round is the app's to start: once a week, at a moment drawn at
+   random between Monday and Wednesday (08:00–21:00, so nobody is handed it
+   in the night), it throws the potato to someone at random. The moment is
+   drawn the first time the cron looks at the week, and kept. */
+const PLAN_KEY = (week: string) => `potato.plan.${week}`
+type PotatoPlan = { at: string | null, round?: number }
+const weekDay = (at: Date) => at.toLocaleDateString('en-CA', { timeZone: 'Europe/Nicosia' })
+const dowOf = (day: string) => (new Date(`${day}T12:00:00Z`).getUTCDay() + 6) % 7          // Monday = 0
+const mondayOf = (at: Date) => { const d = weekDay(at); return new Date(Date.parse(`${d}T12:00:00Z`) - dowOf(d) * 86400_000).toISOString().slice(0, 10) }
+async function potatoPlan(at = new Date()): Promise<PotatoPlan> {
+  const week = mondayOf(at)
   const db = await useDb()
-  return (await db.select().from(s.hotPotato)).some(p => p.startedAt >= week && !p.stoppedBy) ? 'done' : null
+  const raw = (await db.select().from(s.settings).where(eq(s.settings.key, PLAN_KEY(week))))[0]?.value
+  if (raw) { try { return JSON.parse(raw) } catch {} }
+  // drawn now: a five-minute step from what is left of Monday to Wednesday, 08:00–21:00
+  const STEP = 5 * 60_000, slots: number[] = []
+  const end = Date.parse(`${week}T12:00:00Z`) + 3 * 86400_000
+  for (let t = Math.ceil(at.getTime() / STEP) * STEP; t < end + 12 * 3600_000; t += STEP) {
+    const d = new Date(t), h = cyHour(d)
+    if (dowOf(weekDay(d)) <= 2 && h >= 8 && h < 21) slots.push(t)
+  }
+  const plan: PotatoPlan = { at: slots.length ? new Date(slots[Math.floor(Math.random() * slots.length)]!).toISOString() : null }
+  // kept first, so two runs at once draw only one
+  await db.insert(s.settings).values({ key: PLAN_KEY(week), value: JSON.stringify(plan) }).onConflictDoNothing()
+  const kept = (await db.select().from(s.settings).where(eq(s.settings.key, PLAN_KEY(week))))[0]?.value
+  try { return kept ? JSON.parse(kept) : plan } catch { return plan }
 }
-export const POTATO_CANT: Record<'late' | 'done', string> = {
-  late: 'Η καυτή πατάτα ξεκινά Δευτέρα με Τετάρτη — ξανά από Δευτέρα 🥔',
-  done: 'Η πατάτα αυτής της εβδομάδας έχει ήδη παιχτεί — ξανά από Δευτέρα 🥔'
+/** The week's potato, when its moment has come: thrown by the app to someone
+    at random among those who play, with a challenge drawn, and everyone told.
+    Once a week: a round the Αρχηγός ends early still was the week's. Run by
+    the cron. */
+export async function potatoWeekly(at = new Date()): Promise<string | null> {
+  const plan = await potatoPlan(at)
+  if (!plan.at || plan.round || Date.parse(plan.at) > at.getTime()) return null
+  if (await activePotato()) return null
+  const pool = await potatoPool()
+  if (pool.length < 2) return null                                     // not enough players: tried again next run
+  const db = await useDb()
+  const week = mondayOf(at)
+  // claimed first, so two runs at once start only one round
+  const claimed = await db.update(s.settings).set({ value: JSON.stringify({ ...plan, round: -1 }) })
+    .where(and(eq(s.settings.key, PLAN_KEY(week)), eq(s.settings.value, JSON.stringify(plan)))).returning()
+  if (!claimed.length) return null
+  const to = pool[Math.floor(Math.random() * pool.length)]!
+  const list = await potatoChallenges()
+  const challenge = list[Math.floor(Math.random() * list.length)]!
+  const t = now()
+  const [round] = await db.insert(s.hotPotato).values({
+    startedBy: to, holderId: to, prevId: null, gotAt: t, deadline: potatoBurstAt(at), passes: 0, startedAt: t, cycle: JSON.stringify([to]), challenge
+  }).returning()
+  await db.update(s.settings).set({ value: JSON.stringify({ ...plan, round: round!.id }) }).where(eq(s.settings.key, PLAN_KEY(week)))
+  const holder = (await db.select().from(s.scouts).where(eq(s.scouts.id, to)).limit(1))[0]
+  await tellFun(to, { title: '🥔 Η καυτή πατάτα!', kind: 'potato-pass', refId: round!.id,
+    body: `🎲 Η τύχη σού πέταξε την καυτή πατάτα της εβδομάδας! Πέτα τη γρήγορα σε κάποιον 💣 Όποιον σκάσει: «${challenge}»` }, true)
+  for (const id of (await potatoAudience()).filter(x => x !== to)) {
+    await tellFun(id, { title: '🥔 Νέος γύρος καυτής πατάτας!', kind: 'potato', refId: round!.id,
+      body: `🎲 Η πατάτα της εβδομάδας έπεσε στα χέρια: ${shortName(holder) || '—'}! Όποιον σκάσει: «${challenge}»` }, true)
+  }
+  return shortName(holder) || String(to)
+}
+/** Before the week's round, or after it: 'soon' while it is still to come
+    this week (when, nobody is told), 'next' once it has been played or the
+    week is past Wednesday. */
+export async function potatoWaiting(at = new Date()): Promise<'soon' | 'next'> {
+  const plan = await potatoPlan(at)
+  return plan.at && !plan.round ? 'soon' : 'next'
 }
 /** The potato in play, if one is. */
 export async function activePotato() {

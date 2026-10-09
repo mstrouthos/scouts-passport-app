@@ -7,7 +7,7 @@ import { normalizeAvatar, randomAvatar } from '../../../utils/avatar'
 import { kimDay } from '../../../utils/kim'
 import { dailyBag, bagOf, unseenGrants } from '../../utils/funBag'
 import { funDailyLast } from '../../utils/funDaily'
-import { cyprusDayStart, cyprusWeekStart, funPaused, potatoTick, activePotato, potatoPool, potatoCycle, potatoTargets, potatoCantStart } from '../../utils/leaderFun'
+import { cyprusDayStart, cyprusWeekStart, funPaused, potatoTick, activePotato, potatoPool, potatoCycle, potatoTargets, potatoWaiting } from '../../utils/leaderFun'
 import { shortName } from '../../../utils/shortName'
 
 /** The playground: every Βαθμοφόρος of every sector, standing; what has
@@ -74,8 +74,8 @@ export default defineEventHandler(async (event) => {
       giftsLeft: Math.max(0, GIFTS_PER_DAY - (await db.select().from(s.funGifts).where(and(eq(s.funGifts.fromId, me.id), gt(s.funGifts.createdAt, today)))).length),
       anonLeft: !anonUsed },
     potato: {
-      // why a round cannot start now (past Wednesday, this week's already played), with none in play
-      cantStart: pot ? null : await potatoCantStart(),
+      // with none in play: this week's still to come ('soon'), or next week's ('next')
+      waiting: pot ? null : await potatoWaiting(),
       // never when it bursts: that is the game
       active: pot ? {
         id: pot.id, holder: pot.holderId, holderName: nameOf(pot.holderId), prev: pot.prevId, passes: pot.passes,
@@ -84,7 +84,6 @@ export default defineEventHandler(async (event) => {
         had: potatoCycle(pot), canGet: potatoTargets(pool, potatoCycle(pot), pot.holderId)
       } : null,
       // a new one whenever none is in play: it runs until it bursts on someone
-      canStart: !pot,
       // the Αρχηγός Συστήματος may end a round, and write the challenges
       canStop: me.role === 'troop_leader',
       last: lastBurn ? {
