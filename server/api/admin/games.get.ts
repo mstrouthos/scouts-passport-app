@@ -2,7 +2,7 @@ import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { useDb, schema as s } from '../../db'
 import { requireLeader } from '../../utils/guard'
 import { stillListed } from '../../utils/notifyRetention'
-import { potatoTick, activePotato } from '../../utils/leaderFun'
+import { potatoTick, activePotato, potatoCantStart } from '../../utils/leaderFun'
 import { bagOf } from '../../utils/funBag'
 import { kimDay } from '../../../utils/kim'
 import { GAME_KINDS, GAME_OF_KIND, type GameKey } from '../../../utils/games'
@@ -40,6 +40,7 @@ export default defineEventHandler(async (event) => {
     rank: { total: mineTotal, place: mineTotal ? 1 + week.filter(x => x.total > mineTotal).length : null, of: week.length },
     unread,
     potato: pot ? { mine: pot.holderId === me.id, holderName: shortName(holder) || null } : null,
+    potatoCantStart: pot ? null : await potatoCantStart(),
     kim: kim ? { correct: kim.correct } : null,
     north: north ? { points: north.points, error: north.error } : null,
     northTarget: northTarget(kimDay()),

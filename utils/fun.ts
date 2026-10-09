@@ -127,7 +127,9 @@ export const WELCOME = { tomato: 5, snowball: 2, water: 1 } as Record<string, nu
    (server/utils/leaderFun.ts), so no hold is ever safe pay. */
 export const POUCH_EVERY_MS = 30 * 60_000
 export const POUCH_MAX = 6
-const cyHourOf = (t: number) => Number(new Date(t).toLocaleString('en-GB', { timeZone: 'Europe/Nicosia', hour: '2-digit', hour12: false }))
+// one formatter, made once (toLocaleString builds one per call, and a long hold is hundreds of steps)
+const CY_HOUR = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Nicosia', hour: '2-digit', hour12: false })
+const cyHourOf = (t: number) => Number(CY_HOUR.format(t)) % 24
 /** How much of a hold counts: its time between 07:00 and midnight. */
 export function wakingMs(fromIso: string, to = Date.now()) {
   const STEP = 5 * 60_000

@@ -119,10 +119,11 @@ export async function gameDigest(): Promise<{ to: number, n: number }[]> {
 }
 
 /* ---- the hot potato ----
-   A round starts when someone throws it; at that moment a time is drawn for
-   it to burst — usually 3 to 30 hours on, now and then (one round in ten)
-   sooner, but never in its first half hour, and never between midnight and
-   07:00 (which the players are not told) — and kept secret. No moment of a
+   One round a week, started any day from Monday to Wednesday. A round starts
+   when someone throws it; at that moment a time is drawn for it to burst —
+   any moment in the next 30 hours, each as likely as the next, but never in
+   its first half hour, and never between midnight and 07:00 (which the
+   players are not told) — and kept secret. No moment of a
    round is ever safe. It may be held as long as anyone likes, but whoever has
    it when that moment comes is the one it bursts on: the longer you hold it,
    the likelier that is you. A challenge, drawn from the list the Αρχηγός
@@ -149,20 +150,32 @@ export async function potatoChallenges(): Promise<string[]> {
   return POTATO_CHALLENGES
 }
 
-const cyHour = (at: Date) => Number(at.toLocaleString('en-GB', { timeZone: 'Europe/Nicosia', hour: '2-digit', hour12: false }))
-/** When a round bursts: one time in ten within its first 3 hours (but not
-    its first half hour), otherwise 3 to 30 hours on; always at a waking hour
-    (07:00–23:59). */
-export const POTATO_EARLY_CHANCE = 0.1
-export function potatoBurstAt(from = new Date()) {
-  const H = 3600_000
-  for (let i = 0; i < 500; i++) {
-    const after = Math.random() < POTATO_EARLY_CHANCE ? 0.5 * H + Math.random() * 2.5 * H : 3 * H + Math.random() * 27 * H
-    const t = new Date(from.getTime() + after)
-    const h = cyHour(t)
-    if (h >= 7) return t.toISOString()
-  }
-  return new Date(from.getTime() + 24 * 3600_000).toISOString()
+// one formatter, made once: building one per call (toLocaleString) is slow, and a burst time looks at hundreds of moments
+const CY_HOUR = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Nicosia', hour: '2-digit', hour12: false })
+const cyHour = (at: Date) => Number(CY_HOUR.format(at)) % 24
+/** When a round bursts: a moment drawn evenly from the waking hours
+    (07:00–23:59) between half an hour and 30 hours after it starts. */
+export const POTATO_WITHIN_MS = 30 * 3600_000
+const POTATO_SAFE_MS = 30 * 60_000
+export function potatoBurstAt(from = new Date()): string {
+  const STEP = 5 * 60_000, slots: number[] = []
+  for (let t = from.getTime() + POTATO_SAFE_MS; t < from.getTime() + POTATO_WITHIN_MS; t += STEP) if (cyHour(new Date(t)) >= 7) slots.push(t)
+  const at = slots.length ? slots[Math.floor(Math.random() * slots.length)]! + Math.floor(Math.random() * STEP) : from.getTime() + 24 * 3600_000
+  return new Date(at).toISOString()
+}
+/** Why no round can start now, if none can: it is past Wednesday, or this
+    week's has already been played (one the Αρχηγός ended early does not
+    count, so it may start again). */
+export async function potatoCantStart(at = new Date()): Promise<'late' | 'done' | null> {
+  const day = at.toLocaleDateString('en-CA', { timeZone: 'Europe/Nicosia' })
+  if ((new Date(`${day}T12:00:00Z`).getUTCDay() + 6) % 7 > 2) return 'late'          // Thursday to Sunday
+  const week = cyprusWeekStart(at)
+  const db = await useDb()
+  return (await db.select().from(s.hotPotato)).some(p => p.startedAt >= week && !p.stoppedBy) ? 'done' : null
+}
+export const POTATO_CANT: Record<'late' | 'done', string> = {
+  late: 'Η καυτή πατάτα ξεκινά Δευτέρα με Τετάρτη — ξανά από Δευτέρα 🥔',
+  done: 'Η πατάτα αυτής της εβδομάδας έχει ήδη παιχτεί — ξανά από Δευτέρα 🥔'
 }
 /** The potato in play, if one is. */
 export async function activePotato() {

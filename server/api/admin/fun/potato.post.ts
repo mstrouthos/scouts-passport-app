@@ -4,11 +4,12 @@ import { requireLeader } from '../../../utils/guard'
 import { now } from '../../../utils/passcode'
 import { FUN_GAME, pouchOf } from '../../../../utils/fun'
 import { grant, randomItems, type Items } from '../../../utils/funBag'
-import { activePotato, potatoTick, potatoBurstAt, potatoChallenges, announcePotato, potatoPool, potatoCycle, potatoTargets, funPaused, tellFun } from '../../../utils/leaderFun'
+import { activePotato, potatoTick, potatoBurstAt, potatoCantStart, POTATO_CANT, potatoChallenges, announcePotato, potatoPool, potatoCycle, potatoTargets, funPaused, tellFun } from '../../../utils/leaderFun'
 import { shortName } from '../../../../utils/shortName'
 
-/** The hot potato (server/utils/leaderFun.ts). With none in play, anyone who
-    takes everything may start a round by throwing it at someone: its secret
+/** The hot potato (server/utils/leaderFun.ts). With none in play — and none
+    played yet this week, Monday to Wednesday — anyone who takes everything
+    may start a round by throwing it at someone: its secret
     moment to burst is drawn, and so is the challenge, which everyone is told.
     Whoever holds it passes it on whenever they like — but whoever has it when
     it bursts does the challenge. It is fair: it goes only to someone who has
@@ -48,6 +49,9 @@ export default defineEventHandler(async (event) => {
     await db.update(s.hotPotato).set({ holderId: to, prevId: me.id, gotAt: t, passes: p.passes + 1, cycle: JSON.stringify(cycle) })
       .where(eq(s.hotPotato.id, p.id))
   } else {
+    // one round a week, started Monday to Wednesday
+    const why = await potatoCantStart()
+    if (why) throw createError({ statusCode: 409, message: POTATO_CANT[why] })
     cycle = round([me.id, to])
     const list = await potatoChallenges()
     const challenge = list[Math.floor(Math.random() * list.length)]
