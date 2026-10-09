@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /* Πού είναι ο Βορράς; — once a day, anywhere: a 3-2-1, then five seconds to
-   point the phone (held flat, like a compass) at north, with nothing on the
-   screen to help. Where it points when time is up is the answer, scored on
+   point the phone (held flat, like a compass) the way the day asks — north at
+   first, and from NORTH_RANDOM_FROM a bearing of the day's own, the same for
+   everyone — with nothing on the screen to help. Where it points when time is up is the answer, scored on
    the server against true north (utils/north.ts). The day is only used up
    once the phone's compass answers, so a phone without one loses nothing. */
-import { NORTH_SECS, NORTH_BULLSEYE } from '~/utils/north'
+import { NORTH_SECS, NORTH_BULLSEYE, northPoint } from '~/utils/north'
 
 const { t } = useI18n()
 const { show } = useToast()
@@ -91,11 +92,18 @@ async function lock() {
   } catch (e: any) { show(errMsg(e)); phase.value = 'intro'; refresh() }
 }
 
+/* the day's bearing: 0 is north, as it always was until each day had its own */
+const target = computed(() => Number(data.value?.target) || 0)
+const dir = computed(() => t(`northDir${northPoint(target.value)}`))
+const goal = computed(() => target.value ? t('northGoal', { d: target.value, dir: dir.value }) : '')
+
 /* what today's go was, whether just now or earlier today */
 const mine = computed(() => result.value || (data.value?.mine?.answered ? data.value.mine : null))
 const lost = computed(() => !mine.value && data.value?.mine && !data.value.mine.answered && phase.value === 'intro')
 const deg = (n: number | null | undefined) => n == null ? '—' : `${Math.round(Math.abs(n))}°`
-const side = (e: number) => Math.abs(e) <= NORTH_BULLSEYE ? t('northSpot') : e > 0 ? t('northRight', { d: deg(e) }) : t('northLeft', { d: deg(e) })
+const side = (e: number) => !target.value
+  ? (Math.abs(e) <= NORTH_BULLSEYE ? t('northSpot') : e > 0 ? t('northRight', { d: deg(e) }) : t('northLeft', { d: deg(e) }))
+  : (Math.abs(e) <= NORTH_BULLSEYE ? t('northSpotT', { t: target.value }) : e > 0 ? t('northRightT', { d: deg(e), t: target.value }) : t('northLeftT', { d: deg(e), t: target.value }))
 const todayRows = computed(() => (data.value?.today || []).map((p: any) => ({ ...p, value: `${p.off}°`, sub: `${p.points} ${t('northPoints')} · ${secs(p.ms)}` })))
 const weekRows = computed(() => (data.value?.week || []).map((p: any) => ({ ...p, value: `${p.avg}°`, unit: t('northAvg'), sub: t('kimDays', { n: p.days }) })))
 const secs = (ms: number | null | undefined) => ms == null ? '—' : `${(ms / 1000).toFixed(1).replace('.', ',')}″`
@@ -109,14 +117,14 @@ const secs = (ms: number | null | undefined) => ms == null ? '—' : `${(ms / 10
         <div class="dial">
           <!-- up is where the phone pointed; the blue line is true north -->
           <span class="needle you" />
-          <span class="needle truth" :style="{ transform: `rotate(${-(mine.error || 0)}deg)` }"><i>Β</i></span>
+          <span class="needle truth" :style="{ transform: `rotate(${-(mine.error || 0)}deg)` }"><i>{{ target ? `${target}°` : 'Β' }}</i></span>
           <span class="hub" />
         </div>
         <div class="big">{{ mine.points }} <small>{{ t('northPoints') }}</small></div>
         <div class="line">{{ Math.abs(mine.error) <= NORTH_BULLSEYE ? '🎯 ' : '' }}{{ side(mine.error) }}</div>
         <div v-if="result?.won" class="won">🎒 {{ t('northWon') }}</div>
         <div v-if="result?.late" class="tiny muted">{{ t('northLate') }}</div>
-        <div class="legend"><span class="ly">━ {{ t('northYou') }}</span><span class="lt">━ {{ t('northTrue') }}</span></div>
+        <div class="legend"><span class="ly">━ {{ t('northYou') }}</span><span class="lt">━ {{ target ? `${target}° · ${dir}` : t('northTrue') }}</span></div>
         <div class="tiny muted">{{ t('northTomorrow') }}</div>
       </template>
 
@@ -128,10 +136,12 @@ const secs = (ms: number | null | undefined) => ms == null ? '—' : `${(ms / 10
 
       <template v-else-if="phase === 'intro' || phase === 'arming'">
         <div class="emoji">🧭</div>
-        <h3>{{ t('northHow') }}</h3>
+        <h3>{{ target ? t('northHowT') : t('northHow') }}</h3>
+        <div v-if="target" class="goal">🎯 {{ goal }}</div>
         <ul class="how">
           <li>{{ t('northHow1') }}</li>
-          <li>{{ t('northHow2', { s: NORTH_SECS }) }}</li>
+          <li>{{ target ? t('northHow2T', { s: NORTH_SECS, d: target }) : t('northHow2', { s: NORTH_SECS }) }}</li>
+          <li v-if="target">{{ t('northHowDeg') }}</li>
           <li>{{ t('northHow3') }}</li>
           <li>{{ t('northHow4') }}</li>
         </ul>
@@ -142,10 +152,12 @@ const secs = (ms: number | null | undefined) => ms == null ? '—' : `${(ms / 10
       <template v-else-if="phase === 'count'">
         <div class="dial blank"><span class="count">{{ count }}</span></div>
         <div class="line">{{ t('northHold') }}</div>
+        <div v-if="target" class="goal">🎯 {{ goal }}</div>
       </template>
 
       <template v-else-if="phase === 'turn' || phase === 'sending'">
         <div class="dial blank turn" @click="lock"><span class="count small">{{ left.toFixed(1).replace('.', ',') }}″</span></div>
+        <div v-if="target" class="goal">🎯 {{ goal }}</div>
         <div class="line" :class="{ warn: !flat }">{{ flat ? '📏 ' + t('northFlat') : '⚠️ ' + t('northTilt') }}</div>
         <button class="btn ghost" :disabled="phase === 'sending'" @click="lock">{{ t('northLock') }}</button>
       </template>
@@ -191,6 +203,7 @@ const secs = (ms: number | null | undefined) => ms == null ? '—' : `${(ms / 10
 .big{font-size:40px; font-weight:900; color:#2F6B4F; line-height:1}
 .big small{font-size:14px; font-weight:700; color:var(--muted)}
 .line{font-size:14px; font-weight:700}
+.goal{font-size:16px; font-weight:900; color:#2F79B8; background:#EAF3FB; border-radius:999px; padding:6px 14px}
 .line.warn{color:#C2410C}
 .won{font-size:13px; font-weight:700; background:#EAF6EF; color:#2E7D5B; border-radius:999px; padding:6px 12px}
 .legend{display:flex; gap:14px; font-size:12px; font-weight:700}

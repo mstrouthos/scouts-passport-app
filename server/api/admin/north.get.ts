@@ -4,9 +4,11 @@ import { requireLeader } from '../../utils/guard'
 import { faceOf } from '../../utils/face'
 import { normalizeAvatar } from '../../../utils/avatar'
 import { kimDay } from '../../../utils/kim'
+import { northTarget } from '../../../utils/north'
 
-/** Πού είναι ο Βορράς; — whether I have had today's go (and how it went), and
-    how everyone did today and this week, ranked by how far off north they were. */
+/** Πού είναι ο Βορράς; — today's bearing, whether I have had today's go (and
+    how it went), and how everyone did today and this week, ranked by how far
+    off the day's bearing they were. */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const db = await useDb()
@@ -33,6 +35,7 @@ export default defineEventHandler(async (event) => {
   }).sort((a, b) => a.avg - b.avg || b.days - a.days)
   const placed = <T>(list: T[], key: (x: T) => number) => list.map((x, i) => ({ ...x, place: 1 + list.filter((o, j) => j < i && key(o) < key(x)).length }))
   return {
+    target: northTarget(day),
     mine: mine && { answered: !!mine.answeredAt, error: mine.error, points: mine.points, ms: mine.ms },
     today: placed(today.map(p => ({ ...face(person(p.scoutId)!), error: p.error, off: off(p), points: p.points, ms: p.ms, me: p.scoutId === me.id })), x => x.off),
     week: placed(week, x => x.avg)

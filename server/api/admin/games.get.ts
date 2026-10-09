@@ -8,6 +8,7 @@ import { kimDay } from '../../../utils/kim'
 import { GAME_KINDS, GAME_OF_KIND, type GameKey } from '../../../utils/games'
 import { gameScores, totalOf } from '../../utils/gameRank'
 import { shortName } from '../../../utils/shortName'
+import { northTarget } from '../../../utils/north'
 import { sunTimes } from '../../../utils/sun'
 import { cyprusWeekStart } from '../../utils/leaderFun'
 
@@ -41,6 +42,7 @@ export default defineEventHandler(async (event) => {
     potato: pot ? { mine: pot.holderId === me.id, holderName: shortName(holder) || null } : null,
     kim: kim ? { correct: kim.correct } : null,
     north: north ? { points: north.points, error: north.error } : null,
+    northTarget: northTarget(kimDay()),
     flag,
     bag
   }
