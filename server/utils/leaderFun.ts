@@ -71,7 +71,8 @@ const GAME_PHRASE: Record<GameKey, (n: number) => string> = {
   potato: n => `🥔 ${n} στην Καυτή Πατάτα`,
   kim: n => `🧠 ${n} στο Ταψί του Κιμ`,
   north: n => `🧭 ${n} στον Βορρά`,
-  flag: n => `🇬🇷 ${n} στη Σημαία`
+  flag: n => `🇬🇷 ${n} στη Σημαία`,
+  photo: n => `📸 ${n} στο Φωτογραφικό κυνήγι`
 }
 /** The bundle: for whoever has game news that never reached their phone,
     one push saying how much and where — when the hour since their last one

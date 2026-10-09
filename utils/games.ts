@@ -4,14 +4,15 @@
    from. Shared by the server (where a notification belongs, where it opens)
    and the pages (the dashboard tiles, each game's own 🔔). */
 
-export type GameKey = 'throw' | 'potato' | 'kim' | 'north' | 'flag'
+export type GameKey = 'throw' | 'potato' | 'kim' | 'north' | 'flag' | 'photo'
 
 export const GAMES: Record<GameKey, { path: string, icon: string, emoji: string }> = {
   throw: { path: '/admin/play', icon: '/images/games/throw.webp', emoji: '🍅' },
   potato: { path: '/admin/potato', icon: '/images/games/potato.webp', emoji: '🥔' },
   kim: { path: '/admin/kim', icon: '/images/games/kim.webp', emoji: '🧠' },
   north: { path: '/admin/north', icon: '/images/games/north.webp', emoji: '🧭' },
-  flag: { path: '/admin/flag', icon: '/images/games/flag.webp', emoji: '🇬🇷' }
+  flag: { path: '/admin/flag', icon: '/images/games/flag.webp', emoji: '🇬🇷' },
+  photo: { path: '/admin/photo', icon: '/images/games/photo.webp', emoji: '📸' }
 }
 /** The one still to come, shown greyed out on the dashboard. */
 export const GAME_SOON_ICON = '/images/games/camp.webp'
@@ -21,7 +22,8 @@ export const GAME_OF_KIND: Record<string, GameKey> = {
   'fun': 'throw', 'fun-warn': 'throw', 'fun-daily': 'throw', 'fun-refill': 'throw', 'fun-gift': 'throw',
   'potato': 'potato', 'potato-pass': 'potato', 'potato-burst': 'potato',
   'kim': 'kim',
-  'flag': 'flag'
+  'flag': 'flag',
+  'photo': 'photo', 'photo-win': 'photo'
 }
 export const GAME_KINDS = Object.keys(GAME_OF_KIND)
 export const kindsOfGame = (g: GameKey) => GAME_KINDS.filter(k => GAME_OF_KIND[k] === g)

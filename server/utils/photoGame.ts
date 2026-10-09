@@ -1,0 +1,150 @@
+import { and, eq, isNull, isNotNull } from 'drizzle-orm'
+import { useDb, schema as s } from '../db'
+import { now } from './passcode'
+import { tellFun } from './leaderFun'
+import type { SessionScout } from './guard'
+import { PHOTO_THINGS, PHOTO_PER_WEEK, PHOTO_HOURS, type PhotoThing } from '../../utils/photoGame'
+
+/* Φωτογραφικό κυνήγι (utils/photoGame.ts). While it is tried out, only those
+   the Αρχηγός Συστήματος lets in play it; everyone else sees it coming soon. */
+
+/** Whether this person plays the photo game. */
+export const canPhoto = (me: SessionScout) => me.role !== 'scout' && !!me.photoGame && me.funPref !== 'off'
+
+/** Those who play: let in, active, not out of the games. */
+export async function photoPlayers() {
+  const db = await useDb()
+  return (await db.select().from(s.scouts)).filter(r => r.role !== 'scout' && r.photoGame && r.isActive && !r.deletedAt && r.funPref !== 'off')
+}
+
+/* Cyprus time, with one formatter made once */
+const CY_HOUR = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Nicosia', hour: '2-digit', hour12: false })
+const cyHour = (at: Date) => Number(CY_HOUR.format(at)) % 24
+const cyDay = (at: Date) => at.toLocaleDateString('en-CA', { timeZone: 'Europe/Nicosia' })
+const dowOf = (day: string) => (new Date(`${day}T12:00:00Z`).getUTCDay() + 6) % 7          // Monday = 0
+const shiftDay = (day: string, n: number) => new Date(Date.parse(`${day}T12:00:00Z`) + n * 86400_000).toISOString().slice(0, 10)
+/** Midnight at the end of a Cyprus day (+03:00 in summer, +02:00 in winter). */
+function endOfDay(day: string) {
+  const next = shiftDay(day, 1)
+  for (const off of ['+03:00', '+02:00']) {
+    const t = Date.parse(`${next}T00:00:00${off}`)
+    if (cyHour(new Date(t)) === 0) return t
+  }
+  return Date.parse(`${next}T00:00:00+02:00`)
+}
+
+/** The round in play, if one is; one whose day is over is closed first. */
+export async function activePhotoRound() {
+  const db = await useDb()
+  const open = await db.select().from(s.photoRounds).where(isNull(s.photoRounds.endedAt))
+  let live: typeof open[number] | null = null
+  for (const r of open) {
+    if (Date.parse(r.endsAt) <= Date.now()) await db.update(s.photoRounds).set({ endedAt: r.endsAt }).where(eq(s.photoRounds.id, r.id))
+    else live = r
+  }
+  return live
+}
+
+/** A new round now: a thing not asked for lately, open until three have it or
+    the day is over, and everyone who plays told at once. Null if one is in play. */
+export async function startPhotoRound(byId: number | null) {
+  if (await activePhotoRound()) return null
+  const db = await useDb()
+  const recent = (await db.select().from(s.photoRounds)).sort((a, b) => b.id - a.id).slice(0, 15).map(r => r.thing)
+  const pool = PHOTO_THINGS.filter(x => !recent.includes(x.key))
+  const thing = (pool.length ? pool : PHOTO_THINGS)[Math.floor(Math.random() * (pool.length || PHOTO_THINGS.length))]!
+  const at = new Date()
+  const [round] = await db.insert(s.photoRounds).values({
+    thing: thing.key, startedAt: now(), endsAt: new Date(endOfDay(cyDay(at))).toISOString(), startedBy: byId
+  }).returning()
+  for (const p of await photoPlayers()) {
+    await tellFun(p.id, { title: '📸 Φωτογραφικό κυνήγι', kind: 'photo', refId: round!.id,
+      body: `${thing.emoji} Φωτογράφισε ${thing.el}! Οι 3 πρώτοι παίρνουν 5, 4 και 3 XP — με την κάμερα της εφαρμογής.` }, true)
+  }
+  return { round: round!, thing }
+}
+
+/* Twice a week, Monday to Friday, on different days, at random moments between
+   PHOTO_HOURS — drawn the first time the week is looked at, and kept. */
+const PLAN_KEY = (monday: string) => `photo.plan.${monday}`
+type PhotoPlan = { at: string[], done: string[] }
+async function photoPlan(at = new Date()): Promise<{ key: string, plan: PhotoPlan }> {
+  const today = cyDay(at), monday = shiftDay(today, -dowOf(today)), key = PLAN_KEY(monday)
+  const db = await useDb()
+  const raw = (await db.select().from(s.settings).where(eq(s.settings.key, key)))[0]?.value
+  if (raw) { try { return { key, plan: JSON.parse(raw) } } catch {} }
+  // the days left this week (Monday to Friday), and on each the moments left between the hours
+  const STEP = 5 * 60_000
+  const days: number[][] = []
+  for (let d = dowOf(today); d <= 4; d++) {
+    const day = shiftDay(monday, d), slots: number[] = []
+    for (let t = Date.parse(`${day}T00:00:00Z`) - 3 * 3600_000; t < endOfDay(day); t += STEP) {
+      const h = cyHour(new Date(t))
+      if (t > at.getTime() && cyDay(new Date(t)) === day && h >= PHOTO_HOURS[0]! && h < PHOTO_HOURS[1]!) slots.push(t)
+    }
+    if (slots.length) days.push(slots)
+  }
+  const chosen = days.sort(() => Math.random() - .5).slice(0, PHOTO_PER_WEEK)
+  const plan: PhotoPlan = { at: chosen.map(sl => new Date(sl[Math.floor(Math.random() * sl.length)]!).toISOString()).sort(), done: [] }
+  await db.insert(s.settings).values({ key, value: JSON.stringify(plan) }).onConflictDoNothing()
+  const kept = (await db.select().from(s.settings).where(eq(s.settings.key, key)))[0]?.value
+  try { return { key, plan: kept ? JSON.parse(kept) : plan } } catch { return { key, plan } }
+}
+/** The week's rounds, each when its moment comes (a round already in play
+    then — one an admin started — stands in for it). Run by the cron. */
+export async function photoWeekly(at = new Date()): Promise<string | null> {
+  const { key, plan } = await photoPlan(at)
+  const due = plan.at.find(x => !plan.done.includes(x) && Date.parse(x) <= at.getTime())
+  if (!due) return null
+  const db = await useDb()
+  // claimed first, so two runs at once start one round
+  const next = { ...plan, done: [...plan.done, due] }
+  const claimed = await db.update(s.settings).set({ value: JSON.stringify(next) })
+    .where(and(eq(s.settings.key, key), eq(s.settings.value, JSON.stringify(plan)))).returning()
+  if (!claimed.length) return null
+  const started = await startPhotoRound(null)
+  return started ? started.thing.key : null
+}
+
+/** Places taken so far in a round (1–3). */
+export async function photoWinners(roundId: number) {
+  const db = await useDb()
+  return (await db.select().from(s.photoShots).where(and(eq(s.photoShots.roundId, roundId), isNotNull(s.photoShots.place))))
+    .sort((a, b) => a.place! - b.place!)
+}
+
+/** The judge: is the thing really in the photo — the thing itself, not a
+    picture of it on a screen? Gemini looks (NUXT_GEMINI_API_KEY; the model is
+    NUXT_GEMINI_MODEL, gemini-3.5-flash-lite unless set). */
+export async function judgePhoto(jpeg: Buffer, thing: PhotoThing): Promise<{ ok: boolean, reason: string }> {
+  const c = useRuntimeConfig()
+  const key = c.geminiApiKey || process.env.NUXT_GEMINI_API_KEY
+  if (!key) throw createError({ statusCode: 503, message: 'Ο έλεγχος φωτογραφιών δεν έχει ρυθμιστεί ακόμα' })
+  const model = c.geminiModel || 'gemini-3.5-flash-lite'
+  const prompt = `You are the judge of a scavenger-hunt photo game. The player was asked to take a photo of ${thing.en}.
+Look at the photo and answer:
+- found: true only if ${thing.en} is clearly visible in the photo (a reasonable everyday example counts).
+- real: false if what is shown is a picture of it on a screen, monitor, phone, or a printed photo, rather than the real thing in front of the camera; otherwise true.
+- reason_el: one short, friendly sentence in Greek telling the player what you see — if it is not found, what the photo shows instead.`
+  let res: any
+  try {
+    res = await $fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+      method: 'POST', timeout: 25_000,
+      headers: { 'x-goog-api-key': key, 'content-type': 'application/json' },
+      body: {
+        contents: [{ role: 'user', parts: [{ inlineData: { mimeType: 'image/jpeg', data: jpeg.toString('base64') } }, { text: prompt }] }],
+        generationConfig: {
+          temperature: 0, responseMimeType: 'application/json',
+          responseSchema: { type: 'OBJECT', properties: { found: { type: 'BOOLEAN' }, real: { type: 'BOOLEAN' }, reason_el: { type: 'STRING' } }, required: ['found', 'real', 'reason_el'] }
+        }
+      }
+    })
+  } catch (err: any) {
+    console.warn('[photo] gemini failed', err?.statusCode || err?.status, err?.data?.error?.message || err?.message)
+    throw createError({ statusCode: 502, message: 'Ο κριτής δεν απάντησε — η προσπάθεια δεν μετράει, δοκίμασε ξανά' })
+  }
+  let v: any = null
+  try { v = JSON.parse(res?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || '').join('') || 'null') } catch {}
+  if (!v || typeof v.found !== 'boolean') throw createError({ statusCode: 502, message: 'Ο κριτής δεν κατάλαβε τη φωτογραφία — η προσπάθεια δεν μετράει, δοκίμασε ξανά' })
+  return { ok: v.found && v.real !== false, reason: String(v.reason_el || '').slice(0, 240) }
+}

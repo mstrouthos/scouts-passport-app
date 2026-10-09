@@ -55,7 +55,8 @@ const KIND: Record<string, string> = {
   // the mini-games
   'fun': '🍅 Σπλατς', 'fun-warn': '🍅 Σπλατς', 'fun-daily': '🍅 Σπλατς · ο στόχος της ημέρας', 'fun-refill': '🎒 Σπλατς · ανεφοδιασμός', 'fun-gift': '🎁 Σπλατς · δώρο',
   'potato': '🥔 Καυτή Πατάτα', 'potato-pass': '🥔 Καυτή Πατάτα', 'potato-burst': '🥔 Καυτή Πατάτα · έσκασε',
-  'kim': '🧠 Το Ταψί του Κιμ', 'flag': '🇬🇷 Έπαρση Σημαίας', 'game-digest': '🎮 Μίνι παιχνίδια · μαζεμένα'
+  'kim': '🧠 Το Ταψί του Κιμ', 'flag': '🇬🇷 Έπαρση Σημαίας', 'game-digest': '🎮 Μίνι παιχνίδια · μαζεμένα',
+  'photo': '📸 Φωτογραφικό κυνήγι', 'photo-win': '📸 Φωτογραφικό κυνήγι · νικητής'
 }
 const clip = (s: string, n: number) => s.length > n ? s.slice(0, n - 1) + '…' : s
 function list(names: string[], max = 1000) {

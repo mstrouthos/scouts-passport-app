@@ -86,6 +86,10 @@ export default defineNuxtConfig({
     // optional: a channel of its own for the mini-games' notifications
     // («Games Channel»); without it they go to the first one
     discordGamesWebhookUrl: '',
+    // the photo game's judge: a Gemini API key (Google AI Studio), and optionally the model
+    // (gemini-3.5-flash-lite unless set)
+    geminiApiKey: '',
+    geminiModel: '',
     vapidSubject: 'mailto:admin@example.org',
     resendApiKey: '',
     // the sender: its name and its address, set apart (NUXT_EMAIL_FROM, the

@@ -573,6 +573,26 @@ CREATE TABLE IF NOT EXISTS fun_grants (
   created_at TEXT NOT NULL,
   UNIQUE (scout_id, reason, ref)
 );
+CREATE TABLE IF NOT EXISTS photo_rounds (
+  id SERIAL PRIMARY KEY,
+  thing TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  ends_at TEXT NOT NULL,
+  started_by INTEGER REFERENCES scouts(id),
+  ended_at TEXT
+);
+CREATE TABLE IF NOT EXISTS photo_shots (
+  id SERIAL PRIMARY KEY,
+  round_id INTEGER NOT NULL REFERENCES photo_rounds(id),
+  scout_id INTEGER NOT NULL REFERENCES scouts(id),
+  created_at TEXT NOT NULL,
+  ok BOOLEAN NOT NULL DEFAULT FALSE,
+  reason TEXT,
+  place INTEGER,
+  points INTEGER NOT NULL DEFAULT 0,
+  file_id INTEGER,
+  UNIQUE (round_id, place)
+);
 CREATE TABLE IF NOT EXISTS fun_gifts (
   id SERIAL PRIMARY KEY,
   from_id INTEGER NOT NULL REFERENCES scouts(id),
@@ -801,5 +821,7 @@ export const MIGRATIONS = [
   "ALTER TABLE shop_items ADD COLUMN IF NOT EXISTS images TEXT",
   // the mini-games' news off the phone: by choice, or by the Αρχηγός Συστήματος
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS game_notifs_off BOOLEAN NOT NULL DEFAULT FALSE",
-  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS game_notifs_blocked BOOLEAN NOT NULL DEFAULT FALSE"
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS game_notifs_blocked BOOLEAN NOT NULL DEFAULT FALSE",
+  // the photo game: who may play it while it is being tried out (the Αρχηγός Συστήματος chooses)
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS photo_game BOOLEAN NOT NULL DEFAULT FALSE"
 ]

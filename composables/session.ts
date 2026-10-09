@@ -9,6 +9,7 @@ export type Me = {
   shopManager?: boolean, shopVisible?: boolean
   // the mini-games' news kept off their phone: by them, or by the Αρχηγός Συστήματος
   gameNotifsOff?: boolean, gameNotifsBlocked?: boolean
+  photoGame?: boolean
 }
 
 export const useMe = () => useState<Me | null>('me', () => null)

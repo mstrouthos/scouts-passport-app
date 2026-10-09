@@ -10,7 +10,7 @@ import { potatoPool } from './leaderFun'
    (utils/games.ts), so the page can say it. */
 
 export type Parts = Record<GameKey, number>
-const empty = (): Parts => ({ throw: 0, potato: 0, kim: 0, north: 0, flag: 0 })
+const empty = (): Parts => ({ throw: 0, potato: 0, kim: 0, north: 0, flag: 0, photo: 0 })
 
 export async function gameScores(sinceIso: string): Promise<Map<number, Parts>> {
   const db = await useDb()
@@ -43,6 +43,9 @@ export async function gameScores(sinceIso: string): Promise<Map<number, Parts>> 
     if (f.loweredBy) add(f.loweredBy, 'flag', GAME_RANK.flagLower)
     if (f.raisedBy && f.raisedBy === f.loweredBy) add(f.raisedBy, 'flag', GAME_RANK.flagBoth)
   }
+  // the photo game: the places won (5, 4, 3)
+  const photoRounds = new Set((await db.select().from(s.photoRounds)).filter(r => r.startedAt >= sinceIso).map(r => r.id))
+  for (const x of (await db.select().from(s.photoShots)).filter(x => x.place && photoRounds.has(x.roundId))) add(x.scoutId, 'photo', x.points)
   return out
 }
-export const totalOf = (p: Parts) => p.throw + p.potato + p.kim + p.north + p.flag
+export const totalOf = (p: Parts) => p.throw + p.potato + p.kim + p.north + p.flag + p.photo

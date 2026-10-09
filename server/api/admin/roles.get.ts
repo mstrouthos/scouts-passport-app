@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
       isTroopLeader: true,
       leaders: allLeaders.map(r => ({
         id: r.id, firstName: r.firstName, lastName: r.lastName,
-        firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, role: r.role, isChief: !!r.isChief, shopManager: !!r.shopManager, ...faceOf(r),
+        firstNameEn: r.firstNameEn, lastNameEn: r.lastNameEn, role: r.role, isChief: !!r.isChief, shopManager: !!r.shopManager, photoGame: !!r.photoGame, ...faceOf(r),
         isActive: r.isActive, phone: r.phone, email: r.email, birthday: r.birthday, idNumber: r.idNumber,
         scopes: scopes.filter(x => x.scoutId === r.id).map(x => ({ id: x.id, scope: x.scope, sectionId: x.sectionId, patrolId: x.patrolId, rank: x.rank }))
       })),

@@ -20,14 +20,16 @@ const tiles = computed(() => {
     north: d?.north ? t('gameNorthDone', { p: d.north.points }) : d?.northTarget ? t('gameNorthToday', { d: d.northTarget }) : t('gameNorthNew'),
     flag: !d?.flag ? '' : d.flag.phase === 'before' ? t('gameFlagAt', { t: hm(d.flag.sunrise) })
       : d.flag.phase === 'day' ? (d.flag.raised ? t('gameFlagUp', { t: hm(d.flag.sunset) }) : t('gameFlagRaise'))
-      : d.flag.raised && !d.flag.lowered ? t('gameFlagLower') : t('gameFlagTomorrow')
+      : d.flag.raised && !d.flag.lowered ? t('gameFlagLower') : t('gameFlagTomorrow'),
+    photo: d?.photo?.round ? t('gamePhotoNow', { what: d.photo.round.el }) : t('gamePhotoWait')
   }
-  const NAME: Record<GameKey, string> = { throw: 'gameThrow', potato: 'gamePotato', kim: 'kimTitle', north: 'northTitle', flag: 'flagTitle' }
+  const NAME: Record<GameKey, string> = { throw: 'gameThrow', potato: 'gamePotato', kim: 'kimTitle', north: 'northTitle', flag: 'flagTitle', photo: 'photoTitle' }
   // the flag waiting for whoever comes first
   const flagOpen = !!d?.flag && ((d.flag.phase === 'day' && !d.flag.raised) || (d.flag.phase === 'evening' && d.flag.raised && !d.flag.lowered))
-  return (['throw', 'potato', 'kim', 'north', 'flag'] as GameKey[]).map(k => ({
+  // the photo game: only for those let in while it is tried out; everyone else sees it coming soon
+  return (['throw', 'potato', 'kim', 'north', 'flag', ...(d?.photo ? ['photo'] : [])] as GameKey[]).map(k => ({
     key: k, ...GAMES[k], name: t(NAME[k]),
-    line: line[k], unread: d?.unread?.[k] || 0, hot: (k === 'potato' && !!d?.potato?.mine) || (k === 'flag' && flagOpen)
+    line: line[k], unread: d?.unread?.[k] || 0, hot: (k === 'potato' && !!d?.potato?.mine) || (k === 'flag' && flagOpen) || (k === 'photo' && !!d?.photo?.round)
   }))
 })
 </script>
@@ -42,7 +44,11 @@ const tiles = computed(() => {
         <b>{{ g.name }}</b>
         <span class="ln">{{ g.line }}</span>
       </NuxtLink>
-      <div class="tile soon" aria-disabled="true">
+      <div v-if="data && !data.photo" class="tile soon" aria-disabled="true">
+        <img :src="GAMES.photo.icon" alt="" class="ic">
+        <span class="ln soonl">📸 {{ t('gameSoon') }}</span>
+      </div>
+      <div class="tile soon" :class="{ wide: (tiles.length + (data && !data.photo ? 1 : 0)) % 2 === 0 }" aria-disabled="true">
         <img :src="GAME_SOON_ICON" alt="" class="ic">
         <span class="ln soonl">{{ t('gameSoon') }}</span>
       </div>
@@ -84,6 +90,9 @@ const tiles = computed(() => {
 .rankbar .chev{font-size:20px; color:#9A7A20}
 .soon{background:#EEF1F4; box-shadow:none; justify-content:center}
 .soon .ic{filter:grayscale(1); opacity:.45}
+.soon.wide{grid-column:1 / -1; flex-direction:row; gap:14px; padding:8px 12px}
+.soon.wide .ic{width:64px; height:64px}
+.t-photo{background:linear-gradient(160deg,#FDEBD8,#F3E1F5)}
 .soonl{font-weight:700; color:#8A94A3; letter-spacing:.02em}
 @media (prefers-reduced-motion: reduce){ .hot .ic{animation:none} }
 </style>

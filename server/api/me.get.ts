@@ -37,6 +37,8 @@ export default defineEventHandler(async (event) => {
     // the mini-games' news kept off their phone: by them, or by the Αρχηγός Συστήματος
     gameNotifsOff: isLeader && !!me.gameNotifsOff,
     gameNotifsBlocked: isLeader && !!me.gameNotifsBlocked,
+    // let into the photo game while it is tried out
+    photoGame: isLeader && !!me.photoGame,
     // a hidden test account may try things out (drafts, a season out of season)
     isHidden: !!me.isHidden,
     canEditSelf: me.canEditSelf,
