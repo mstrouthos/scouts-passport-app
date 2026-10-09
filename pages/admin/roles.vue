@@ -43,7 +43,7 @@ onMounted(() => {
   const openId = Number(route.query.open)
   if (isTroopLeader.value && Number.isInteger(openId)) {
     const l = data.value?.leaders?.find((x: any) => x.id === openId)
-    if (l && l.id !== me.value?.id) open(l)
+    if (l) open(l)
   }
 })
 async function save() {
@@ -69,6 +69,9 @@ async function setPhotoGame(on: boolean) {
     await refreshAndResync(); await loadMe(); show('✅ ' + t('saved'))
   } catch (e: any) { show(errMsg(e)) }
 }
+/* my own sheet opens too — for my details and the shop and photo-game
+   switches; my own roles, admin rights and account are another admin's to change */
+const isSelf = computed(() => !!editing.value && editing.value.id === me.value?.id)
 async function demote(scoutId: number) {
   await $fetch('/api/admin/roles', { method: 'POST', body: { scoutId, role: 'scout' } })
   await refresh(); editing.value = null; show('✅ ' + t('saved'))
@@ -176,7 +179,7 @@ function appoint(r: any) { appointing.value = false; open({ ...r, role: 'leader'
       <div class="note"><b>👑 {{ t('troopLeader') }}</b>{{ t('rolesNote') }}</div>
       <div class="adm">
         <div class="hdr">{{ t('vathmoforoi') }} · {{ data?.leaders?.length || 0 }}</div>
-        <button v-for="l in data?.leaders" :key="l.id" class="it" :disabled="l.id === me?.id" @click="open(l)">
+        <button v-for="l in data?.leaders" :key="l.id" class="it" @click="open(l)">
           <Avatar :name="name(l)" :tone="avatarTone(l)" :photo="l.photo" :avatar="l.avatar" />
           <div style="flex:1;min-width:0"><b>{{ name(l) }}</b><span>{{ summaryLabel(l) }}</span></div>
           <span v-if="l.scopes?.length > 1" class="pill live">{{ l.scopes.length }}×</span>
@@ -201,16 +204,18 @@ function appoint(r: any) { appointing.value = false; open({ ...r, role: 'leader'
             <h3 style="margin:0;font-size:17px;flex:1">{{ name(editing) }}</h3>
           </div>
 
+          <div v-if="isSelf" class="note" style="margin:0">{{ t('rolesSelfNote') }}</div>
           <div class="sec-title" style="margin:0">{{ t('rolesTitle') }}</div>
           <div v-if="editing.scopes?.length" class="adm">
             <div v-for="sc in editing.scopes" :key="sc.id" class="it" style="cursor:default">
               <div style="flex:1"><b>{{ scopeRankLabel(sc) }}</b><span>{{ scopeChipLabel(sc) }}</span></div>
-              <button class="chip" style="flex:none;color:var(--danger)" @click="removeScope(sc.id)">✕</button>
+              <button v-if="!isSelf" class="chip" style="flex:none;color:var(--danger)" @click="removeScope(sc.id)">✕</button>
             </div>
           </div>
           <div v-else class="tiny muted">{{ t('noRoles') }}</div>
 
-          <template v-if="addingScope">
+          <template v-if="isSelf" />
+          <template v-else-if="addingScope">
             <div>
               <label class="lab">{{ isTroopLeader ? t('assignScope') : t('rankWord') }}</label>
               <div v-if="isTroopLeader" class="chips">
@@ -250,6 +255,7 @@ function appoint(r: any) { appointing.value = false; open({ ...r, role: 'leader'
             </template>
           </div>
 
+          <template v-if="!isSelf">
           <div class="sec-title" style="margin:0">{{ t('sendNotification') }}</div>
           <div style="display:flex;gap:8px">
             <input v-model="notifyText" class="in" style="flex:1" :placeholder="t('messagePlaceholder')" @keyup.enter="sendNotify">
@@ -269,10 +275,13 @@ function appoint(r: any) { appointing.value = false; open({ ...r, role: 'leader'
           </template>
           <div v-if="rotateSmsOutcome === 'sent'" class="tiny" style="color:var(--green)">📱 {{ t('smsSent') }}</div>
           <div v-else-if="rotateSmsOutcome === 'failed'" class="tiny muted">{{ t('smsNotConfigured') }}</div>
+          </template>
           <div class="sec-title" style="margin:0">{{ t('permissions') }}</div>
+          <template v-if="!isSelf">
           <button v-if="editing.role !== 'troop_leader'" class="btn ghost" @click="setAdmin(true)">⭐ {{ t('makeSuperAdmin') }}</button>
           <button v-else class="btn danger" @click="setAdmin(false)">{{ t('revokeSuperAdmin') }}</button>
           <div class="tiny muted">{{ t('superAdminNote') }}</div>
+          </template>
           <!-- the shop: whoever runs its items and its till -->
           <button class="srow" @click="setShopManager(!editing.shopManager)">
             <div class="ico">🛒</div>
@@ -286,8 +295,8 @@ function appoint(r: any) { appointing.value = false; open({ ...r, role: 'leader'
             <span class="sw" :class="{ off: !editing.photoGame }" />
           </button>
 
-          <button v-if="editing.role !== 'troop_leader' && editing.scopes?.length" class="btn danger" @click="demote(editing.id)">{{ t('demote') }}</button>
-          <button v-if="editing.role !== 'troop_leader'" class="btn danger" @click="deleteLeader">🗑️ {{ t('deletePermanently') }}</button>
+          <button v-if="!isSelf && editing.role !== 'troop_leader' && editing.scopes?.length" class="btn danger" @click="demote(editing.id)">{{ t('demote') }}</button>
+          <button v-if="!isSelf && editing.role !== 'troop_leader'" class="btn danger" @click="deleteLeader">🗑️ {{ t('deletePermanently') }}</button>
         </div>
       </div>
       <div v-if="appointing" class="sheet-backdrop" @click.self="appointing = false">

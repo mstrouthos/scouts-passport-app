@@ -42,9 +42,9 @@ export default defineEventHandler(async (event) => {
     unread,
     potato: pot ? { mine: pot.holderId === me.id, holderName: shortName(holder) || null } : null,
     potatoWaiting: pot ? null : await potatoWaiting(),
-    // the photo game, for those let in while it is tried out, and the admins who start it by hand
-    // (everyone else sees it coming soon)
-    photo: canPhoto(me) || me.role === 'troop_leader' ? await (async () => { const r = await activePhotoRound(); const t = r ? photoThing(r.thing) : null; return { round: t ? { el: t.el, emoji: t.emoji } : null } })() : null,
+    // the photo game, only for those let in while it is tried out — admins too switch it on for
+    // themselves in Ρόλοι; everyone else sees it coming soon, greyed out, not a link
+    photo: canPhoto(me) ? await (async () => { const r = await activePhotoRound(); const t = r ? photoThing(r.thing) : null; return { round: t ? { el: t.el, emoji: t.emoji } : null } })() : null,
     kim: kim ? { correct: kim.correct } : null,
     north: north ? { points: north.points, error: north.error } : null,
     flag,
