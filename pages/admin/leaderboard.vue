@@ -25,7 +25,6 @@ const rows = computed(() => (data.value?.rows || []).map((r: any) => ({
       <span>🧭 {{ t('gamesRankNorth', { n: GAME_RANK.northDiv }) }}</span>
       <span>🧠 {{ t('gamesRankKim', { n: GAME_RANK.kimPerThing }) }}</span>
       <span>🥔 {{ t('gamesRankPotato', { n: GAME_RANK.potatoPass, m: GAME_RANK.potatoSurvive }) }}</span>
-      <span>🎯 {{ t('gamesRankTarget', { n: GAME_RANK.dailyTarget }) }}</span>
       <span>🇬🇷 {{ t('gamesRankFlag', { r: GAME_RANK.flagRaise, l: GAME_RANK.flagLower, b: GAME_RANK.flagBoth }) }}</span>
     </div>
   </AppShell>

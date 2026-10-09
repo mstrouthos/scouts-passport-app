@@ -1,4 +1,5 @@
 import { and, eq, gt, isNull } from 'drizzle-orm'
+import { funRound } from '../../../utils/fun'
 import { useDb, schema as s } from '../../db'
 import { requireLeader } from '../../utils/guard'
 import { faceOf } from '../../utils/face'
@@ -6,7 +7,7 @@ import { normalizeAvatar, randomAvatar } from '../../../utils/avatar'
 import { kimDay } from '../../../utils/kim'
 import { dailyBag, bagOf, unseenGrants } from '../../utils/funBag'
 import { funDailyLast } from '../../utils/funDaily'
-import { FUN_LIMIT_DAY, cyprusDayStart, cyprusWeekStart, funPaused, potatoTick, activePotato, potatoPool, potatoCycle, potatoTargets } from '../../utils/leaderFun'
+import { cyprusDayStart, cyprusWeekStart, funPaused, potatoTick, activePotato, potatoPool, potatoCycle, potatoTargets } from '../../utils/leaderFun'
 import { shortName } from '../../../utils/shortName'
 
 /** The playground: every Βαθμοφόρος of every sector, standing; what has
@@ -67,7 +68,9 @@ export default defineEventHandler(async (event) => {
     daily: daily?.count && Date.now() - Date.parse(daily.at) < 26 * 3600_000 ? daily : null,
     kim: kimToday ? { correct: kimToday.correct } : null,
     paused: await funPaused(), canPause: me.role === 'troop_leader', canExclude: me.role === 'troop_leader',
-    me: { id: me.id, pref: me.funPref, sentToday: recent.filter(r => r.fromId === me.id && r.createdAt >= today && !r.auto).length, limit: FUN_LIMIT_DAY,
+    me: { id: me.id, pref: me.funPref,
+      // ten, two hours' rest, ten more
+      round: funRound(recent.filter(r => r.fromId === me.id && r.createdAt >= today && !r.auto).map(r => r.createdAt).sort()),
       anonLeft: !anonUsed },
     potato: {
       // never when it bursts: that is the game

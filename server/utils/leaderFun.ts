@@ -5,8 +5,6 @@ import { sendPushTo, deliverTo, onSurface, gameMuted } from './push'
 import { GAMES, GAME_KINDS, GAME_OF_KIND, type GameKey } from '../../utils/games'
 import { shortName } from '../../utils/shortName'
 
-/** How much fun a day holds: enough for a laugh, never a flood. */
-export const FUN_LIMIT_DAY = 15
 /** The same thing at the same person again only after a short breath. */
 export const FUN_COOLDOWN_MS = 20_000
 /** No buzzing phones at night (Cyprus time): it waits in the bell instead. */

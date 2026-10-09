@@ -84,9 +84,33 @@ export const ITEM_TIER: Record<string, Tier> = {
 export const THROWABLES = Object.keys(ITEM_TIER)
 export const isThrowable = (key: string) => key in ITEM_TIER
 /** At most this many things in a backpack. */
-export const BAG_MAX = 20
-/** Free every day, so nobody is ever left with nothing. */
-export const DAILY_FREE = { tomato: 3 } as Record<string, number>
+export const BAG_MAX = 30
+/** The refill, for every Βαθμοφόρος, twice a day (Cyprus time), so nobody is
+    ever left with nothing. */
+export const REFILL = { tomato: 6, snowball: 2, water: 2 } as Record<string, number>
+export const REFILL_HOURS = [6, 15]
+
+/** Σπλατς: ten things, then a two-hour breather, then ten more — twenty a day
+    at most (at whomever you like). */
+export const FUN_ROUND = 10
+export const FUN_ROUND_REST_MS = 2 * 3600_000
+export const FUN_LIMIT_DAY = 20
+/** Where someone stands today, from the times of what they did today (oldest
+    first): how many are left in this round, or when the next round opens. */
+export function funRound(times: string[], at = Date.now()): { left: number, readyAt: string | null, done: boolean } {
+  const n = times.length
+  if (n >= FUN_LIMIT_DAY) return { left: 0, readyAt: null, done: true }
+  if (n && n % FUN_ROUND === 0) {
+    const ready = Date.parse(times[n - 1]!) + FUN_ROUND_REST_MS
+    if (at < ready) return { left: 0, readyAt: new Date(ready).toISOString(), done: false }
+  }
+  return { left: FUN_ROUND - (n % FUN_ROUND), readyAt: null, done: false }
+}
+/** Several things from one person, told as one: "Νίκος Π. σου πέταξε 3 πράγματα! 🍅🍅❄️". */
+export function throwsNote(name: string, actions: string[]) {
+  const emojis = actions.map(k => funAction(k)?.emoji || '').join('')
+  return `${name} σου πέταξε ${actions.length} πράγματα! ${[...emojis].length > 12 ? [...emojis].slice(0, 12).join('') + '…' : emojis}`
+}
 /** Once, to start with. */
 export const WELCOME = { tomato: 5, snowball: 2, water: 1 } as Record<string, number>
 

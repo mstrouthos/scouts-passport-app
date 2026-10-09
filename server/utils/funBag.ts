@@ -1,11 +1,12 @@
 import { and, eq, gt, sql } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { now } from './passcode'
-import { ITEM_TIER, THROWABLES, BAG_MAX, DAILY_FREE, WELCOME, type Tier } from '../../utils/fun'
+import { ITEM_TIER, THROWABLES, BAG_MAX, REFILL, REFILL_HOURS, WELCOME, funAction, type Tier } from '../../utils/fun'
+import { sendPushTo } from './push'
 import { kimDay } from '../../utils/kim'
 
-/* The backpack 🎒 (utils/fun.ts): throwables are earned — every day a couple
-   of tomatoes, more from the games — and each throw spends one. */
+/* The backpack 🎒 (utils/fun.ts): throwables come in a refill at 06:00 and
+   15:00, more are earned in the games, and each throw spends one. */
 
 export type Items = Record<string, number>
 
@@ -47,10 +48,46 @@ export async function take(scoutId: number, item: string): Promise<boolean> {
   return done.length > 0
 }
 
-/** The day's free tomatoes, and the welcome pack the first time. */
+/** The welcome pack, the first time. */
 export async function dailyBag(scoutId: number) {
   await grant(scoutId, WELCOME, 'welcome', '1')
-  await grant(scoutId, DAILY_FREE, 'daily', kimDay())
+}
+
+/** The refill (REFILL, at REFILL_HOURS, Cyprus time): for every Βαθμοφόρος,
+    once for each — the latest that has come today, never one missed before
+    it (so a deploy at 15:04 gives the 15:00 one, not the 06:00 as well).
+    Those who play are told; whoever has opted out of the games is filled
+    but not told. At 06:00 nobody's phone buzzes: it waits for the morning
+    bundle at 08:00. Run by the cron. */
+export async function refillTick(at = new Date()): Promise<{ slot: string, given: number, told: number } | null> {
+  const hour = Number(at.toLocaleString('en-GB', { timeZone: 'Europe/Nicosia', hour: '2-digit', hour12: false }))
+  const slot = [...REFILL_HOURS].sort((a, b) => b - a).find(h => hour >= h)
+  if (slot == null) return null
+  const day = kimDay(at), ref = `${day}@${slot}`
+  const db = await useDb()
+  const people = (await db.select().from(s.scouts)).filter(r => r.role !== 'scout' && r.isActive && !r.deletedAt)
+  // one message for each different refill (a backpack near full takes less)
+  const byBody = new Map<string, number[]>()
+  let given = 0
+  for (const p of people) {
+    const got = await grant(p.id, REFILL, 'refill', ref)
+    if (!got || !Object.keys(got).length) continue
+    given++
+    if (p.funPref === 'off') continue
+    const body = `🎒 Ανεφοδιασμός! ${Object.entries(got).map(([k, n]) => `${n} ${funAction(k)?.emoji || k}`).join(' · ')} στο σακίδιό σου. Ώρα για Σπλατς!`
+    byBody.set(body, [...(byBody.get(body) || []), p.id])
+  }
+  const refId = Math.floor(Date.parse(`${day}T12:00:00Z`) / 86400_000) * 2 + (slot >= 12 ? 1 : 0)
+  const msg = (body: string) => ({ title: '🍅 Σπλατς', body, kind: 'fun-refill', refId })
+  let told = 0
+  for (const [body, ids] of byBody) {
+    told += ids.length
+    if (slot < 8) {
+      // into each one's Σπλατς 🔔 now; their phone hears of it in the 08:00 bundle
+      await db.insert(s.notifications).values(ids.map(id => ({ scoutId: id, kind: 'fun-refill', refId, title: msg(body).title, body, createdAt: now() })))
+    } else await sendPushTo(ids, msg(body))
+  }
+  return { slot: ref, given, told }
 }
 
 /** Things drawn at random: mostly common, now and then the rare one. */

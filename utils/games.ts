@@ -18,7 +18,7 @@ export const GAME_SOON_ICON = '/images/games/camp.webp'
 
 /** Which game a notification kind belongs to. */
 export const GAME_OF_KIND: Record<string, GameKey> = {
-  'fun': 'throw', 'fun-warn': 'throw', 'fun-daily': 'throw',
+  'fun': 'throw', 'fun-warn': 'throw', 'fun-daily': 'throw', 'fun-refill': 'throw',
   'potato': 'potato', 'potato-pass': 'potato', 'potato-burst': 'potato',
   'kim': 'kim',
   'flag': 'flag'
@@ -32,8 +32,7 @@ export const isGameKey = (g: unknown): g is GameKey => typeof g === 'string' && 
     swamps the rest: the Βορράς its own 0–100 a day divided by 10 (0–10); a
     thing remembered on Kim's tray 5 (20 a day at most); a throw of the potato
     1, and 2 for everyone playing it when a round bursts but the one it burst
-    on (held it or not); in Σπλατς 2 for the day's target — whoever had
-    the most thrown at them, as told at 23:00 (all of them, on a tie); and
-    the flag 5 for raising it, 5 for lowering it, and 2 more to whoever does
-    both on the same day. */
-export const GAME_RANK = { northDiv: 10, kimPerThing: 5, potatoPass: 1, potatoSurvive: 2, dailyTarget: 2, flagRaise: 5, flagLower: 5, flagBoth: 2 }
+    on (held it or not); and the flag 5 for raising it, 5 for lowering it, and
+    2 more to whoever does both on the same day. Σπλατς scores nothing:
+    banter is not points. */
+export const GAME_RANK = { northDiv: 10, kimPerThing: 5, potatoPass: 1, potatoSurvive: 2, flagRaise: 5, flagLower: 5, flagBoth: 2 }

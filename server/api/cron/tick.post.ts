@@ -14,6 +14,7 @@ import { eventInSections, eventSectionIds } from '../../utils/eventScope'
 import { potatoTick, gameDigest } from '../../utils/leaderFun'
 import { kimPrizes } from '../../utils/kimRewards'
 import { funDailyTick } from '../../utils/funDaily'
+import { refillTick } from '../../utils/funBag'
 
 /** Hit by host cron every few minutes with the token:
     curl -X POST -H "x-cron-token: $TOKEN" https://.../api/cron/tick */
@@ -178,6 +179,8 @@ export default defineEventHandler(async (event) => {
   const kimPrize = await kimPrizes()
   // 23:00: who had the most thrown at them today, told to everyone
   const funDaily = await funDailyTick()
+  // Σπλατς: the backpacks refilled at 06:00 and 15:00
+  const refill = await refillTick()
   // the mini-games' held news, bundled into one push each
   const gameBundles = await gameDigest()
 
@@ -199,6 +202,7 @@ export default defineEventHandler(async (event) => {
     ...(kimPrize.length ? { kimPrize } : {}),
     ...(funDaily ? { funDaily } : {}),
     ...(gameBundles.length ? { gameBundles: gameBundles.length } : {}),
+    ...(refill?.given ? { refill } : {}),
     ...(sent.length ? { sent } : {}),
     ...(purgedWho.length ? { purgedWho } : {})
   }

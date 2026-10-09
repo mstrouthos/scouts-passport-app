@@ -24,7 +24,12 @@ const route = useRoute()
 const { data, refresh } = await useFetch<any>('/api/admin/fun', { lazy: true })
 
 const myId = computed<number | undefined>(() => data.value?.me?.id)
-const left = computed(() => Math.max(0, (data.value?.me?.limit ?? 0) - (data.value?.me?.sentToday ?? 0)))
+/* ten, then two hours' rest, then ten more (utils/fun.ts) */
+const round = computed<{ left: number, readyAt: string | null, done: boolean }>(() => data.value?.me?.round || { left: 0, readyAt: null, done: false })
+const left = computed(() => round.value.left)
+const ammoText = computed(() => round.value.done ? t('funDone')
+  : round.value.readyAt ? t('funRest', { t: new Date(round.value.readyAt).toLocaleTimeString(locale.value === 'en' ? 'en-GB' : 'el-GR', { timeZone: 'Europe/Nicosia', hour: '2-digit', minute: '2-digit', hour12: false }) })
+  : t('funLeftRound', { n: left.value }))
 const recent = computed<any[]>(() => data.value?.recent || [])
 const nameOf = (l: any) => shortName(l)
 const text = (a: FunAction) => locale.value === 'en' ? a.en : a.el
@@ -88,7 +93,7 @@ async function act(to: any, a: FunAction, back = false) {
   try {
     const r = await $fetch<any>('/api/admin/fun', { method: 'POST', body: { to: to.id, action: a.key, anon: asAnon } })
     played.add(r.id)
-    if (data.value?.me) data.value.me.sentToday++
+    if (data.value?.me && r.round) data.value.me.round = r.round
     if (r.bag && data.value) data.value.bag = r.bag
     if (back) show(`↩️ ${t('funBackDone', { e: a.emoji, name: shortName(to) })}`, 2600)
     await play(a, myId.value!, to.id)
@@ -306,6 +311,7 @@ let splatTimer: any
 /* what lands on you fills the screen: a thrown thing's splat sliding down the
    glass; a shove's bang with what did it; a kind thing in a shower of sparkles */
 function onScreen(src: string, kind: ScreenFx['kind']) {
+  if (kind === 'splat') return addSplat(src)
   clearTimeout(splatTimer)
   screenSplat.value = { src, kind, key: Date.now(), wiping: false }
   splatTimer = setTimeout(wipe, kind === 'splat' ? 4200 : kind === 'pow' ? 1500 : 2600)
@@ -315,6 +321,45 @@ function wipe() {
   screenSplat.value.wiping = true
   clearTimeout(splatTimer)
   setTimeout(() => { screenSplat.value = null }, 450)
+}
+/* A splat stays on the glass until it is wiped off with a quick swipe — one
+   swipe, one splat; a slow drag only smears it — and nothing under it can be
+   tapped until the screen is clean. Only here, in Σπλατς: nowhere else in the
+   app does anything land on the screen. */
+type Splat = { key: number, src: string, x: number, y: number, r: number, s: number, gone: '' | 'l' | 'r' | 'u' | 'd' }
+const splats = ref<Splat[]>([])
+const smear = ref(0)
+const glass = ref<HTMLElement | null>(null)
+const splatsLeft = computed(() => splats.value.filter(s => !s.gone).length)
+function addSplat(src: string) {
+  const r = (n: number) => (Math.random() - .5) * n
+  splats.value = [...splats.value, { key: Date.now() + Math.random(), src, x: r(28), y: r(26), r: r(50), s: .8 + Math.random() * .35, gone: '' as const }].slice(-8)
+  nextTick(() => glass.value?.focus({ preventScroll: true }))
+}
+let swipe: { x: number, y: number, t: number } | null = null
+function swipeStart(e: PointerEvent) {
+  swipe = { x: e.clientX, y: e.clientY, t: performance.now() }
+  try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) } catch {}
+}
+function swipeEnd(e: PointerEvent) {
+  if (!swipe) return
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y, dt = Math.max(1, performance.now() - swipe.t)
+  swipe = null
+  const dist = Math.hypot(dx, dy)
+  // fast enough: a flick, not a drag
+  if (dist > 60 && dist / dt > .6) wipeOne(Math.abs(dx) >= Math.abs(dy) ? (dx < 0 ? 'l' : 'r') : (dy < 0 ? 'u' : 'd'))
+  else smear.value++
+}
+function wipeOne(dir: Splat['gone'] = 'l') {
+  const top = [...splats.value].reverse().find(s => !s.gone)
+  if (!top) return
+  top.gone = dir
+  sfx('whoosh')
+  // gone from the list only once it has slid off, so the glass keeps catching taps until then
+  setTimeout(() => { splats.value = splats.value.filter(s => s !== top) }, 420)
+}
+function glassKey(e: KeyboardEvent) {
+  if (['Enter', ' ', 'Escape', 'ArrowLeft', 'ArrowRight'].includes(e.key)) { e.preventDefault(); wipeOne(e.key === 'ArrowRight' ? 'r' : 'l') }
 }
 function burst(x: number, y: number, color: string | null, emoji: string | null, n = 9) {
   for (let i = 0; i < n; i++) {
@@ -547,7 +592,7 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
   <div v-if="data?.leaders?.length" class="fun">
     <div class="fun-head">
       <span>{{ data.paused ? t('funPaused') : isPotato ? t('potatoGameSub') : t('funSub') }}</span>
-      <span v-if="!isPotato && !data.paused && data.me.pref !== 'off'" class="ammo">{{ t('funLeft', { n: left }) }}</span>
+      <span v-if="!isPotato && !data.paused && data.me.pref !== 'off'" class="ammo">{{ ammoText }}</span>
     </div>
 
     <!-- the day's target: who had the most thrown at them, told to all at 23:00 -->
@@ -633,6 +678,13 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
     </div>
 
     <Teleport to="body">
+      <!-- the glass, splattered: swipe fast to clean it; nothing beneath can be tapped till then -->
+      <div v-if="splats.length" ref="glass" class="glass" role="dialog" aria-modal="true" :aria-label="t('funWipeAria')" tabindex="0"
+           @pointerdown.prevent="swipeStart" @pointerup="swipeEnd" @pointercancel="swipe = null" @click.stop.prevent @keydown="glassKey">
+        <img v-for="s in splats" :key="s.key" :src="s.src" alt="" class="gsplat" :class="s.gone ? 'gone-' + s.gone : ''"
+             :style="{ '--x': s.x + 'vw', '--y': s.y + 'vh', '--r': s.r + 'deg', '--s': s.s }" draggable="false">
+        <div :key="smear" class="ghint" :class="{ again: smear }">👆💨 {{ t('funWipe') }}<small v-if="splatsLeft > 1"> · {{ splatsLeft }}</small></div>
+      </div>
       <div v-if="screenSplat" :key="screenSplat.key" class="screen-splat" :class="[screenSplat.kind, { wiping: screenSplat.wiping }]" @click="wipe">
         <img v-if="screenSplat.kind === 'splat'" :src="screenSplat.src" alt="" class="splat">
         <template v-else>
@@ -681,7 +733,7 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
                 </button>
               </div>
             </div>
-            <div class="tiny muted" style="text-align:center">{{ t('funLeft', { n: left }) }}</div>
+            <div class="tiny muted" style="text-align:center">{{ ammoText }}</div>
             </template>
           </template>
           <button v-if="data.canExclude" class="btn ghost exclude" :disabled="busy" @click="toggleExcluded(target)">
@@ -907,6 +959,29 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
 .pref.on{background:var(--green, #2E7D5B); color:#fff}
 .pause{display:flex; align-items:center; justify-content:space-between; background:#fff; border-radius:14px; padding:12px; font-weight:700}
 .pause input{width:22px; height:22px}
+
+/* the splattered glass: catches every touch until it is clean */
+.glass{position:fixed; inset:0; z-index:1000; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; cursor:grab; outline:none;
+  animation:splat-shake .35s ease}
+.gsplat{position:absolute; left:50%; top:45%; width:min(118vw, 760px); max-width:none; pointer-events:none; filter:drop-shadow(0 6px 10px rgba(0,0,0,.18));
+  transform:translate(-50%, -50%) translate(var(--x), var(--y)) rotate(var(--r)) scale(var(--s));
+  animation:gs-hit .22s cubic-bezier(.2,1.6,.4,1), gs-drip 7s .3s ease-in forwards}
+@keyframes gs-hit{from{transform:translate(-50%, -50%) translate(var(--x), var(--y)) rotate(var(--r)) scale(.15); opacity:.6}}
+@keyframes gs-drip{to{transform:translate(-50%, -50%) translate(var(--x), calc(var(--y) + 4vh)) rotate(var(--r)) scale(var(--s)) scaleY(1.05)}}
+.gsplat.gone-l{animation:gs-out-l .4s ease-in forwards}
+.gsplat.gone-r{animation:gs-out-r .4s ease-in forwards}
+.gsplat.gone-u{animation:gs-out-u .4s ease-in forwards}
+.gsplat.gone-d{animation:gs-out-d .4s ease-in forwards}
+@keyframes gs-out-l{to{transform:translate(-50%, -50%) translate(calc(var(--x) - 140vw), var(--y)) rotate(calc(var(--r) - 25deg)); opacity:0}}
+@keyframes gs-out-r{to{transform:translate(-50%, -50%) translate(calc(var(--x) + 140vw), var(--y)) rotate(calc(var(--r) + 25deg)); opacity:0}}
+@keyframes gs-out-u{to{transform:translate(-50%, -50%) translate(var(--x), calc(var(--y) - 140vh)) rotate(var(--r)); opacity:0}}
+@keyframes gs-out-d{to{transform:translate(-50%, -50%) translate(var(--x), calc(var(--y) + 140vh)) rotate(var(--r)); opacity:0}}
+.ghint{position:absolute; left:50%; bottom:calc(env(safe-area-inset-bottom, 0px) + 28px); transform:translateX(-50%); background:rgba(29,43,68,.92); color:#fff;
+  border-radius:999px; padding:11px 18px; font-weight:800; font-size:15px; white-space:nowrap; pointer-events:none; box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.ghint small{font-weight:700; opacity:.8}
+.ghint.again{animation:gh-wiggle .4s ease}
+@keyframes gh-wiggle{25%{transform:translateX(calc(-50% - 8px))} 50%{transform:translateX(calc(-50% + 8px))} 75%{transform:translateX(calc(-50% - 4px))}}
+@media (prefers-reduced-motion: reduce){ .glass, .gsplat, .ghint.again{animation:none} .gsplat[class*="gone-"]{opacity:0} }
 
 /* what lands on you, across the whole screen; a tap wipes it off */
 .screen-splat{position:fixed; inset:0; z-index:90; display:grid; place-items:center; cursor:pointer; overflow:hidden;
