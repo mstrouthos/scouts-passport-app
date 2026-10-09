@@ -83,6 +83,9 @@ export default defineNuxtConfig({
     discordWebhookUrl: '',
     // optional: a separate channel for errors; without it they go to the one above
     discordErrorsWebhookUrl: '',
+    // optional: a channel of its own for the mini-games' notifications
+    // («Games Channel»); without it they go to the first one
+    discordGamesWebhookUrl: '',
     vapidSubject: 'mailto:admin@example.org',
     resendApiKey: '',
     // the sender: its name and its address, set apart (NUXT_EMAIL_FROM, the

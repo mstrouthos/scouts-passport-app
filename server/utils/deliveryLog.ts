@@ -1,4 +1,5 @@
 import { useDb, schema as s } from '../db'
+import { isGameKind } from '../../utils/games'
 
 /* A report to Discord of what each notification actually reached — set
    NUXT_DISCORD_WEBHOOK_URL to a channel's webhook; without it, nothing is
@@ -6,7 +7,10 @@ import { useDb, schema as s } from '../db'
    name — delivered to their phone, failed (and why), or with no phone signed
    up (in the app's bell only) — and the same for parents, with whatever else
    the sender adds (who sent it, to whom, SMS, email). The parts of one send
-   arrive separately, so they are gathered for a moment, then posted once. */
+   arrive separately, so they are gathered for a moment, then posted once.
+   The mini-games' notifications (and their bundled pushes) go to a channel
+   of their own, NUXT_DISCORD_GAMES_WEBHOOK_URL, so they do not bury the rest;
+   until it is set they stay with everything else. */
 
 type Outcome = { id: number, outcome: 'delivered' | 'failed' | 'no-device', errors: string[] }
 type Entry = {
@@ -28,20 +32,30 @@ function entry(msg: { title: string, body: string, kind: string, refId: number }
   e.timer = setTimeout(() => { pending.delete(k); post(e!).catch(err => console.warn('[discord] report failed', err?.message)) }, 2500)
   return e
 }
-export const logMembers = (msg: any, outcomes: Outcome[]) => { if (enabled()) entry(msg).members.push(...outcomes) }
-export const logParents = (msg: any, outcomes: Outcome[]) => { if (enabled()) entry(msg).parents.push(...outcomes) }
+export const logMembers = (msg: any, outcomes: Outcome[]) => { if (enabled(msg.kind)) entry(msg).members.push(...outcomes) }
+export const logParents = (msg: any, outcomes: Outcome[]) => { if (enabled(msg.kind)) entry(msg).parents.push(...outcomes) }
 export const logAnonymousParents = (msg: any, sent: number, devices: number) => {
-  if (!enabled()) return
+  if (!enabled(msg.kind)) return
   const e = entry(msg); e.anonymous.sent += sent; e.anonymous.devices += devices
 }
-export const logNote = (msg: any, line: string) => { if (enabled()) entry(msg).notes.push(line) }
-const enabled = () => !!useRuntimeConfig().discordWebhookUrl
+export const logNote = (msg: any, line: string) => { if (enabled(msg.kind)) entry(msg).notes.push(line) }
+/** The games' own (a mini-game's news, or a bundle of it), or everything else. */
+const isGame = (kind: string) => isGameKind(kind) || kind === 'game-digest'
+function webhookFor(kind: string): string {
+  const c = useRuntimeConfig()
+  return (isGame(kind) && c.discordGamesWebhookUrl) || c.discordWebhookUrl || ''
+}
+const enabled = (kind: string) => !!webhookFor(kind)
 
 const KIND: Record<string, string> = {
   announcement: '📣 Ανακοίνωση', challenge_unlocked: '🎯 Υπενθύμιση πρόκλησης', event_reminder: '📅 Υπενθύμιση δράσης',
   badge: '🏅 Πτυχίο', requirement: '⚜️ Απαίτηση', venture: '🏵️ Κοινότητα', direct: '✉️ Προσωπικό μήνυμα',
   poll: '🗳️ Ψηφοφορία', infoApproval: '📄 Πληροφορίες προς έγκριση', infoPublished: '📄 Πληροφορίες δημοσιεύτηκαν',
-  parentPost: '👪 Ανακοίνωση γονέων'
+  parentPost: '👪 Ανακοίνωση γονέων',
+  // the mini-games
+  'fun': '🍅 Σπλατς', 'fun-warn': '🍅 Σπλατς', 'fun-daily': '🍅 Σπλατς · ο στόχος της ημέρας',
+  'potato': '🥔 Καυτή Πατάτα', 'potato-pass': '🥔 Καυτή Πατάτα', 'potato-burst': '🥔 Καυτή Πατάτα · έσκασε',
+  'kim': '🧠 Το Ταψί του Κιμ', 'flag': '🇬🇷 Έπαρση Σημαίας', 'game-digest': '🎮 Μίνι παιχνίδια · μαζεμένα'
 }
 const clip = (s: string, n: number) => s.length > n ? s.slice(0, n - 1) + '…' : s
 function list(names: string[], max = 1000) {
@@ -55,7 +69,7 @@ function list(names: string[], max = 1000) {
 }
 
 async function post(e: Entry) {
-  const url = useRuntimeConfig().discordWebhookUrl
+  const url = webhookFor(e.msg.kind)
   if (!url) return
   const db = await useDb()
   const scouts = new Map((await db.select().from(s.scouts)).map(r => [r.id, `${r.firstName} ${r.lastName}${r.isHidden ? ' (δοκιμαστικός)' : ''}`]))
@@ -78,7 +92,7 @@ async function post(e: Entry) {
   await $fetch(url, {
     method: 'POST', timeout: 8000,
     body: {
-      username: 'Πύλη Προσκόπων',
+      username: isGame(e.msg.kind) ? 'Πύλη Προσκόπων · Παιχνίδια' : 'Πύλη Προσκόπων',
       embeds: [{
         title: KIND[e.msg.kind] || `🔔 ${e.msg.kind}`,
         description: clip(`**${e.msg.title}**\n${e.msg.body}`, 1500),
