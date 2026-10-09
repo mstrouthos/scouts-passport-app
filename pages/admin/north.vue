@@ -5,7 +5,7 @@
    everyone — with nothing on the screen to help. Where it points when time is up is the answer, scored on
    the server against true north (utils/north.ts). The day is only used up
    once the phone's compass answers, so a phone without one loses nothing. */
-import { NORTH_SECS, NORTH_BULLSEYE, northPoint } from '~/utils/north'
+import { NORTH_SECS, NORTH_BULLSEYE } from '~/utils/north'
 
 const { t } = useI18n()
 const { show } = useToast()
@@ -94,8 +94,8 @@ async function lock() {
 
 /* the day's bearing: 0 is north, as it always was until each day had its own */
 const target = computed(() => Number(data.value?.target) || 0)
-const dir = computed(() => t(`northDir${northPoint(target.value)}`))
-const goal = computed(() => target.value ? t('northGoal', { d: target.value, dir: dir.value }) : '')
+// just the degrees: where that is, is the game
+const goal = computed(() => target.value ? t('northGoal', { d: target.value }) : '')
 
 /* what today's go was, whether just now or earlier today */
 const mine = computed(() => result.value || (data.value?.mine?.answered ? data.value.mine : null))
@@ -124,7 +124,7 @@ const secs = (ms: number | null | undefined) => ms == null ? '—' : `${(ms / 10
         <div class="line">{{ Math.abs(mine.error) <= NORTH_BULLSEYE ? '🎯 ' : '' }}{{ side(mine.error) }}</div>
         <div v-if="result?.won" class="won">🎒 {{ t('northWon') }}</div>
         <div v-if="result?.late" class="tiny muted">{{ t('northLate') }}</div>
-        <div class="legend"><span class="ly">━ {{ t('northYou') }}</span><span class="lt">━ {{ target ? `${target}° · ${dir}` : t('northTrue') }}</span></div>
+        <div class="legend"><span class="ly">━ {{ t('northYou') }}</span><span class="lt">━ {{ target ? `${target}°` : t('northTrue') }}</span></div>
         <div class="tiny muted">{{ t('northTomorrow') }}</div>
       </template>
 

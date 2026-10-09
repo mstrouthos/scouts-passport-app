@@ -26,8 +26,6 @@ export function northTarget(day: string): number {
   h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h = (h ^ (h >>> 16)) >>> 0
   return 15 + h % 331
 }
-/** The nearest of the eight directions, as a key: 0 north, 1 north-east … 7 north-west. */
-export const northPoint = (deg: number) => Math.round(((deg % 360) + 360) % 360 / 45) % 8
 
 /** Where the phone pointed (magnetic) against the day's bearing (true):
     −180…180, clockwise (right) positive. */
