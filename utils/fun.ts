@@ -106,6 +106,13 @@ export function funRound(times: string[], at = Date.now()): { left: number, read
   }
   return { left: FUN_ROUND - (n % FUN_ROUND), readyAt: null, done: false }
 }
+/** Gifts: a thing from your backpack to someone else's, this many a day. */
+export const GIFTS_PER_DAY = 3
+/** One or more gifts from one person, told as one. */
+export function giftsNote(name: string, items: string[]) {
+  const emojis = items.map(k => funAction(k)?.emoji || '').join('')
+  return items.length === 1 ? `${name} σου χάρισε ${emojis} για το σακίδιό σου! 🎁` : `${name} σου χάρισε ${items.length} πράγματα: ${emojis} 🎁`
+}
 /** Several things from one person, told as one: "Νίκος Π. σου πέταξε 3 πράγματα! 🍅🍅❄️". */
 export function throwsNote(name: string, actions: string[]) {
   const emojis = actions.map(k => funAction(k)?.emoji || '').join('')

@@ -894,6 +894,14 @@ export const funGrants = pgTable('fun_grants', {
   seen: boolean('seen').notNull().default(false),
   createdAt: text('created_at').notNull()
 }, t => [uniqueIndex('fun_grants_scout_id_reason_ref_key').on(t.scoutId, t.reason, t.ref)])
+/* A thing from one backpack to another: a gift, three a day at most */
+export const funGifts = pgTable('fun_gifts', {
+  id: serial('id').primaryKey(),
+  fromId: integer('from_id').notNull().references(() => scouts.id),
+  toId: integer('to_id').notNull().references(() => scouts.id),
+  item: text('item').notNull(),
+  createdAt: text('created_at').notNull()
+})
 
 /* Το Ταψί του Κιμ: one play a day each — when the tray was first shown, and
    what they picked (utils/kim.ts makes the tray from the day) */

@@ -1,5 +1,5 @@
 import { and, eq, gt, isNull } from 'drizzle-orm'
-import { funRound } from '../../../utils/fun'
+import { funRound, GIFTS_PER_DAY } from '../../../utils/fun'
 import { useDb, schema as s } from '../../db'
 import { requireLeader } from '../../utils/guard'
 import { faceOf } from '../../utils/face'
@@ -71,6 +71,7 @@ export default defineEventHandler(async (event) => {
     me: { id: me.id, pref: me.funPref,
       // ten, two hours' rest, ten more
       round: funRound(recent.filter(r => r.fromId === me.id && r.createdAt >= today && !r.auto).map(r => r.createdAt).sort()),
+      giftsLeft: Math.max(0, GIFTS_PER_DAY - (await db.select().from(s.funGifts).where(and(eq(s.funGifts.fromId, me.id), gt(s.funGifts.createdAt, today)))).length),
       anonLeft: !anonUsed },
     potato: {
       // never when it bursts: that is the game

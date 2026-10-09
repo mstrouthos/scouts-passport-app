@@ -100,6 +100,19 @@ async function act(to: any, a: FunAction, back = false) {
     await refresh()
   } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
 }
+/* a gift: one thing from my backpack into theirs, three a day */
+const giftsLeft = computed(() => data.value?.me?.giftsLeft ?? 0)
+const giftable = computed(() => THROWABLES.filter(k => (bag.value[k] || 0) > 0).map(k => funAction(k)!).filter(Boolean))
+async function giftTo(to: any, a: FunAction) {
+  if (busy.value) return
+  busy.value = true
+  try {
+    const r = await $fetch<any>('/api/admin/fun/gift', { method: 'POST', body: { to: to.id, item: a.key } })
+    if (data.value) { data.value.bag = r.bag; data.value.me.giftsLeft = r.giftsLeft }
+    sfx('unlock')
+    show(`🎁 ${t('funGifted', { e: a.emoji, name: shortName(to) })}`, 2600)
+  } catch (e: any) { show(errMsg(e)) } finally { busy.value = false }
+}
 /** Send back to someone what they last sent you — up on the campsite, where
     it can be seen landing. With none of it left in the backpack, their card
     opens to send something else. */
@@ -165,7 +178,7 @@ const bagHelp = ref(false)
 /** What the hold has earned so far — paid when the potato is passed on. */
 const pouch = computed(() => holdIt.value ? pouchOf(potato.value.active.gotAt, clock.value) : 0)
 /* what was put in the backpack while away: told once, then marked seen */
-const REASON: Record<string, string> = { welcome: 'bagWelcome', potato: 'bagFromPotato', 'kim-dare': 'bagFromDare', 'kim-day': 'bagFromKimDay', 'kim-week': 'bagFromKimWeek' }
+const REASON: Record<string, string> = { welcome: 'bagWelcome', refill: 'bagRefill', gift: 'bagGift', potato: 'bagFromPotato', 'kim-dare': 'bagFromDare', 'kim-day': 'bagFromKimDay', 'kim-week': 'bagFromKimWeek' }
 watch(() => data.value?.grants, async gs => {
   if (!import.meta.client || !gs?.length) return
   await new Promise(r => setTimeout(r, 1800))
@@ -734,6 +747,17 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
               </div>
             </div>
             <div class="tiny muted" style="text-align:center">{{ ammoText }}</div>
+            <!-- a gift from my backpack: kind, so for anyone who plays at all -->
+            <div class="grp gift">
+              <div class="tiny muted">🎁 {{ t('funGiftTitle') }}</div>
+              <div v-if="giftable.length" class="acts">
+                <button v-for="a in giftable" :key="a.key" class="act kind" :disabled="!giftsLeft || busy" @click="giftTo(target, a)">
+                  <i class="cnt">{{ bag[a.key] || 0 }}</i>
+                  <img v-if="a.art?.sprite" class="e" :src="a.art.sprite" :alt="a.emoji"><span v-else class="e emo">{{ a.emoji }}</span><span class="l">{{ text(a) }}</span>
+                </button>
+              </div>
+              <div class="tiny muted" style="text-align:center">{{ giftable.length ? (giftsLeft ? t('funGiftsLeft', { n: giftsLeft }) : t('funGiftsDone')) : t('funGiftNone') }}</div>
+            </div>
             </template>
           </template>
           <button v-if="data.canExclude" class="btn ghost exclude" :disabled="busy" @click="toggleExcluded(target)">

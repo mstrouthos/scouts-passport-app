@@ -18,7 +18,7 @@ export const GAME_SOON_ICON = '/images/games/camp.webp'
 
 /** Which game a notification kind belongs to. */
 export const GAME_OF_KIND: Record<string, GameKey> = {
-  'fun': 'throw', 'fun-warn': 'throw', 'fun-daily': 'throw', 'fun-refill': 'throw',
+  'fun': 'throw', 'fun-warn': 'throw', 'fun-daily': 'throw', 'fun-refill': 'throw', 'fun-gift': 'throw',
   'potato': 'potato', 'potato-pass': 'potato', 'potato-burst': 'potato',
   'kim': 'kim',
   'flag': 'flag'

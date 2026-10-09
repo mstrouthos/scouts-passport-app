@@ -573,6 +573,13 @@ CREATE TABLE IF NOT EXISTS fun_grants (
   created_at TEXT NOT NULL,
   UNIQUE (scout_id, reason, ref)
 );
+CREATE TABLE IF NOT EXISTS fun_gifts (
+  id SERIAL PRIMARY KEY,
+  from_id INTEGER NOT NULL REFERENCES scouts(id),
+  to_id INTEGER NOT NULL REFERENCES scouts(id),
+  item TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS kim_plays (
   id SERIAL PRIMARY KEY,
   scout_id INTEGER NOT NULL REFERENCES scouts(id),
