@@ -6,7 +6,7 @@ import { sendPushTo, type PushTrace } from './push'
 import { postGamesLog } from './deliveryLog'
 import { deleteStored } from './storage'
 import type { SessionScout } from './guard'
-import { PHOTO_THINGS, PHOTO_PER_WEEK, PHOTO_HOURS, type PhotoThing } from '../../utils/photoGame'
+import { PHOTO_THINGS, PHOTO_PER_WEEK, PHOTO_HOURS, PHOTO_TRIES, photoThing, type PhotoThing } from '../../utils/photoGame'
 
 /* Φωτογραφικό κυνήγι (utils/photoGame.ts), for every Βαθμοφόρος who plays
    the games (not «εκτός παρέας»). */
@@ -93,10 +93,56 @@ export async function activePhotoRound() {
   const open = await db.select().from(s.photoRounds).where(isNull(s.photoRounds.endedAt))
   let live: typeof open[number] | null = null
   for (const r of open) {
-    if (Date.parse(r.endsAt) <= Date.now()) await db.update(s.photoRounds).set({ endedAt: r.endsAt }).where(eq(s.photoRounds.id, r.id))
+    if (Date.parse(r.endsAt) <= Date.now()) await closePhotoRound(r.id, r.endsAt)
     else live = r
   }
   return live
+}
+
+/** Who has played a round out: a photo in (right, or kept once the places
+    were taken), or every try used. */
+export async function photoDoneIds(roundId: number) {
+  const db = await useDb()
+  const shots = await db.select().from(s.photoShots).where(eq(s.photoShots.roundId, roundId))
+  const by = new Map<number, typeof shots>()
+  for (const x of shots) by.set(x.scoutId, [...(by.get(x.scoutId) || []), x])
+  return new Set([...by.entries()].filter(([, xs]) => xs.length >= PHOTO_TRIES || xs.some(x => x.ok || !x.judged)).map(([id]) => id))
+}
+
+/** Close a round when everyone who plays has played it out. */
+export async function closeIfAllDone(roundId: number) {
+  const done = await photoDoneIds(roundId)
+  if ((await photoPlayers()).every(p => done.has(p.id))) await closePhotoRound(roundId, now())
+}
+
+/** The round ends — once, whoever gets here first — and its places, kept
+    hidden till now, are told to everyone who plays. */
+export async function closePhotoRound(roundId: number, at: string) {
+  const db = await useDb()
+  const [r] = await db.update(s.photoRounds).set({ endedAt: at })
+    .where(and(eq(s.photoRounds.id, roundId), isNull(s.photoRounds.endedAt))).returning()
+  if (!r) return
+  const thing = photoThing(r.thing)
+  const people = new Map((await db.select().from(s.scouts)).map(p => [p.id, p]))
+  const name = (id: number) => { const p = people.get(id); return p ? `${p.firstName} ${p.lastName?.[0] || ''}.` : '—' }
+  const winners = await photoWinners(r.id)
+  const sent = (await db.select().from(s.photoShots).where(eq(s.photoShots.roundId, r.id))).filter(x => x.fileId).length
+  const podium = winners.map(w => `${['🥇', '🥈', '🥉'][w.place! - 1]} ${name(w.scoutId)}`).join(' · ')
+  const body = `${thing?.emoji || '📸'} ${thing?.el || ''}: ${winners.length ? podium : 'κανείς δεν το βρήκε αυτή τη φορά'}${sent ? ` — δες τις ${sent} φωτογραφίες` : ''}`
+  for (const p of await photoPlayers()) await tellFun(p.id, { title: '📸 Φωτογραφικό κυνήγι · αποτελέσματα', kind: 'photo-result', refId: r.id, body })
+}
+
+/** The photos are kept a week, then let go (the places and points stay). */
+export async function photoPurge() {
+  const db = await useDb()
+  const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString()
+  const old = (await db.select().from(s.photoShots).where(isNotNull(s.photoShots.fileId))).filter(x => x.createdAt < weekAgo)
+  if (!old.length) return 0
+  const ids = old.map(x => x.fileId!)
+  for (const f of await db.select().from(s.files).where(inArray(s.files.id, ids))) await deleteStored(f.data)
+  await db.update(s.photoShots).set({ fileId: null }).where(inArray(s.photoShots.id, old.map(x => x.id)))
+  await db.delete(s.files).where(inArray(s.files.id, ids))
+  return old.length
 }
 
 /** A new round now: a thing not asked for lately, open until three have it or
@@ -113,7 +159,7 @@ export async function startPhotoRound(byId: number | null) {
   }).returning()
   for (const p of await photoPlayers()) {
     await tellFun(p.id, { title: '📸 Φωτογραφικό κυνήγι', kind: 'photo', refId: round!.id,
-      body: `${thing.emoji} Φωτογράφισε ${thing.el}! Οι 3 πρώτοι παίρνουν 5, 4 και 3 XP — με την κάμερα της εφαρμογής.` }, true)
+      body: `${thing.emoji} Φωτογράφισε ${thing.el}! Οι 3 πρώτοι παίρνουν 5, 4 και 3 XP — η κατάταξη βγαίνει όταν κλείσει ο γύρος.` }, true)
   }
   return { round: round!, thing }
 }

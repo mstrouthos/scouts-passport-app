@@ -44,9 +44,10 @@ export async function gameScores(sinceIso: string): Promise<Map<number, Parts>> 
     if (f.loweredBy) add(f.loweredBy, 'flag', GAME_RANK.flagLower)
     if (f.raisedBy && f.raisedBy === f.loweredBy) add(f.raisedBy, 'flag', GAME_RANK.flagBoth)
   }
-  // the photo game: the places won (5, 4, 3) — once it is open to all (PHOTO_IN_RANK)
+  // the photo game: the places won (5, 4, 3) — once it is open to all (PHOTO_IN_RANK),
+  // and once the round is over (till then the places are hidden)
   if (PHOTO_IN_RANK) {
-    const photoRounds = new Set((await db.select().from(s.photoRounds)).filter(r => r.startedAt >= sinceIso).map(r => r.id))
+    const photoRounds = new Set((await db.select().from(s.photoRounds)).filter(r => r.startedAt >= sinceIso && r.endedAt).map(r => r.id))
     for (const x of (await db.select().from(s.photoShots)).filter(x => x.place && photoRounds.has(x.roundId))) add(x.scoutId, 'photo', x.points)
   }
   return out

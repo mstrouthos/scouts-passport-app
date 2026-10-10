@@ -898,8 +898,10 @@ export const funGrants = pgTable('fun_grants', {
   createdAt: text('created_at').notNull()
 }, t => [uniqueIndex('fun_grants_scout_id_reason_ref_key').on(t.scoutId, t.reason, t.ref)])
 /* The photo game: a round asks for a photo of a thing (utils/photoGame.ts),
-   until three have it or the day ends; each try, checked by Gemini — the
-   first three right win 5, 4 and 3 (place 1–3), their photos kept */
+   until everyone has played or the day ends; until three have it, each try
+   is checked by Gemini — the first three right win 5, 4 and 3 (place 1–3);
+   after that a photo is only kept, to show (judged false). Photos are kept
+   a week. The places stay hidden until the round ends. */
 export const photoRounds = pgTable('photo_rounds', {
   id: serial('id').primaryKey(),
   thing: text('thing').notNull(),
@@ -917,7 +919,8 @@ export const photoShots = pgTable('photo_shots', {
   reason: text('reason'),
   place: integer('place'),
   points: integer('points').notNull().default(0),
-  fileId: integer('file_id')
+  fileId: integer('file_id'),
+  judged: boolean('judged').notNull().default(true)
 }, t => [uniqueIndex('photo_shots_round_id_place_key').on(t.roundId, t.place)])
 /* A thing from one backpack to another: a gift, three a day at most */
 export const funGifts = pgTable('fun_gifts', {

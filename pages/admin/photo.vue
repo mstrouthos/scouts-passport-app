@@ -1,12 +1,14 @@
 <script setup lang="ts">
 /* Φωτογραφικό κυνήγι — twice a week, Monday to Friday, the game asks for a
    photo of something (utils/photoGame.ts). Taken there and then with the
-   app's own camera, never from the gallery; Gemini checks the thing is
-   really in it; the first three right win 5, 4 and 3 XP. Three tries each.
+   app's own camera, never from the gallery; until three have it, Gemini
+   checks the thing is really in it, and the first three right win 5, 4 and
+   3 XP — after that a photo is only kept, to show. Three tries each. Each
+   learns their own place at once; everyone sees the places, and all the
+   photos, when the round ends.
    An admin can ask for a photo at any time. The camera is asked for as the
    game opens — not when the call comes, when a prompt would cost the race —
    and each camera can be tried once with a test photo that goes nowhere. */
-import { PHOTO_POINTS } from '~/utils/photoGame'
 
 const { t, locale } = useI18n()
 const { show } = useToast()
@@ -15,7 +17,7 @@ const { data, refresh } = await useFetch<any>('/api/admin/photo')
 
 const round = computed(() => data.value?.round || null)
 const mine = computed(() => round.value?.mine || null)
-const canShoot = computed(() => !!data.value?.plays && !!round.value && !mine.value?.won && (mine.value?.left ?? 0) > 0)
+const canShoot = computed(() => !!data.value?.plays && !!round.value && !mine.value?.won && !mine.value?.kept && (mine.value?.left ?? 0) > 0)
 const until = (iso: string) => new Date(iso).toLocaleTimeString(locale.value === 'en' ? 'en-GB' : 'el-GR', { timeZone: 'Europe/Nicosia', hour: '2-digit', minute: '2-digit', hour12: false })
 const medal = (p: number) => ['🥇', '🥈', '🥉'][p - 1] || ''
 
@@ -115,6 +117,7 @@ async function startNow() {
   } catch (e: any) { show(errMsg(e)) } finally { starting.value = false }
 }
 const confirmStart = ref(false)
+const zoom = ref('')
 
 const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r, value: String(r.points), unit: 'XP', sub: t('photoWins', { n: r.wins }) })))
 </script>
@@ -134,23 +137,16 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
       <div v-if="round" class="card ask">
         <div class="tag">{{ round.byAdmin ? t('photoByAdmin') : t('photoRoundOn') }} · {{ t('photoUntil', { t: until(round.endsAt) }) }}</div>
         <div class="what"><span class="emo">{{ round.thing?.emoji }}</span><span>{{ t('photoFind') }} <b>{{ round.thing?.el }}</b>!</span></div>
-        <div class="places">
-          <div v-for="(p, i) in PHOTO_POINTS" :key="i" class="place" :class="{ taken: round.winners[i] }">
-            <span class="m">{{ medal(i + 1) }}</span>
-            <template v-if="round.winners[i]">
-              <img v-if="round.winners[i].photo" :src="round.winners[i].photo" alt="" class="ph" loading="lazy">
-              <b>{{ round.winners[i].me ? t('flagYou') : `${round.winners[i].firstName} ${round.winners[i].lastName?.[0] || ''}.` }}</b>
-            </template>
-            <span v-else class="free">{{ t('photoFree') }}</span>
-            <small>+{{ p }} XP</small>
-          </div>
-        </div>
+        <div class="hidden">🔒 {{ t('photoHidden') }}<span v-if="round.played"> · {{ t('photoPlayed', { n: round.played }) }}</span></div>
 
         <template v-if="!data.plays">
           <div class="tiny muted">{{ t('photoAdminOnly') }}</div>
         </template>
         <template v-else-if="mine?.won">
-          <div class="won">🎉 {{ t('photoYouWon', { place: mine.won.place, n: mine.won.points }) }}</div>
+          <div class="won">{{ medal(mine.won.place) }} {{ t('photoYouWon', { place: mine.won.place, n: mine.won.points }) }}<small>{{ t('photoRevealLater') }}</small></div>
+        </template>
+        <template v-else-if="mine?.kept">
+          <div class="won kept">📨 {{ t('photoKept') }}<small>{{ t('photoRevealLater') }}</small></div>
         </template>
         <template v-else-if="judging">
           <div class="judge"><span class="spin" />{{ t('photoJudging') }}</div>
@@ -164,11 +160,10 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
         </template>
 
         <!-- what the judge said about the last photo -->
-        <div v-if="verdict && !verdict.place" class="verdict" :class="{ ok: verdict.ok }">
-          <b>{{ verdict.ok ? (verdict.late ? t('photoRightLate') : '✅') : '❌ ' + t('photoNotIt') }}</b>
+        <div v-if="verdict && !verdict.ok" class="verdict">
+          <b>❌ {{ t('photoNotIt') }}</b>
           <span v-if="verdict.reason">«{{ verdict.reason }}»</span>
         </div>
-        <div v-else-if="verdict?.place" class="verdict ok"><b>🎉 {{ t('photoYouWon', { place: verdict.place, n: verdict.points }) }}</b></div>
       </div>
 
       <!-- no round: when the next one comes, nobody knows -->
@@ -181,12 +176,21 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
           <div class="places">
             <div v-for="w in data.last.winners" :key="w.place" class="place taken">
               <span class="m">{{ medal(w.place) }}</span>
-              <img v-if="w.photo" :src="w.photo" alt="" class="ph" loading="lazy">
+              <img v-if="w.photo" :src="w.photo" alt="" class="ph" loading="lazy" @click="zoom = w.photo">
               <b>{{ w.me ? t('flagYou') : `${w.firstName} ${w.lastName?.[0] || ''}.` }}</b>
               <small>+{{ w.points }} XP</small>
             </div>
             <div v-if="!data.last.winners.length" class="tiny muted">{{ t('photoNobody') }}</div>
           </div>
+          <template v-if="data.last.gallery?.length">
+            <div class="tiny muted">{{ t('photoAllShots') }}</div>
+            <div class="gallery">
+              <figure v-for="(g, i) in data.last.gallery" :key="i">
+                <img v-if="g.photo" :src="g.photo" alt="" loading="lazy" @click="zoom = g.photo">
+                <figcaption>{{ g.me ? t('flagYou') : `${g.firstName} ${g.lastName?.[0] || ''}.` }}</figcaption>
+              </figure>
+            </div>
+          </template>
         </div>
       </div>
 
@@ -227,6 +231,7 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
     </template>
 
     <MissionCamera v-if="testing" :facing="testing" :title="`🧪 ${t('photoTestTitle')}`" :use-label="t('photoTestUse')" @close="testing = null" @shot="testDone" />
+    <Teleport to="body"><div v-if="zoom" class="zoom" @click="zoom = ''"><img :src="zoom" alt=""></div></Teleport>
     <PhotoRules v-if="rulesOpen" :auto="rulesAuto" @close="closeRules" />
     <MissionCamera v-if="camera" :title="round?.thing ? `${round.thing.emoji} ${round.thing.el}` : t('photoTitle')" @close="camera = false" @shot="shot" />
   </GameScreen>
@@ -251,7 +256,17 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
 .tries{display:flex; align-items:center; gap:6px}
 .dot{width:10px; height:10px; border-radius:50%; background:#2F6FEB}
 .dot.used{background:#CBD5E1}
-.won{font-size:15px; font-weight:800; background:#E6F6EC; color:#1F7A47; border-radius:12px; padding:10px 14px}
+.won{display:flex; flex-direction:column; gap:3px; font-size:15px; font-weight:800; background:#E6F6EC; color:#1F7A47; border-radius:12px; padding:10px 14px}
+.won small{font-size:12px; font-weight:600; opacity:.85}
+.won.kept{background:#EEF3FF; color:#1F4FA8}
+.hidden{font-size:12.5px; font-weight:700; color:var(--muted); background:#F4F6F9; border-radius:999px; padding:5px 12px}
+.gallery{display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:6px; width:100%}
+.gallery figure{margin:0; display:flex; flex-direction:column; gap:2px; min-width:0}
+.gallery img{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; cursor:zoom-in}
+.gallery figcaption{font-size:10.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.place .ph{cursor:zoom-in}
+.zoom{position:fixed; inset:0; z-index:2100; background:rgba(0,0,0,.88); display:grid; place-items:center; padding:16px}
+.zoom img{max-width:100%; max-height:100%; border-radius:12px}
 .judge{display:flex; align-items:center; gap:10px; font-weight:800; font-size:14px}
 .spin{width:18px; height:18px; border-radius:50%; border:3px solid #CBD5E1; border-top-color:#2F6FEB; animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}

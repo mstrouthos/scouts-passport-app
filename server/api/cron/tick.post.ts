@@ -15,7 +15,7 @@ import { potatoTick, potatoWeekly, gameDigest } from '../../utils/leaderFun'
 import { kimPrizes } from '../../utils/kimRewards'
 import { funDailyTick } from '../../utils/funDaily'
 import { refillTick } from '../../utils/funBag'
-import { photoWeekly, activePhotoRound, photoClearTrial, photoLaunch } from '../../utils/photoGame'
+import { photoWeekly, activePhotoRound, photoClearTrial, photoLaunch, photoPurge } from '../../utils/photoGame'
 
 /** Hit by host cron every few minutes with the token:
     curl -X POST -H "x-cron-token: $TOKEN" https://.../api/cron/tick */
@@ -189,6 +189,8 @@ export default defineEventHandler(async (event) => {
   if (await photoLaunch(launchTrace) != null) report('🎉 Νέο παιχνίδι: Φωτογραφικό κυνήγι', launchTrace)
   await activePhotoRound()
   const photoStarted = await photoWeekly()
+  // and its photos, kept a week
+  const photoPurged = await photoPurge()
   // Σπλατς: the backpacks refilled at 06:00 and 15:00
   const refill = await refillTick()
   // the mini-games' held news, bundled into one push each
@@ -216,6 +218,7 @@ export default defineEventHandler(async (event) => {
     ...(refill?.given ? { refill } : {}),
     ...(photoStarted ? { photoStarted } : {}),
     ...(photoTrialCleared != null ? { photoTrialCleared } : {}),
+    ...(photoPurged ? { photoPurged } : {}),
     ...(sent.length ? { sent } : {}),
     ...(purgedWho.length ? { purgedWho } : {})
   }

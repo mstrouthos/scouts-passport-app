@@ -825,5 +825,7 @@ export const MIGRATIONS = [
   // the photo game: who may play it while it is being tried out (the Αρχηγός Συστήματος chooses)
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS photo_game BOOLEAN NOT NULL DEFAULT FALSE",
   // when the photo game's video was first seen: until then it opens by itself
-  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS photo_video_seen TEXT"
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS photo_video_seen TEXT",
+  // a photo sent once the three places were taken: kept to show, not judged
+  "ALTER TABLE photo_shots ADD COLUMN IF NOT EXISTS judged BOOLEAN NOT NULL DEFAULT TRUE"
 ]

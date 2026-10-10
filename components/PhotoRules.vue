@@ -33,7 +33,7 @@ onMounted(async () => {
       <div class="sheet phrules">
         <div v-if="auto" class="pnew"><b>{{ t('photoNewGame') }}</b></div>
         <h3>📸 {{ t('photoHowTitle') }}</h3>
-        <video ref="video" class="rules-video" src="/videos/photo-hunt.mp4?v=1" poster="/videos/photo-hunt.jpg"
+        <video ref="video" class="rules-video" src="/videos/photo-hunt.mp4?v=2" poster="/videos/photo-hunt.jpg"
                controls playsinline preload="auto" @ended="seen" />
         <details class="rules-more">
           <summary>{{ t('photoAllRules') }}</summary>
