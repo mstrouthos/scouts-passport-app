@@ -15,7 +15,7 @@ import { potatoTick, potatoWeekly, gameDigest } from '../../utils/leaderFun'
 import { kimPrizes } from '../../utils/kimRewards'
 import { funDailyTick } from '../../utils/funDaily'
 import { refillTick } from '../../utils/funBag'
-import { photoWeekly, activePhotoRound } from '../../utils/photoGame'
+import { photoWeekly, activePhotoRound, photoClearTrial } from '../../utils/photoGame'
 
 /** Hit by host cron every few minutes with the token:
     curl -X POST -H "x-cron-token: $TOKEN" https://.../api/cron/tick */
@@ -183,6 +183,7 @@ export default defineEventHandler(async (event) => {
   // 23:00: who had the most thrown at them today, told to everyone
   const funDaily = await funDailyTick()
   // the photo game: twice a week a photo is asked for; a round whose day is over closes
+  const photoTrialCleared = await photoClearTrial()
   await activePhotoRound()
   const photoStarted = await photoWeekly()
   // Σπλατς: the backpacks refilled at 06:00 and 15:00
@@ -211,6 +212,7 @@ export default defineEventHandler(async (event) => {
     ...(gameBundles.length ? { gameBundles: gameBundles.length } : {}),
     ...(refill?.given ? { refill } : {}),
     ...(photoStarted ? { photoStarted } : {}),
+    ...(photoTrialCleared != null ? { photoTrialCleared } : {}),
     ...(sent.length ? { sent } : {}),
     ...(purgedWho.length ? { purgedWho } : {})
   }

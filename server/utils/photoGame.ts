@@ -1,8 +1,9 @@
-import { and, eq, isNull, isNotNull } from 'drizzle-orm'
+import { and, eq, inArray, isNull, isNotNull } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { now } from './passcode'
 import { tellFun } from './leaderFun'
 import { postGamesLog } from './deliveryLog'
+import { deleteStored } from './storage'
 import type { SessionScout } from './guard'
 import { PHOTO_THINGS, PHOTO_PER_WEEK, PHOTO_HOURS, type PhotoThing } from '../../utils/photoGame'
 
@@ -36,6 +37,23 @@ export async function logJudgeCost(who: string, thing: PhotoThing, ok: boolean, 
       { name: `Σύνολο ${month}`, value: usd(total), inline: true }
     ]
   })
+}
+
+/** Once, when it opened to all: the trial's rounds, photos and news wiped,
+    so the table starts from zero. Run by the cron; claimed first, so it runs once. */
+export async function photoClearTrial(): Promise<number | null> {
+  const db = await useDb()
+  const claimed = await db.insert(s.settings).values({ key: 'photo.trial-cleared', value: now() }).onConflictDoNothing().returning()
+  if (!claimed.length) return null
+  const shots = await db.select().from(s.photoShots)
+  const fileIds = shots.map(x => x.fileId).filter((x): x is number => !!x)
+  const files = fileIds.length ? await db.select().from(s.files).where(inArray(s.files.id, fileIds)) : []
+  await db.delete(s.photoShots)
+  const rounds = await db.delete(s.photoRounds).returning()
+  for (const f of files) await deleteStored(f.data)
+  if (fileIds.length) await db.delete(s.files).where(inArray(s.files.id, fileIds))
+  await db.delete(s.notifications).where(inArray(s.notifications.kind, ['photo', 'photo-win']))
+  return rounds.length
 }
 
 /* Cyprus time, with one formatter made once */
