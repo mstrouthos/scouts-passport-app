@@ -5,7 +5,7 @@ import { now } from '../../../utils/passcode'
 import { activePotato, potatoTick, potatoPool, potatoCycle, potatoTargets, stopPotato, tellFun } from '../../../utils/leaderFun'
 import { shortName } from '../../../../utils/shortName'
 
-/** The Αρχηγός Συστήματος leaves a Βαθμοφόρος out of the games that need them
+/** An administrator leaves a Βαθμοφόρος out of the games that need them
     to take part — or lets them back in. Left out while they hold the potato,
     it is thrown on at once to someone who has not had it this round (and that
     one is told); with nobody left to take it, the round simply ends. */
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   const db = await useDb()
   const who = (await db.select().from(s.scouts).where(eq(s.scouts.id, id)).limit(1))[0]
   if (!who || who.role === 'scout') throw createError({ statusCode: 404, message: 'Not found' })
-  await db.update(s.scouts).set({ gamesExcluded: out }).where(eq(s.scouts.id, id))
+  await db.update(s.scouts).set({ gamesExcluded: out, gamesExcludedBy: out ? me.id : null }).where(eq(s.scouts.id, id))
 
   let passedTo: string | null = null, ended = false
   await potatoTick()

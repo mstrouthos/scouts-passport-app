@@ -83,7 +83,7 @@ defineExpose({ loadInbox })
           <h3 style="margin:0;font-size:17px;text-align:center">{{ GAMES[game].emoji }} {{ title }} · {{ t('notifications') }}</h3>
           <button class="srow" :disabled="!!me?.gameNotifsBlocked" @click="setPhone(!phoneOn)">
             <div class="ico">📳</div>
-            <div class="txt"><b>{{ t('gameNotifsPhone') }}</b><span>{{ me?.gameNotifsBlocked ? t('gameNotifsBlocked') : phoneOn ? t('gameNotifsOnSub') : t('gameNotifsOffSub') }}</span></div>
+            <div class="txt"><b>{{ t('gameNotifsPhone') }}</b><span>{{ me?.gameNotifsBlocked ? t('gameNotifsBlocked', { who: !me?.gameNotifsBlockedBy ? t('byAnAdmin') : me.gameNotifsBlockedBy.chief ? t('byTheChief') : me.gameNotifsBlockedBy.name }) : phoneOn ? t('gameNotifsOnSub') : t('gameNotifsOffSub') }}</span></div>
             <span class="sw" :class="{ off: !phoneOn }" />
           </button>
           <template v-if="inbox.length">

@@ -3,6 +3,7 @@ import { useDb, schema as s } from '../db'
 import { requireScout, scopeKind, visibleSectionIds, rankOf, sectionOf } from '../utils/guard'
 import { can } from '../utils/permissions'
 import { faceOf } from '../utils/face'
+import { byWhom } from '../utils/byWhom'
 import { canSeeShop } from '../utils/shop'
 
 export default defineEventHandler(async (event) => {
@@ -37,6 +38,7 @@ export default defineEventHandler(async (event) => {
     // the mini-games' news kept off their phone: by them, or by the Αρχηγός Συστήματος
     gameNotifsOff: isLeader && !!me.gameNotifsOff,
     gameNotifsBlocked: isLeader && !!me.gameNotifsBlocked,
+    gameNotifsBlockedBy: isLeader && me.gameNotifsBlocked ? await byWhom(me.gameNotifsBlockedBy) : null,
     // let into the photo game while it is tried out
     photoGame: isLeader && !!me.photoGame,
     // a hidden test account may try things out (drafts, a season out of season)

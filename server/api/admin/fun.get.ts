@@ -3,6 +3,7 @@ import { funRound, GIFTS_PER_DAY } from '../../../utils/fun'
 import { useDb, schema as s } from '../../db'
 import { requireLeader } from '../../utils/guard'
 import { faceOf } from '../../utils/face'
+import { byWhom } from '../../utils/byWhom'
 import { normalizeAvatar, randomAvatar } from '../../../utils/avatar'
 import { kimDay } from '../../../utils/kim'
 import { dailyBag, bagOf, unseenGrants } from '../../utils/funBag'
@@ -67,7 +68,11 @@ export default defineEventHandler(async (event) => {
     bag, grants,
     daily: daily?.count && Date.now() - Date.parse(daily.at) < 26 * 3600_000 ? daily : null,
     kim: kimToday ? { correct: kimToday.correct } : null,
-    paused: await funPaused(), canPause: me.role === 'troop_leader', canExclude: me.role === 'troop_leader',
+    paused: await funPaused(),
+    // who paused it, or left me out — the Αρχηγός as such, another administrator by name
+    pausedBy: await byWhom(Number((await db.select().from(s.settings).where(eq(s.settings.key, 'fun.paused.by')))[0]?.value) || null),
+    excludedBy: me.gamesExcluded ? await byWhom(me.gamesExcludedBy) : null,
+    canPause: me.role === 'troop_leader', canExclude: me.role === 'troop_leader',
     me: { id: me.id, pref: me.funPref,
       // ten, two hours' rest, ten more
       round: funRound(recent.filter(r => r.fromId === me.id && r.createdAt >= today && !r.auto).map(r => r.createdAt).sort()),
@@ -88,7 +93,7 @@ export default defineEventHandler(async (event) => {
       canStop: me.role === 'troop_leader',
       last: lastBurn ? {
         burned: lastBurn.burnedId, burnedName: lastBurn.burnedId ? nameOf(lastBurn.burnedId) : null, passes: lastBurn.passes, at: lastBurn.endedAt,
-        challenge: lastBurn.burnedId ? lastBurn.challenge : null, stopped: !!lastBurn.stoppedBy
+        challenge: lastBurn.burnedId ? lastBurn.challenge : null, stopped: !!lastBurn.stoppedBy, stoppedBy: await byWhom(lastBurn.stoppedBy)
       } : null
     },
     leaders: leaders.map(l => ({ id: l.id, firstName: l.firstName, lastName: l.lastName, ...faceOf(l), figure: figure(l.avatar), where: where(l), me: l.id === me.id, pref: l.funPref, excluded: l.gamesExcluded, muted: l.gameNotifsBlocked }))

@@ -827,5 +827,8 @@ export const MIGRATIONS = [
   // when the photo game's video was first seen: until then it opens by itself
   "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS photo_video_seen TEXT",
   // a photo sent once the three places were taken: kept to show, not judged
-  "ALTER TABLE photo_shots ADD COLUMN IF NOT EXISTS judged BOOLEAN NOT NULL DEFAULT TRUE"
+  "ALTER TABLE photo_shots ADD COLUMN IF NOT EXISTS judged BOOLEAN NOT NULL DEFAULT TRUE",
+  // who left a Βαθμοφόρος out of the games / kept their news off the phone (shown to them)
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS games_excluded_by INTEGER",
+  "ALTER TABLE scouts ADD COLUMN IF NOT EXISTS game_notifs_blocked_by INTEGER"
 ]

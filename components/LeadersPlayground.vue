@@ -268,6 +268,8 @@ async function toggleExcluded(l: any) {
 /** Whether I may throw the potato at them now: I hold it and they have not
     had it yet this round. (The round itself the app starts, once a week.) */
 const meExcluded = computed(() => !!data.value?.leaders?.find((l: any) => l.me)?.excluded)
+/* who did it: «Ο Αρχηγός» only when it was the Αρχηγός, any other administrator by name */
+const who = (b: { chief: boolean, name: string } | null | undefined) => !b ? t('byAnAdmin') : b.chief ? t('byTheChief') : b.name
 const canPotato = (l: any) => !!l && !l.me && l.pref === 'all' && !l.excluded && !meExcluded.value && data.value?.me?.pref === 'all' && !data.value?.paused
   && holdIt.value && !!potato.value.active?.canGet?.includes(l.id)
 /** They had it this round already, so it cannot go to them yet. */
@@ -604,7 +606,7 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
 <template>
   <div v-if="data?.leaders?.length" class="fun">
     <div class="fun-head">
-      <span>{{ data.paused ? t('funPaused') : isPotato ? t('potatoGameSub') : t('funSub') }}</span>
+      <span>{{ data.paused ? t('funPausedBy', { who: who(data.pausedBy) }) : isPotato ? t('potatoGameSub') : t('funSub') }}</span>
       <span v-if="!isPotato && !data.paused && data.me.pref !== 'off'" class="ammo">{{ ammoText }}</span>
     </div>
 
@@ -628,7 +630,7 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
     </button>
 
     <!-- the hot potato: who has it (never when it bursts), what is at stake, or how the last one ended -->
-    <div v-if="isPotato && meExcluded && !data.paused" class="note soft">🚫 {{ t('gamesExcludedMe') }}</div>
+    <div v-if="isPotato && meExcluded && !data.paused" class="note soft">🚫 {{ t('gamesExcludedMe', { who: who(data.excludedBy) }) }}</div>
     <div v-else-if="isPotato && data.me.pref !== 'all' && !data.paused" class="note soft">🥔 {{ t('potatoNeedsAll') }}</div>
     <div v-if="isPotato && !data.paused" class="potato"
          :class="{ mine: holdIt, burst: !potato.active && potato.last?.burned }">
@@ -637,7 +639,7 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
         <div v-if="holdIt" class="ptxt"><b>{{ t('funPotatoYours') }}</b><span>{{ t('funPotatoYoursSub', { held: heldFor }) }}</span><span class="pouch">💰 {{ t('funPouch', { n: pouch }) }}</span></div>
         <div v-else-if="potato.active" class="ptxt"><b>{{ t('funPotatoAt', { name: potato.active.holderName }) }}</b><span>{{ t('funPotatoPasses', { n: potato.active.passes, m: stillToGo }) }}</span></div>
         <div v-else-if="potato.last?.burned" class="ptxt"><b>{{ t('funPotatoBurst', { name: potato.last.burned === myId ? t('funYouObj') : potato.last.burnedName }) }}</b><span>{{ t('funPotatoBurstSub', { n: potato.last.passes }) }}</span></div>
-        <div v-else-if="potato.last?.stopped" class="ptxt"><b>{{ t('funPotatoWasStopped') }}</b><span>{{ t('potatoNextWeekSub') }}</span></div>
+        <div v-else-if="potato.last?.stopped" class="ptxt"><b>{{ t('funPotatoWasStopped', { who: who(potato.last.stoppedBy) }) }}</b><span>{{ t('potatoNextWeekSub') }}</span></div>
         <div v-else-if="potato.waiting === 'next'" class="ptxt"><b>{{ t('potatoNextWeek') }}</b><span>{{ t('potatoNextWeekSub') }}</span></div>
         <div v-else class="ptxt"><b>{{ t('potatoSoon') }}</b><span>{{ t('potatoSoonSub') }}</span></div>
         <button class="pinfo" :aria-label="t('funPotatoRulesTitle')" @click="rulesOpen = true">ℹ️</button>
@@ -720,7 +722,7 @@ const feed = computed(() => recent.value.filter(r => inGame(r.action)).slice(0, 
               <b>{{ score(target.id).me }} – {{ score(target.id).them }}</b>
             </div>
           </div>
-          <div v-if="data.paused" class="note">{{ t('funPaused') }}</div>
+          <div v-if="data.paused" class="note">{{ t('funPausedBy', { who: who(data.pausedBy) }) }}</div>
           <div v-else-if="data.me.pref === 'off'" class="note">{{ t('funPrefOff') }} · {{ t('funMine') }} ›</div>
           <div v-else-if="target.pref === 'off'" class="note">{{ target.firstName }}: {{ t('funOut') }}</div>
           <template v-else>

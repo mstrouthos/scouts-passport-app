@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { useDb, schema as s } from '../../../db'
 import { requireLeader } from '../../../utils/guard'
+import { byWhom, byWhomEl } from '../../../utils/byWhom'
 import { now } from '../../../utils/passcode'
 import { FUN_GAME, pouchOf } from '../../../../utils/fun'
 import { grant, randomItems, type Items } from '../../../utils/funBag'
@@ -17,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   if (await funPaused()) throw createError({ statusCode: 403, message: 'Η παρέα κάνει διάλειμμα' })
   if (me.funPref !== 'all') throw createError({ statusCode: 403, message: 'Η πατάτα είναι μόνο για όσους δέχονται τα πάντα 🥔' })
-  if (me.gamesExcluded) throw createError({ statusCode: 403, message: 'Ο Αρχηγός σε έχει βγάλει από την Καυτή Πατάτα για τώρα 🥔' })
+  if (me.gamesExcluded) throw createError({ statusCode: 403, message: `${byWhomEl(await byWhom(me.gamesExcludedBy))} σε έχει βγάλει από την Καυτή Πατάτα για τώρα 🥔` })
   const to = Number((await readBody<{ to?: number }>(event))?.to)
   if (!Number.isInteger(to) || to === me.id) throw createError({ statusCode: 400, message: 'Σε κάποιον άλλον 😄' })
   const db = await useDb()
