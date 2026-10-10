@@ -11,7 +11,7 @@ const { t } = useI18n()
 const { show } = useToast()
 const { data, refresh } = await useFetch<any>('/api/admin/north')
 
-type Phase = 'intro' | 'arming' | 'count' | 'turn' | 'sending' | 'result' | 'nosensor'
+type Phase = 'intro' | 'arming' | 'count' | 'turn' | 'sending' | 'result' | 'nosensor' | 'denied'
 const phase = ref<Phase>('intro')
 const count = ref(3)
 const left = ref(NORTH_SECS)
@@ -49,6 +49,10 @@ function away() {
   refresh()
 }
 onMounted(() => document.addEventListener('visibilitychange', away))
+/* listening from the start: if the compass already answers (allowed earlier
+   in this session), «Έτοιμος» need not ask again. An iPhone forgets the
+   answer only once the app is closed for good — that, no page can change */
+onMounted(() => listen(true))
 /** The heading at the moment of locking: the last few readings averaged (on
     the circle — 359° and 1° average to 0°, not 180°), as a hand shakes. */
 function lockedHeading() {
@@ -64,15 +68,19 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 let turnStart = 0, raf = 0
 async function ready() {
   phase.value = 'arming'
-  // iPhones ask for permission, and only from a tap
-  try {
-    const D: any = (window as any).DeviceOrientationEvent
-    if (D && typeof D.requestPermission === 'function' && await D.requestPermission() !== 'granted') throw new Error('denied')
-  } catch { phase.value = 'nosensor'; return }
+  const D: any = (window as any).DeviceOrientationEvent
+  const asks = !!D && typeof D.requestPermission === 'function'          // an iPhone
+  // iPhones ask for permission, and only from a tap — unless the compass is already answering
+  if (heading == null && asks) {
+    let answer = 'denied'
+    try { answer = await D.requestPermission() } catch {}
+    // a «no» is remembered until the app is closed for good: say how, and keep the day
+    if (answer !== 'granted') { phase.value = 'denied'; return }
+  }
   samples = []; heading = null; listen(true)
   const t0 = Date.now()
   while (heading == null && Date.now() - t0 < 2500) await sleep(100)
-  if (heading == null) { listen(false); phase.value = 'nosensor'; return }
+  if (heading == null) { phase.value = asks ? 'denied' : 'nosensor'; return }
   try {
     const r = await $fetch<any>('/api/admin/north/start', { method: 'POST' })
     started.value = Number(r?.target) || 0
@@ -179,6 +187,20 @@ const secs = (ms: number | null | undefined) => ms == null ? '—' : `${(ms / 10
         <div class="emoji">📵</div>
         <b>{{ t('northNoSensor') }}</b>
         <div class="tiny muted">{{ t('northNoSensorSub') }}</div>
+        <button class="btn" @click="ready">{{ t('northRetry') }}</button>
+        <button class="btn ghost" @click="phase = 'intro'">{{ t('close') }}</button>
+      </template>
+
+      <!-- «no» to the compass: how to say yes after all; the day is not used up -->
+      <template v-else-if="phase === 'denied'">
+        <div class="emoji">🧭</div>
+        <b>{{ t('northDenied') }}</b>
+        <ul class="how">
+          <li>{{ t('northDeniedIos') }}</li>
+          <li>{{ t('northDeniedAndroid') }}</li>
+        </ul>
+        <div class="tiny muted">{{ t('northDeniedNote') }}</div>
+        <button class="btn" @click="ready">{{ t('northRetry') }}</button>
         <button class="btn ghost" @click="phase = 'intro'">{{ t('close') }}</button>
       </template>
     </div>
