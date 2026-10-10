@@ -23,7 +23,7 @@ export const GAME_OF_KIND: Record<string, GameKey> = {
   'potato': 'potato', 'potato-pass': 'potato', 'potato-burst': 'potato',
   'kim': 'kim',
   'flag': 'flag',
-  'photo': 'photo', 'photo-win': 'photo'
+  'photo': 'photo', 'photo-win': 'photo', 'photo-launch': 'photo'
 }
 export const GAME_KINDS = Object.keys(GAME_OF_KIND)
 export const kindsOfGame = (g: GameKey) => GAME_KINDS.filter(k => GAME_OF_KIND[k] === g)

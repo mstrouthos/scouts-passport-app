@@ -39,6 +39,8 @@ export default defineEventHandler(async (event) => {
   const board = [...tally.entries()].map(([id, t]) => ({ ...face(id)!, ...t, me: id === me.id })).filter(r => r.id).sort((a, b) => b.points - a.points)
   return {
     access: true, plays: canPhoto(me), admin, tries: PHOTO_TRIES,
+    // the video that explains it, opened by itself until it has been seen
+    video: canPhoto(me) && !me.photoVideoSeen,
     round: await view(live), last: await view(last),
     week: board.map((r, i) => ({ ...r, place: 1 + board.filter((o, j) => j < i && o.points > r.points).length }))
   }

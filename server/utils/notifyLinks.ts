@@ -26,6 +26,8 @@ export function linkForNotification(kind: string, refId: number | null, who: 'me
   // the mini-games: each opens its own game (a throw, to answer it in kind)
   if (kind === 'fun') return `${GAMES.throw.path}?fun=${refId}`
   if (kind === 'fun-daily') return `${GAMES.throw.path}?top=1`
+  // a new game: it opens on the video that explains it
+  if (kind === 'photo-launch') return `${GAMES.photo.path}?intro=1`
   if (GAME_OF_KIND[kind]) return GAMES[GAME_OF_KIND[kind]].path
   // a mission photo: checked (to the member), or waiting to be (to the leaders)
   if (kind === 'mission') return '/app/challenges?tab=missions'

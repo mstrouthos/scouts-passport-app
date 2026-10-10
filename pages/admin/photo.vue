@@ -3,12 +3,14 @@
    photo of something (utils/photoGame.ts). Taken there and then with the
    app's own camera, never from the gallery; Gemini checks the thing is
    really in it; the first three right win 5, 4 and 3 XP. Three tries each.
-   While it is tried out only those let in play; an admin can ask for a photo
-   at any time. */
+   An admin can ask for a photo at any time. The camera is asked for as the
+   game opens — not when the call comes, when a prompt would cost the race —
+   and each camera can be tried once with a test photo that goes nowhere. */
 import { PHOTO_POINTS } from '~/utils/photoGame'
 
 const { t, locale } = useI18n()
 const { show } = useToast()
+const route = useRoute()
 const { data, refresh } = await useFetch<any>('/api/admin/photo')
 
 const round = computed(() => data.value?.round || null)
@@ -41,6 +43,65 @@ async function shot(b: Blob) {
   finally { judging.value = false; await refresh() }
 }
 
+/* ---- how it is played: the video, by itself until it has been seen ---- */
+const rulesOpen = ref(false)
+const rulesAuto = ref(false)
+function closeRules() {
+  rulesOpen.value = false
+  if (rulesAuto.value) { rulesAuto.value = false; checkCamera() }
+}
+
+/* ---- the camera, asked for now: ready when the call comes ---- */
+type CamState = 'idle' | 'checking' | 'ok' | 'denied' | 'none' | 'ask'
+const cam = ref<CamState>('idle')
+const ua = import.meta.client ? navigator.userAgent : ''
+const isIos = /iPhone|iPad|iPod/.test(ua) || (import.meta.client && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+async function checkCamera(direct = false) {
+  if (!navigator.mediaDevices?.getUserMedia) { cam.value = 'none'; return }
+  if (!direct) {
+    try {
+      const p = await navigator.permissions?.query({ name: 'camera' as PermissionName })
+      if (p?.state === 'granted') { cam.value = 'ok'; return }
+      if (p?.state === 'denied') { cam.value = 'denied'; return }
+    } catch {}
+  }
+  cam.value = 'checking'
+  try {
+    const st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+    st.getTracks().forEach(tr => tr.stop())
+    cam.value = 'ok'
+  } catch (e: any) {
+    cam.value = e?.name === 'NotAllowedError' || e?.name === 'SecurityError' ? 'denied'
+      : e?.name === 'NotFoundError' || e?.name === 'OverconstrainedError' ? 'none' : 'ask'
+  }
+}
+
+/* ---- a test photo with each camera, once: it goes nowhere ---- */
+type Facing = 'environment' | 'user'
+const TEST_KEY = (f: Facing) => `photo.test.${f}`
+const tested = ref<Record<Facing, boolean>>({ environment: false, user: false })
+const testShots = ref<Partial<Record<Facing, string>>>({})
+const testing = ref<Facing | null>(null)
+function testDone(b: Blob, f: Facing) {
+  testing.value = null
+  tested.value = { ...tested.value, [f]: true }
+  try { localStorage.setItem(TEST_KEY(f), '1') } catch {}
+  if (testShots.value[f]) URL.revokeObjectURL(testShots.value[f]!)
+  testShots.value = { ...testShots.value, [f]: URL.createObjectURL(b) }
+  cam.value = 'ok'
+  sfx('correct')
+}
+const bothTested = computed(() => tested.value.environment && tested.value.user)
+
+onMounted(() => {
+  for (const f of ['environment', 'user'] as Facing[]) { try { tested.value[f] = localStorage.getItem(TEST_KEY(f)) === '1' } catch {} }
+  if (!data.value?.plays) return
+  // the video first, for whoever has not seen it (or came from the news of it); the camera after
+  if (data.value.video || route.query.intro) { rulesAuto.value = !!data.value.video; rulesOpen.value = true }
+  if (!rulesAuto.value) checkCamera()
+})
+onBeforeUnmount(() => { for (const u of Object.values(testShots.value)) if (u) URL.revokeObjectURL(u) })
+
 /* ---- an admin asks for a photo now ---- */
 const starting = ref(false)
 async function startNow() {
@@ -60,6 +121,7 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
 
 <template>
   <GameScreen game="photo" :title="t('photoTitle')" :sub="t('photoSub')">
+    <button class="info" :aria-label="t('photoHowTitle')" @click="rulesOpen = true">ℹ️ {{ t('photoHowTitle') }}</button>
     <!-- not let in yet: it is coming -->
     <div v-if="data && !data.access" class="card soon">
       <div class="big">📸</div>
@@ -128,6 +190,29 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
         </div>
       </div>
 
+      <!-- the camera: allowed now, not when the call comes -->
+      <div v-if="data.plays && ['denied', 'none', 'ask'].includes(cam)" class="card camcheck bad">
+        <div class="big">{{ cam === 'none' ? '📵' : '📷' }}</div>
+        <b>{{ cam === 'denied' ? t('photoCamDenied') : cam === 'none' ? t('photoCamNone') : t('photoCamAskTitle') }}</b>
+        <p v-if="cam === 'denied'">{{ isIos ? t('photoCamDeniedIos') : t('photoCamDeniedAndroid') }}</p>
+        <p v-else-if="cam === 'ask'">{{ t('photoCamAskBody') }}</p>
+        <button v-if="cam !== 'none'" class="btn" @click="checkCamera(true)">{{ cam === 'ask' ? t('photoCamAllow') : t('photoCamRetry') }}</button>
+      </div>
+      <div v-else-if="data.plays && cam === 'checking'" class="card camcheck"><div class="judge"><span class="spin" />{{ t('photoCamChecking') }}</div></div>
+
+      <div v-if="data.plays && cam !== 'none'" class="card tests">
+        <b>{{ bothTested ? t('photoTestAllDone') : `🧪 ${t('photoTestTitle')}` }}</b>
+        <p v-if="!bothTested">{{ t('photoTestBody') }}</p>
+        <div class="testrow">
+          <button v-for="f in (['environment', 'user'] as const)" :key="f" class="test" :class="{ done: tested[f] }" :disabled="tested[f]" @click="testing = f">
+            <img v-if="testShots[f]" :src="testShots[f]" alt="">
+            <span v-else class="ico">{{ f === 'environment' ? '📷' : '🤳' }}</span>
+            <b>{{ f === 'environment' ? t('photoTestBack') : t('photoTestFront') }}</b>
+            <small>{{ tested[f] ? t('photoTestWorks') : t('photoTestTry') }}</small>
+          </button>
+        </div>
+      </div>
+
       <!-- an admin may ask for a photo at any time -->
       <div v-if="data.admin && !round" class="card admin">
         <button class="btn ghost" :disabled="starting" @click="startNow">📸 {{ confirmStart ? t('photoStartSure') : t('photoStartNow') }}</button>
@@ -141,6 +226,8 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
       <div class="tiny muted rules">{{ t('photoRules') }}</div>
     </template>
 
+    <MissionCamera v-if="testing" :facing="testing" :title="`🧪 ${t('photoTestTitle')}`" :use-label="t('photoTestUse')" @close="testing = null" @shot="testDone" />
+    <PhotoRules v-if="rulesOpen" :auto="rulesAuto" @close="closeRules" />
     <MissionCamera v-if="camera" :title="round?.thing ? `${round.thing.emoji} ${round.thing.el}` : t('photoTitle')" @close="camera = false" @shot="shot" />
   </GameScreen>
 </template>
@@ -172,6 +259,20 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
 .verdict.ok{background:#E6F6EC; color:#1F7A47}
 .lastr{width:100%; display:flex; flex-direction:column; gap:6px}
 .admin{gap:6px}
+.info{display:block; margin:0 0 10px auto; border:0; border-radius:999px; padding:6px 12px; font:inherit; font-size:12.5px; font-weight:700; background:#F4F6F9; color:var(--text, #222)}
+.camcheck.bad{background:#FFF4E5}
+.camcheck .btn{width:100%}
+.tests{gap:8px}
+.tests > b{font-size:14.5px}
+.testrow{display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%}
+.test{display:flex; flex-direction:column; align-items:center; gap:3px; border:2px dashed #CBD5E1; border-radius:14px; padding:10px 6px; background:#fff; font:inherit; color:inherit; min-width:0}
+.test.done{border-style:solid; border-color:#2FA36B; background:#E6F6EC}
+.test:disabled{opacity:1}
+.test .ico{font-size:28px; line-height:1}
+.test img{width:56px; height:56px; object-fit:cover; border-radius:10px}
+.test b{font-size:12.5px}
+.test small{font-size:11px; color:var(--muted)}
+.test.done small{color:#1F7A47; font-weight:800}
 .rules{text-align:center; margin-top:12px; line-height:1.5}
 @media (prefers-reduced-motion: reduce){ .spin{animation:none} }
 </style>

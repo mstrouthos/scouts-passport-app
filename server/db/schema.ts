@@ -43,6 +43,7 @@ export const scouts = pgTable('scouts', {
   // when they first saw the video that explains the hot potato: it plays with
   // the first new round they are told of, and never again unasked
   potatoVideoSeen: text('potato_video_seen'),
+  photoVideoSeen: text('photo_video_seen'),
   // left out by the Αρχηγός Συστήματος of the games that need them to take
   // part — the potato (it can't be thrown to them), Kim's dares — while the
   // ones they play alone stay theirs

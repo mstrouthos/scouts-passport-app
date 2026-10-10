@@ -1,7 +1,8 @@
 import { and, eq, inArray, isNull, isNotNull } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { now } from './passcode'
-import { tellFun } from './leaderFun'
+import { tellFun, isQuietHour } from './leaderFun'
+import { sendPushTo, type PushTrace } from './push'
 import { postGamesLog } from './deliveryLog'
 import { deleteStored } from './storage'
 import type { SessionScout } from './guard'
@@ -54,6 +55,20 @@ export async function photoClearTrial(): Promise<number | null> {
   if (fileIds.length) await db.delete(s.files).where(inArray(s.files.id, fileIds))
   await db.delete(s.notifications).where(inArray(s.notifications.kind, ['photo', 'photo-win']))
   return rounds.length
+}
+
+/** Once, when it opened to all: everyone who plays told there is a new game
+    — the push opens it on the video that explains it. Not at night: then
+    the next morning's cron run says it. Claimed first, so it is said once. */
+export async function photoLaunch(trace?: PushTrace[]): Promise<number | null> {
+  if (isQuietHour()) return null
+  const db = await useDb()
+  const claimed = await db.insert(s.settings).values({ key: 'photo.launched', value: now() }).onConflictDoNothing().returning()
+  if (!claimed.length) return null
+  const to = (await photoPlayers()).map(p => p.id)
+  await sendPushTo(to, { title: '🎉 Νέο παιχνίδι: Φωτογραφικό κυνήγι!', kind: 'photo-launch', refId: 1,
+    body: '📸 Δύο φορές τη βδομάδα ζητείται μια φωτογραφία — οι 3 πρώτοι κερδίζουν. Πάτα να δεις πώς παίζεται!' }, trace)
+  return to.length
 }
 
 /* Cyprus time, with one formatter made once */

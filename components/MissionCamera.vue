@@ -4,13 +4,13 @@
    picked from the gallery — a mission photo is taken there and then. The
    photo comes out as a JPEG no larger than 1600px, without the camera's
    hidden details (place, device). */
-const props = defineProps<{ title: string }>()
-const emit = defineEmits<{ (e: 'close'): void, (e: 'shot', b: Blob): void }>()
+const props = defineProps<{ title: string, facing?: 'environment' | 'user', useLabel?: string }>()
+const emit = defineEmits<{ (e: 'close'): void, (e: 'shot', b: Blob, facing: 'environment' | 'user'): void }>()
 const { t } = useI18n()
 
 const video = ref<HTMLVideoElement | null>(null)
 const state = ref<'starting' | 'live' | 'denied' | 'none' | 'shot'>('starting')
-const facing = ref<'environment' | 'user'>('environment')
+const facing = ref<'environment' | 'user'>(props.facing || 'environment')
 const shot = ref<Blob | null>(null)
 const shotUrl = ref('')
 const flash = ref(false)
@@ -54,7 +54,7 @@ async function snap() {
   stop()
 }
 function retake() { shot.value = null; start() }
-function use() { if (shot.value) emit('shot', shot.value) }
+function use() { if (shot.value) emit('shot', shot.value, facing.value) }
 
 onMounted(start)
 onBeforeUnmount(() => { stop(); if (shotUrl.value) URL.revokeObjectURL(shotUrl.value) })
@@ -82,12 +82,14 @@ onBeforeUnmount(() => { stop(); if (shotUrl.value) URL.revokeObjectURL(shotUrl.v
       <div class="controls">
         <template v-if="state === 'shot'">
           <button class="pill" @click="retake">↺ {{ t('camRetake') }}</button>
-          <button class="pill main" @click="use">✓ {{ t('camUse') }}</button>
+          <button class="pill main" @click="use">✓ {{ props.useLabel || t('camUse') }}</button>
         </template>
         <template v-else>
-          <span style="width:52px" />
+          <span style="width:64px" />
           <button class="shutter" :disabled="state !== 'live'" :aria-label="t('camShoot')" @click="snap"><i /></button>
-          <button class="flip" :disabled="state !== 'live'" :aria-label="t('camFlip')" @click="flip">⟲</button>
+          <button class="flip" :disabled="state === 'starting'" :aria-label="t('camFlip')" @click="flip">
+            <span>{{ facing === 'environment' ? '🤳' : '📷' }}</span><small>{{ facing === 'environment' ? t('camFlipSelfie') : t('camFlipBack') }}</small>
+          </button>
         </template>
       </div>
     </div>
@@ -113,7 +115,10 @@ onBeforeUnmount(() => { stop(); if (shotUrl.value) URL.revokeObjectURL(shotUrl.v
 .shutter i{display:block; width:100%; height:100%; border-radius:50%; background:#fff}
 .shutter:active i{transform:scale(.88)}
 .shutter:disabled{opacity:.4}
-.flip{width:52px; height:52px; border-radius:50%; border:0; background:rgba(255,255,255,.14); color:#fff; font-size:24px}
+.flip{width:64px; height:64px; border-radius:50%; border:0; background:rgba(255,255,255,.14); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; padding:0}
+.flip span{font-size:22px; line-height:1}
+.flip small{font-size:10px; font-weight:700; opacity:.9}
+.flip:disabled{opacity:.4}
 .pill{flex:1; max-width:170px; border:0; border-radius:999px; padding:15px; font:inherit; font-size:15px; font-weight:800; background:rgba(255,255,255,.16); color:#fff}
 .pill.main{background:#F2C230; color:#3A2A00}
 </style>
