@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { PHOTO_IN_RANK } from '~/utils/photoGame'
 /* The Βαθμοφόροι's mini-games, added up: one table across all of them, for
    this week or the scout year, with the podium the scouts' league has. */
 import { GAME_RANK } from '~/utils/games'
@@ -26,7 +27,7 @@ const rows = computed(() => (data.value?.rows || []).map((r: any) => ({
       <span>🧠 {{ t('gamesRankKim', { n: GAME_RANK.kimPerThing }) }}</span>
       <span>🥔 {{ t('gamesRankPotato', { n: GAME_RANK.potatoPass, m: GAME_RANK.potatoSurvive }) }}</span>
       <span>🇬🇷 {{ t('gamesRankFlag', { r: GAME_RANK.flagRaise, l: GAME_RANK.flagLower, b: GAME_RANK.flagBoth }) }}</span>
-      <span>📸 {{ t('gamesRankPhoto') }}</span>
+      <span v-if="PHOTO_IN_RANK">📸 {{ t('gamesRankPhoto') }}</span>
     </div>
   </AppShell>
 </template>

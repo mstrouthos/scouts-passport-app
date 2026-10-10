@@ -3,6 +3,9 @@
    camera, never from the gallery), as a check by Gemini confirms, win 5, 4
    and 3. Three tries each. Shared by the page and the server. */
 
+/** Whether its points count in the general mini-games table: not while it is
+    tried out by a few (it would give them an edge) — on when it opens to all. */
+export const PHOTO_IN_RANK = false
 /** What the first, second and third correct photo win. */
 export const PHOTO_POINTS = [5, 4, 3]
 /** Tries each, in a round. */
