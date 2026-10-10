@@ -8,11 +8,10 @@ import { photoThing, PHOTO_TRIES } from '../../../utils/photoGame'
 import { cyprusWeekStart } from '../../utils/leaderFun'
 
 /** Φωτογραφικό κυνήγι: the round in play (what to photograph, who has it,
-    my tries), the last one, and the week's table. For those who play it, and
-    the Αρχηγός Συστήματος, who may also start a round by hand. */
+    my tries), the last one, and the week's table. Rounds are started only by
+    the app, at random moments (photoWeekly). */
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
-  const admin = me.role === 'troop_leader'
   // every Βαθμοφόρος sees it; only those who play the games (not «εκτός παρέας») take part
   const db = await useDb()
   const people = await db.select().from(s.scouts)
@@ -27,7 +26,7 @@ export default defineEventHandler(async (event) => {
     const ended = !!r.endedAt
     const photo = (x: typeof shots[number]) => x.fileId ? `/api/photo-shot/${x.fileId}` : null
     return {
-      id: r.id, thing: t ? { key: t.key, el: t.el, emoji: t.emoji } : null, startedAt: r.startedAt, endsAt: r.endsAt, endedAt: r.endedAt, byAdmin: !!r.startedBy,
+      id: r.id, thing: t ? { key: t.key, el: t.el, emoji: t.emoji } : null, startedAt: r.startedAt, endsAt: r.endsAt, endedAt: r.endedAt,
       // how many have played so far — who, and the places, only once it is over
       played: new Set(shots.map(x => x.scoutId)).size,
       winners: ended ? shots.filter(x => x.place).sort((a, b) => a.place! - b.place!).map(w => ({ ...face(w.scoutId), place: w.place, points: w.points, at: w.createdAt, photo: photo(w), me: w.scoutId === me.id })) : [],
@@ -52,7 +51,7 @@ export default defineEventHandler(async (event) => {
   for (const x of shots) { const t = tally.get(x.scoutId) || { points: 0, wins: 0 }; t.points += x.points; t.wins++; tally.set(x.scoutId, t) }
   const board = [...tally.entries()].map(([id, t]) => ({ ...face(id)!, ...t, me: id === me.id })).filter(r => r.id).sort((a, b) => b.points - a.points)
   return {
-    access: true, plays: canPhoto(me), admin, tries: PHOTO_TRIES,
+    access: true, plays: canPhoto(me), tries: PHOTO_TRIES,
     // the video that explains it, opened by itself until it has been seen
     video: canPhoto(me) && !me.photoVideoSeen,
     round: await view(live), last: await view(last),

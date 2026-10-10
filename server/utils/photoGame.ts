@@ -145,8 +145,9 @@ export async function photoPurge() {
   return old.length
 }
 
-/** A new round now: a thing not asked for lately, open until three have it or
-    the day is over, and everyone who plays told at once. Null if one is in play. */
+/** A new round now: a thing not asked for lately, open until everyone has
+    played or the day is over, and everyone who plays told at once. Null if
+    one is in play. */
 export async function startPhotoRound(byId: number | null) {
   if (await activePhotoRound()) return null
   const db = await useDb()
@@ -190,8 +191,8 @@ async function photoPlan(at = new Date()): Promise<{ key: string, plan: PhotoPla
   const kept = (await db.select().from(s.settings).where(eq(s.settings.key, key)))[0]?.value
   try { return { key, plan: kept ? JSON.parse(kept) : plan } } catch { return { key, plan } }
 }
-/** The week's rounds, each when its moment comes (a round already in play
-    then — one an admin started — stands in for it). Run by the cron. */
+/** The week's rounds, each when its moment comes — the only way a round
+    starts. Run by the cron. */
 export async function photoWeekly(at = new Date()): Promise<string | null> {
   const { key, plan } = await photoPlan(at)
   const due = plan.at.find(x => !plan.done.includes(x) && Date.parse(x) <= at.getTime())

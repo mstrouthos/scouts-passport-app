@@ -6,7 +6,7 @@
    3 XP — after that a photo is only kept, to show. Three tries each. Each
    learns their own place at once; everyone sees the places, and all the
    photos, when the round ends.
-   An admin can ask for a photo at any time. The camera is asked for as the
+   Only the app starts a round, at random moments. The camera is asked for as the
    game opens — not when the call comes, when a prompt would cost the race —
    and each camera can be tried once with a test photo that goes nowhere. */
 
@@ -104,19 +104,6 @@ onMounted(() => {
 })
 onBeforeUnmount(() => { for (const u of Object.values(testShots.value)) if (u) URL.revokeObjectURL(u) })
 
-/* ---- an admin asks for a photo now ---- */
-const starting = ref(false)
-async function startNow() {
-  if (!confirmStart.value) { confirmStart.value = true; return }
-  confirmStart.value = false
-  starting.value = true
-  try {
-    const r = await $fetch<any>('/api/admin/photo/start', { method: 'POST' })
-    show(`📸 ${t('photoStarted', { what: r.thing })}`, 3000)
-    await refresh()
-  } catch (e: any) { show(errMsg(e)) } finally { starting.value = false }
-}
-const confirmStart = ref(false)
 const zoom = ref('')
 
 const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r, value: String(r.points), unit: 'XP', sub: t('photoWins', { n: r.wins }) })))
@@ -135,7 +122,7 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
     <template v-else-if="data">
       <!-- the round in play -->
       <div v-if="round" class="card ask">
-        <div class="tag">{{ round.byAdmin ? t('photoByAdmin') : t('photoRoundOn') }} · {{ t('photoUntil', { t: until(round.endsAt) }) }}</div>
+        <div class="tag">{{ t('photoRoundOn') }} · {{ t('photoUntil', { t: until(round.endsAt) }) }}</div>
         <div class="what"><span class="emo">{{ round.thing?.emoji }}</span><span>{{ t('photoFind') }} <b>{{ round.thing?.el }}</b>!</span></div>
         <div class="hidden">🔒 {{ t('photoHidden') }}<span v-if="round.played"> · {{ t('photoPlayed', { n: round.played }) }}</span></div>
 
@@ -208,19 +195,15 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
         <b>{{ bothTested ? t('photoTestAllDone') : `🧪 ${t('photoTestTitle')}` }}</b>
         <p v-if="!bothTested">{{ t('photoTestBody') }}</p>
         <div class="testrow">
-          <button v-for="f in (['environment', 'user'] as const)" :key="f" class="test" :class="{ done: tested[f] }" :disabled="tested[f]" @click="testing = f">
+          <div v-for="f in (['environment', 'user'] as const)" :key="f" class="test" :class="{ done: tested[f] }">
             <img v-if="testShots[f]" :src="testShots[f]" alt="">
             <span v-else class="ico">{{ f === 'environment' ? '📷' : '🤳' }}</span>
             <b>{{ f === 'environment' ? t('photoTestBack') : t('photoTestFront') }}</b>
-            <small>{{ tested[f] ? t('photoTestWorks') : t('photoTestTry') }}</small>
-          </button>
+            <small>{{ tested[f] ? t('photoTestWorks') : t('photoTestNotYet') }}</small>
+          </div>
         </div>
-      </div>
-
-      <!-- an admin may ask for a photo at any time -->
-      <div v-if="data.admin && !round" class="card admin">
-        <button class="btn ghost" :disabled="starting" @click="startNow">📸 {{ confirmStart ? t('photoStartSure') : t('photoStartNow') }}</button>
-        <div class="tiny muted">{{ t('photoStartNote') }}</div>
+        <!-- one camera: the switch to the selfie side is in it -->
+        <button v-if="!bothTested" class="btn" @click="testing = tested.environment ? 'user' : 'environment'">🧪 {{ t('photoTestOpen') }}</button>
       </div>
 
       <template v-if="weekRows.length">
@@ -273,16 +256,15 @@ const weekRows = computed(() => (data.value?.week || []).map((r: any) => ({ ...r
 .verdict{display:flex; flex-direction:column; gap:3px; width:100%; background:#FDECEC; color:#8E1F1A; border-radius:12px; padding:10px 12px; font-size:13px}
 .verdict.ok{background:#E6F6EC; color:#1F7A47}
 .lastr{width:100%; display:flex; flex-direction:column; gap:6px}
-.admin{gap:6px}
 .info{display:block; margin:0 0 10px auto; border:0; border-radius:999px; padding:6px 12px; font:inherit; font-size:12.5px; font-weight:700; background:#F4F6F9; color:var(--text, #222)}
 .camcheck.bad{background:#FFF4E5}
 .camcheck .btn{width:100%}
 .tests{gap:8px}
 .tests > b{font-size:14.5px}
 .testrow{display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%}
-.test{display:flex; flex-direction:column; align-items:center; gap:3px; border:2px dashed #CBD5E1; border-radius:14px; padding:10px 6px; background:#fff; font:inherit; color:inherit; min-width:0}
+.test{display:flex; flex-direction:column; align-items:center; gap:3px; border:2px dashed #CBD5E1; border-radius:14px; padding:10px 6px; background:#fff; min-width:0}
+.tests .btn{width:100%}
 .test.done{border-style:solid; border-color:#2FA36B; background:#E6F6EC}
-.test:disabled{opacity:1}
 .test .ico{font-size:28px; line-height:1}
 .test img{width:56px; height:56px; object-fit:cover; border-radius:10px}
 .test b{font-size:12.5px}
