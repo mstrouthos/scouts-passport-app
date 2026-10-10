@@ -62,13 +62,6 @@ async function setShopManager(on: boolean) {
     await refreshAndResync(); await loadMe(); show('✅ ' + t('saved'))
   } catch (e: any) { show(errMsg(e)) }
 }
-/* the photo game, while it is tried out: who may play it */
-async function setPhotoGame(on: boolean) {
-  try {
-    await $fetch('/api/admin/photo/access', { method: 'POST', body: { scoutId: editing.value.id, on } })
-    await refreshAndResync(); await loadMe(); show('✅ ' + t('saved'))
-  } catch (e: any) { show(errMsg(e)) }
-}
 /* my own sheet opens too — for my details and the shop and photo-game
    switches; my own roles, admin rights and account are another admin's to change */
 const isSelf = computed(() => !!editing.value && editing.value.id === me.value?.id)
@@ -287,12 +280,6 @@ function appoint(r: any) { appointing.value = false; open({ ...r, role: 'leader'
             <div class="ico">🛒</div>
             <div class="txt"><b>{{ t('shopManager') }}</b><span>{{ t('shopManagerSub') }}</span></div>
             <span class="sw" :class="{ off: !editing.shopManager }" />
-          </button>
-          <!-- the photo game: tried out by a few first -->
-          <button class="srow" @click="setPhotoGame(!editing.photoGame)">
-            <div class="ico">📸</div>
-            <div class="txt"><b>{{ t('photoAccess') }}</b><span>{{ t('photoAccessSub') }}</span></div>
-            <span class="sw" :class="{ off: !editing.photoGame }" />
           </button>
 
           <button v-if="!isSelf && editing.role !== 'troop_leader' && editing.scopes?.length" class="btn danger" @click="demote(editing.id)">{{ t('demote') }}</button>

@@ -4,7 +4,7 @@ import { requireLeader } from '../../../utils/guard'
 import { now } from '../../../utils/passcode'
 import { storeFile } from '../../../utils/storage'
 import { tellFun } from '../../../utils/leaderFun'
-import { canPhoto, activePhotoRound, judgePhoto, photoPlayers } from '../../../utils/photoGame'
+import { canPhoto, activePhotoRound, judgePhoto, photoPlayers, logJudgeCost } from '../../../utils/photoGame'
 import { photoThing, PHOTO_TRIES, PHOTO_POINTS } from '../../../../utils/photoGame'
 import { shortName } from '../../../../utils/shortName'
 
@@ -33,6 +33,7 @@ export default defineEventHandler(async (event) => {
   busy.add(me.id)
   try {
     const verdict = await judgePhoto(buf, thing)
+    logJudgeCost(shortName(me), thing, verdict.ok, verdict.use).catch(() => {})
     const [shot] = await db.insert(s.photoShots).values({ roundId: round.id, scoutId: me.id, createdAt: now(), ok: verdict.ok, reason: verdict.reason }).returning()
     const triesLeft = PHOTO_TRIES - mine.length - 1
     if (!verdict.ok) return { ok: false, reason: verdict.reason, triesLeft }

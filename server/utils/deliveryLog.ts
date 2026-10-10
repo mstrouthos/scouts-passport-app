@@ -106,3 +106,14 @@ async function post(e: Entry) {
     }
   })
 }
+
+/** A line of a game's own book (the photo game's judge: what it cost), in the
+    games' channel — or the main one until that is set. Never in the way: a
+    failed post is only noted. */
+export async function postGamesLog(embed: { title: string, description?: string, fields?: { name: string, value: string, inline?: boolean }[], color?: number }) {
+  const url = webhookFor('photo')
+  if (!url) return
+  try {
+    await $fetch(url, { method: 'POST', timeout: 8000, body: { username: 'Πύλη Προσκόπων · Παιχνίδια', embeds: [{ ...embed, timestamp: new Date().toISOString() }] } })
+  } catch (err: any) { console.warn('[discord] games log failed', err?.message) }
+}

@@ -5,7 +5,7 @@
 
 /** Whether its points count in the general mini-games table: not while it is
     tried out by a few (it would give them an edge) — on when it opens to all. */
-export const PHOTO_IN_RANK = false
+export const PHOTO_IN_RANK = true
 /** What the first, second and third correct photo win. */
 export const PHOTO_POINTS = [5, 4, 3]
 /** Tries each, in a round. */

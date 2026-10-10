@@ -2,19 +2,40 @@ import { and, eq, isNull, isNotNull } from 'drizzle-orm'
 import { useDb, schema as s } from '../db'
 import { now } from './passcode'
 import { tellFun } from './leaderFun'
+import { postGamesLog } from './deliveryLog'
 import type { SessionScout } from './guard'
 import { PHOTO_THINGS, PHOTO_PER_WEEK, PHOTO_HOURS, type PhotoThing } from '../../utils/photoGame'
 
-/* Φωτογραφικό κυνήγι (utils/photoGame.ts). While it is tried out, only those
-   the Αρχηγός Συστήματος lets in play it; everyone else sees it coming soon. */
+/* Φωτογραφικό κυνήγι (utils/photoGame.ts), for every Βαθμοφόρος who plays
+   the games (not «εκτός παρέας»). */
 
 /** Whether this person plays the photo game. */
-export const canPhoto = (me: SessionScout) => me.role !== 'scout' && !!me.photoGame && me.funPref !== 'off'
+export const canPhoto = (me: SessionScout) => me.role !== 'scout' && me.funPref !== 'off'
 
-/** Those who play: let in, active, not out of the games. */
+/** Those who play: active Βαθμοφόροι, not out of the games. */
 export async function photoPlayers() {
   const db = await useDb()
-  return (await db.select().from(s.scouts)).filter(r => r.role !== 'scout' && r.photoGame && r.isActive && !r.deletedAt && r.funPref !== 'off')
+  return (await db.select().from(s.scouts)).filter(r => r.role !== 'scout' && r.isActive && !r.deletedAt && r.funPref !== 'off')
+}
+
+/** Each check's cost in the games' Discord channel, with the month's total so far. */
+export async function logJudgeCost(who: string, thing: PhotoThing, ok: boolean, use: JudgeUse) {
+  const db = await useDb()
+  const month = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Nicosia' }).slice(0, 7), key = `photo.cost.${month}`
+  const before = Number((await db.select().from(s.settings).where(eq(s.settings.key, key)))[0]?.value) || 0
+  const total = before + (use.usd || 0)
+  await db.insert(s.settings).values({ key, value: String(total) }).onConflictDoUpdate({ target: s.settings.key, set: { value: String(total) } })
+  const usd = (n: number) => `$${n.toFixed(n < 0.01 ? 5 : 4)}`
+  await postGamesLog({
+    title: '📸 Φωτογραφικό κυνήγι · έλεγχος', color: ok ? 0x2FA36B : 0xE5484D,
+    description: `${who} → ${thing.emoji} ${thing.el}: ${ok ? '✅ σωστό' : '❌ όχι'}`,
+    fields: [
+      { name: 'Μοντέλο', value: use.model, inline: true },
+      { name: 'Tokens', value: `${use.tokensIn} μέσα · ${use.tokensOut} έξω`, inline: true },
+      { name: 'Κόστος', value: use.usd == null ? '— (άγνωστη τιμή μοντέλου)' : usd(use.usd), inline: true },
+      { name: `Σύνολο ${month}`, value: usd(total), inline: true }
+    ]
+  })
 }
 
 /* Cyprus time, with one formatter made once */
@@ -116,7 +137,14 @@ export async function photoWinners(roundId: number) {
 /** The judge: is the thing really in the photo — the thing itself, not a
     picture of it on a screen? Gemini looks (NUXT_GEMINI_API_KEY; the model is
     NUXT_GEMINI_MODEL, gemini-3.5-flash-lite unless set). */
-export async function judgePhoto(jpeg: Buffer, thing: PhotoThing): Promise<{ ok: boolean, reason: string }> {
+/** What Google charges per million tokens (paid tier), read and written
+    (thinking counts as written): https://ai.google.dev/gemini-api/docs/pricing */
+const GEMINI_PRICE: Record<string, [number, number]> = {
+  'gemini-3.5-flash-lite': [0.30, 2.50],
+  'gemini-3.8-flash': [0.75, 3.75]
+}
+export type JudgeUse = { model: string, tokensIn: number, tokensOut: number, usd: number | null }
+export async function judgePhoto(jpeg: Buffer, thing: PhotoThing): Promise<{ ok: boolean, reason: string, use: JudgeUse }> {
   const c = useRuntimeConfig()
   const key = c.geminiApiKey || process.env.NUXT_GEMINI_API_KEY
   if (!key) throw createError({ statusCode: 503, message: 'Ο έλεγχος φωτογραφιών δεν έχει ρυθμιστεί ακόμα' })
@@ -146,5 +174,10 @@ Look at the photo and answer:
   let v: any = null
   try { v = JSON.parse(res?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || '').join('') || 'null') } catch {}
   if (!v || typeof v.found !== 'boolean') throw createError({ statusCode: 502, message: 'Ο κριτής δεν κατάλαβε τη φωτογραφία — η προσπάθεια δεν μετράει, δοκίμασε ξανά' })
-  return { ok: v.found && v.real !== false, reason: String(v.reason_el || '').slice(0, 240) }
+  const u = res?.usageMetadata || {}
+  const tokensIn = Number(u.promptTokenCount) || 0
+  const tokensOut = (Number(u.candidatesTokenCount) || 0) + (Number(u.thoughtsTokenCount) || 0)
+  const price = GEMINI_PRICE[model]
+  const use: JudgeUse = { model, tokensIn, tokensOut, usd: price ? (tokensIn * price[0] + tokensOut * price[1]) / 1e6 : null }
+  return { ok: v.found && v.real !== false, reason: String(v.reason_el || '').slice(0, 240), use }
 }

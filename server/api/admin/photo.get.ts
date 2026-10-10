@@ -13,7 +13,7 @@ import { cyprusWeekStart } from '../../utils/leaderFun'
 export default defineEventHandler(async (event) => {
   const me = await requireLeader(event)
   const admin = me.role === 'troop_leader'
-  if (!canPhoto(me) && !admin) return { access: false }
+  // every Βαθμοφόρος sees it; only those who play the games (not «εκτός παρέας») take part
   const db = await useDb()
   const people = await db.select().from(s.scouts)
   const figure = (raw: string | null) => { try { return raw ? normalizeAvatar(JSON.parse(raw)) : null } catch { return null } }

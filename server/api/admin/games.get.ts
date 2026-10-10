@@ -3,7 +3,7 @@ import { useDb, schema as s } from '../../db'
 import { requireLeader } from '../../utils/guard'
 import { stillListed } from '../../utils/notifyRetention'
 import { potatoTick, activePotato, potatoWaiting } from '../../utils/leaderFun'
-import { canPhoto, activePhotoRound } from '../../utils/photoGame'
+import { activePhotoRound } from '../../utils/photoGame'
 import { photoThing } from '../../../utils/photoGame'
 import { bagOf } from '../../utils/funBag'
 import { kimDay } from '../../../utils/kim'
@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
     potatoWaiting: pot ? null : await potatoWaiting(),
     // the photo game, only for those let in while it is tried out — admins too switch it on for
     // themselves in Ρόλοι; everyone else sees it coming soon, greyed out, not a link
-    photo: canPhoto(me) ? await (async () => { const r = await activePhotoRound(); const t = r ? photoThing(r.thing) : null; return { round: t ? { el: t.el, emoji: t.emoji } : null } })() : null,
+    photo: me.role !== 'scout' ? await (async () => { const r = await activePhotoRound(); const t = r ? photoThing(r.thing) : null; return { round: t ? { el: t.el, emoji: t.emoji } : null } })() : null,
     kim: kim ? { correct: kim.correct } : null,
     north: north ? { points: north.points, error: north.error } : null,
     flag,
