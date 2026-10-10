@@ -948,7 +948,7 @@ export const flagDays = pgTable('flag_days', {
   loweredBy: integer('lowered_by'),
   loweredAt: text('lowered_at')
 })
-/* Πού είναι ο Βορράς; — a Βαθμοφόρος's one try a day: where the phone pointed
+/* Βρες τις μοίρες (once «Πού είναι ο Βορράς;») — a Βαθμοφόρος's one try a day: where the phone pointed
    (magnetic), how far that was from true north, the points, and how fast */
 export const northPlays = pgTable('north_plays', {
   id: serial('id').primaryKey(),

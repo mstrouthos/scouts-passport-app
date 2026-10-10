@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/* Πού είναι ο Βορράς; — once a day, anywhere: a 3-2-1, then five seconds to
+/* Βρες τις μοίρες (once «Πού είναι ο Βορράς;») — once a day, anywhere: a 3-2-1, then five seconds to
    point the phone (held flat, like a compass) the way the day asks — north at
    first, and from NORTH_RANDOM_FROM a bearing of the day's own, the same for
    everyone — with nothing on the screen to help. Where it points when time is up is the answer, scored on

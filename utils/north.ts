@@ -1,4 +1,4 @@
-/* Πού είναι ο Βορράς; — once a day, five seconds to point the phone the way
+/* Βρες τις μοίρες (once «Πού είναι ο Βορράς;») — once a day, five seconds to point the phone the way
    the day asks, scored by how far off it was. At first that was always north;
    from NORTH_RANDOM_FROM each day has a bearing of its own, the same for
    everyone, so that knowing where north is in your own room does not win it.

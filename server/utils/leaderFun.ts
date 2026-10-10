@@ -70,7 +70,7 @@ const GAME_PHRASE: Record<GameKey, (n: number) => string> = {
   throw: n => `🍅 ${n} στο Σπλατς`,
   potato: n => `🥔 ${n} στην Καυτή Πατάτα`,
   kim: n => `🧠 ${n} στο Ταψί του Κιμ`,
-  north: n => `🧭 ${n} στον Βορρά`,
+  north: n => `🧭 ${n} στο «Βρες τις μοίρες»`,
   flag: n => `🇬🇷 ${n} στη Σημαία`,
   photo: n => `📸 ${n} στο Φωτογραφικό κυνήγι`
 }

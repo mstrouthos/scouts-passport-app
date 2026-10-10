@@ -12,6 +12,6 @@ export default defineEventHandler(async (event) => {
   const db = await useDb()
   const day = kimDay()
   const fresh = await db.insert(s.northPlays).values({ scoutId: me.id, day, startedAt: now() }).onConflictDoNothing().returning()
-  if (!fresh.length) throw createError({ statusCode: 409, message: 'Τον σημερινό Βορρά τον έψαξες ήδη — ξανά αύριο! 🧭' })
+  if (!fresh.length) throw createError({ statusCode: 409, message: 'Τις σημερινές μοίρες τις έψαξες ήδη — ξανά αύριο! 🧭' })
   return { ok: true, target: northTarget(day, me.id) }
 })

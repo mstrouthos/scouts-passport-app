@@ -6,7 +6,7 @@ import { normalizeAvatar } from '../../../utils/avatar'
 import { kimDay } from '../../../utils/kim'
 import { northTarget, northRandomDay } from '../../../utils/north'
 
-/** Πού είναι ο Βορράς; — today's bearing, whether I have had today's go (and
+/** Βρες τις μοίρες (once «Πού είναι ο Βορράς;») — today's bearing, whether I have had today's go (and
     how it went), and how everyone did today and this week, ranked by how far
     off the day's bearing they were. */
 export default defineEventHandler(async (event) => {
